@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>记录小确幸 - 人生博物馆</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2bcdee",
+                        "background-light": "#f6f8f8",
+                        "background-dark": "#101f22",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100 font-display antialiased min-h-screen flex justify-center">
+<div class="w-full max-w-md bg-background-light dark:bg-background-dark min-h-screen relative shadow-2xl overflow-hidden flex flex-col">
+<header class="flex items-center gap-4 px-5 py-4 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100 dark:border-gray-800">
+<button class="text-base text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
+            取消
+        </button>
+<h1 class="text-lg font-bold text-gray-800 dark:text-white flex-1 text-center">记录小确幸</h1>
+<button class="bg-primary hover:bg-primary/90 text-white text-sm font-semibold px-5 py-2 rounded-full shadow-lg shadow-primary/30 transition-all transform active:scale-95">
+            发布
+        </button>
+</header>
+<main class="flex-1 overflow-y-auto no-scrollbar pb-32">
+<section class="px-5 pt-6">
+<div class="bg-white dark:bg-white/5 rounded-xl p-4 shadow-sm border border-transparent focus-within:border-primary/30 transition-colors">
+<input class="w-full bg-transparent border-0 border-b border-gray-100 dark:border-gray-700 p-0 pb-2 mb-3 text-gray-800 dark:text-white placeholder-gray-400 focus:ring-0 text-xl font-bold leading-relaxed" placeholder="给这份小确幸起个标题..." type="text"/>
+<textarea class="w-full bg-transparent border-0 p-0 text-gray-700 dark:text-gray-200 placeholder-gray-400 focus:ring-0 text-base leading-relaxed resize-none h-32" placeholder="记录此刻的美好瞬间，哪怕是微不足道的小事..."></textarea>
+</div>
+</section>
+<section class="px-5 mt-4">
+<div class="flex gap-2 overflow-x-auto no-scrollbar pb-2 items-center">
+<button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium border border-primary/20">
+                    # 读书
+                </button>
+<button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-white dark:bg-white/5 text-gray-500 dark:text-gray-400 text-sm font-medium border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors">
+                    # 搬家
+                </button>
+<button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-white dark:bg-white/5 text-gray-500 dark:text-gray-400 text-sm font-medium border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors">
+                    # 桌面布置
+                </button>
+<button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-white dark:bg-white/5 text-gray-500 dark:text-gray-400 text-sm font-medium border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors">
+                    # 电影
+                </button>
+
+</div><div class="mt-3 flex justify-start"><button class="px-4 py-2 rounded-full bg-[#FF9800]/10 text-[#FF9800] text-sm font-medium border border-dashed border-[#FF9800]/40 hover:bg-[#FF9800] hover:text-white transition-all flex items-center gap-1.5 shadow-sm shadow-[#FF9800]/10"><span class="material-symbols-outlined text-base">add</span>自定义标签</button></div>
+</section>
+<section class="px-5 mt-2">
+<div class="grid grid-cols-4 gap-3">
+<div class="aspect-square relative group rounded-lg overflow-hidden shadow-sm">
+<img alt="Cozy reading corner with warm light" class="w-full h-full object-cover" data-alt="Cozy reading corner with warm light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCxSxrPSNP5GyscJf8VbLyfGEMofwTDzF1suIZ8-kZwEH0DRvaUoSDgFeBeKagtjiOWcOnVaUDtkjJVIuTRKaWf7nsJrY-78Kfy786jvH5MO5t6UqIAuYbDpFIJ7PeRTkiBtloDw6uBasMwFXyt4gnaMkqhoS3zAyRxD4LVpNpRG5THPkjsUMnk-CDVjFKNsl43gKj137Cya9-i21Lr7QjjlMXEZUnTrWi39Nzf8UqaEPfWNwgzIcsj0XXuLx3AUITdlnOzAjgaWoL0"/>
+<button class="absolute top-1 right-1 bg-black/50 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-sm">close</span>
+</button>
+</div>
+<div class="aspect-square relative group rounded-lg overflow-hidden shadow-sm">
+<img alt="Hand holding a cup of coffee" class="w-full h-full object-cover" data-alt="Hand holding a cup of coffee" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCzi11fyH_6hYKpZThR-mYHS3Da_3eXh85e-gCF_lvAH4SvfVjEwYh8d9aR0miNPNYH3o8jde33xIqi8T8JZTryTI74D153SQ-NnVlzsByGKcsDJ4paCt34YtBbuSHysuHtnBf9FYccASj2-QsK3BnTxo-0vrBn7UYxwC64OUtZYsmidVwv8TTmBlpZAZlPAhsHziMezg7JvI5MI5RqQf-1xir3hjKC5Id6td075svWNDf8Ykyb9R0CInz15shx_oRD7Cvrrg8YDkS0"/>
+</div>
+<button class="aspect-square rounded-lg bg-white dark:bg-white/5 border-2 border-dashed border-primary/30 hover:border-primary flex items-center justify-center transition-colors group">
+<span class="material-symbols-outlined text-primary text-2xl group-hover:scale-110 transition-transform">add</span>
+</button>
+</div>
+</section>
+<div class="h-px bg-gray-200 dark:bg-gray-800 mx-5 my-6"></div>
+<section class="px-5 space-y-4">
+<div>
+<div class="flex items-center justify-between mb-2">
+<label class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">此刻心情</label>
+</div>
+<div class="flex gap-4 overflow-x-auto no-scrollbar py-2 px-1">
+<button class="flex flex-col items-center gap-1 group min-w-[50px]">
+<div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center relative ring-2 ring-primary ring-offset-2 ring-offset-background-light dark:ring-offset-background-dark transition-all shadow-[0_0_15px_rgba(43,205,238,0.3)]">
+<span class="text-xl">😊</span>
+</div>
+<span class="text-[10px] font-medium text-primary">开心</span>
+</button>
+<button class="flex flex-col items-center gap-1 group min-w-[50px] opacity-60 hover:opacity-100 transition-opacity">
+<div class="w-10 h-10 rounded-full bg-white dark:bg-white/5 border border-gray-100 dark:border-gray-700 flex items-center justify-center group-hover:scale-110 transition-transform">
+<span class="text-xl">😌</span>
+</div>
+<span class="text-[10px] text-gray-500 dark:text-gray-400">平静</span>
+</button>
+<button class="flex flex-col items-center gap-1 group min-w-[50px] opacity-60 hover:opacity-100 transition-opacity">
+<div class="w-10 h-10 rounded-full bg-white dark:bg-white/5 border border-gray-100 dark:border-gray-700 flex items-center justify-center group-hover:scale-110 transition-transform">
+<span class="text-xl">🌿</span>
+</div>
+<span class="text-[10px] text-gray-500 dark:text-gray-400">治愈</span>
+</button>
+<button class="flex flex-col items-center gap-1 group min-w-[50px] opacity-60 hover:opacity-100 transition-opacity">
+<div class="w-10 h-10 rounded-full bg-white dark:bg-white/5 border border-gray-100 dark:border-gray-700 flex items-center justify-center group-hover:scale-110 transition-transform">
+<span class="text-xl">🤔</span>
+</div>
+<span class="text-[10px] text-gray-500 dark:text-gray-400">思考</span>
+</button>
+<button class="flex flex-col items-center gap-1 group min-w-[50px] opacity-60 hover:opacity-100 transition-opacity">
+<div class="w-10 h-10 rounded-full bg-white dark:bg-white/5 border border-gray-100 dark:border-gray-700 flex items-center justify-center group-hover:scale-110 transition-transform">
+<span class="text-xl">☁️</span>
+</div>
+<span class="text-[10px] text-gray-500 dark:text-gray-400">放空</span>
+</button>
+</div>
+</div>
+<div class="grid grid-cols-1 gap-4">
+<div class="flex items-center justify-between bg-white dark:bg-white/5 p-3 rounded-lg shadow-sm border border-transparent hover:border-primary/20 transition-colors cursor-pointer group">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-lg">calendar_today</span>
+</div>
+<div class="flex flex-col">
+<span class="text-xs text-gray-500 dark:text-gray-400">记录时间</span>
+<span class="text-sm font-semibold text-gray-800 dark:text-gray-200 group-hover:text-primary transition-colors">2023年 10月 26日 14:30</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-gray-400 text-sm">edit</span>
+</div>
+<div class="flex items-center justify-between bg-white dark:bg-white/5 p-3 rounded-lg shadow-sm border border-transparent hover:border-primary/20 transition-colors cursor-pointer group">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-500">
+<span class="material-symbols-outlined text-lg">location_on</span>
+</div>
+<div class="flex flex-col">
+<span class="text-xs text-gray-500 dark:text-gray-400">地理位置</span>
+<span class="text-sm font-semibold text-gray-800 dark:text-gray-200 group-hover:text-primary transition-colors">添加位置信息</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-gray-400 text-sm">chevron_right</span>
+</div>
+</div>
+</section>
+<section class="px-5 mt-6 mb-8">
+<h3 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">万物互联</h3>
+<div class="space-y-3">
+<button class="w-full group relative overflow-hidden bg-white dark:bg-white/5 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 hover:border-primary/50 transition-all p-4 flex items-center justify-between">
+<div class="flex items-center gap-4 relative z-10">
+<div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-cyan-400 flex items-center justify-center shadow-lg shadow-primary/20 text-white shrink-0">
+<span class="material-symbols-outlined text-xl">flag</span>
+</div>
+<div class="flex flex-col items-start text-left">
+<span class="text-sm font-bold text-gray-800 dark:text-white">关联人生目标</span>
+<span class="text-xs text-gray-400 group-hover:text-primary transition-colors">让小确幸充满意义</span>
+</div>
+</div>
+<div class="flex items-center text-gray-400 group-hover:text-primary transition-colors">
+<span class="text-xs mr-1 hidden sm:inline-block">去选择</span>
+<span class="material-symbols-outlined text-lg">chevron_right</span>
+</div>
+</button>
+<button class="w-full group relative overflow-hidden bg-white dark:bg-white/5 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 hover:border-emerald-400/50 transition-all p-4 flex items-center justify-between">
+<div class="flex items-center gap-4 relative z-10">
+<div class="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-400/20 text-white shrink-0">
+<span class="material-symbols-outlined text-xl">flight_takeoff</span>
+</div>
+<div class="flex flex-col items-start text-left">
+<span class="text-sm font-bold text-gray-800 dark:text-white">关联旅行</span>
+<span class="text-xs text-gray-400 group-hover:text-emerald-500 transition-colors">记录旅途中的点滴</span>
+</div>
+</div>
+<div class="flex items-center text-gray-400 group-hover:text-emerald-500 transition-colors">
+<span class="material-symbols-outlined text-lg">add_circle</span>
+</div>
+</button>
+<button class="w-full group relative overflow-hidden bg-white dark:bg-white/5 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 hover:border-rose-400/50 transition-all p-4 flex items-center justify-between">
+<div class="flex items-center gap-4 relative z-10">
+<div class="w-10 h-10 rounded-lg bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center shadow-lg shadow-rose-400/20 text-white shrink-0">
+<span class="material-symbols-outlined text-xl">diversity_1</span>
+</div>
+<div class="flex flex-col items-start text-left">
+<span class="text-sm font-bold text-gray-800 dark:text-white">关联羁绊</span>
+<span class="text-xs text-gray-400 group-hover:text-rose-500 transition-colors">与朋友共享此刻</span>
+</div>
+</div>
+<div class="flex items-center text-gray-400 group-hover:text-rose-500 transition-colors">
+<span class="material-symbols-outlined text-lg">add_circle</span>
+</div>
+</button>
+<button class="w-full group relative overflow-hidden bg-white dark:bg-white/5 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 hover:border-amber-400/50 transition-all p-4 flex items-center justify-between">
+<div class="flex items-center gap-4 relative z-10">
+<div class="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-400/20 text-white shrink-0">
+<span class="material-symbols-outlined text-xl">restaurant</span>
+</div>
+<div class="flex flex-col items-start text-left">
+<span class="text-sm font-bold text-gray-800 dark:text-white">关联美食</span>
+<span class="text-xs text-gray-400 group-hover:text-amber-500 transition-colors">记录舌尖上的幸福</span>
+</div>
+</div>
+<div class="flex items-center text-gray-400 group-hover:text-amber-500 transition-colors">
+<span class="material-symbols-outlined text-lg">add_circle</span>
+</div>
+</button></div>
+</section>
+</main>
+</div>
+</body></html>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>全部日志 - Life Museum</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2bcdee",
+                        "background-light": "#F2F4F7",
+                        "background-dark": "#101f22",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            background-color: #F5F7FA;
+        }
+        .log-card {
+            transition: transform 0.1s ease-in-out;
+            border-radius: 12px;
+        }
+        .log-card:active {
+            transform: scale(0.98);
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            background-color: #F5F7FA;
+        }
+        .log-card {
+            transition: transform 0.1s ease-in-out;
+            border-radius: 12px;
+        }
+        .log-card:active {
+            transform: scale(0.98);
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-800 dark:text-slate-100">
+<div class="relative flex min-h-screen w-full flex-col max-w-md mx-auto shadow-2xl bg-background-light dark:bg-background-dark overflow-hidden" style="background-color: #F5F7FA;">
+<!-- Header -->
+<header class="sticky top-0 z-50 flex items-center justify-between px-4 py-4 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+<button class="flex h-10 w-10 items-center justify-center rounded-full text-primary hover:bg-primary/10 transition-colors">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white">全部日志</h1>
+<button class="flex h-10 w-10 items-center justify-center rounded-full text-primary hover:bg-primary/10 transition-colors">
+<span class="material-symbols-outlined">filter_list</span>
+</button>
+</header><div class="flex border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+<button class="flex-1 py-3 text-sm font-bold text-primary border-b-2 border-primary transition-colors">
+        全部
+    </button>
+<button class="flex-1 py-3 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 transition-colors">
+        新增
+    </button>
+<button class="flex-1 py-3 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 transition-colors">
+        修改
+    </button>
+<button class="flex-1 py-3 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 transition-colors">
+        删除
+    </button>
+</div>
+<!-- Filter Chips -->
+<div class="flex gap-2 overflow-x-auto px-4 py-4 no-scrollbar">
+<button class="flex h-8 shrink-0 items-center justify-center rounded-full bg-primary/10 px-4 text-xs font-semibold text-primary">
+    美食
+</button>
+<button class="flex h-8 shrink-0 items-center justify-center rounded-full bg-white dark:bg-slate-800 px-4 text-xs font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+    旅行
+</button>
+<button class="flex h-8 shrink-0 items-center justify-center rounded-full bg-white dark:bg-slate-800 px-4 text-xs font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+    小确幸
+</button>
+<button class="flex h-8 shrink-0 items-center justify-center rounded-full bg-white dark:bg-slate-800 px-4 text-xs font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+    目标
+</button>
+<button class="flex h-8 shrink-0 items-center justify-center rounded-full bg-white dark:bg-slate-800 px-4 text-xs font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+    羁绊
+</button>
+</div>
+<!-- Content Area -->
+<main class="flex-1 flex flex-col gap-3 px-4 pb-8">
+<!-- Date Group -->
+<div class="mt-2 mb-1 px-1">
+<p class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">今天</p>
+</div>
+<!-- Log Item: Food -->
+<div class="log-card flex items-stretch bg-white dark:bg-slate-900 rounded-lg overflow-hidden shadow-sm border border-slate-100 dark:border-slate-800">
+<div class="w-1.5 bg-orange-400"></div>
+<div class="flex flex-1 items-center justify-between p-4">
+<div class="flex flex-col">
+<span class="text-[15px] font-semibold text-slate-800 dark:text-slate-100">新增美食记录</span>
+<span class="text-xs text-slate-400 mt-0.5">美食博物馆</span>
+</div>
+<span class="text-xs font-medium text-slate-400">14:30</span>
+</div>
+</div>
+<!-- Log Item: Travel -->
+<div class="log-card flex items-stretch bg-white dark:bg-slate-900 rounded-lg overflow-hidden shadow-sm border border-slate-100 dark:border-slate-800">
+<div class="w-1.5 bg-blue-400"></div>
+<div class="flex flex-1 items-center justify-between p-4">
+<div class="flex flex-col">
+<span class="text-[15px] font-semibold text-slate-800 dark:text-slate-100">删除旅行行程</span>
+<span class="text-xs text-slate-400 mt-0.5">足迹地图</span>
+</div>
+<span class="text-xs font-medium text-slate-400">12:15</span>
+</div>
+</div>
+<!-- Date Group -->
+<div class="mt-4 mb-1 px-1">
+<p class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">昨天</p>
+</div>
+<!-- Log Item: Small Joy -->
+<div class="log-card flex items-stretch bg-white dark:bg-slate-900 rounded-lg overflow-hidden shadow-sm border border-slate-100 dark:border-slate-800">
+<div class="w-1.5 bg-pink-400"></div>
+<div class="flex flex-1 items-center justify-between p-4">
+<div class="flex flex-col">
+<span class="text-[15px] font-semibold text-slate-800 dark:text-slate-100">修改小确幸</span>
+<span class="text-xs text-slate-400 mt-0.5">日常收集</span>
+</div>
+<span class="text-xs font-medium text-slate-400">09:00</span>
+</div>
+</div>
+<!-- Log Item: Mood -->
+<div class="log-card flex items-stretch bg-white dark:bg-slate-900 rounded-lg overflow-hidden shadow-sm border border-slate-100 dark:border-slate-800">
+<div class="w-1.5 bg-indigo-400"></div>
+<div class="flex flex-1 items-center justify-between p-4">
+<div class="flex flex-col">
+<span class="text-[15px] font-semibold text-slate-800 dark:text-slate-100">更新心情状态</span>
+<span class="text-xs text-slate-400 mt-0.5">情感馆</span>
+</div>
+<span class="text-xs font-medium text-slate-400">昨天 18:20</span>
+</div>
+</div>
+<!-- Log Item: Food -->
+<div class="log-card flex items-stretch bg-white dark:bg-slate-900 rounded-lg overflow-hidden shadow-sm border border-slate-100 dark:border-slate-800">
+<div class="w-1.5 bg-orange-400"></div>
+<div class="flex flex-1 items-center justify-between p-4">
+<div class="flex flex-col">
+<span class="text-[15px] font-semibold text-slate-800 dark:text-slate-100">新增美食记录</span>
+<span class="text-xs text-slate-400 mt-0.5">美食博物馆</span>
+</div>
+<span class="text-xs font-medium text-slate-400">昨天 12:45</span>
+</div>
+</div>
+<!-- Load More Button -->
+<button class="mt-4 flex items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-4 text-sm font-medium text-slate-500 hover:bg-white dark:hover:bg-slate-800 transition-all">
+<span class="material-symbols-outlined text-lg">history</span>
+                查看更早的记录
+            </button>
+</main>
+<!-- Bottom Navigation Bar -->
+
+</div>
+</body></html>

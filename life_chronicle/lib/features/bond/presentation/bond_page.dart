@@ -1,0 +1,1650 @@
+import 'package:flutter/material.dart';
+
+class BondPage extends StatefulWidget {
+  const BondPage({super.key});
+
+  @override
+  State<BondPage> createState() => _BondPageState();
+}
+
+class _BondPageState extends State<BondPage> {
+  var _tabIndex = 0;
+
+  void _handleAdd() {
+    if (_tabIndex == 1) {
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const _EncounterCreatePage()));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF6F6F6),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFF2BCDEE),
+        foregroundColor: Colors.white,
+        onPressed: _handleAdd,
+        child: const Icon(Icons.add, size: 28),
+      ),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            _BondHeader(
+              tabIndex: _tabIndex,
+              onTabChanged: (next) => setState(() => _tabIndex = next),
+              onAddTap: _handleAdd,
+            ),
+            Expanded(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 220),
+                child: _tabIndex == 0 ? const _FriendArchiveList() : const _EncounterTimeline(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BondHeader extends StatelessWidget {
+  const _BondHeader({
+    required this.tabIndex,
+    required this.onTabChanged,
+    required this.onAddTap,
+  });
+
+  final int tabIndex;
+  final ValueChanged<int> onTabChanged;
+  final VoidCallback onAddTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  '羁绊',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
+                ),
+              ),
+              TextButton(
+                onPressed: () {},
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFF2BCDEE),
+                  textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                ),
+                child: const Text('解析'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          _SegmentedPill(
+            tabIndex: tabIndex,
+            onChanged: onTabChanged,
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: 48,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(999),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 2))],
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.search, color: Color(0xFF9CA3AF), size: 22),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          tabIndex == 1 ? '搜索相遇回忆...' : '搜索朋友档案...',
+                          style: const TextStyle(fontSize: 15, color: Color(0xFF9CA3AF), fontWeight: FontWeight.w500),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              _CircleIconButton(icon: Icons.tune, onTap: () {}),
+              const SizedBox(width: 12),
+              _CircleIconButton(icon: Icons.add, iconColor: const Color(0xFF2BCDEE), onTap: onAddTap),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CircleIconButton extends StatelessWidget {
+  const _CircleIconButton({
+    required this.icon,
+    required this.onTap,
+    this.iconColor,
+  });
+
+  final IconData icon;
+  final Color? iconColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      shape: const CircleBorder(),
+      elevation: 0,
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: SizedBox(
+          width: 48,
+          height: 48,
+          child: Icon(icon, color: iconColor ?? const Color(0xFF6B7280), size: 22),
+        ),
+      ),
+    );
+  }
+}
+
+class _SegmentedPill extends StatelessWidget {
+  const _SegmentedPill({required this.tabIndex, required this.onChanged});
+
+  final int tabIndex;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final w = constraints.maxWidth;
+        final pillWidth = (w - 8) / 2;
+
+        return Container(
+          height: 52,
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE5E7EB),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Stack(
+            children: [
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOut,
+                left: tabIndex == 0 ? 0 : pillWidth,
+                top: 0,
+                bottom: 0,
+                width: pillWidth,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(999),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 2))],
+                  ),
+                ),
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(999),
+                      onTap: () => onChanged(0),
+                      child: Center(
+                        child: Text(
+                          '朋友档案',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: tabIndex == 0 ? const Color(0xFF1F2937) : const Color(0xFF6B7280),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(999),
+                      onTap: () => onChanged(1),
+                      child: Center(
+                        child: Text(
+                          '相遇',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: tabIndex == 1 ? FontWeight.w800 : FontWeight.w700,
+                            color: tabIndex == 1 ? const Color(0xFF2BCDEE) : const Color(0xFF6B7280),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _FriendArchiveList extends StatelessWidget {
+  const _FriendArchiveList();
+
+  static const _friends = <_FriendArchiveItem>[
+    _FriendArchiveItem(
+      name: '林小鱼',
+      days: '3650天',
+      lastMeet: '上次见面：3天前',
+      tags: ['老同学', '饭搭子'],
+      imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDnx1BVMR2dn9-gpBBTIe286GD2f9d7IG3M2LVpHr5OQjFJ8YLsVB8yjzaoMV7Dr811Vw5m0T_opKoELbOUkPeZb_STLqC35_ENoXDazPq9TTwohuyly8N9jOpaxzpWzP4q2ZrMclyVw9pcUxfIm4EOAZLzcuyNY4TqjN7ri4M9GVuLVvlIndWVHWw12-0TPCbW_KzK61CDR_0fhUFP6jUiZcAi4PL0CKrr_Kyc_gQOqS7fTHK54Ah5-dfm-X8gewzUscxFZQELJCJC',
+      imageHeight: 170,
+    ),
+    _FriendArchiveItem(
+      name: '陈老师',
+      days: '1020天',
+      lastMeet: '上次见面：15天前',
+      tags: ['导师', '智慧'],
+      imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCHu7IjV4cm33RK-pkW6hoonuhAQb-DyLv1iVA2dKyQzhd53lWXWSVa6eJW6rK7TKJnUToCMFXgmbTJ5g-mq297SH27qPKorpNg89CDpkS8jMwru2zk1tk7xfAlvodwWdYB35Yqzc2O4_ySLIqrlWkt5iqPTI-nAg5nSGaTs0EtWfpyvlACMrdqnHi_1OA5skMQLi0f3jkQIudZvkcVmNTpSXhsliEpFVz-yLcLGAFL79i_Q_Wn0FxMY54HVtZa1wHbBGKAo5tDTOSU',
+      imageHeight: 220,
+    ),
+    _FriendArchiveItem(
+      name: 'Jason',
+      days: '45天',
+      lastMeet: '上次见面：昨天',
+      tags: ['球友', '健身'],
+      imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD7a6VGtTuMF5_1dOUkhDvMytXsN_vaVbM1zmWeRy2xsUiPpU4nj0m8bEj9AgIG4HXGDqpXAU22jtovDG11u5qOoRLN-XtLa8JVPps9PXgUtMjgGbLvdk6w9rLQdflNn3ebsmEzJLlnk4Ibu2aw0t0hC-qbpowK8L2ZdAAvoWdSpvpmweSC43SYii0vr3DYbtX2N3KpTt06nN5hQY1y4KKXCqQ107XJOP9MSSy1zNazGNu__RWQYxgkPt4E_cYATP9roWtyz9l-AXk9',
+      imageHeight: 150,
+    ),
+    _FriendArchiveItem(
+      name: '阿花',
+      days: '8500天',
+      lastMeet: '上次见面：1年前',
+      tags: ['发小', '邻居', '搞笑'],
+      imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCPTEFJCEvq3DE8_rarnMy0tRvPerq84lGyzqbcCGjBMMAVPCBpNdC2UiSOKAzOzP6jN7BtlyuM4UVSjzaKNBero_HjI3Oum6NUUwOnpsVLWtmiSnmjnQSxyQPNMZCuUPr-zgyBXTv-quBWZSz_uOTZVnqg8XMrNDVidthYpPO-C7UC8l_rQ65Vvnm2swtHoTVeFpcelpF2eLQPDCu_f68VXQUU_6pAxVQldsQaT-u_r3XpTzK8HrappLNRLKJuwVIrBG5ApFnPfS_Q',
+      imageHeight: 200,
+    ),
+    _FriendArchiveItem(
+      name: 'Sarah',
+      days: '730天',
+      lastMeet: '上次见面：2周前',
+      tags: ['前同事', '设计'],
+      imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBIwIvarteoBM8y0GPR6HHpqwu0yNUd9dNkLND1caedxNoKeLgEj9WAYQbea4GgSibuHyhjyA938K_EmDyI6OVhJ_vNJZ2i5o7kmlcMVv4Q8r2ejwwqn7z6Sq675IYyjQQnKpjRUeLmBPXa-8WGtsJgai_L7J5U_SihU8cSaSp0gHIMWqnyzTidGDslR7geVHGIN2h6AqmlAlpHQQZ711HQ_W6FpZe-5PUHC6innHDBPkAQGjeFrrj7PZJQ3fBb9Ug1vjNS6vcFaZg_',
+      imageHeight: 170,
+    ),
+    _FriendArchiveItem(
+      name: '旺财',
+      days: '2100天',
+      lastMeet: '上次见面：刚刚',
+      tags: ['家人', '可爱'],
+      imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCsCdjZ-FoTFjkLobd1gTqAEFaDqJLutaF8EGbGNBE_NvWKSUhwxsrG5lR1c58Hb0C6hTa4mIg0-dI2uWA2w_wEWaPuuf407WCTZ6I39C0TQfDBY6SaEdrmP4VUXnVK1ekQSEPOtoV4WLB-p8kYjQEr95LINZec5HBjPlwnIL3sVCj2dvUiyYntPetNyKMBV46sNwhdhNMST5-j7ePBPiM1LIccqJ6wSJt2PB6aTVS0V0h9aKLl4zpvViF50D0gcLxQHnYyuQIm2nyB',
+      imageHeight: 170,
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final left = <_FriendArchiveItem>[];
+    final right = <_FriendArchiveItem>[];
+    for (var i = 0; i < _friends.length; i++) {
+      (i.isEven ? left : right).add(_friends[i]);
+    }
+
+    return SingleChildScrollView(
+      key: const ValueKey('friend_archives'),
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 140),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              children: [
+                for (final item in left) ...[
+                  _FriendCard(item: item),
+                  const SizedBox(height: 16),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              children: [
+                for (final item in right) ...[
+                  _FriendCard(item: item),
+                  const SizedBox(height: 16),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FriendArchiveItem {
+  const _FriendArchiveItem({
+    required this.name,
+    required this.days,
+    required this.tags,
+    required this.lastMeet,
+    required this.imageUrl,
+    required this.imageHeight,
+  });
+
+  final String name;
+  final String days;
+  final List<String> tags;
+  final String lastMeet;
+  final String imageUrl;
+  final double imageHeight;
+}
+
+class _FriendCard extends StatelessWidget {
+  const _FriendCard({required this.item});
+
+  final _FriendArchiveItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(24),
+      elevation: 0,
+      child: InkWell(
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => _BondFriendDetailPage(friend: item))),
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: const Color(0xFFF3F4F6)),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 2))],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                child: SizedBox(
+                  height: item.imageHeight,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.network(item.imageUrl, fit: BoxFit.cover),
+                      const DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                            colors: [Color(0x33000000), Color(0x00000000)],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            item.name,
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF1F2937)),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(color: const Color(0x1A2BCDEE), borderRadius: BorderRadius.circular(999)),
+                          child: Text(
+                            item.days,
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF2BCDEE)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        for (final t in item.tags)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(999)),
+                            child: Text(t, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF6B7280))),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Container(height: 1, color: const Color(0xFFF3F4F6)),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        const Icon(Icons.history, size: 14, color: Color(0xFFFB923C)),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            item.lastMeet,
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFFFB923C)),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EncounterTimeline extends StatelessWidget {
+  const _EncounterTimeline();
+
+  static const _items = <_EncounterItem>[
+    _EncounterItem(
+      date: '2023年10月15日',
+      title: '与 小明 在 Oishii Sushi 共进晚餐',
+      content: '分享了最近的职场趣闻，寿司的味道依然如故。聊到了关于明年的旅行计划。',
+      icon: Icons.calendar_today,
+      iconFilled: true,
+      avatars: [
+        _EncounterAvatar(
+          image:
+              'https://lh3.googleusercontent.com/aida-public/AB6AXuAGk_HxDxrbpCRA6nSpTvEx_Io_FA5-C-wqijGhFkRJZFjWpnNLZ-k-AQhJwTA8l2oHDOwDJJGVRBDrNX54Ud6jT0MXlkXTfMYEVYfvY9GS_joYMeb0OOUimcx0PQfqw8ibMAAGF1F-3looMH4sH5jO8v6-GAII_IFmIqZ1Zw9NSsu7YxXpTCTVudfG0FG1Pc8uu9R9BL407BNh7DUcIWczb_gQ7MDiJ3oHnBwVnQHuH8ZpZMnIOjAQmw_d-cboUPe_DoRuhUg9ZyI6',
+          badge: 'Me',
+        ),
+      ],
+      extraChip: 'M',
+    ),
+    _EncounterItem(
+      date: '2023年9月20日',
+      title: '与 佳佳、阿强 开启 京都之旅',
+      content: '清水寺的晚霞非常壮丽。三个人的旅行虽然偶尔有小摩擦，但更多的是欢笑。',
+      icon: Icons.flight_takeoff,
+      iconFilled: true,
+      avatars: [
+        _EncounterAvatar(
+          image:
+              'https://lh3.googleusercontent.com/aida-public/AB6AXuAfqbTtlSzcGbxP6sDWFkXEXnXY7S9cEL6Bt3EJFPLD4Rw4StNb79kcTLEPX-DpJkD-EixDzyQ6VaF22CHOCaE0oYW39n2OsTFHJzLc152j70DhBjAAR5fvSJSTauBaUMy49hKBlkyVA9qW0YTbdc9La2XSgErXsEHMkPotxhkDCM3ji8Ztz0Pniue06QW1WXBgJvIZt2LvcGUYOW4SBrEjzS-xqNRpXpHhqISfj24SoyJj7wCWaf9vQce7Lm5-lO3SsHbeXAYpSmqo',
+        ),
+        _EncounterAvatar(
+          image:
+              'https://lh3.googleusercontent.com/aida-public/AB6AXuDtAP63KUCiq0PzWilgClTpCmQSFmEXpK9FGb2IB7ogpjVWu_vs342c4QeGysBwdHS1jP7MGfXnuwRozaxnI_8Lp0i_JBo7-3uqhagGpgt8MVAOyhMUAcz4GQl-Y7kqzYE0pzBFVw3esKYOm4MnQJsTRx4cv14lraUivp1APir-9n02Ajzdl3nPBejG-cCs69Tle82GmPCROQzKPfEerHtNsruSKQycVv2lM7wbb8YO66mUp0XgOgqr8aoGHomDB5UjYoVUdB4WxGos',
+        ),
+      ],
+      extraChip: '+2 位伙伴',
+    ),
+    _EncounterItem(
+      date: '2023年8月05日',
+      title: '在 公园 与 小红 散步',
+      content: '初秋的微风，我们聊了很多关于未来的想法。生活就是由这些平凡的时刻组成的。',
+      icon: Icons.park,
+      iconFilled: true,
+      avatars: [
+        _EncounterAvatar(
+          image:
+              'https://lh3.googleusercontent.com/aida-public/AB6AXuBjJ_wNHKW7CgtCLI2HD7UJjfBb-w2Tp1oreBYKtJEJmzS5ZocJ7P1u3GIskb2LWreXDDihpXzWjEhSt8rrwn9356112wZu2fz8HepNGNfOaxTFiTK5SwltbAsJAVWsOi-Z6p4X03UtTN4lIn8u61_jer0T8mer3Iti8vGeLepODSFiOFyaTHMLD95vuDshdpk13EscElon4D_4POOR2ir6Zij-MR2SykIenIJ6PdLNzSosTQGzQDymOcI7dYq936Ve4oFdBcZ8sL9A',
+        ),
+      ],
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      key: const ValueKey('encounters'),
+      children: [
+        Positioned(
+          left: 36,
+          top: 0,
+          bottom: 0,
+          child: Container(width: 2, color: const Color(0xFFE5E7EB)),
+        ),
+        ListView(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 140),
+          children: [
+            for (final item in _items) ...[
+              _EncounterRow(item: item),
+              const SizedBox(height: 18),
+            ],
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 26),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.55),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
+                  ),
+                  child: const Text('已加载全部美好回忆', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _EncounterItem {
+  const _EncounterItem({
+    required this.date,
+    required this.title,
+    required this.content,
+    required this.icon,
+    required this.iconFilled,
+    required this.avatars,
+    this.extraChip,
+  });
+
+  final String date;
+  final String title;
+  final String content;
+  final IconData icon;
+  final bool iconFilled;
+  final List<_EncounterAvatar> avatars;
+  final String? extraChip;
+}
+
+class _EncounterAvatar {
+  const _EncounterAvatar({required this.image, this.badge});
+
+  final String image;
+  final String? badge;
+}
+
+class _EncounterRow extends StatelessWidget {
+  const _EncounterRow({required this.item});
+
+  final _EncounterItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(width: 6),
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: item.date.contains('10月') ? const Color(0xFF2BCDEE) : Colors.white,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: item.date.contains('10月') ? const Color(0xFFF6F6F6) : const Color(0xFFEAF9FD),
+              width: 3,
+            ),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 10, offset: const Offset(0, 3))],
+          ),
+          child: Icon(
+            item.icon,
+            color: item.date.contains('10月') ? Colors.white : const Color(0xFF2BCDEE),
+            size: 18,
+          ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Material(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(28),
+            child: InkWell(
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => _EncounterDetailPage(item: item))),
+              borderRadius: BorderRadius.circular(28),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(color: const Color(0x00000000)),
+                  boxShadow: [BoxShadow(color: const Color(0xFF2BCDEE).withValues(alpha: 0.12), blurRadius: 24, offset: const Offset(0, 10))],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(item.date, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF2BCDEE))),
+                        ),
+                        const Icon(Icons.chevron_right, size: 18, color: Color(0x809CA3AF)),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(item.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827), height: 1.2)),
+                    const SizedBox(height: 8),
+                    Text(item.content, style: const TextStyle(fontSize: 13, color: Color(0xFF78909C), height: 1.4)),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        SizedBox(
+                          height: 32,
+                          child: Stack(
+                            children: [
+                              for (var i = 0; i < item.avatars.length; i++)
+                                Positioned(
+                                  left: i * 18,
+                                  child: _Avatar(image: item.avatars[i].image, badge: item.avatars[i].badge),
+                                ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        if (item.extraChip != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(color: const Color(0xFFE5E7EB), borderRadius: BorderRadius.circular(999)),
+                            child: Text(item.extraChip!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF6B7280))),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _Avatar extends StatelessWidget {
+  const _Avatar({required this.image, this.badge});
+
+  final String image;
+  final String? badge;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 32,
+      height: 32,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2),
+              image: DecorationImage(image: NetworkImage(image), fit: BoxFit.cover),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2))],
+            ),
+          ),
+          if (badge != null)
+            Positioned(
+              right: -4,
+              bottom: -4,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2BCDEE),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: Colors.white, width: 1),
+                ),
+                child: Text(badge!, style: const TextStyle(fontSize: 8, color: Colors.white, fontWeight: FontWeight.w900)),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BondFriendDetailPage extends StatelessWidget {
+  const _BondFriendDetailPage({required this.friend});
+
+  final _FriendArchiveItem friend;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            pinned: true,
+            backgroundColor: Colors.white.withValues(alpha: 0.9),
+            leading: IconButton(
+              onPressed: () => Navigator.of(context).pop(),
+              icon: const Icon(Icons.arrow_back),
+            ),
+            title: const Text('档案详情', style: TextStyle(fontWeight: FontWeight.w900)),
+            actions: [
+              IconButton(onPressed: () {}, icon: const Icon(Icons.more_vert)),
+            ],
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 140),
+              child: Column(
+                children: [
+                  _FriendProfileCard(friend: friend),
+                  const SizedBox(height: 14),
+                  Center(
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(999),
+                      onTap: () {},
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: const Color(0x332BCDEE)),
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 14, offset: const Offset(0, 6))],
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.auto_awesome, color: Color(0xFF2BCDEE), size: 18),
+                            SizedBox(width: 8),
+                            Text('AI 洞察报告', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF2BCDEE))),
+                            SizedBox(width: 6),
+                            Icon(Icons.chevron_right, color: Color(0xFF2BCDEE), size: 20),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  _FriendMemoryTimeline(friend: friend),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FriendProfileCard extends StatelessWidget {
+  const _FriendProfileCard({required this.friend});
+
+  final _FriendArchiveItem friend;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFF3F4F6)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 16, offset: const Offset(0, 6))],
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 88,
+            height: 88,
+            padding: const EdgeInsets.all(4),
+            decoration: const BoxDecoration(
+              color: Color(0x332BCDEE),
+              shape: BoxShape.circle,
+            ),
+            child: ClipOval(
+              child: Image.network(friend.imageUrl, fit: BoxFit.cover),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(friend.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+          const SizedBox(height: 4),
+          Text('已认识 ${friend.days}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFFFB923C))),
+          const SizedBox(height: 16),
+          Row(
+            children: const [
+              Expanded(child: _InfoPair(label: '朋友生日', value: '10月26日 (还有12天)')),
+              SizedBox(width: 12),
+              Expanded(child: _InfoPair(label: '认识途径', value: '市一中 高中同学')),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const _InfoPair(label: '备注', value: '高中死党，超级火锅爱好者'),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('印象标签', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final t in friend.tags)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(color: const Color(0x1A2BCDEE), borderRadius: BorderRadius.circular(999)),
+                        child: Text(t, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF2BCDEE))),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {},
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFF2BCDEE)),
+                    foregroundColor: const Color(0xFF2BCDEE),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    backgroundColor: Colors.transparent,
+                  ),
+                  icon: const Icon(Icons.bookmark_border, size: 18),
+                  label: const Text('收藏', style: TextStyle(fontWeight: FontWeight.w900)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {},
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFFE5E7EB)),
+                    foregroundColor: const Color(0xFF111827),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    backgroundColor: const Color(0xFFF3F4F6),
+                  ),
+                  icon: const Icon(Icons.edit, size: 18),
+                  label: const Text('编辑档案', style: TextStyle(fontWeight: FontWeight.w900)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoPair extends StatelessWidget {
+  const _InfoPair({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+        const SizedBox(height: 6),
+        Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF334155))),
+      ],
+    );
+  }
+}
+
+class _FriendMemoryTimeline extends StatefulWidget {
+  const _FriendMemoryTimeline({required this.friend});
+
+  final _FriendArchiveItem friend;
+
+  @override
+  State<_FriendMemoryTimeline> createState() => _FriendMemoryTimelineState();
+}
+
+class _FriendMemoryTimelineState extends State<_FriendMemoryTimeline> {
+  var _filterIndex = 0;
+
+  static const _items = <_FriendMemoryItem>[
+    _FriendMemoryItem(
+      date: '2023年 10月 14日',
+      typeLabel: '旅行',
+      typeIcon: Icons.flight_takeoff,
+      title: '京都红叶之旅',
+      content: '即使下雨也很美的一天。我们在清水寺求了签，还吃到了超级好吃的抹茶冰淇淋！说好明年还要一起来。',
+      place: '日本 · 京都',
+      imageUrl:
+          'https://lh3.googleusercontent.com/aida-public/AB6AXuA0aY7ho5JFR6xd4Dx-Viy_Ln5A4nyN9jjpKfK2OFlY6OrMzrIgYOq4teJOs1HlLjtUBmXlYBvVsvnq456VIIROH-_F7l6jQ2Tq_ncq7SW40NuJxrsIb_TY3IFMuood77iHB0ySyu2oHOhjjxQk0PWidNZ9mC5ZHI7-G6Ansi01UHXY1pnmU2r34RLwK6BTNial925C9cueZlbvw_9S_kQiEnwsveuq4rmYDX7It1U0ZYkwtJ8z2oNqYoJ8EJ1JzY72qElThvRP-ZpH',
+      large: true,
+    ),
+    _FriendMemoryItem(
+      date: '2023年 8月 2日',
+      typeLabel: '美食',
+      typeIcon: Icons.restaurant,
+      title: '火锅局 🔥',
+      content: '老地方见！晓雯终于不迟到了哈哈。',
+      place: '上海 · 静安',
+      imageUrl:
+          'https://lh3.googleusercontent.com/aida-public/AB6AXuBYngYbbhn5XYOmWdqL2n_WAXBvW7DNtnZuqlNEVluNk-3sdfN8wxt2C11Zw1Mb2MSMzfnTmiGs3OYlrI6z_T9Uelht6wACNNhbRIuTRtDRp4jgCCCBq6TKdWHMgSs4vuJHRjYdByVEW5xv5ji24H-IVEDaYKLzmwAYSbKiLkKcJZnLV8jeLU2oz9bg1BGpscZ5_hme8a1vmXD0Um4pcFhNb7Qu106iJPWCEz_fEUpnB7YkDKCT8szi9Nz3RLZCVho3qigsX63sXU1k',
+      large: false,
+    ),
+    _FriendMemoryItem(
+      date: '2023年 6月 9日',
+      typeLabel: '小确幸',
+      typeIcon: Icons.auto_awesome,
+      title: '雨天的咖啡馆',
+      content: '窗外下雨，我们聊了很久很久。',
+      place: '上海 · 徐汇',
+      imageUrl:
+          'https://lh3.googleusercontent.com/aida-public/AB6AXuB7bB4qRrW8u1lXcY7xv8u2pY1oP9uZ',
+      large: false,
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('共同回忆轴', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                  SizedBox(height: 4),
+                  Text('共 126 个美好瞬间', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+                ],
+              ),
+            ),
+            TextButton.icon(
+              onPressed: () {},
+              icon: const Icon(Icons.filter_list, size: 18),
+              label: const Text('筛选'),
+              style: TextButton.styleFrom(foregroundColor: const Color(0xFF2BCDEE), textStyle: const TextStyle(fontWeight: FontWeight.w900)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              _PillTab(label: '全部', active: _filterIndex == 0, onTap: () => setState(() => _filterIndex = 0)),
+              const SizedBox(width: 10),
+              _PillTab(label: '🍽️ 美食', active: _filterIndex == 1, onTap: () => setState(() => _filterIndex = 1)),
+              const SizedBox(width: 10),
+              _PillTab(label: '✈️ 旅行', active: _filterIndex == 2, onTap: () => setState(() => _filterIndex = 2)),
+              const SizedBox(width: 10),
+              _PillTab(label: '✨ 小确幸', active: _filterIndex == 3, onTap: () => setState(() => _filterIndex = 3)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        _Timeline(items: _items),
+      ],
+    );
+  }
+}
+
+class _PillTab extends StatelessWidget {
+  const _PillTab({required this.label, required this.active, required this.onTap});
+
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: active ? const Color(0xFF2BCDEE) : Colors.white,
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: active ? const Color(0xFF2BCDEE) : const Color(0xFFF3F4F6)),
+            boxShadow: active ? [BoxShadow(color: const Color(0xFF2BCDEE).withValues(alpha: 0.18), blurRadius: 16, offset: const Offset(0, 6))] : null,
+          ),
+          child: Text(
+            label,
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: active ? Colors.white : const Color(0xFF64748B)),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FriendMemoryItem {
+  const _FriendMemoryItem({
+    required this.date,
+    required this.typeLabel,
+    required this.typeIcon,
+    required this.title,
+    required this.content,
+    required this.place,
+    required this.imageUrl,
+    required this.large,
+  });
+
+  final String date;
+  final String typeLabel;
+  final IconData typeIcon;
+  final String title;
+  final String content;
+  final String place;
+  final String imageUrl;
+  final bool large;
+}
+
+class _Timeline extends StatelessWidget {
+  const _Timeline({required this.items});
+
+  final List<_FriendMemoryItem> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Positioned(
+          left: 24,
+          top: 0,
+          bottom: 0,
+          child: Container(
+            width: 2,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [const Color(0xFFFB923C), const Color(0xFFFB923C).withValues(alpha: 0.18)],
+              ),
+            ),
+          ),
+        ),
+        Column(
+          children: [
+            for (final item in items) ...[
+              _TimelineEntry(item: item),
+              const SizedBox(height: 16),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _TimelineEntry extends StatelessWidget {
+  const _TimelineEntry({required this.item});
+
+  final _FriendMemoryItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(width: 10),
+        Container(
+          width: 14,
+          height: 14,
+          margin: const EdgeInsets.only(top: 10),
+          decoration: BoxDecoration(
+            color: item.large ? const Color(0xFF2BCDEE) : const Color(0xFFD1D5DB),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: const Color(0xFFF8FAFC), width: 2),
+            boxShadow: item.large ? [BoxShadow(color: const Color(0xFF2BCDEE).withValues(alpha: 0.20), blurRadius: 14, offset: const Offset(0, 6))] : null,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(item.date, style: TextStyle(fontSize: 12, fontWeight: item.large ? FontWeight.w900 : FontWeight.w700, color: item.large ? const Color(0xFF2BCDEE) : const Color(0xFF9CA3AF))),
+              const SizedBox(height: 8),
+              item.large ? _LargeMemoryCard(item: item) : _SmallMemoryCard(item: item),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LargeMemoryCard extends StatelessWidget {
+  const _LargeMemoryCard({required this.item});
+
+  final _FriendMemoryItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(22),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: () {},
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: const Color(0x1A2BCDEE)),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 16, offset: const Offset(0, 6))],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+                child: SizedBox(
+                  height: 164,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.network(item.imageUrl, fit: BoxFit.cover),
+                      Positioned(
+                        top: 12,
+                        right: 12,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.45),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(item.typeIcon, size: 14, color: Colors.white),
+                              const SizedBox(width: 6),
+                              Text(item.typeLabel, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.white)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(item.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                    const SizedBox(height: 8),
+                    Text(item.content, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B), height: 1.45)),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        const Icon(Icons.place, size: 16, color: Color(0xFF9CA3AF)),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(item.place, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+                        ),
+                        IconButton(onPressed: () {}, icon: const Icon(Icons.favorite_border), color: const Color(0xFF9CA3AF)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SmallMemoryCard extends StatelessWidget {
+  const _SmallMemoryCard({required this.item});
+
+  final _FriendMemoryItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(22),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: () {},
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: const Color(0x1A2BCDEE)),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 16, offset: const Offset(0, 6))],
+          ),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: SizedBox(
+                  width: 64,
+                  height: 64,
+                  child: Image.network(item.imageUrl, fit: BoxFit.cover),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(item.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                    const SizedBox(height: 6),
+                    Text(item.content, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B), height: 1.4)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.more_horiz, color: Color(0xFFD1D5DB)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EncounterCreatePage extends StatefulWidget {
+  const _EncounterCreatePage();
+
+  @override
+  State<_EncounterCreatePage> createState() => _EncounterCreatePageState();
+}
+
+class _EncounterCreatePageState extends State<_EncounterCreatePage> {
+  final _titleController = TextEditingController();
+  final _contentController = TextEditingController();
+  final _placeController = TextEditingController();
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _contentController.dispose();
+    _placeController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF6F6F6),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.92),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 18, offset: const Offset(0, 10))],
+              ),
+              child: Row(
+                children: [
+                  IconButton(onPressed: () => Navigator.of(context).pop(), icon: const Icon(Icons.arrow_back)),
+                  const Expanded(
+                    child: Text('新建相遇', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                  ),
+                  IconButton(onPressed: () {}, icon: const Icon(Icons.more_horiz)),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 140),
+                children: [
+                  _FormCard(
+                    title: '相遇对象',
+                    child: Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        const _ChipPill(text: '小明'),
+                        const _ChipPill(text: 'Sarah'),
+                        InkWell(
+                          borderRadius: BorderRadius.circular(999),
+                          onTap: () {},
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(color: const Color(0xFFE5E7EB)),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.add, size: 16, color: Color(0xFF2BCDEE)),
+                                SizedBox(width: 6),
+                                Text('添加', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF2BCDEE))),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _FormCard(
+                    title: '日期',
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () {},
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF3F4F6),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.calendar_today, size: 16, color: Color(0xFF64748B)),
+                            SizedBox(width: 10),
+                            Expanded(child: Text('2023年10月15日', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF111827)))),
+                            Icon(Icons.chevron_right, color: Color(0xFF9CA3AF)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _FormCard(
+                    title: '地点',
+                    child: TextField(
+                      controller: _placeController,
+                      decoration: InputDecoration(
+                        hintText: '例如：Oishii Sushi',
+                        filled: true,
+                        fillColor: const Color(0xFFF3F4F6),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                      ),
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF111827)),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _FormCard(
+                    title: '标题',
+                    child: TextField(
+                      controller: _titleController,
+                      decoration: InputDecoration(
+                        hintText: '一句话概括这次相遇',
+                        filled: true,
+                        fillColor: const Color(0xFFF3F4F6),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                      ),
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF111827)),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _FormCard(
+                    title: '记录',
+                    child: TextField(
+                      controller: _contentController,
+                      minLines: 4,
+                      maxLines: 7,
+                      decoration: InputDecoration(
+                        hintText: '写下你们做了什么、聊了什么、有什么感受...',
+                        filled: true,
+                        fillColor: const Color(0xFFF3F4F6),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                      ),
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF111827), height: 1.45),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _FormCard(
+                    title: '标签',
+                    child: Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: const [
+                        _ChipPill(text: '美食'),
+                        _ChipPill(text: '旅行计划'),
+                        _ChipPill(text: '近况分享'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFFE5E7EB)),
+                    foregroundColor: const Color(0xFF111827),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    backgroundColor: Colors.white,
+                  ),
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('取消', style: TextStyle(fontWeight: FontWeight.w900)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2BCDEE),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    elevation: 0,
+                  ),
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('保存', style: TextStyle(fontWeight: FontWeight.w900)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FormCard extends StatelessWidget {
+  const _FormCard({required this.title, required this.child});
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFF3F4F6)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 14, offset: const Offset(0, 6))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+          const SizedBox(height: 10),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _ChipPill extends StatelessWidget {
+  const _ChipPill({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(999)),
+      child: Text(text, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF64748B))),
+    );
+  }
+}
+
+class _EncounterDetailPage extends StatelessWidget {
+  const _EncounterDetailPage({required this.item});
+
+  final _EncounterItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF6F6F6),
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            pinned: true,
+            backgroundColor: Colors.white.withValues(alpha: 0.9),
+            leading: IconButton(onPressed: () => Navigator.of(context).pop(), icon: const Icon(Icons.arrow_back)),
+            title: const Text('相遇详情', style: TextStyle(fontWeight: FontWeight.w900)),
+            actions: [
+              IconButton(onPressed: () {}, icon: const Icon(Icons.more_horiz)),
+            ],
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 140),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: const Color(0xFFF3F4F6)),
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 16, offset: const Offset(0, 6))],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(color: const Color(0x1A2BCDEE), borderRadius: BorderRadius.circular(12)),
+                              child: Icon(item.icon, color: const Color(0xFF2BCDEE)),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(item.date, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF2BCDEE))),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Text(item.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827), height: 1.2)),
+                        const SizedBox(height: 10),
+                        Text(item.content, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B), height: 1.5)),
+                        const SizedBox(height: 14),
+                        const Text('参与者', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            for (final a in item.avatars) ...[
+                              _Avatar(image: a.image, badge: a.badge),
+                              const SizedBox(width: 8),
+                            ],
+                            if (item.extraChip != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(999)),
+                                child: Text(item.extraChip!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        const Text('万物互联', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: const [
+                            _ChipPill(text: '关联美食'),
+                            _ChipPill(text: '关联旅行'),
+                            _ChipPill(text: '关联小确幸'),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFFE5E7EB)),
+                    foregroundColor: const Color(0xFF111827),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    backgroundColor: Colors.white,
+                  ),
+                  onPressed: () {},
+                  child: const Text('编辑', style: TextStyle(fontWeight: FontWeight.w900)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2BCDEE),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    elevation: 0,
+                  ),
+                  onPressed: () {},
+                  child: const Text('关联', style: TextStyle(fontWeight: FontWeight.w900)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

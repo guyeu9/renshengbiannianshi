@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>万物互联管理中心</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#2bcdee",
+              "primary-dark": "#209bb3", 
+              "background-light": "#f6f8f8",
+              "background-dark": "#101f22",
+              "surface-light": "#ffffff",
+              "text-main": "#1f2937",
+              "text-secondary": "#6b7280",
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+            boxShadow: {
+                'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                'glow': '0 0 15px rgba(43, 205, 238, 0.3)',
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            -webkit-tap-highlight-color: transparent;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .link-line {
+            background-image: repeating-linear-gradient(90deg, #2bcdee 0, #2bcdee 4px, transparent 4px, transparent 8px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-text-main antialiased min-h-screen pb-20 selection:bg-primary selection:text-white">
+<!-- Mobile Container -->
+<div class="max-w-md mx-auto min-h-screen relative overflow-hidden bg-background-light dark:bg-background-dark shadow-2xl">
+<!-- Header Section with Sticky Search -->
+<header class="sticky top-0 z-50 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 transition-all duration-300">
+<!-- Title Bar -->
+<div class="px-6 pt-12 pb-4 flex items-center justify-between">
+<div>
+<h1 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">万物互联</h1>
+<p class="text-xs text-gray-500 mt-1 dark:text-gray-400">管理人生碎片的深度羁绊</p>
+</div>
+
+</div>
+<!-- Search Bar -->
+<div class="px-6 pb-4">
+<div class="relative group">
+<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+<span class="material-icons-outlined text-primary group-focus-within:text-primary-dark transition-colors">search</span>
+</div>
+<input class="block w-full pl-11 pr-4 py-3 bg-white dark:bg-gray-800 border-none rounded-xl text-sm shadow-soft focus:ring-2 focus:ring-primary/50 placeholder-gray-400 dark:text-white transition-all" placeholder="搜索记忆关键词（如：成都、火锅...）" type="text"/>
+<div class="absolute inset-y-0 right-0 pr-3 flex items-center">
+<button class="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400">
+<span class="material-icons-outlined text-sm">tune</span>
+</button>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="px-6 pt-6 space-y-8">
+<!-- Statistics Banner -->
+<div class="grid grid-cols-2 gap-4">
+<!-- Stat Card 1 -->
+<div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-soft border border-gray-50 dark:border-gray-700 relative overflow-hidden group">
+<div class="absolute -right-4 -top-4 w-20 h-20 bg-primary/10 rounded-full group-hover:bg-primary/20 transition-all"></div>
+<p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">当前已建立关联</p>
+<div class="flex items-baseline space-x-1">
+<span class="text-3xl font-bold text-primary">128</span>
+<span class="text-sm text-gray-400">处</span>
+</div>
+</div>
+<!-- Stat Card 2 -->
+<div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-soft border border-gray-50 dark:border-gray-700 relative overflow-hidden group">
+<div class="absolute -right-4 -top-4 w-20 h-20 bg-primary/10 rounded-full group-hover:bg-primary/20 transition-all"></div>
+<p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">全部日志</p>
+<div class="flex items-center space-x-2 mt-1"><div class="flex items-baseline space-x-1"><span class="text-3xl font-bold text-primary">356</span><span class="text-sm text-gray-400">条</span></div></div>
+</div>
+</div>
+<!-- Filter Tabs -->
+<div class="flex items-center space-x-3 overflow-x-auto hide-scrollbar pb-1">
+<button class="px-4 py-2 bg-primary text-white text-sm font-medium rounded-full shadow-glow whitespace-nowrap">全部关联</button>
+<button class="px-4 py-2 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-100 dark:border-gray-700 text-sm font-medium rounded-full whitespace-nowrap hover:bg-gray-50">人物羁绊</button>
+<button class="px-4 py-2 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-100 dark:border-gray-700 text-sm font-medium rounded-full whitespace-nowrap hover:bg-gray-50">地点印记</button>
+<button class="px-4 py-2 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-100 dark:border-gray-700 text-sm font-medium rounded-full whitespace-nowrap hover:bg-gray-50">物品收藏</button>
+</div>
+<!-- Connection Flow -->
+<div class="">
+<div class="flex items-center justify-between px-1">
+<h2 class="text-sm font-semibold text-gray-900 dark:text-white">最近关联</h2>
+<button class="text-xs text-primary font-medium hover:text-primary-dark">查看全部</button>
+</div>
+<!-- Card 1: Food <-> Person -->
+<div class="bg-white dark:bg-gray-800 rounded-2xl shadow-soft border border-gray-50 dark:border-gray-700 relative group cursor-pointer hover:shadow-lg transition-all duration-300 p-3">
+<div class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-icons-outlined text-gray-400 text-sm">more_horiz</span>
+</div>
+<div class="flex items-center justify-between">
+<!-- Entity A -->
+<div class="flex flex-col items-center w-24 text-center space-y-2">
+
+<div>
+<h3 class="text-sm font-semibold text-gray-800 dark:text-white">成都火锅</h3>
+<p class="text-[10px] text-gray-400 uppercase tracking-wide">美食</p>
+</div>
+</div>
+<!-- Connector -->
+<div class="flex-1 flex flex-col items-center justify-center px-2 relative h-full">
+<div class="h-[2px] w-full link-line absolute top-1/2 -translate-y-1/2 opacity-50"></div>
+<div class="bg-white dark:bg-gray-800 z-10 px-2">
+<div class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+<span class="material-icons-outlined text-primary text-xs">link</span>
+</div>
+</div>
+<span class="text-[10px] text-primary mt-6 font-medium">共同回忆</span>
+</div>
+<!-- Entity B -->
+<div class="flex flex-col items-center w-24 text-center space-y-2">
+
+<div>
+<h3 class="text-sm font-semibold text-gray-800 dark:text-white">张三</h3>
+<p class="text-[10px] text-gray-400 uppercase tracking-wide">羁绊</p>
+</div>
+</div>
+</div>
+<!-- Meta info footer -->
+<div class="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center">
+<span class="text-[10px] text-gray-400">关联于 2023-10-24</span>
+<div class="flex items-center space-x-1">
+<span class="w-1.5 h-1.5 rounded-full bg-green-400"></span>
+<span class="text-[10px] text-gray-500">强关联</span>
+</div>
+</div>
+</div>
+<!-- Card 2: Location <-> Music -->
+<div class="bg-white dark:bg-gray-800 rounded-2xl shadow-soft border border-gray-50 dark:border-gray-700 relative group cursor-pointer hover:shadow-lg transition-all duration-300 p-3">
+<div class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-icons-outlined text-gray-400 text-sm">more_horiz</span>
+</div>
+<div class="flex items-center justify-between">
+<!-- Entity A -->
+<div class="flex flex-col items-center w-24 text-center space-y-2">
+
+<div>
+<h3 class="text-sm font-semibold text-gray-800 dark:text-white">玉林路</h3>
+<p class="text-[10px] text-gray-400 uppercase tracking-wide">地点</p>
+</div>
+</div>
+<!-- Connector -->
+<div class="flex-1 flex flex-col items-center justify-center px-2 relative h-full">
+<div class="h-[2px] w-full link-line absolute top-1/2 -translate-y-1/2 opacity-50"></div>
+<div class="bg-white dark:bg-gray-800 z-10 px-2">
+<div class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+<span class="material-icons-outlined text-primary text-xs">link</span>
+</div>
+</div>
+<span class="text-[10px] text-primary mt-6 font-medium">BGM</span>
+</div>
+<!-- Entity B -->
+<div class="flex flex-col items-center w-24 text-center space-y-2">
+
+<div>
+<h3 class="text-sm font-semibold text-gray-800 dark:text-white">《成都》</h3>
+<p class="text-[10px] text-gray-400 uppercase tracking-wide">音乐</p>
+</div>
+</div>
+</div>
+<div class="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center">
+<span class="text-[10px] text-gray-400">关联于 2023-09-15</span>
+<div class="flex items-center space-x-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+<span class="text-[10px] text-gray-500">普通关联</span>
+</div>
+</div>
+</div>
+<!-- Card 3: Event <-> Emotion -->
+<div class="bg-white dark:bg-gray-800 rounded-2xl shadow-soft border border-gray-50 dark:border-gray-700 relative group cursor-pointer hover:shadow-lg transition-all duration-300 p-3">
+<div class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-icons-outlined text-gray-400 text-sm">more_horiz</span>
+</div>
+<div class="flex items-center justify-between">
+<!-- Entity A -->
+<div class="flex flex-col items-center w-24 text-center space-y-2">
+
+<div>
+<h3 class="text-sm font-semibold text-gray-800 dark:text-white">2023跨年</h3>
+<p class="text-[10px] text-gray-400 uppercase tracking-wide">事件</p>
+</div>
+</div>
+<!-- Connector -->
+<div class="flex-1 flex flex-col items-center justify-center px-2 relative h-full">
+<div class="h-[2px] w-full link-line absolute top-1/2 -translate-y-1/2 opacity-50"></div>
+<div class="bg-white dark:bg-gray-800 z-10 px-2">
+<div class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+<span class="material-icons-outlined text-primary text-xs">link</span>
+</div>
+</div>
+<span class="text-[10px] text-primary mt-6 font-medium">感受</span>
+</div>
+<!-- Entity B -->
+<div class="flex flex-col items-center w-24 text-center space-y-2">
+
+<div>
+<h3 class="text-sm font-semibold text-gray-800 dark:text-white">小确幸</h3>
+<p class="text-[10px] text-gray-400 uppercase tracking-wide">情绪</p>
+</div>
+</div>
+</div>
+<div class="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center">
+<span class="text-[10px] text-gray-400">关联于 2023-01-01</span>
+<div class="flex items-center space-x-1">
+<span class="w-1.5 h-1.5 rounded-full bg-green-400"></span>
+<span class="text-[10px] text-gray-500">强关联</span>
+</div>
+</div>
+</div>
+<!-- Spacer for scrolling -->
+<div class="h-12"></div>
+</div>
+</main>
+<!-- Floating Action Button -->
+
+<!-- Simulated Bottom Navigation (for context) -->
+
+</div>
+</body></html>

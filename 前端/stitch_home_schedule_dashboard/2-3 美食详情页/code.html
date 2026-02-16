@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>美食详情页 - 人生博物馆</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+            extend: {
+                colors: {
+                    "primary": "#2beeee",
+                    "primary-dark": "#22bebe", 
+                    "background-light": "#f6f8f8",
+                    "background-dark": "#102222",
+                    "surface-light": "#ffffff",
+                    "surface-dark": "#1a2c2c",
+                },
+                fontFamily: {
+                    "display": ["Plus Jakarta Sans", "PingFang SC", "Microsoft YaHei", "sans-serif"],
+                    "body": ["PingFang SC", "Microsoft YaHei", "sans-serif"] // For better Chinese rendering
+                },
+                borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "2xl": "2rem", "full": "9999px"},
+                boxShadow: {
+                    'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                    'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
+                }
+            },
+            },
+        }
+    </script>
+<style>.no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }.no-scrollbar {
+            -ms-overflow-style: none;scrollbar-width: none;}
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .dark .glass-panel {
+            background: rgba(26, 44, 44, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .text-shadow {
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-100 antialiased min-h-screen pb-32 relative overflow-x-hidden">
+<nav class="sticky top-0 w-full z-50 px-4 pt-12 pb-4 flex justify-between items-center bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-gray-100 dark:border-white/5">
+<button class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors text-gray-800 dark:text-white">
+<span class="material-icons-round text-2xl">arrow_back</span>
+</button>
+<div class="flex gap-2">
+<button class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors text-gray-800 dark:text-white">
+<span class="material-icons-round text-xl">ios_share</span>
+</button>
+<button class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors text-gray-800 dark:text-white">
+<span class="material-icons-round text-xl">more_horiz</span>
+</button>
+</div>
+</nav>
+<main class="relative px-5 pt-4 flex flex-col gap-6">
+<section>
+<div class="flex justify-between items-start mb-2">
+<h1 class="text-3xl font-bold text-gray-900 dark:text-white leading-tight tracking-tight">隐世·日式料理</h1>
+<div class="flex flex-col items-end">
+<span class="text-xs text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wide">人均</span>
+<span class="text-xl font-bold text-primary-dark dark:text-primary">¥ 680</span>
+</div>
+</div>
+<div class="flex items-center gap-1 mb-6">
+<div class="flex text-primary">
+<span class="material-icons-round text-lg">star</span>
+<span class="material-icons-round text-lg">star</span>
+<span class="material-icons-round text-lg">star</span>
+<span class="material-icons-round text-lg">star</span>
+<span class="material-icons-round text-lg">star</span>
+</div>
+<span class="text-sm text-gray-500 ml-1 dark:text-gray-400 font-medium">5.0</span>
+<span class="text-xs text-gray-300 mx-2">|</span>
+<span class="text-xs text-gray-500 dark:text-gray-400">日本料理</span>
+</div>
+<div class="flex items-center justify-between group cursor-pointer active:opacity-70 transition-opacity bg-white dark:bg-surface-dark p-3 rounded-xl shadow-sm border border-gray-100 dark:border-white/5">
+<div class="flex items-center gap-3 overflow-hidden">
+<div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+<span class="material-icons-round text-primary-dark dark:text-primary text-sm">location_on</span>
+</div>
+<div class="flex flex-col truncate pr-2">
+<span class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">上海市徐汇区武康路 376 号</span>
+<span class="text-xs text-gray-400 truncate">Ferguson Lane, Shanghai</span>
+</div>
+</div>
+<div class="w-8 h-8 rounded-full border border-gray-100 dark:border-gray-700 flex items-center justify-center flex-shrink-0 bg-gray-50 dark:bg-white/5 text-gray-400">
+<span class="material-icons-round text-sm">near_me</span>
+</div>
+</div>
+</section>
+<section>
+<div class="flex gap-2 mb-4 flex-wrap">
+<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary-dark dark:text-primary border border-primary/20">
+<span class="mr-1">#</span> 纪念日
+                </span>
+<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300">
+<span class="mr-1">#</span> 探店
+                </span>
+<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300">
+<span class="mr-1">#</span> Omakase
+                </span>
+</div>
+<div class="prose prose-sm dark:prose-invert max-w-none text-gray-600 dark:text-gray-300 leading-relaxed font-body">
+<p>
+                    非常惊喜的一次用餐体验。食材极其新鲜，大腹入口即化，海胆鲜甜没有任何腥味。主厨很健谈，介绍了每一道菜的来源和设计思路。
+                </p>
+<p class="mt-2">
+                    环境私密性很好，只有八个板前座位，很适合我们这次的三周年纪念日。最后送的手作甜品也是点睛之笔。仿佛一秒回到了京都的那个夏天。🍃
+                </p>
+<p class="mt-3 text-xs text-gray-400 font-display flex items-center gap-1">
+<span class="material-icons-round text-[14px]">schedule</span>
+                    记录于 2023年10月15日 19:30
+                </p>
+</div>
+</section>
+<section class="grid grid-cols-3 gap-2 rounded-2xl overflow-hidden">
+<div class="aspect-square col-span-2 row-span-2 relative group">
+<img alt="Exquisite Japanese Sushi Platter" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBgRh8-ta4K29QQDs6M93V1mgLfzEgYz6bB2gUER1SVDLsTMLzKDfqGFb9Fo7t2FckvMT6zrpPBea51zTXRpwttcQYnhQgdCPK2LQ8t2-jo8Rr-qs3kDKiKSEkSNZTnMonFndLcJ1jABelzs-fHzjA-0Sun_hib_ePZLRkHCmOus6sWXYVRK-me03Wzru_zH60h8UArUfpDdJphk5YO2fXreuBddmFIb3Azhqr4LR0zTOHT_sFUIRqPBWdCX8_H-wwOpV5haZSTja8o"/>
+</div>
+<div class="aspect-square relative group rounded-tr-2xl overflow-hidden">
+<img alt="Chef preparing sushi" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAbPh6GXmRAOPfx54OTSCVsQE_iKSmzMRqM7oWsMvTWQNW5bmafJYB_zWCYQe9n7fU3peshTONHSeN9oDcIzu4bxXTdkKynF9p4fwEPSHzBv7CgSs80EP5VjhNyG88li5A4-qGTtleMZ4ibRON6PXoT3ZDp-_Og0UGnSqVDa_saVHYOmoc6ONHDUVXDV0kh5f_1YL_MUjh89Br8De5-81rMdscjEkCCDL5pJys0VxQRhAqDXG1hIqd2zMzbOnq2_lWv9pYS4fnnMerh"/>
+</div>
+<div class="aspect-square relative group overflow-hidden">
+<img alt="Detailed sushi shot" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBcZ_DwI2KDOuMVPb2x7PYjLStuywi2cGZtllXl-up-nZXOjmeYU7pL2XWxz_CaPc18vnYdDrciKYMC_GqeH8VPp31NH3SVGkiceftbpXRI9C5Gv8L85tab5e00-i5lJ5_nGOLnehD1fIwwSRRt1obSe5HBFEsrcaN76jBVqGB9_uu9sjKqDhlsAAQsi_e0mR9eaC-PNUV6L-ngmrcxWFi1sPdxAb2O3go8YOixgbrAuRSmsQPlnXC6asQ_xqM1YwvmW8QZhzFx_wxb"/>
+</div>
+<div class="aspect-square relative group rounded-br-2xl overflow-hidden bg-gray-100 dark:bg-surface-dark flex items-center justify-center cursor-pointer">
+<div class="text-center">
+<span class="text-xs font-bold text-gray-500 dark:text-gray-400">+5</span>
+<span class="block text-[10px] text-gray-400">查看更多</span>
+</div>
+</div>
+</section>
+<div class="h-px w-full bg-gray-100 dark:bg-white/5 my-2"></div>
+<section>
+<div class="flex items-center justify-between mb-4 px-1">
+<h2 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+<span class="w-1 h-4 rounded-full bg-primary"></span>
+                    万物关联
+                </h2>
+<span class="text-xs text-primary font-medium bg-primary/10 px-2 py-0.5 rounded-full">3 个关联</span>
+</div>
+<div class="flex overflow-x-auto no-scrollbar gap-4 pb-4 -mx-5 px-5 snap-x">
+<div class="snap-start flex-shrink-0 w-32 bg-surface-light dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-gray-100 dark:border-white/5 flex flex-col items-center justify-center gap-2 group">
+<div class="relative">
+<img alt="Portrait of a smiling woman" class="w-12 h-12 rounded-full object-cover border-2 border-white dark:border-gray-700 shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAbPh6GXmRAOPfx54OTSCVsQE_iKSmzMRqM7oWsMvTWQNW5bmafJYB_zWCYQe9n7fU3peshTONHSeN9oDcIzu4bxXTdkKynF9p4fwEPSHzBv7CgSs80EP5VjhNyG88li5A4-qGTtleMZ4ibRON6PXoT3ZDp-_Og0UGnSqVDa_saVHYOmoc6ONHDUVXDV0kh5f_1YL_MUjh89Br8De5-81rMdscjEkCCDL5pJys0VxQRhAqDXG1hIqd2zMzbOnq2_lWv9pYS4fnnMerh"/>
+<div class="absolute -bottom-1 -right-1 bg-blue-100 text-blue-600 p-0.5 rounded-full border border-white">
+<span class="material-icons-round text-[10px] block">person</span>
+</div>
+</div>
+<span class="text-xs font-medium text-gray-700 dark:text-gray-200">Sarah</span>
+<span class="text-[10px] text-gray-400">共进晚餐</span>
+</div>
+<div class="snap-start flex-shrink-0 w-40 bg-surface-light dark:bg-surface-dark rounded-xl p-3 shadow-sm border border-gray-100 dark:border-white/5 flex flex-col gap-2 relative overflow-hidden">
+<div class="absolute top-0 right-0 w-16 h-16 bg-primary/5 rounded-bl-full -mr-4 -mt-4"></div>
+<div class="flex items-center gap-2 z-10">
+<div class="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 text-orange-500 flex items-center justify-center">
+<span class="material-icons-round text-sm">flight_takeoff</span>
+</div>
+<span class="text-[10px] text-gray-400 font-bold tracking-wider uppercase">Trip</span>
+</div>
+<div class="z-10 mt-1">
+<span class="text-xs font-bold text-gray-800 dark:text-gray-100 block truncate">2023 上海之秋</span>
+<span class="text-[10px] text-gray-400 block mt-0.5">行程第 2 天</span>
+</div>
+</div>
+<div class="snap-start flex-shrink-0 w-32 bg-surface-light dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-gray-100 dark:border-white/5 flex flex-col items-center justify-center gap-2">
+<div class="w-12 h-12 rounded-full bg-yellow-50 dark:bg-yellow-900/20 flex items-center justify-center text-2xl relative">
+                        ✨
+                        <div class="absolute -bottom-1 -right-1 bg-yellow-100 text-yellow-600 p-0.5 rounded-full border border-white">
+<span class="material-icons-round text-[10px] block">mood</span>
+</div>
+</div>
+<span class="text-xs font-medium text-gray-700 dark:text-gray-200">极度舒适</span>
+<span class="text-[10px] text-gray-400">心情</span>
+</div>
+<div class="snap-start flex-shrink-0 w-12 flex items-center justify-center">
+<button class="w-10 h-10 rounded-full border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center text-gray-400 hover:text-primary hover:border-primary transition-colors">
+<span class="material-icons-round text-lg">add</span>
+</button>
+</div>
+</div>
+</section>
+<section class="rounded-xl overflow-hidden relative h-32 mt-2 group cursor-pointer">
+<img alt="Map view of Shanghai streets" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" data-location="Shanghai" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBcZ_DwI2KDOuMVPb2x7PYjLStuywi2cGZtllXl-up-nZXOjmeYU7pL2XWxz_CaPc18vnYdDrciKYMC_GqeH8VPp31NH3SVGkiceftbpXRI9C5Gv8L85tab5e00-i5lJ5_nGOLnehD1fIwwSRRt1obSe5HBFEsrcaN76jBVqGB9_uu9sjKqDhlsAAQsi_e0mR9eaC-PNUV6L-ngmrcxWFi1sPdxAb2O3go8YOixgbrAuRSmsQPlnXC6asQ_xqM1YwvmW8QZhzFx_wxb"/>
+<div class="absolute inset-0 bg-gradient-to-r from-background-light/90 via-background-light/40 to-transparent dark:from-background-dark/90 dark:via-background-dark/40 flex items-center px-6">
+<div class="flex flex-col">
+<span class="text-xs font-bold text-primary tracking-widest uppercase mb-1">Navigation</span>
+<span class="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-1">
+                        查看地图详情 
+                        <span class="material-icons-round text-sm">arrow_forward</span>
+</span>
+</div>
+</div>
+</section>
+</main>
+<div class="fixed bottom-6 left-1/2 transform -translate-x-1/2 w-[90%] max-w-md z-40">
+<div class="glass-panel rounded-full shadow-glass px-6 py-3 flex justify-between items-center">
+<button class="flex flex-col items-center gap-1 group">
+<span class="material-icons-round text-gray-500 dark:text-gray-400 group-hover:text-primary transition-colors text-xl">edit</span>
+<span class="text-[10px] font-medium text-gray-500 dark:text-gray-400 group-hover:text-primary transition-colors">编辑</span>
+</button>
+<div class="h-8 w-[1px] bg-gray-200 dark:bg-white/10"></div>
+<button class="flex flex-col items-center gap-1 group">
+<span class="material-icons-round text-gray-500 dark:text-gray-400 group-hover:text-primary transition-colors text-xl">favorite_border</span>
+<span class="text-[10px] font-medium text-gray-500 dark:text-gray-400 group-hover:text-primary transition-colors">收藏</span>
+</button>
+<div class="h-8 w-[1px] bg-gray-200 dark:bg-white/10"></div>
+<button class="flex flex-col items-center gap-1 group">
+<span class="material-icons-round text-gray-500 dark:text-gray-400 group-hover:text-primary transition-colors text-xl">share</span>
+<span class="text-[10px] font-medium text-gray-500 dark:text-gray-400 group-hover:text-primary transition-colors">分享</span>
+</button>
+<button class="bg-primary text-background-dark px-5 py-2 rounded-full font-bold text-sm shadow-lg shadow-primary/30 flex items-center gap-2 ml-2 hover:bg-primary-dark transition-colors">
+<span class="material-icons-round text-base">restaurant</span>
+<span>再次打卡</span>
+</button>
+</div>
+</div>
+
+</body></html>

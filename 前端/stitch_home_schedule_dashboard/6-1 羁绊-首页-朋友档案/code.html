@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>羁绊：朋友档案列表</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2bcdee",
+                        "primary-light": "#eafafd",
+                        "cyan-custom": "#2bcdee",
+                        "background-light": "#f6f6f6",
+                        "background-dark": "#221910",
+                        "card-light": "#ffffff",
+                        "card-dark": "#2d241b",
+                        "text-main": "#333333",
+                        "text-muted": "#9ca3af",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "Noto Sans SC", "sans-serif"],
+                        "body": ["Plus Jakarta Sans", "Noto Sans SC", "sans-serif"],
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "2xl": "2rem", "full": "9999px"},
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(43, 205, 238, 0.05)',
+                        'card': '0 2px 10px rgba(0,0,0,0.03)',
+                    }
+                },
+            },
+        }</script>
+<style>.no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }.masonry-grid {
+            column-count: 2;
+            column-gap: 1rem;
+        }
+        .masonry-item {
+            break-inside: avoid;
+            margin-bottom: 1rem;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-text-main antialiased min-h-screen pb-24">
+<header class="sticky top-0 z-30 bg-background-light dark:bg-background-dark pt-8 pb-2 px-4">
+<div class="flex items-center justify-between mb-4">
+<h1 class="text-2xl font-bold tracking-wide text-gray-900 dark:text-white">羁绊</h1>
+<button class="text-[17px] font-medium hover:opacity-80 transition-opacity text-primary">
+                解析
+            </button>
+</div>
+<div class="relative bg-[#e5e7eb] dark:bg-gray-800 rounded-full p-1 mb-4 flex items-center h-[52px]">
+<div class="absolute left-1 top-1 bottom-1 w-[calc(50%-4px)] bg-white dark:bg-gray-700 rounded-full shadow-sm z-0"></div>
+<button class="relative z-10 w-1/2 h-full flex items-center justify-center text-[15px] font-medium text-gray-800 dark:text-white transition-colors">
+                朋友档案
+            </button>
+<button class="relative z-10 w-1/2 h-full flex items-center justify-center text-[15px] font-medium transition-colors">
+                相遇
+            </button>
+</div>
+<div class="flex items-center gap-3">
+<div class="flex-1 flex items-center bg-white dark:bg-card-dark rounded-full px-4 h-12 shadow-sm">
+<span class="material-icons text-gray-400 text-[22px] mr-2">search</span>
+<input class="flex-1 bg-transparent border-none focus:ring-0 text-[15px] placeholder-gray-400 dark:text-gray-200 p-0" placeholder="搜索店名、标签、地理位置.." type="text"/>
+</div>
+<button class="flex items-center justify-center w-12 h-12 bg-white dark:bg-card-dark rounded-full shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+<span class="material-icons text-gray-500 dark:text-gray-300 text-[22px]">tune</span>
+</button>
+<button class="flex items-center justify-center w-12 h-12 bg-white dark:bg-card-dark rounded-full shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+<span class="material-icons text-[28px] text-primary">add</span>
+</button>
+</div>
+</header>
+<main class="px-4 pt-4">
+<div class="masonry-grid">
+<div class="masonry-item bg-card-light dark:bg-card-dark rounded-2xl overflow-hidden shadow-card hover:shadow-soft transition-all duration-300 group">
+<div class="relative h-48 overflow-hidden">
+<img alt="Woman smiling portrait soft light" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDnx1BVMR2dn9-gpBBTIe286GD2f9d7IG3M2LVpHr5OQjFJ8YLsVB8yjzaoMV7Dr811Vw5m0T_opKoELbOUkPeZb_STLqC35_ENoXDazPq9TTwohuyly8N9jOpaxzpWzP4q2ZrMclyVw9pcUxfIm4EOAZLzcuyNY4TqjN7ri4M9GVuLVvlIndWVHWw12-0TPCbW_KzK61CDR_0fhUFP6jUiZcAi4PL0CKrr_Kyc_gQOqS7fTHK54Ah5-dfm-X8gewzUscxFZQELJCJC"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+</div>
+<div class="p-4">
+<div class="flex justify-between items-start mb-2">
+<h3 class="font-bold text-lg text-gray-800 dark:text-gray-100">林小鱼</h3>
+<span class="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">3650天</span>
+</div>
+<div class="flex flex-wrap gap-1.5 mb-3">
+<span class="text-[10px] px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full">老同学</span>
+<span class="text-[10px] px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full">饭搭子</span>
+</div>
+<div class="flex items-center text-xs border-t border-gray-100 dark:border-gray-800 pt-3 mt-2 text-orange-500">
+<span class="material-icons text-[14px] mr-1">history</span>
+                        上次见面：3天前
+                    </div>
+</div>
+</div>
+<div class="masonry-item bg-card-light dark:bg-card-dark rounded-2xl overflow-hidden shadow-card hover:shadow-soft transition-all duration-300 group">
+<div class="relative h-64 overflow-hidden">
+<img alt="Teacher looking thoughtful library" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCHu7IjV4cm33RK-pkW6hoonuhAQb-DyLv1iVA2dKyQzhd53lWXWSVa6eJW6rK7TKJnUToCMFXgmbTJ5g-mq297SH27qPKorpNg89CDpkS8jMwru2zk1tk7xfAlvodwWdYB35Yqzc2O4_ySLIqrlWkt5iqPTI-nAg5nSGaTs0EtWfpyvlACMrdqnHi_1OA5skMQLi0f3jkQIudZvkcVmNTpSXhsliEpFVz-yLcLGAFL79i_Q_Wn0FxMY54HVtZa1wHbBGKAo5tDTOSU"/>
+</div>
+<div class="p-4">
+<div class="flex justify-between items-start mb-2">
+<h3 class="font-bold text-lg text-gray-800 dark:text-gray-100">陈老师</h3>
+<span class="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">1020天</span>
+</div>
+<div class="flex flex-wrap gap-1.5 mb-3">
+<span class="text-[10px] px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full">导师</span>
+<span class="text-[10px] px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full">智慧</span>
+</div>
+<div class="flex items-center text-xs border-t border-gray-100 dark:border-gray-800 pt-3 mt-2 text-orange-500">
+<span class="material-icons text-[14px] mr-1">history</span>
+                        上次见面：15天前
+                    </div>
+</div>
+</div>
+<div class="masonry-item bg-card-light dark:bg-card-dark rounded-2xl overflow-hidden shadow-card hover:shadow-soft transition-all duration-300 group">
+<div class="relative h-40 overflow-hidden">
+<img alt="Man smiling portrait casual" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD7a6VGtTuMF5_1dOUkhDvMytXsN_vaVbM1zmWeRy2xsUiPpU4nj0m8bEj9AgIG4HXGDqpXAU22jtovDG11u5qOoRLN-XtLa8JVPps9PXgUtMjgGbLvdk6w9rLQdflNn3ebsmEzJLlnk4Ibu2aw0t0hC-qbpowK8L2ZdAAvoWdSpvpmweSC43SYii0vr3DYbtX2N3KpTt06nN5hQY1y4KKXCqQ107XJOP9MSSy1zNazGNu__RWQYxgkPt4E_cYATP9roWtyz9l-AXk9"/>
+</div>
+<div class="p-4">
+<div class="flex justify-between items-start mb-2">
+<h3 class="font-bold text-lg text-gray-800 dark:text-gray-100">Jason</h3>
+<span class="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">45天</span>
+</div>
+<div class="flex flex-wrap gap-1.5 mb-3">
+<span class="text-[10px] px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full">球友</span>
+<span class="text-[10px] px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full">健身</span>
+</div>
+<div class="flex items-center text-xs border-t border-gray-100 dark:border-gray-800 pt-3 mt-2 text-orange-500">
+<span class="material-icons text-[14px] mr-1">history</span>
+                        上次见面：昨天
+                    </div>
+</div>
+</div>
+<div class="masonry-item bg-card-light dark:bg-card-dark rounded-2xl overflow-hidden shadow-card hover:shadow-soft transition-all duration-300 group">
+<div class="relative h-56 overflow-hidden">
+<img alt="Girl laughing candid street" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCPTEFJCEvq3DE8_rarnMy0tRvPerq84lGyzqbcCGjBMMAVPCBpNdC2UiSOKAzOzP6jN7BtlyuM4UVSjzaKNBero_HjI3Oum6NUUwOnpsVLWtmiSnmjnQSxyQPNMZCuUPr-zgyBXTv-quBWZSz_uOTZVnqg8XMrNDVidthYpPO-C7UC8l_rQ65Vvnm2swtHoTVeFpcelpF2eLQPDCu_f68VXQUU_6pAxVQldsQaT-u_r3XpTzK8HrappLNRLKJuwVIrBG5ApFnPfS_Q"/>
+</div>
+<div class="p-4">
+<div class="flex justify-between items-start mb-2">
+<h3 class="font-bold text-lg text-gray-800 dark:text-gray-100">阿花</h3>
+<span class="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">8500天</span>
+</div>
+<div class="flex flex-wrap gap-1.5 mb-3">
+<span class="text-[10px] px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full">发小</span>
+<span class="text-[10px] px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full">邻居</span>
+<span class="text-[10px] px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full">搞笑</span>
+</div>
+<div class="flex items-center text-xs border-t border-gray-100 dark:border-gray-800 pt-3 mt-2 text-orange-500">
+<span class="material-icons text-[14px] mr-1">history</span>
+                        上次见面：1年前
+                    </div>
+</div>
+</div>
+<div class="masonry-item bg-card-light dark:bg-card-dark rounded-2xl overflow-hidden shadow-card hover:shadow-soft transition-all duration-300 group">
+<div class="relative h-44 overflow-hidden">
+<img alt="Woman professional headshot studio" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBIwIvarteoBM8y0GPR6HHpqwu0yNUd9dNkLND1caedxNoKeLgEj9WAYQbea4GgSibuHyhjyA938K_EmDyI6OVhJ_vNJZ2i5o7kmlcMVv4Q8r2ejwwqn7z6Sq675IYyjQQnKpjRUeLmBPXa-8WGtsJgai_L7J5U_SihU8cSaSp0gHIMWqnyzTidGDslR7geVHGIN2h6AqmlAlpHQQZ711HQ_W6FpZe-5PUHC6innHDBPkAQGjeFrrj7PZJQ3fBb9Ug1vjNS6vcFaZg_"/>
+</div>
+<div class="p-4">
+<div class="flex justify-between items-start mb-2">
+<h3 class="font-bold text-lg text-gray-800 dark:text-gray-100">Sarah</h3>
+<span class="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">730天</span>
+</div>
+<div class="flex flex-wrap gap-1.5 mb-3">
+<span class="text-[10px] px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full">前同事</span>
+<span class="text-[10px] px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full">设计</span>
+</div>
+<div class="flex items-center text-xs border-t border-gray-100 dark:border-gray-800 pt-3 mt-2 text-orange-500">
+<span class="material-icons text-[14px] mr-1">history</span>
+                        上次见面：2周前
+                    </div>
+</div>
+</div>
+<div class="masonry-item bg-card-light dark:bg-card-dark rounded-2xl overflow-hidden shadow-card hover:shadow-soft transition-all duration-300 group">
+<div class="relative h-48 overflow-hidden">
+<img alt="Golden retriever dog looking camera" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCsCdjZ-FoTFjkLobd1gTqAEFaDqJLutaF8EGbGNBE_NvWKSUhwxsrG5lR1c58Hb0C6hTa4mIg0-dI2uWA2w_wEWaPuuf407WCTZ6I39C0TQfDBY6SaEdrmP4VUXnVK1ekQSEPOtoV4WLB-p8kYjQEr95LINZec5HBjPlwnIL3sVCj2dvUiyYntPetNyKMBV46sNwhdhNMST5-j7ePBPiM1LIccqJ6wSJt2PB6aTVS0V0h9aKLl4zpvViF50D0gcLxQHnYyuQIm2nyB"/>
+</div>
+<div class="p-4">
+<div class="flex justify-between items-start mb-2">
+<h3 class="font-bold text-lg text-gray-800 dark:text-gray-100">旺财</h3>
+<span class="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">2100天</span>
+</div>
+<div class="flex flex-wrap gap-1.5 mb-3">
+<span class="text-[10px] px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full">家人</span>
+<span class="text-[10px] px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full">可爱</span>
+</div>
+<div class="flex items-center text-xs border-t border-gray-100 dark:border-gray-800 pt-3 mt-2 text-orange-500">
+<span class="material-icons text-[14px] mr-1">history</span>
+                        上次见面：刚刚
+                    </div>
+</div>
+</div>
+</div>
+</main>
+<button class="fixed bottom-24 right-4 z-40 bg-primary text-white w-14 h-14 rounded-full shadow-lg shadow-primary/40 flex items-center justify-center hover:scale-110 active:scale-95 transition-all duration-300">
+<span class="material-icons text-3xl">add</span>
+</button>
+<nav class="fixed bottom-0 w-full bg-white dark:bg-card-dark border-t border-gray-100 dark:border-gray-800 pb-safe pt-2 px-2 z-50">
+<div class="flex justify-between items-center max-w-md mx-auto"><a class="flex flex-col items-center justify-center w-full py-1 text-gray-400 dark:text-gray-500 hover:text-primary transition-colors" href="#"><span class="material-icons text-2xl mb-0.5">event_note</span><span class="text-[10px] font-medium">日程</span></a><a class="flex flex-col items-center justify-center w-full py-1 text-gray-400 dark:text-gray-500 hover:text-primary transition-colors" href="#"><span class="material-icons text-2xl mb-0.5">restaurant</span><span class="text-[10px] font-medium">美食</span></a><a class="flex flex-col items-center justify-center w-full py-1 text-gray-400 dark:text-gray-500 hover:text-primary transition-colors" href="#"><span class="material-icons text-2xl mb-0.5">auto_awesome</span><span class="text-[10px] font-medium">小确幸</span></a><a class="flex flex-col items-center justify-center w-full py-1 text-gray-400 dark:text-gray-500 hover:text-primary transition-colors" href="#"><span class="material-icons text-2xl mb-0.5">airplanemode_active</span><span class="text-[10px] font-medium">旅行</span></a><a class="flex flex-col items-center justify-center w-full py-1 text-gray-400 dark:text-gray-500 hover:text-primary transition-colors" href="#"><span class="material-icons text-2xl mb-0.5">flag</span><span class="text-[10px] font-medium">目标</span></a><a class="flex flex-col items-center justify-center w-full py-1 text-primary dark:text-primary" href="#"><span class="material-icons text-2xl mb-0.5">people</span><span class="text-[10px] font-medium">羁绊</span></a></div>
+<div class="h-5"></div>
+</nav>
+</body></html>

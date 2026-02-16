@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>人生博物馆 - 首页日程</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Google Material Icons -->
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#2bcdee",
+              "primary-dark": "#209bb3",
+              "background-light": "#f6f8f8",
+              "background-dark": "#101f22",
+              "neutral-surface": "#ffffff",
+              "text-main": "#1f2937",
+              "text-muted": "#6b7280",
+            },
+            fontFamily: {
+              "display": ["Plus Jakarta Sans", "PingFang SC", "Microsoft YaHei", "sans-serif"],
+              "body": ["PingFang SC", "Microsoft YaHei", "sans-serif"]
+            },
+            borderRadius: {
+                "DEFAULT": "1rem", 
+                "lg": "1.5rem", 
+                "xl": "2rem", 
+                "2xl": "2.5rem",
+                "full": "9999px"
+            },
+            boxShadow: {
+                'soft': '0 4px 20px -2px rgba(43, 205, 238, 0.1), 0 2px 10px -2px rgba(0, 0, 0, 0.02)',
+                'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            font-family: 'Plus Jakarta Sans', 'PingFang SC', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .nav-item-active {
+            color: #2bcdee;
+        }
+        .nav-item-inactive {
+            color: #9ca3af;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-text-main pb-24 overflow-x-hidden min-h-screen">
+<!-- 1. Header: Avatar & Notification -->
+<header class="sticky top-0 z-50 glass-panel px-6 py-4 flex justify-between items-center transition-all duration-300">
+<div class="flex items-center gap-3">
+<div class="relative">
+<img alt="User Profile Picture" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm" data-alt="Portrait of a young woman with soft lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBYyAsCsUFotbFS4IxBHOEJ1DA-wBDR1IVfg1d3rW9bLa4YuRfV882W0Gj9D_oJHRv8cju9gfQyluVHnzjDzJMCZbPKUGwAA7SVIlLiY0SznM-y2S8DAks2kYgua7mWcEmcQPOrxDT1oZJJhDdKMwYsdMM7G5NPreBxZIp3VhN08wAO3i6DxKMN9Hp3_QOj-9i5MV5rtBRoa0PirbUtvk_dBOMFEDLzALxQasPjHhvOaXLyEbgAEOptmcXA27XD2JM8qtcZ_u2eFR_T"/>
+<div class="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-white"></div>
+</div>
+<div>
+<p class="text-xs text-text-muted font-medium">早上好</p>
+<h1 class="text-lg font-bold text-gray-900 leading-tight">林晓梦</h1>
+</div>
+</div>
+<div class="flex items-center gap-1"><button class="px-4 py-1.5 rounded-full bg-[#eefcfc] hover:bg-[#def9f9] transition-colors text-primary text-sm font-bold border border-primary">
+  AI史官
+</button>
+<button class="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
+<span class="material-icons-round text-gray-600">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+</button>
+<button class="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
+<span class="material-icons-round text-gray-600">settings</span>
+</button>
+</div>
+</header>
+<main class="px-5 pt-4 space-y-6">
+<!-- 2. Flashback Module '那年今日' -->
+<section>
+<div class="flex justify-between items-end mb-3 px-1">
+<h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+<span class="material-icons-round text-primary text-xl">history_edu</span>
+                    那年今日
+                </h2>
+<a class="text-xs text-primary font-medium" href="#">查看全部</a>
+</div>
+<div class="flex gap-4 overflow-x-auto hide-scrollbar pb-2 -mx-5 px-5 snap-x">
+<!-- Card 1 -->
+<div class="snap-center shrink-0 w-40 h-52 rounded-xl relative overflow-hidden shadow-soft group">
+<img alt="Memory 1" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Abstract blurry landscape with warm sunset tones" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAsJBzDdfeS11TyD-1cqHJq_9G-Vw7SIu91Xqg9sf-Z8rWwTdxLbyxmT0V4m-h499LovcoZM7UquYeAkDvq8PzCzti_Gd9KPvABltL36GorEihS00Q1WQfZbbs2qKP725v6TeXBbbnXyw24x7sVbBhia3-IOfmck4ef0sx6MIGhWezXCTHiwHRq-3ys196RVyQcOl8SBzUfWvQCjkNcZcKY7LrbNWKdt0Ch3LsRMXiEbZW_KlrfAqXMx6O-hXkk65qGX5dRuxMmA96M"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+<div class="absolute bottom-3 left-3 text-white">
+<p class="text-xs font-light opacity-90">2020年</p>
+<p class="font-bold text-sm">京都之旅</p>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="snap-center shrink-0 w-40 h-52 rounded-xl relative overflow-hidden shadow-soft group">
+<img alt="Memory 2" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Group of friends laughing at a dinner table" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAX_r4kxgvpQYvypR_RF0YAJZAw52PhW6TR5_IJrx5xuClBJjvG60Be4hZ29hlgNDYNTxst1hIGyftAKGVU_ZeXhXRMpzZ-dWMCWPWDmJKrGwskGz5aAyp6ILOVKbGO7eOoEXtriK3It1UaJ88ITU_XSbXD_xMjr9DMB4OhDbvOe-xTRup_sRthPrG37YiL9gosZWDelVEFDPIIwMrhV5YpuW92cyP4tMEr9u5HkHiOUIkX8x9FZBICQFiiAv2s-ASTnbykZxt3Vf0O"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+<div class="absolute bottom-3 left-3 text-white">
+<p class="text-xs font-light opacity-90">2021年</p>
+<p class="font-bold text-sm">毕业聚餐</p>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="snap-center shrink-0 w-40 h-52 rounded-xl relative overflow-hidden shadow-soft group">
+<img alt="Memory 3" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Scenic view of mountains and lake in Switzerland" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA5lNkMZP8lzhAYUfC_VTKiokDBAuZngbPVBMBYzPENVfmKvfs62McJJ8qPhRz63_3ieVJYb36HMkb_-GLgQkJXUoz8cAUVuKXGKCLIqcuLI1Vn1cRcqSefVw2OR_z0ypFw035yhhwHlSBpxKs03a_IIg3bVM_cWzSfmZSwjKe5VEecoMpRaY0IRHXqDPIaKlpg_lUMzWAX-saGXwxlUjRtRRyqCqtozDLt053M7STJOBL0uMNNQDOmn1T-Q2GFsMc2vWJAZOKJRcqZ"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+<div class="absolute bottom-3 left-3 text-white">
+<p class="text-xs font-light opacity-90">2018年</p>
+<p class="font-bold text-sm">瑞士滑雪</p>
+</div>
+</div>
+</div>
+</section>
+<!-- 3. Today's Insight '今日提醒' -->
+<section class="bg-white rounded-full shadow-sm py-2 px-4 flex items-center justify-between border border-gray-100">
+<div class="flex items-center gap-3 overflow-hidden">
+<span class="flex items-center justify-center w-8 h-8 rounded-full bg-red-50 text-red-500">
+<span class="material-icons-round text-sm">cake</span>
+</span>
+<p class="text-sm text-gray-700 truncate font-medium">
+<span class="text-gray-900 font-bold">张三</span> 的生日还有 <span class="text-primary font-bold">2天</span>
+</p>
+</div>
+<span class="material-icons-round text-gray-300 text-lg">chevron_right</span>
+</section>
+<!-- 4. Core Calendar Widget -->
+<section class="bg-white rounded-2xl shadow-soft p-5 relative overflow-hidden">
+<!-- Header -->
+<div class="flex justify-between items-center mb-6">
+<div>
+<h3 class="text-2xl font-bold font-display text-gray-900">10月 <span class="text-gray-400 text-lg font-normal ml-1">2023</span></h3>
+</div>
+<div class="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+<button class="px-3 py-1 bg-white shadow-sm rounded-md text-xs font-bold text-gray-800">月</button>
+<button class="px-3 py-1 text-xs font-medium text-gray-500 hover:text-gray-700">周</button>
+</div>
+</div>
+<!-- Days of Week -->
+<div class="grid grid-cols-7 mb-4 text-center">
+<div class="text-xs text-gray-400 font-medium">日</div>
+<div class="text-xs text-gray-400 font-medium">一</div>
+<div class="text-xs text-gray-400 font-medium">二</div>
+<div class="text-xs text-gray-400 font-medium">三</div>
+<div class="text-xs text-gray-400 font-medium">四</div>
+<div class="text-xs text-gray-400 font-medium">五</div>
+<div class="text-xs text-gray-400 font-medium">六</div>
+</div>
+<!-- Calendar Grid -->
+<div class="grid grid-cols-7 gap-y-6 text-center">
+<!-- Previous month days -->
+<div class="h-10 flex flex-col items-center justify-start text-gray-300 text-sm">28</div>
+<div class="h-10 flex flex-col items-center justify-start text-gray-300 text-sm">29</div>
+<div class="h-10 flex flex-col items-center justify-start text-gray-300 text-sm">30</div>
+<!-- Current Month -->
+<div class="h-10 flex flex-col items-center justify-start relative group cursor-pointer">
+<span class="text-sm font-medium text-gray-700">1</span>
+<div class="flex gap-0.5 mt-1">
+<span class="w-1 h-1 rounded-full bg-blue-400"></span>
+</div>
+</div>
+<div class="h-10 flex flex-col items-center justify-start relative group cursor-pointer">
+<span class="text-sm font-medium text-gray-700">2</span>
+<!-- Icon: Star -->
+<span class="material-icons-round text-[10px] text-amber-400 mt-1">star</span>
+</div>
+<div class="h-10 flex flex-col items-center justify-start relative group cursor-pointer">
+<span class="text-sm font-medium text-gray-700">3</span>
+</div>
+<div class="h-10 flex flex-col items-center justify-start relative group cursor-pointer">
+<span class="text-sm font-medium text-gray-700">4</span>
+<!-- Icon: Dumbbell (fitness_center) -->
+<span class="material-icons-round text-[10px] text-purple-400 mt-1">fitness_center</span>
+</div>
+<!-- Week 2 -->
+<div class="h-10 flex flex-col items-center justify-start relative group cursor-pointer">
+<span class="text-sm font-medium text-gray-700">5</span>
+</div>
+<div class="h-10 flex flex-col items-center justify-start relative group cursor-pointer">
+<span class="text-sm font-medium text-gray-700">6</span>
+<!-- Icon: Heart -->
+<span class="material-icons-round text-[10px] text-red-400 mt-1">favorite</span>
+</div>
+<div class="h-10 flex flex-col items-center justify-start relative group cursor-pointer">
+<span class="text-sm font-medium text-gray-700">7</span>
+</div>
+<div class="h-10 flex flex-col items-center justify-start relative group cursor-pointer">
+<span class="text-sm font-medium text-gray-700">8</span>
+</div>
+<div class="h-10 flex flex-col items-center justify-start relative group cursor-pointer">
+<span class="w-7 h-7 flex items-center justify-center rounded-full bg-primary text-white text-sm font-bold shadow-md shadow-primary/30">9</span>
+<!-- Multi Icons -->
+<div class="flex -space-x-1 mt-1">
+<span class="material-icons-round text-[10px] text-orange-400">restaurant</span>
+<span class="material-icons-round text-[10px] text-blue-400">flight</span>
+</div>
+</div>
+<div class="h-10 flex flex-col items-center justify-start relative group cursor-pointer">
+<span class="text-sm font-medium text-gray-700">10</span>
+</div>
+<div class="h-10 flex flex-col items-center justify-start relative group cursor-pointer">
+<span class="text-sm font-medium text-gray-700">11</span>
+</div>
+<!-- Week 3 filler for visual balance -->
+<div class="h-10 flex flex-col items-center justify-start relative group cursor-pointer">
+<span class="text-sm font-medium text-gray-700">12</span>
+</div>
+<div class="h-10 flex flex-col items-center justify-start relative group cursor-pointer">
+<span class="text-sm font-medium text-gray-700">13</span>
+<span class="material-icons-round text-[10px] text-green-500 mt-1">energy_savings_leaf</span>
+</div>
+<div class="h-10 flex flex-col items-center justify-start relative group cursor-pointer">
+<span class="text-sm font-medium text-gray-700">14</span>
+</div>
+</div>
+<!-- Floating Action Button inside Calendar area as per description (Top Right) -->
+<button class="absolute top-5 right-5 w-10 h-10 rounded-full bg-primary/10 hover:bg-primary/20 flex items-center justify-center text-primary transition-colors translate-x-14 md:translate-x-0">
+<span class="material-icons-round">add</span>
+</button>
+</section>
+<!-- 5. Event Stream -->
+<section class="space-y-4">
+<h3 class="text-base font-bold text-gray-800 px-1">日程记录 <span class="text-gray-400 font-normal text-sm ml-2">5个记录</span></h3>
+<!-- Event Card 1 -->
+<div class="flex gap-4">
+<div class="flex flex-col items-center w-12 pt-2">
+<span class="text-sm font-bold text-gray-900 font-display">09:00</span>
+<div class="w-0.5 h-full bg-gray-200 my-2 rounded-full"></div>
+</div>
+<div class="flex-1 bg-white rounded-lg p-4 shadow-soft flex gap-4">
+<div class="w-16 h-16 rounded-lg bg-gray-100 shrink-0 overflow-hidden">
+<img alt="Cafe interior" class="w-full h-full object-cover" data-alt="Cozy coffee shop interior with warm lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvDIrPwminF7o-n2aPp44blUUlZDGZBcEI5o-oOA0cHuiXoT8GYx0Ye4DVLakU2Yu9JPJ-YYd3mmooidnjMqs6zLkkMHHw8wfXE09l7HeU65odVplHfu_Ld2A2Nac6n98F6pfnuv7kj3Iz9F5IbNih56g2lW0SXgs0G0Amt8wm2ZCGY3VRxJ_rfQkSkx5hvgtUFqBq42t43Rva5NpiXEwviX9HtXmtHhZnD4G9Yf95-wMgdksNQ5g7JmnR3fS04L5onQSXyZxih5BO"/>
+</div>
+<div class="flex-1">
+<h4 class="font-bold text-gray-900 mb-1">早午餐会议</h4>
+<div class="flex flex-wrap gap-2 mt-2"><span class="inline-flex items-center gap-1 px-2 py-1 bg-orange-50 rounded-lg text-[10px] text-orange-600 border border-orange-100"><span class="material-icons-round text-[10px]">restaurant</span> 美食</span><span class="inline-flex items-center gap-1 px-2 py-1 bg-gray-50 rounded-lg text-[10px] text-gray-600 border border-gray-100"><span class="material-icons-round text-[10px]">place</span> 蓝山咖啡馆</span></div>
+</div>
+</div>
+</div><div class="flex gap-4"><div class="flex flex-col items-center w-12 pt-2"><span class="text-sm font-bold text-gray-900 font-display">11:30</span><div class="w-0.5 h-full bg-gray-200 my-2 rounded-full"></div></div><div class="flex-1 bg-white rounded-lg p-4 shadow-soft flex gap-4"><div class="w-16 h-16 rounded-lg bg-green-50 shrink-0 flex items-center justify-center text-green-400"><span class="material-icons-round text-3xl">park</span></div><div class="flex-1"><h4 class="font-bold text-gray-900 mb-1">出差准备：整理行李与行程</h4><div class="flex flex-wrap gap-2 mt-2"><span class="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 rounded-lg text-[10px] text-blue-600 border border-blue-100"><span class="material-icons-round text-[10px]">travel_explore</span> 旅行</span></div></div></div></div><div class="flex gap-4"><div class="flex flex-col items-center w-12 pt-2"><span class="text-sm font-bold text-gray-900 font-display">17:30</span><div class="w-0.5 h-full bg-gray-200 my-2 rounded-full"></div></div><div class="flex-1 bg-white rounded-lg p-4 shadow-soft flex gap-4"><div class="w-16 h-16 rounded-lg bg-teal-50 shrink-0 flex items-center justify-center text-teal-400"><span class="material-icons-round text-3xl">menu_book</span></div><div class="flex-1"><h4 class="font-bold text-gray-900 mb-1">完成每日30分钟阅读任务</h4><div class="flex flex-wrap gap-2 mt-2"><span class="inline-flex items-center gap-1 px-2 py-1 bg-teal-50 rounded-lg text-[10px] text-teal-600 border border-teal-100"><span class="material-icons-round text-[10px]">track_changes</span> 目标</span></div></div></div></div>
+<!-- Event Card 2 -->
+<div class="flex gap-4">
+<div class="flex flex-col items-center w-12 pt-2">
+<span class="text-sm font-bold text-gray-900 font-display">14:00</span>
+<div class="w-0.5 h-full bg-gray-200 my-2 rounded-full"></div>
+</div>
+<div class="flex-1 bg-white rounded-lg p-4 shadow-soft flex gap-4">
+<div class="w-16 h-16 rounded-lg bg-blue-50 shrink-0 flex items-center justify-center text-blue-400">
+<span class="material-icons-round text-3xl">flight_takeoff</span>
+</div>
+<div class="flex-1">
+<h4 class="font-bold text-gray-900 mb-1">出差准备</h4>
+<p class="text-xs text-gray-500 line-clamp-1">整理行李，确认机票信息，打印会议资料。</p>
+<div class="flex flex-wrap gap-2 mt-2">
+<span class="inline-flex items-center gap-1 px-2 py-1 bg-blue-50/50 rounded-lg text-[10px] text-blue-600 border border-blue-100">
+<span class="material-icons-round text-[10px]">tag</span> 工作
+                            </span>
+</div>
+</div>
+</div>
+</div>
+<!-- Event Card 3 -->
+<div class="flex gap-4 pb-10">
+<div class="flex flex-col items-center w-12 pt-2">
+<span class="text-sm font-bold text-gray-900 font-display">19:30</span>
+</div>
+<div class="flex-1 bg-white rounded-lg p-4 shadow-soft flex gap-4"><div class="w-16 h-16 rounded-lg bg-purple-50 shrink-0 flex items-center justify-center text-purple-400"><span class="material-icons-round text-3xl">videocam</span></div>
+<div class="w-16 h-16 rounded-lg bg-gray-100 shrink-0 overflow-hidden">
+</div>
+<div class="flex-1">
+<h4 class="font-bold text-gray-900 mb-1">能量时刻：与老友视频通话</h4>
+<div class="flex flex-wrap gap-2 mt-2"><span class="inline-flex items-center gap-1 px-2 py-1 bg-purple-50 rounded-lg text-[10px] text-purple-600 border border-purple-100"><span class="material-icons-round text-[10px]">groups</span> 羁绊</span></div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- 6. Bottom Navigation (6 Items) -->
+<nav class="fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-xl border-t border-gray-100 px-2 py-2 pb-6 z-50 flex justify-between items-center text-[10px]"><a class="flex flex-col items-center gap-1 w-full text-primary" href="#">
+<span class="material-icons-round text-2xl">calendar_today</span>
+<span class="font-medium">日程</span>
+</a>
+<a class="flex flex-col items-center gap-1 w-full text-gray-400 hover:text-gray-600" href="#">
+<span class="material-icons-round text-2xl">restaurant</span>
+<span class="font-medium">美食</span>
+</a>
+<a class="flex flex-col items-center gap-1 w-full text-gray-400 hover:text-gray-600" href="#">
+<span class="material-icons-round text-2xl">auto_awesome</span>
+<span class="font-medium">小确幸</span>
+</a>
+<a class="flex flex-col items-center gap-1 w-full text-gray-400 hover:text-gray-600" href="#">
+<span class="material-icons-round text-2xl">airplanemode_active</span>
+<span class="font-medium">旅行</span>
+</a>
+<a class="flex flex-col items-center gap-1 w-full text-gray-400 hover:text-gray-600" href="#">
+<span class="material-icons-round text-2xl">outlined_flag</span>
+<span class="font-medium">目标</span>
+</a>
+<a class="flex flex-col items-center gap-1 w-full text-gray-400 hover:text-gray-600" href="#">
+<span class="material-icons-round text-2xl">group</span>
+<span class="font-medium">羁绊</span>
+</a></nav>
+<!-- Floating Add Button (Global Overlay) - Optional, as one is in calendar, but this is common for schedule apps -->
+<button class="fixed bottom-24 right-5 w-14 h-14 bg-primary text-white rounded-full shadow-lg shadow-primary/40 flex items-center justify-center z-40 hover:scale-105 transition-transform active:scale-95">
+<span class="material-icons-round text-2xl">add</span>
+</button>
+</body></html>

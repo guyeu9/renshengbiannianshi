@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>美食诱惑</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2bcdee",
+                        "secondary": "#FF9F43",
+                        "background-light": "#f8fbfc",
+                        "background-dark": "#101f22",
+                        "card-light": "#ffffff",
+                        "card-dark": "#1a2c30",
+                        "text-main-light": "#0d191b",
+                        "text-main-dark": "#ffffff",
+                        "text-sub-light": "#4c8d9a",
+                        "text-sub-dark": "#8faeb5",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .masonry-grid {
+            column-count: 2;
+            column-gap: 12px;
+        }
+        .masonry-item {
+            break-inside: avoid;
+            margin-bottom: 12px;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-text-main-light dark:text-text-main-dark min-h-screen flex flex-col relative overflow-x-hidden transition-colors duration-300">
+<header class="sticky top-0 z-50 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm px-4 pt-6 pb-2 border-b border-transparent dark:border-white/5 transition-all">
+<div class="flex items-center justify-between mb-4">
+<h1 class="text-2xl font-extrabold tracking-tight">美食诱惑</h1>
+<div class="flex items-center gap-2">
+<button class="text-sm font-semibold text-primary hover:opacity-80 transition-opacity">解析</button></div>
+</div>
+<div class="relative mb-4">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-text-sub-light dark:text-text-sub-dark text-[20px]">search</span>
+</div>
+<input class="block w-full pl-10 pr-3 py-2.5 border-none rounded-xl bg-white dark:bg-card-dark shadow-sm text-sm placeholder-text-sub-light/70 dark:placeholder-text-sub-dark/70 focus:ring-2 focus:ring-primary/50 text-text-main-light dark:text-text-main-dark" placeholder="搜索店名、标签、地理位置..." type="text"/>
+<div class="absolute inset-y-0 right-0 pr-2 flex items-center">
+<button class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-text-sub-light dark:text-text-sub-dark transition-colors">
+<span class="material-symbols-outlined text-[20px]">tune</span>
+</button>
+</div>
+</div>
+<div class="flex flex-col gap-3">
+<div class="flex p-1 bg-white dark:bg-card-dark rounded-full shadow-sm w-full">
+<button class="flex-1 flex items-center justify-center gap-2 py-2 rounded-full bg-primary text-white shadow-sm transition-all">
+<span class="material-symbols-outlined text-[18px] filled" style="font-variation-settings: 'FILL' 1;">restaurant_menu</span>
+<span class="text-sm font-bold">美食记录</span>
+</button>
+<button class="flex-1 flex items-center justify-center gap-2 py-2 rounded-full text-text-sub-light dark:text-text-sub-dark hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
+<span class="material-symbols-outlined text-[18px]">favorite_border</span>
+<span class="text-sm font-semibold">心愿清单</span>
+</button>
+</div>
+<div class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+<button class="flex shrink-0 items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-card-dark border border-gray-100 dark:border-white/10 rounded-full text-text-sub-light dark:text-text-sub-dark text-xs font-medium hover:border-primary/50 hover:text-primary transition-colors">
+<span>日期范围</span>
+<span class="material-symbols-outlined text-[14px]">calendar_month</span>
+</button>
+<button class="flex shrink-0 items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-card-dark border border-gray-100 dark:border-white/10 rounded-full text-text-sub-light dark:text-text-sub-dark text-xs font-medium hover:border-primary/50 hover:text-primary transition-colors">
+<span>评分</span>
+<span class="material-symbols-outlined text-[14px]">star</span>
+</button>
+<button class="flex shrink-0 items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-card-dark border border-gray-100 dark:border-white/10 rounded-full text-text-sub-light dark:text-text-sub-dark text-xs font-medium hover:border-primary/50 hover:text-primary transition-colors">
+<span>位置</span>
+<span class="material-symbols-outlined text-[14px]">location_on</span>
+</button>
+<button class="flex shrink-0 items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-card-dark border border-gray-100 dark:border-white/10 rounded-full text-text-sub-light dark:text-text-sub-dark text-xs font-medium hover:border-primary/50 hover:text-primary transition-colors">
+<span>同伴</span>
+<span class="material-symbols-outlined text-[14px]">group</span>
+</button>
+</div>
+</div>
+</header>
+<main class="flex-1 px-3 pt-2 pb-24">
+<div class="relative w-full h-40 rounded-2xl overflow-hidden shadow-sm border border-gray-100 dark:border-white/5 mb-6 group cursor-pointer">
+<div class="absolute inset-0 bg-gray-200 dark:bg-gray-800">
+<div class="w-full h-full opacity-60 bg-[url('https://images.unsplash.com/photo-1524661135-423995f22d0b?ixlib=rb-4.0.3&amp;auto=format&amp;fit=crop&amp;w=1774&amp;q=80')] bg-cover bg-center grayscale group-hover:grayscale-0 transition-all duration-500"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+</div>
+<div class="absolute bottom-4 left-5 text-white">
+<div class="flex items-baseline gap-4">
+<div class="flex items-baseline gap-1">
+<span class="text-3xl font-bold font-display">128</span>
+<span class="text-sm font-medium opacity-90">家店铺</span>
+</div>
+<div class="flex items-baseline gap-1">
+<span class="text-3xl font-bold font-display">15</span>
+<span class="text-sm font-medium opacity-90">个城市</span>
+</div>
+</div>
+</div>
+<div class="absolute top-4 right-4">
+<div class="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-1.5">
+<span class="material-symbols-outlined text-white text-[16px]">map</span>
+<span class="text-xs font-bold text-white">味觉地图</span>
+</div>
+</div>
+</div>
+<div class="masonry-grid w-full">
+<div class="masonry-item relative group">
+<div class="bg-card-light dark:bg-card-dark rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-white/5 hover:shadow-lg transition-shadow duration-300">
+<div class="relative aspect-[4/5] w-full overflow-hidden">
+<img alt="精致的寿司拼盘，配有新鲜的三文鱼和金枪鱼" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="Exquisite sushi platter with fresh salmon and tuna" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDRCDE3dEirG3NFTxj_GHz5mv150NMHVxHOPTnevwqUm63H4YkrlLYgKfVD6Bt5d5nly8aSYgeyLu5wNHbgGonM0Z6Zeta98qgwwbzQ3SFfv_UE9hXyod-8hcLTWJkM_olUmStUWYga92_b0UphcFiY7mijCPD4cvbD2n4HWuA7Br4r9c2RBVCD5xqUcT0sp0VJFY9mBdnx_wI36YPjtay4-bMZqy5kWC67_5y96m32ntOnz4ENIB0bFdfJsy_D-br_9XN2PDG-9Z9i"/>
+<div class="absolute top-2 right-2 bg-black/40 backdrop-blur-md rounded-full px-2 py-1 flex items-center gap-1">
+<span class="text-secondary text-xs material-symbols-outlined filled text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-white text-xs font-bold">4.9</span>
+</div>
+<button class="absolute top-2 left-2 p-1.5 rounded-full bg-white/20 backdrop-blur-md text-white hover:bg-white hover:text-red-500 transition-colors">
+<span class="material-symbols-outlined text-[18px]">favorite</span>
+</button>
+</div>
+<div class="p-3">
+<h3 class="font-bold text-base text-text-main-light dark:text-text-main-dark leading-tight mb-1">樱花 Omakase</h3>
+<div class="flex items-center gap-1 text-xs text-text-sub-light dark:text-text-sub-dark mb-2">
+<span class="material-symbols-outlined text-[14px]">location_on</span>
+<span class="truncate">东京 · 银座, 0.5km</span>
+</div>
+<div class="flex flex-wrap gap-1.5 mb-3">
+<span class="px-2 py-0.5 rounded-full bg-orange-50 dark:bg-orange-900/20 text-secondary text-[10px] font-semibold">纪念日</span>
+<span class="px-2 py-0.5 rounded-full bg-gray-100 dark:bg-white/10 text-text-sub-light dark:text-text-sub-dark text-[10px] font-medium">深夜食堂</span>
+</div>
+<div class="flex items-center justify-between border-t border-gray-50 dark:border-white/5 pt-2 mt-1">
+<span class="text-xs font-medium text-text-sub-light dark:text-text-sub-dark">¥¥¥¥</span>
+<span class="text-xs font-bold text-primary">¥800/人</span>
+</div>
+</div>
+</div>
+</div>
+<div class="masonry-item relative group">
+<div class="bg-card-light dark:bg-card-dark rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-white/5 hover:shadow-lg transition-shadow duration-300">
+<div class="relative aspect-[1/1] w-full overflow-hidden">
+<img alt="多汁的美味汉堡配融化的芝士和薯条" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="Juicy gourmet burger with melted cheese and fries" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA_ceEqMagmffwA0n-X8YcUm3Py2IegoUiu_Ax_AOD7Eb00KoTevSkZaENLibSM_JnEl-_mwGvfRe2UeNCMNPWN9i-RPbWzifoV3XUL-PwhZtGG0ebh3a3_ROy2FBjJbGApDOLHQZTDl5vaeClw1KQUmdqud_pFZLD9PciDZJIp4UUup4HPq-jh0FJ0IZhyePOupp-uKny70ZYYZH4ICgkUSZeo6FQpBKmSKLb8YD3Eru4VQYdOJed5IT3T8EAetM6hf8EDlytTgcpt"/>
+<div class="absolute top-2 right-2 bg-black/40 backdrop-blur-md rounded-full px-2 py-1 flex items-center gap-1">
+<span class="text-secondary text-xs material-symbols-outlined filled text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-white text-xs font-bold">4.5</span>
+</div>
+</div>
+<div class="p-3">
+<h3 class="font-bold text-base text-text-main-light dark:text-text-main-dark leading-tight mb-1">夜猫子餐馆</h3>
+<div class="flex items-center gap-1 text-xs text-text-sub-light dark:text-text-sub-dark mb-2">
+<span class="material-symbols-outlined text-[14px]">location_on</span>
+<span class="truncate">布鲁克林, 1.2km</span>
+</div>
+<div class="flex flex-wrap gap-1.5 mb-3">
+<span class="px-2 py-0.5 rounded-full bg-orange-50 dark:bg-orange-900/20 text-secondary text-[10px] font-semibold">舒适美食</span>
+</div>
+<div class="flex items-center justify-between border-t border-gray-50 dark:border-white/5 pt-2 mt-1">
+<span class="text-xs font-medium text-text-sub-light dark:text-text-sub-dark">¥¥</span>
+<span class="text-xs font-bold text-primary">¥100/人</span>
+</div>
+</div>
+</div>
+</div>
+<div class="masonry-item relative group">
+<div class="bg-card-light dark:bg-card-dark rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-white/5 hover:shadow-lg transition-shadow duration-300">
+<div class="relative aspect-[3/4] w-full overflow-hidden">
+<img alt="新鲜手工意面配罗勒和帕尔马干酪" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="Fresh handmade pasta with basil and parmesan" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDrR4nMxBMZn-PVkggkeVAOc5vJ10xoK65wOpBAr1PC1r5gFRjfgkuLFayUr3aQiZ1l8O182l47o_HiLXPboFxc1GoB83bDOFfr6KjFiCxWJr1PYLtAFZzxMqdJ2awJ4Jepsm_AtwbTWc6jWzxIyCcT0GbmDtQq8Z-xR_L-jldNVgATH5P9txyZNqlHYqisMnL_kGAqXVgA0d0vuZHlVyjdp4erUF-buT1BDeXGG8zYpiBwWRn3EHzIbXR5XVEw4JZbgze_s_BMGxm2"/>
+<div class="absolute top-2 right-2 bg-black/40 backdrop-blur-md rounded-full px-2 py-1 flex items-center gap-1">
+<span class="text-secondary text-xs material-symbols-outlined filled text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-white text-xs font-bold">5.0</span>
+</div>
+<button class="absolute top-2 left-2 p-1.5 rounded-full bg-white/20 backdrop-blur-md text-white hover:bg-white hover:text-red-500 transition-colors">
+<span class="material-symbols-outlined filled text-[18px]" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</button>
+</div>
+<div class="p-3">
+<h3 class="font-bold text-base text-text-main-light dark:text-text-main-dark leading-tight mb-1">路易吉小馆</h3>
+<div class="flex items-center gap-1 text-xs text-text-sub-light dark:text-text-sub-dark mb-2">
+<span class="material-symbols-outlined text-[14px]">location_on</span>
+<span class="truncate">小意大利, 2.3km</span>
+</div>
+<div class="flex flex-wrap gap-1.5 mb-3">
+<span class="px-2 py-0.5 rounded-full bg-orange-50 dark:bg-orange-900/20 text-secondary text-[10px] font-semibold">约会之夜</span>
+<span class="px-2 py-0.5 rounded-full bg-gray-100 dark:bg-white/10 text-text-sub-light dark:text-text-sub-dark text-[10px] font-medium">意面</span>
+</div>
+<div class="flex items-center justify-between border-t border-gray-50 dark:border-white/5 pt-2 mt-1">
+<span class="text-xs font-medium text-text-sub-light dark:text-text-sub-dark">¥¥¥</span>
+<span class="text-xs font-bold text-primary">¥300/人</span>
+</div>
+</div>
+</div>
+</div>
+<div class="masonry-item relative group">
+<div class="bg-card-light dark:bg-card-dark rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-white/5 hover:shadow-lg transition-shadow duration-300">
+<div class="relative aspect-[4/3] w-full overflow-hidden">
+<img alt="温馨咖啡馆里的拉花咖啡" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="Latte art coffee in a cozy cafe setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB_rFAmQlelouisXLn0gaeIPKdipjx0Rvu3Bo8Ynv6qphbwwtsYGIIXMu3swTXNeycJDwI7XbRajdJzR4_-olSzsKgKrGUcQklP7ycoJ2hdQ6d04cLm0dkrvyZACk9XYVTVYaTQNM5FCLJQgnEznzffqt_yqSXosl7bZxkRzyejmiU29Os25N20EuEAHJIHtymKr4DzLexvusvgcIRamzkwsWtsaGg5a_KAJfBuu20m3qzVyfgsrsT-sxe0oRcoZLwvZqjL3pk0g8Qk"/>
+<div class="absolute top-2 right-2 bg-black/40 backdrop-blur-md rounded-full px-2 py-1 flex items-center gap-1">
+<span class="text-secondary text-xs material-symbols-outlined filled text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-white text-xs font-bold">4.2</span>
+</div>
+</div>
+<div class="p-3">
+<h3 class="font-bold text-base text-text-main-light dark:text-text-main-dark leading-tight mb-1">晨间萃取</h3>
+<div class="flex items-center gap-1 text-xs text-text-sub-light dark:text-text-sub-dark mb-2">
+<span class="material-symbols-outlined text-[14px]">location_on</span>
+<span class="truncate">市中心, 0.2km</span>
+</div>
+<div class="flex flex-wrap gap-1.5 mb-3">
+<span class="px-2 py-0.5 rounded-full bg-gray-100 dark:bg-white/10 text-text-sub-light dark:text-text-sub-dark text-[10px] font-medium">学习圣地</span>
+</div>
+<div class="flex items-center justify-between border-t border-gray-50 dark:border-white/5 pt-2 mt-1">
+<span class="text-xs font-medium text-text-sub-light dark:text-text-sub-dark">¥</span>
+<span class="text-xs font-bold text-primary">¥40/人</span>
+</div>
+</div>
+</div>
+</div>
+<div class="masonry-item relative group">
+<div class="bg-card-light dark:bg-card-dark rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-white/5 hover:shadow-lg transition-shadow duration-300">
+<div class="relative aspect-[3/4] w-full overflow-hidden">
+<img alt="色彩缤纷的马卡龙和甜点堆叠" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="Colorful stack of macarons and sweet treats" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC5GT1tsrQUrUshgjm0xnXBFUtEmqQHI3nX7CLE7ULuojacd53wyFKsST70V-V6r-waDln9bhEXWLkI5rLqs2yPUwKO6lzMRvL98pDD4S6FSsBS68_CaeTjz1MBH9yhMgndtLhD-uzR8AKRai8F2DoxE00h5hwFZ679OEJp8iUL8iYebq8xHWOUVojFCLbSWCpvFYdV9lFwFYm8icmwyz-n-PJf_aMULlRPHdgn4t089g4cWOx0lxBneF4PGqQtfI6t_HzMv7xLviN3"/>
+<div class="absolute top-2 right-2 bg-black/40 backdrop-blur-md rounded-full px-2 py-1 flex items-center gap-1">
+<span class="text-secondary text-xs material-symbols-outlined filled text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-white text-xs font-bold">4.8</span>
+</div>
+<button class="absolute top-2 left-2 p-1.5 rounded-full bg-white/20 backdrop-blur-md text-white hover:bg-white hover:text-red-500 transition-colors">
+<span class="material-symbols-outlined text-[18px]">favorite</span>
+</button>
+</div>
+<div class="p-3">
+<h3 class="font-bold text-base text-text-main-light dark:text-text-main-dark leading-tight mb-1">甜牙齿工坊</h3>
+<div class="flex items-center gap-1 text-xs text-text-sub-light dark:text-text-sub-dark mb-2">
+<span class="material-symbols-outlined text-[14px]">location_on</span>
+<span class="truncate">巴黎, 5.0km</span>
+</div>
+<div class="flex flex-wrap gap-1.5 mb-3">
+<span class="px-2 py-0.5 rounded-full bg-orange-50 dark:bg-orange-900/20 text-secondary text-[10px] font-semibold">甜品</span>
+<span class="px-2 py-0.5 rounded-full bg-gray-100 dark:bg-white/10 text-text-sub-light dark:text-text-sub-dark text-[10px] font-medium">外带</span>
+</div>
+<div class="flex items-center justify-between border-t border-gray-50 dark:border-white/5 pt-2 mt-1">
+<span class="text-xs font-medium text-text-sub-light dark:text-text-sub-dark">¥¥</span>
+<span class="text-xs font-bold text-primary">¥130/人</span>
+</div>
+</div>
+</div>
+</div>
+<div class="masonry-item relative group">
+<div class="bg-card-light dark:bg-card-dark rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-white/5 hover:shadow-lg transition-shadow duration-300">
+<div class="relative aspect-[1/1] w-full overflow-hidden">
+<img alt="美味的街头塔可饼，配有青柠和香菜" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="Delicious street tacos with lime and cilantro" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCRu6W7YZK55tRulnizVQUc54c1DL0NQxJuynouQH1fhskOolIg-AHC2ZSVh-xOkxK5cDfnS5a8VsZTYpgxHtDt7fJczdhRJzmcp68BfZ6VfWG8n_DEuIJ1uQBq2SGnXhH6kRqZtAT15ZfwqGhW_3PO4jFCoN_pNmbfiuDyERAvSIGVZHTFZ4LukR6YzBq8T1f5zRfMXGDlR6uZKuFq_UMf7hSoHxe2GZHl_7SKln3FcSGWdiBPeuEYTy_nyhNMWxrrfiEQKx4l7rdO"/>
+<div class="absolute top-2 right-2 bg-black/40 backdrop-blur-md rounded-full px-2 py-1 flex items-center gap-1">
+<span class="text-secondary text-xs material-symbols-outlined filled text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-white text-xs font-bold">4.6</span>
+</div>
+</div>
+<div class="p-3">
+<h3 class="font-bold text-base text-text-main-light dark:text-text-main-dark leading-tight mb-1">塔可小摊</h3>
+<div class="flex items-center gap-1 text-xs text-text-sub-light dark:text-text-sub-dark mb-2">
+<span class="material-symbols-outlined text-[14px]">location_on</span>
+<span class="truncate">教会区, 0.8km</span>
+</div>
+<div class="flex flex-wrap gap-1.5 mb-3">
+<span class="px-2 py-0.5 rounded-full bg-orange-50 dark:bg-orange-900/20 text-secondary text-[10px] font-semibold">街头小吃</span>
+</div>
+<div class="flex items-center justify-between border-t border-gray-50 dark:border-white/5 pt-2 mt-1">
+<span class="text-xs font-medium text-text-sub-light dark:text-text-sub-dark">¥</span>
+<span class="text-xs font-bold text-primary">¥80/人</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<button class="fixed bottom-24 right-4 z-40 w-14 h-14 rounded-full bg-primary text-text-main-light shadow-[0_8px_30px_rgb(43,205,238,0.4)] flex items-center justify-center hover:scale-110 transition-transform active:scale-95 group">
+<span class="material-symbols-outlined text-3xl group-hover:rotate-90 transition-transform duration-300">add</span>
+</button>
+<nav class="fixed bottom-0 w-full z-50 bg-background-light dark:bg-background-dark border-t border-gray-200 dark:border-white/10 pb-5 pt-3">
+<div class="flex justify-between px-4 items-center max-w-lg mx-auto">
+<a class="flex flex-col items-center gap-1 text-text-sub-light dark:text-text-sub-dark hover:text-primary dark:hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">calendar_month</span>
+<span class="text-[10px] font-medium">日程</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined fill-current" style="font-variation-settings: 'FILL' 1;">restaurant</span>
+<span class="text-[10px] font-medium">美食</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-text-sub-light dark:text-text-sub-dark hover:text-primary dark:hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">auto_awesome</span>
+<span class="text-[10px] font-medium">小确幸</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-text-sub-light dark:text-text-sub-dark hover:text-primary dark:hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">flight</span>
+<span class="text-[10px] font-medium">旅行</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-text-sub-light dark:text-text-sub-dark hover:text-primary dark:hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">flag</span>
+<span class="text-[10px] font-medium">目标</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-text-sub-light dark:text-text-sub-dark hover:text-primary dark:hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">groups</span>
+<span class="text-[10px] font-medium">羁绊</span>
+</a>
+</div>
+</nav>
+<div class="fixed bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background-light dark:from-background-dark to-transparent pointer-events-none z-30"></div>
+</body></html>

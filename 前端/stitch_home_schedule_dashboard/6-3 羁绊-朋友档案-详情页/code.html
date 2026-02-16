@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>朋友详情与回忆轴</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#3b82f6",
+                        "background-light": "#f8fafc",
+                        "background-dark": "#0f172a",
+                        "neutral-surface": "#ffffff",
+                        "neutral-surface-dark": "#1e293b",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "2xl": "2rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar hiding for cleaner mobile look */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        /* Timeline line implementation */
+        .timeline-line::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 24px;
+            width: 2px;
+            background: linear-gradient(180deg, #ee8c2b 0%, rgba(238, 140, 43, 0.2) 100%);
+            z-index: 0;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100 font-display min-h-screen">
+<!-- Sticky Header / Navigation -->
+<header class="fixed top-0 w-full z-50 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md border-b border-primary/10 dark:border-primary/5 transition-colors duration-300">
+<div class="max-w-md mx-auto px-4 h-16 flex items-center justify-between">
+<button class="p-2 rounded-full hover:bg-primary/10 transition-colors text-slate-600 dark:text-slate-300">
+<span class="material-icons-round">arrow_back</span>
+</button>
+<h1 class="font-bold text-lg text-slate-900 dark:text-white">档案详情</h1>
+<button class="p-2 rounded-full hover:bg-primary/10 transition-colors text-slate-600 dark:text-slate-300">
+<span class="material-icons-round">more_vert</span>
+</button>
+</div>
+</header>
+<!-- Main Content Container -->
+<main class="max-w-md mx-auto pt-20 pb-24 px-4 space-y-6">
+<!-- 1. Profile Card -->
+<section class="relative bg-white dark:bg-neutral-surface-dark rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-white/5">
+<div class="flex flex-col items-center">
+<div class="w-20 h-20 rounded-full p-1 bg-primary/20">
+<img alt="Friend Avatar" class="w-full h-full object-cover rounded-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDelhJ9DlNEzN73c32GpelnBA38XD4rGvf1IC0IFszEY_i6O76EvNpuXf4AsXPLRqRQMBGMc4O0a2S3Cv91OSJW4RqmVd_rdCEnetEh42N4kFn0u8PDiIFQtORiYtkJ_eedu4Ir-4BXO_qotyDoVaAP7az--2Ob7vD0LXh3aABA4wChvJkFhrAPylyT-NHW2pP50N4YAELhsU5vISub1OX6YwDCDpowsRl2YCPU3krNjjsJXCuOm63TIqMTyJlcv32xw7CCbDbTsshA"/>
+</div>
+<h2 class="mt-4 text-xl font-bold text-slate-900 dark:text-white">林晓雯 Sarah</h2>
+<p class="text-sm text-slate-400 mt-1" style="color: #ee8c2b;">已认识 1,842 天</p>
+<div class="w-full mt-6 space-y-4">
+<div class="grid grid-cols-2 gap-4 text-sm">
+<div>
+<p class="text-slate-400 text-xs mb-1" style="font-size: 0.75rem; color: #888; font-weight: 400;">朋友生日</p>
+<p class="font-medium text-slate-700 dark:text-slate-200">10月26日 (还有12天)</p>
+</div>
+<div>
+<p class="text-slate-400 text-xs mb-1" style="font-size: 0.75rem; color: #888; font-weight: 400;">认识途径</p>
+<p class="font-medium text-slate-700 dark:text-slate-200">市一中 高中同学</p>
+</div>
+</div>
+<div class="text-sm">
+<p class="text-slate-400 text-xs mb-1" style="font-size: 0.75rem; color: #888; font-weight: 400;">备注</p>
+<p class="font-medium text-slate-700 dark:text-slate-200">高中死党，超级火锅爱好者</p>
+</div>
+<div class="text-sm">
+<p class="text-slate-400 text-xs mb-1" style="font-size: 0.75rem; color: #888; font-weight: 400;">印象标签</p>
+<div class="flex flex-wrap gap-2 mt-1">
+<span class="px-2 py-0.5 bg-primary/10 text-primary rounded text-xs">开朗</span>
+<span class="px-2 py-0.5 bg-primary/10 text-primary rounded text-xs">吃货</span>
+<span class="px-2 py-0.5 bg-primary/10 text-primary rounded text-xs">细节控</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-3 w-full mt-8">
+<button class="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-primary text-primary font-medium hover:bg-primary/5 transition-all">
+<span class="material-icons-round text-lg">bookmark_border</span>
+                收藏
+            </button>
+<button class="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-200 font-medium hover:bg-slate-200 transition-all">
+<span class="material-icons-round text-lg">edit</span>
+                编辑档案
+            </button>
+</div>
+</div>
+</section>
+<!-- 2. AI Insights Dashboard -->
+<div class="flex justify-center">
+<button class="flex items-center gap-2 px-6 py-3 bg-white dark:bg-neutral-surface-dark rounded-full shadow-sm border border-primary/20 text-primary font-semibold hover:shadow-md transition-all">
+<span class="material-icons-round">auto_awesome</span>
+        AI 洞察报告
+        <span class="material-icons-round">chevron_right</span>
+</button>
+</div>
+<!-- 3. Memory Timeline -->
+<section class="space-y-6">
+<div class="flex items-end justify-between px-1 mt-8">
+<div>
+<h3 class="font-bold text-xl text-slate-900 dark:text-white">共同回忆轴</h3>
+<p class="text-xs text-slate-400 mt-1">共 126 个美好瞬间</p>
+</div>
+<button class="text-primary text-sm font-medium flex items-center gap-1 hover:text-primary/80">
+<span class="material-icons-round text-base">filter_list</span>
+                    筛选
+                </button>
+</div>
+<!-- Filter Tabs -->
+<div class="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+<button class="px-4 py-2 rounded-full bg-primary text-white text-sm font-medium shadow-md shadow-primary/20 shrink-0">全部</button>
+<button class="px-4 py-2 rounded-full bg-white dark:bg-white/5 border border-slate-100 dark:border-white/10 text-slate-600 dark:text-slate-300 text-sm font-medium shrink-0">🍽️ 美食</button>
+<button class="px-4 py-2 rounded-full bg-white dark:bg-white/5 border border-slate-100 dark:border-white/10 text-slate-600 dark:text-slate-300 text-sm font-medium shrink-0">✈️ 旅行</button>
+<button class="px-4 py-2 rounded-full bg-white dark:bg-white/5 border border-slate-100 dark:border-white/10 text-slate-600 dark:text-slate-300 text-sm font-medium shrink-0">✨ 小确幸</button>
+</div>
+<!-- Timeline List -->
+<div class="relative timeline-line pl-0">
+<!-- Timeline Item 1: Large Card (Travel) -->
+<div class="relative pl-12 mb-8 group">
+<!-- Dot -->
+<div class="absolute left-[19px] top-4 w-3 h-3 rounded-full bg-primary border-2 border-background-light dark:border-background-dark z-10 shadow-[0_0_0_4px_rgba(59,130,246,0.2)]"></div>
+<div class="flex flex-col gap-2">
+<span class="text-xs font-bold text-primary uppercase tracking-wide">2023年 10月 14日</span>
+<div class="bg-white dark:bg-neutral-surface-dark rounded-2xl overflow-hidden shadow-sm border border-primary/5 dark:border-primary/10 transition-transform active:scale-[0.99]">
+<div class="h-40 w-full relative">
+<img alt="Kyoto street view with traditional buildings" class="w-full h-full object-cover" data-alt="Scenic view of a traditional street in Kyoto Japan" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA0aY7ho5JFR6xd4Dx-Viy_Ln5A4nyN9jjpKfK2OFlY6OrMzrIgYOq4teJOs1HlLjtUBmXlYBvVsvnq456VIIROH-_F7l6jQ2Tq_ncq7SW40NuJxrsIb_TY3IFMuood77iHB0ySyu2oHOhjjxQk0PWidNZ9mC5ZHI7-G6Ansi01UHXY1pnmU2r34RLwK6BTNial925C9cueZlbvw_9S_kQiEnwsveuq4rmYDX7It1U0ZYkwtJ8z2oNqYoJ8EJ1JzY72qElThvRP-ZpH"/>
+<div class="absolute top-3 right-3 bg-black/50 backdrop-blur-md text-white px-2 py-1 rounded-lg text-xs font-medium flex items-center gap-1">
+<span class="material-icons-round text-xs">flight_takeoff</span> 旅行
+                                </div>
+</div>
+<div class="p-4">
+<h4 class="font-bold text-slate-900 dark:text-white text-lg">京都红叶之旅</h4>
+<p class="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+                                    即使下雨也很美的一天。我们在清水寺求了签，还吃到了超级好吃的抹茶冰淇淋！说好明年还要一起来。
+                                </p>
+<div class="flex items-center gap-4 mt-3 pt-3 border-t border-slate-100 dark:border-white/5">
+<div class="flex items-center gap-1 text-xs text-slate-400">
+<span class="material-icons-round text-sm">place</span>
+                                        日本 · 京都
+                                    </div>
+<div class="flex-1"></div>
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-icons-round text-lg">favorite_border</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Timeline Item 2: Small Card (Food) -->
+<div class="relative pl-12 mb-8 group">
+<!-- Dot -->
+<div class="absolute left-[21px] top-4 w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600 z-10"></div>
+<div class="flex flex-col gap-2">
+<span class="text-xs font-medium text-slate-400">2023年 8月 2日</span>
+<div class="bg-white dark:bg-neutral-surface-dark rounded-2xl p-4 shadow-sm border border-primary/5 dark:border-primary/10 flex gap-4 items-start">
+<div class="w-16 h-16 shrink-0 rounded-xl overflow-hidden bg-slate-100">
+<img alt="Spicy hotpot dish" class="w-full h-full object-cover" data-alt="Close up of a spicy chinese hotpot dish" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBYngYbbhn5XYOmWdqL2n_WAXBvW7DNtnZuqlNEVluNk-3sdfN8wxt2C11Zw1Mb2MSMzfnTmiGs3OYlrI6z_T9Uelht6wACNNhbRIuTRtDRp4jgCCCBq6TKdWHMgSs4vuJHRjYdByVEW5xv5ji24H-IVEDaYKLzmwAYSbKiLkKcJZnLV8jeLU2oz9bg1BGpscZ5_hme8a1vmXD0Um4pcFhNb7Qu106iJPWCEz_fEUpnB7YkDKCT8szi9Nz3RLZCVho3qigsX63sXU1k"/>
+</div>
+<div class="flex-1">
+<h4 class="font-bold text-slate-900 dark:text-white text-base">火锅局 🔥</h4>
+<p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                                    老地方见！晓雯终于不迟到了哈哈。
+                                </p>
+</div>
+<button class="text-slate-300 hover:text-slate-500">
+<span class="material-icons-round">more_horiz</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Timeline Item 3: Text Card (Small Moment) -->
+<div class="relative pl-12 mb-8 group">
+<!-- Dot -->
+<div class="absolute left-[21px] top-4 w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600 z-10"></div>
+<div class="flex flex-col gap-2">
+<span class="text-xs font-medium text-slate-400">2023年 6月 15日</span>
+<div class="bg-primary/5 dark:bg-primary/10 rounded-2xl p-4 border border-primary/10 flex flex-col gap-2">
+<div class="flex items-center gap-2 mb-1">
+<span class="text-lg">🎬</span>
+<h4 class="font-bold text-slate-900 dark:text-white text-base">看了《奥本海默》</h4>
+</div>
+<p class="text-sm text-slate-600 dark:text-slate-300 italic">
+                               "这是我们一起看的第 24 部电影。"
+                           </p>
+</div>
+</div>
+</div>
+</div>
+<!-- Loading Indicator -->
+<div class="flex justify-center py-4">
+<div class="w-8 h-8 rounded-full border-2 border-primary/20 border-t-primary animate-spin"></div>
+</div>
+</section>
+</main>
+<!-- Floating Action Button -->
+</body></html>

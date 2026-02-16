@@ -1,0 +1,5 @@
+_toolchain/
+.trae/
+*.zip
+*.tar.gz
+.DS_Store

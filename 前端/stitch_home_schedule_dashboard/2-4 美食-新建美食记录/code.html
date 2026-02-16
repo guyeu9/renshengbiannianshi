@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>新建美食记录 - 人生博物馆</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2bcdee",
+                        "background-light": "#f6f8f8",
+                        "background-dark": "#102222",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#1a2c2c",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "PingFang SC", "Microsoft YaHei", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }</script>
+<style>
+        /* Custom scrollbar hiding for clean UI */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-100 min-h-screen flex flex-col antialiased selection:bg-primary/30">
+<!-- Navigation Bar -->
+<header class="sticky top-0 z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-800/50">
+<div class="max-w-md mx-auto px-4 h-14 flex items-center justify-between">
+<button class="text-base font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">
+                取消
+            </button>
+<h1 class="text-lg font-bold">新建美食记录</h1>
+<button class="px-4 py-1.5 bg-primary text-background-dark font-bold rounded-full text-sm hover:bg-opacity-90 transition-all shadow-sm shadow-primary/20">
+                发布
+            </button>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 max-w-md mx-auto w-full px-4 py-6 space-y-6 pb-24">
+<!-- 1. Image Upload Area (Grid) -->
+<section class="grid grid-cols-3 gap-3">
+<!-- Add Button -->
+<button class="aspect-square rounded-xl bg-surface-light dark:bg-surface-dark border-2 border-dashed border-primary/30 flex flex-col items-center justify-center group hover:border-primary transition-colors">
+<div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+<span class="material-icons-round text-2xl">add</span>
+</div>
+<span class="text-xs mt-2 text-gray-400 font-medium">添加照片</span>
+</button>
+<!-- Preview Image 1 -->
+<div class="aspect-square rounded-xl overflow-hidden relative group">
+<img alt="Delicious healthy salad bowl" class="w-full h-full object-cover" data-alt="Close up of a fresh green salad bowl" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAot94lcCxv_cm5mGQBGYXWaKOLR1xcuPovBRmN4mYBOHgM37Y_vCdOG2RP7PRo1KNivOJqyobA5gWwHf5Ta0oaE_sxMYGe-ARTD6T3iNnEX_HZikKHuKZXVTnB4hUGka-aRMS9dKrXx4SEVHTJIMJE7eE28Kg0bZZTFe8aLwrKemUYmSet8WdVZZ0v6LZl0xr_A3iPV_CWpKaQzbRxBGwaG7WU1ry830-9feZfYSjzm3PXl_NYjVT9X92nA8d01mV9Hi19yL7FHud3"/>
+<button class="absolute top-1 right-1 bg-black/50 hover:bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm">
+<span class="material-icons-round text-xs block">close</span>
+</button>
+</div>
+<!-- Preview Image 2 -->
+<div class="aspect-square rounded-xl overflow-hidden relative group">
+<img alt="Fresh pizza slice" class="w-full h-full object-cover" data-alt="Overhead shot of a pizza slice on a wooden table" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDWXGzomX40HmgdCXHO1GaNPlPkdZFFx77X_VKg0Ge0KrSvDn3lTSxSyu2UgfdLME_4Bab5DSCKfnIv30daS79iRmdkpDn8b2avVZcNxMMDBGnSpUST_yXV8o8jkyV99XOmWCcB6z7RnFkE15jJ8L1XsiviEUWrkACEQG39_e883m6IAXMZvGQn-q93OK5oRtgNPk76YqXUpb7vnytWfTtx7khNwmShTsw2Ghsn-OBPHZJi85ZcckG5iHVVKqz9B2CEz6iPN-ZGFo8L"/>
+<button class="absolute top-1 right-1 bg-black/50 hover:bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm">
+<span class="material-icons-round text-xs block">close</span>
+</button>
+</div>
+</section>
+<!-- 2. Restaurant Info Card -->
+<section class="bg-surface-light dark:bg-surface-dark rounded-2xl p-5 shadow-sm space-y-5">
+<!-- Name Input -->
+<div class="relative">
+<div class="absolute inset-y-0 left-0 flex items-center pl-1 pointer-events-none">
+<span class="material-icons-round text-primary text-xl">storefront</span>
+</div>
+<input class="w-full bg-transparent border-0 border-b border-gray-100 dark:border-gray-700 focus:border-primary focus:ring-0 py-2.5 pl-9 pr-2 text-lg font-bold placeholder:font-normal placeholder:text-gray-400 transition-colors" placeholder="输入餐厅名称..." type="text"/>
+</div>
+<!-- Rating -->
+<div class="flex items-center justify-between">
+<span class="text-sm font-medium text-gray-500 dark:text-gray-400">推荐指数</span>
+<div class="flex space-x-2">
+<button class="text-primary focus:outline-none transform active:scale-125 transition-transform"><span class="material-icons-round text-2xl">star</span></button>
+<button class="text-primary focus:outline-none transform active:scale-125 transition-transform"><span class="material-icons-round text-2xl">star</span></button>
+<button class="text-primary focus:outline-none transform active:scale-125 transition-transform"><span class="material-icons-round text-2xl">star</span></button>
+<button class="text-primary focus:outline-none transform active:scale-125 transition-transform"><span class="material-icons-round text-2xl">star</span></button>
+<button class="text-gray-200 dark:text-gray-600 hover:text-primary/50 focus:outline-none transform active:scale-125 transition-transform"><span class="material-icons-round text-2xl">star</span></button>
+</div>
+</div><div class="space-y-2 pt-2">
+<label class="text-xs font-medium text-gray-400 uppercase tracking-wider">评价/描述</label>
+<textarea class="w-full bg-gray-50 dark:bg-gray-800/50 border-0 rounded-xl p-3 text-sm focus:ring-1 focus:ring-primary placeholder:text-gray-400 transition-all" placeholder="记录你的就餐体验..." rows="3"></textarea>
+</div>
+</section>
+<!-- 3. Details & Tags -->
+<section class="bg-surface-light dark:bg-surface-dark rounded-2xl p-5 shadow-sm space-y-5">
+<!-- Cost Input -->
+<div class="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-700">
+<div class="flex items-center space-x-2">
+<div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-icons-round text-sm">payments</span>
+</div>
+<span class="text-sm font-medium">人均消费</span>
+</div>
+<div class="flex items-center">
+<span class="text-gray-400 mr-1 text-sm">¥</span>
+<input class="w-20 text-right bg-transparent border-none focus:ring-0 p-0 text-lg font-bold placeholder:text-gray-300" placeholder="0" type="number"/>
+</div>
+</div><div class="flex items-center justify-between py-4 border-b border-gray-100 dark:border-gray-700">
+<div class="flex items-center space-x-2">
+<div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-icons-round text-sm">link</span>
+</div>
+<span class="text-sm font-medium">相关链接</span>
+</div>
+<input class="flex-1 ml-4 text-right bg-transparent border-none focus:ring-0 p-0 text-sm text-gray-600 dark:text-gray-300 placeholder:text-gray-300" placeholder="添加店铺或外卖链接..." type="url"/>
+</div>
+<!-- Tags -->
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<span class="text-xs font-medium text-gray-400 uppercase tracking-wider">标签</span>
+<button class="text-xs text-primary font-medium hover:underline">编辑</button>
+</div>
+<div class="flex flex-wrap gap-2">
+<button class="px-3 py-1.5 rounded-lg bg-primary text-background-dark text-sm font-medium transition-transform active:scale-95">
+                        # 必吃榜
+                    </button>
+<button class="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-sm font-medium hover:bg-primary/10 hover:text-primary transition-colors active:scale-95">
+                        # 周末探店
+                    </button>
+<button class="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-sm font-medium hover:bg-primary/10 hover:text-primary transition-colors active:scale-95">
+                        # 辣
+                    </button>
+<button class="px-3 py-1.5 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-500 text-sm flex items-center hover:border-primary hover:text-primary transition-colors">
+<span class="material-icons-round text-base mr-1">add</span>
+                        添加
+                    </button>
+</div>
+</div>
+<div class="pt-4 flex flex-col space-y-2">
+<label class="flex items-center justify-between cursor-pointer group">
+<div class="flex flex-col">
+<span class="text-sm font-medium">标记为心愿餐厅</span>
+<span class="text-[10px] text-gray-400">开启后将同步保存至“心愿单”标签页</span>
+</div>
+<div class="relative inline-flex items-center">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+</div>
+</label>
+</div></section>
+<!-- 4. Location Auto-Association -->
+<button class="w-full bg-surface-light dark:bg-surface-dark rounded-2xl p-4 shadow-sm flex items-center justify-between group active:scale-[0.99] transition-transform">
+<div class="flex items-center space-x-3 overflow-hidden">
+<div class="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex-shrink-0 flex items-center justify-center text-blue-500 overflow-hidden relative">
+<!-- Map Background simulation -->
+<img class="absolute inset-0 w-full h-full object-cover opacity-50" data-alt="Abstract map texture" data-location="Beijing" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCOjYFA8MIz3Oj8GOSc5C5RfL3KQNJAqyST0AcNGbGifa7s-82Q18x6DMtiRuIzM1sHBRjMcx8vnQaYiM4jWAukrciwb3mw4i4LefTvt9EtTLflZP4EVa9w7kssTN5ocVWOA97IhuVDi_PMzuolLhvdKjfRdKqGNEUHzc0aqPxYrE7VszbkM2mmO2ToJzh9YDY0vS3ijvR-t4aMxI8D1W78TKS1vn8Eq4UCJIg7xo_6vfbcwbyfvK3b-BwZxG8f_dddkgLUkLaUTdfm"/>
+<span class="material-icons-round relative z-10">place</span>
+</div>
+<div class="flex flex-col items-start min-w-0">
+<span class="text-sm font-bold truncate w-full text-left">三里屯太古里 (Sanlitun Taikoo Li)</span>
+<span class="text-xs text-gray-400 truncate w-full text-left">北京市朝阳区三里屯路19号</span>
+</div>
+</div>
+<span class="material-icons-round text-gray-300 group-hover:text-primary transition-colors">chevron_right</span>
+</button>
+<!-- 5. Universal Connection (Core Feature) -->
+<section class="space-y-3 pt-2">
+<h3 class="text-sm font-bold text-gray-800 dark:text-white flex items-center">
+<span class="w-1 h-4 bg-primary rounded-full mr-2"></span>
+                万物关联
+            </h3>
+<div class="bg-surface-light dark:bg-surface-dark rounded-2xl shadow-sm divide-y divide-gray-100 dark:divide-gray-800 overflow-hidden">
+<!-- Link Friends -->
+<button class="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
+<div class="flex items-center space-x-3">
+<div class="w-9 h-9 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+<span class="material-icons-round text-xl">people</span>
+</div>
+<span class="text-sm font-medium">关联朋友</span>
+</div>
+<div class="flex items-center space-x-2">
+<div class="flex -space-x-2">
+<img alt="Avatar 1" class="w-6 h-6 rounded-full border-2 border-white dark:border-surface-dark" data-alt="Small avatar of a smiling woman" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAlq0tCjIVK52JDdlBrZSCKpHX4LCLOvsn5U4cxlJrGRYqn0yvt7KZmCBqmrtyo7Sta_d_XU-KwFVwTz9rPRMuvoOtzUIPwbS1PgdN7D56sK7j0mkjW3pkhkBjIyhJKGb7O-s_hzbPYPcTQdGrAKyM3-QBa4myIanCm7zJW5Rya9Y3C5w8gVsIU_EzvP2Juf51RubWR_OZDhp9Q9BII4nObYlYy_gAgq7Kn_uMiYgrSb6qVh3fJBrO2XKKsFBRr1nrxqm1fDbE0SKg4"/>
+</div>
+<span class="material-icons-round text-gray-300 text-sm">chevron_right</span>
+</div>
+</button>
+<!-- Link Trip -->
+<button class="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
+<div class="flex items-center space-x-3">
+<div class="w-9 h-9 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 flex items-center justify-center">
+<span class="material-icons-round text-xl">flight_takeoff</span>
+</div>
+<span class="text-sm font-medium">关联旅行</span>
+</div>
+<span class="text-xs text-gray-400 group-hover:text-primary transition-colors">选择旅行记录</span>
+</button>
+<!-- Link Mood -->
+<button class="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
+<div class="flex items-center space-x-3">
+<div class="w-9 h-9 rounded-full bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 flex items-center justify-center">
+<span class="material-icons-round text-xl">mood</span>
+</div>
+<span class="text-sm font-medium">关联心情</span>
+</div>
+<div class="flex items-center space-x-2">
+<span class="px-2 py-0.5 rounded bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-300 text-xs font-medium">开心</span>
+<span class="material-icons-round text-gray-300 text-sm">chevron_right</span>
+</div>
+</button>
+</div>
+</section>
+</main>
+</body></html>

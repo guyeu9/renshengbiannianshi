@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>新建旅行游记 - 人生博物馆</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2bcdee",
+                        "primary-dark": "#22a4be",
+                        "background-light": "#f6f8f8",
+                        "background-dark": "#101f22",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "system-ui", "-apple-system", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px" },
+                    boxShadow: {
+                        "soft": "0 4px 20px -2px rgba(0, 0, 0, 0.05)",
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar hiding for clean UI */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        /* iOS Safe Area */
+        .safe-top {
+            padding-top: env(safe-area-inset-top, 20px);
+        }
+        .safe-bottom {
+            padding-bottom: env(safe-area-inset-bottom, 20px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100 font-display min-h-screen flex flex-col">
+<!-- Header / Navigation -->
+<header class="safe-top sticky top-0 z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-800/50">
+<div class="flex items-center justify-between px-4 h-14">
+<button class="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors text-base font-medium">
+                取消
+            </button>
+<h1 class="text-lg font-bold text-slate-900 dark:text-white">新建游记</h1>
+<button class="bg-primary hover:bg-primary-dark text-white px-4 py-1.5 rounded-full text-sm font-bold shadow-sm transition-colors duration-200">
+                发布
+            </button>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-1 overflow-y-auto safe-bottom px-4 pt-4 pb-8 space-y-4">
+<!-- Section 1: Content & Media -->
+<section class="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-soft"><div class="mb-4">
+<input class="w-full bg-slate-50 dark:bg-slate-700/50 border-0 rounded-xl px-4 py-3 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-primary/20 text-base font-bold transition-all" placeholder="给这段游记起个标题..." type="text"/>
+</div>
+<!-- Text Input -->
+<div class="mb-4">
+<textarea class="w-full bg-transparent border-0 p-0 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-0 text-base leading-relaxed resize-none min-h-[100px]" placeholder="此刻有什么想记录的？描述你的见闻与感悟..."></textarea>
+</div>
+<!-- 9-Grid Photo Upload -->
+<div class="grid grid-cols-3 gap-2">
+<!-- Uploaded Image 1 -->
+<div class="relative aspect-square group">
+<img alt="Beautiful beach landscape" class="w-full h-full object-cover rounded-lg" data-alt="Sunny tropical beach landscape view" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDSiJy4vj3-8R2angY1JfjCncAqBOa2quEtlvEu-dhous2uMskWujq6_nV_uyBKbFQdUGbsn9LMLFfUXUnb93xjTnwyUkIBL2k_igAoKKCbVjWb4l_6Bzu_J_JQDjkC_q4virmec5Zg6uJshfYhdZ73YLp1Y2aJ4-FadDuJVpYP6l8YrR4pBHlCm2qYqcXqYdmrMHOcRO9BESLt1VEvo63DlI3rZlPB9phtt4CrHYWAKXQcpuSvk_FdIIE8sjo5sWyMivQPa7UmvXMv"/>
+<button class="absolute top-1 right-1 bg-black/50 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-icons-round text-sm">close</span>
+</button>
+</div>
+<!-- Uploaded Image 2 -->
+<div class="relative aspect-square group">
+<img alt="Hiking boots on trail" class="w-full h-full object-cover rounded-lg" data-alt="Hiking boots on a forest trail" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAJXbnLKvlLG_61cAfkgftdbG_VeN-Yd9sRyc_avp_eCsvTCh21uahLpTGC3iI_KDsW2C0C2cjsuhmB5GVqLdN9l5ve6Fzr8QKkE1_-OA5InnsZeKPDhM42i0rzGdClRzvbmqPtTr0VtxyZMXQj6yEkd31OHKG8dPCGea2pMS41BQKPF4Yv2HuvEVgJ83pTUSKVFkHTtmViPfZbWoKYv__IMLWuBD0XSC5s2-UQqiv-PtaOA2zn5wOKrAt4IHLAPkjrP1_S_Fu-YKIv"/>
+<button class="absolute top-1 right-1 bg-black/50 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-icons-round text-sm">close</span>
+</button>
+</div>
+<!-- Upload Button -->
+<button class="aspect-square bg-slate-50 dark:bg-slate-700/50 border-2 border-dashed border-slate-200 dark:border-slate-600 rounded-lg flex flex-col items-center justify-center text-slate-400 hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all group">
+<span class="material-icons-round text-3xl group-hover:scale-110 transition-transform text-primary/80">add_a_photo</span>
+<span class="text-xs mt-1 font-medium text-slate-400 group-hover:text-primary">添加照片</span>
+</button>
+</div>
+<div class="flex items-center justify-between mt-3 text-xs text-slate-400">
+<span>已选 2 张</span>
+<span>还可以添加 7 张</span>
+</div>
+</section>
+<!-- Section 2: Associations (Life Museum Logic) -->
+<section class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft divide-y divide-slate-100 dark:divide-slate-700/50">
+<!-- Location -->
+<div class="flex items-center p-4 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors cursor-pointer group">
+<div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center mr-3 text-primary">
+<span class="material-icons-round text-lg">place</span>
+</div>
+<div class="flex-1">
+<div class="text-sm font-medium text-slate-900 dark:text-white">京都, 清水寺</div>
+<div class="text-xs text-slate-400">自动定位中...</div>
+</div>
+<span class="material-icons-round text-slate-300 dark:text-slate-600 group-hover:text-primary transition-colors">chevron_right</span>
+</div>
+<!-- Mood -->
+<div class="p-4">
+<div class="flex items-center mb-3">
+<div class="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center mr-3 text-orange-500">
+<span class="material-icons-round text-lg">sentiment_satisfied</span>
+</div>
+<span class="text-sm font-medium text-slate-900 dark:text-white">此时心情</span>
+</div>
+<div class="flex space-x-3 overflow-x-auto no-scrollbar pb-1 pl-11">
+<button class="flex flex-col items-center space-y-1 min-w-[3rem] opacity-50 hover:opacity-100 transition-opacity">
+<span class="text-2xl grayscale hover:grayscale-0 transition-all">😌</span>
+<span class="text-[10px] text-slate-500">平静</span>
+</button>
+<button class="flex flex-col items-center space-y-1 min-w-[3rem] scale-110">
+<div class="relative">
+<span class="text-2xl drop-shadow-md">🤩</span>
+<div class="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-primary rounded-full"></div>
+</div>
+<span class="text-[10px] font-bold text-primary">惊叹</span>
+</button>
+<button class="flex flex-col items-center space-y-1 min-w-[3rem] opacity-50 hover:opacity-100 transition-opacity">
+<span class="text-2xl grayscale hover:grayscale-0 transition-all">😆</span>
+<span class="text-[10px] text-slate-500">开心</span>
+</button>
+<button class="flex flex-col items-center space-y-1 min-w-[3rem] opacity-50 hover:opacity-100 transition-opacity">
+<span class="text-2xl grayscale hover:grayscale-0 transition-all">🤔</span>
+<span class="text-[10px] text-slate-500">思考</span>
+</button>
+<button class="flex flex-col items-center space-y-1 min-w-[3rem] opacity-50 hover:opacity-100 transition-opacity">
+<span class="text-2xl grayscale hover:grayscale-0 transition-all">🥱</span>
+<span class="text-[10px] text-slate-500">疲惫</span>
+</button>
+</div>
+</div>
+<!-- Companions -->
+<div class="flex items-center p-4 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors cursor-pointer">
+<div class="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mr-3 text-purple-500">
+<span class="material-icons-round text-lg">groups</span>
+</div>
+<div class="flex-1 flex items-center justify-between">
+<span class="text-sm font-medium text-slate-900 dark:text-white">同行朋友</span>
+<div class="flex items-center -space-x-2">
+<img alt="Friend 1" class="w-7 h-7 rounded-full border-2 border-white dark:border-slate-800 object-cover" data-alt="Portrait of a woman smiling" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCl9nn5TZbEqIM0RhyOIwQgMwpoY7yUPtcRu3jpcF8UPok-9lbm4fbn-Og09ppd8Ancn09tGexDq_ORJzJVdcGY3EyCX9Zq-54wI2yKz7VglOdj16M2Yfqvo1DEHqH9gxIz2glbsmcbr8x0Tdr9MxNMATUjVC9aNjT5aamcmCbwsj2oZXKnaG4aKFxZyiwNOoURdnkC7dh6z5pINcqn1ELEjJxd6nc1YFtGtjO_g6hxQxT9f9fN7UVKXrZdvpMkbSAsZx-kd5UFmXya"/>
+<img alt="Friend 2" class="w-7 h-7 rounded-full border-2 border-white dark:border-slate-800 object-cover" data-alt="Portrait of a man smiling" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBg4HeIqON_KNpEUoHNkGRJOZTcTdMJosl9zwU7xUF9NfHGrdW5R4Gixg2p_Mm2b-XIA2Tm2UBkOtqSnN_ZFK4n673ETjRDiqW11CMkdwHrwTJA0sXsF5UP2uO_RKVI6fOKkwYU6je2Hn3sKpc_xWxph9usJb7n7u5Aq8Za-F_B5JhoztC4ZBU0kAHN-jMwg__p-ijlVncXn22ZcIpw8qMcAZexpMVlWJn_tZQmTgWmXg9vAc43v8j-WQlCDxlk7JPB3KSkOJYu0AJh"/>
+<button class="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-700 border-2 border-white dark:border-slate-800 flex items-center justify-center text-slate-400 hover:text-primary hover:bg-primary/10 transition-colors">
+<span class="material-icons-round text-sm">add</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Related Food -->
+<div class="flex items-center p-4 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors cursor-pointer group">
+<div class="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center mr-3 text-rose-500">
+<span class="material-icons-round text-lg">restaurant</span>
+</div>
+<div class="flex-1">
+<div class="text-sm font-medium text-slate-900 dark:text-white">关联美食</div>
+<div class="text-xs text-slate-400 mt-0.5">选择本次旅行的美食记录</div>
+</div>
+<div class="flex items-center">
+<span class="px-2 py-0.5 rounded text-[10px] bg-slate-100 dark:bg-slate-700 text-slate-500 mr-2">未关联</span>
+<span class="material-icons-round text-slate-300 dark:text-slate-600 group-hover:text-primary transition-colors">chevron_right</span>
+</div>
+</div>
+<!-- Tags -->
+<div class="p-4">
+<div class="flex items-center mb-2">
+<div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mr-3 text-blue-500">
+<span class="material-icons-round text-lg">label</span>
+</div>
+<span class="text-sm font-medium text-slate-900 dark:text-white">自定义标签</span>
+</div>
+<div class="pl-11 flex flex-wrap gap-2">
+<div class="inline-flex items-center bg-primary/10 text-primary-dark dark:text-primary px-3 py-1 rounded-lg text-xs font-medium border border-primary/20">
+                        #京都漫步
+                        <button class="ml-1 hover:text-red-500"><span class="material-icons-round text-[12px]">close</span></button>
+</div>
+<div class="inline-flex items-center bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-3 py-1 rounded-lg text-xs font-medium border border-transparent hover:border-slate-300 dark:hover:border-slate-500 transition-colors cursor-text">
+<span class="mr-1 text-slate-400">#</span> 输入标签...
+                    </div>
+</div>
+</div>
+</section>
+<!-- Current Trip Info (Context) -->
+<div class="flex items-center justify-center pt-2 pb-6">
+<div class="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm px-4 py-2 rounded-full border border-slate-100 dark:border-slate-700 flex items-center space-x-2">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+<span class="text-xs font-medium text-slate-500 dark:text-slate-400">正在关联行程：<span class="text-slate-800 dark:text-slate-200">关西秋日之旅 (Day 3)</span></span>
+</div>
+</div>
+</main>
+</body></html>

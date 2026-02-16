@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>小确幸场景看板</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2bcdee",
+                        "background-light": "#f6f8f8",
+                        "background-dark": "#101f22",
+                        "mood-happy": "#fff8e1", // Pastel Yellow
+                        "mood-calm": "#e0f7fa",  // Pastel Cyan
+                        "mood-excited": "#ffebee", // Pastel Red
+                        "mood-grateful": "#f3e5f5", // Pastel Purple
+                        "mood-fresh": "#e8f5e9", // Pastel Green
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "PingFang SC", "Microsoft YaHei", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined|Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>.no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }.masonry-grid {
+            column-count: 2;
+            column-gap: 1rem;
+        }
+        .masonry-item {
+            break-inside: avoid;
+            margin-bottom: 1rem;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-100 antialiased selection:bg-primary/30 min-h-screen relative pb-24">
+<header class="sticky top-0 z-50 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-primary/5 pt-safe-top">
+<div class="px-4 pb-2 pt-2">
+<div class="flex items-center justify-between mb-3 pt-2">
+<h1 class="text-2xl font-bold text-gray-800 dark:text-white tracking-tight">小确幸</h1>
+<button class="text-primary font-medium text-base hover:opacity-80 transition-opacity">解析</button>
+</div>
+<div class="flex items-center gap-3 pb-2">
+<div class="flex-1 relative group">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-icons-round text-gray-400 group-focus-within:text-primary transition-colors text-xl">search</span>
+</div>
+<input class="block w-full pl-10 pr-3 py-2.5 border-none rounded-full bg-white dark:bg-gray-800 shadow-sm focus:ring-2 focus:ring-primary/50 text-sm placeholder-gray-400 dark:placeholder-gray-500 transition-shadow" placeholder="搜索记忆碎片..." type="text"/>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2.5 rounded-full bg-white dark:bg-gray-800 text-gray-500 hover:text-primary hover:bg-primary/5 transition-all shadow-sm border border-transparent hover:border-primary/20">
+<span class="material-icons-outlined text-xl">tune</span>
+</button>
+<button class="p-2.5 rounded-full bg-primary text-white shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:bg-primary/90 transition-all transform hover:scale-105 active:scale-95">
+<span class="material-icons-round text-xl">add</span>
+</button>
+</div>
+</div>
+</div>
+</header>
+<main class="px-4 py-4">
+<div class="w-full bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm mb-6 border border-gray-100 dark:border-gray-700">
+<div class="flex items-center justify-between mb-4">
+<h2 class="font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+<span class="material-icons-round text-primary text-lg">pie_chart</span>
+                年度心情
+            </h2>
+<span class="text-xs text-gray-400">2023 至今</span>
+</div>
+<div class="flex flex-wrap gap-2 items-center justify-center py-2">
+<span class="px-3 py-1.5 rounded-lg bg-red-100 text-red-600 text-sm font-medium">开心 x42</span>
+<span class="px-3 py-1.5 rounded-lg bg-blue-100 text-blue-600 text-lg font-bold">平静 x86</span>
+<span class="px-2 py-1 rounded-lg bg-green-100 text-green-600 text-xs">充实 x15</span>
+<span class="px-4 py-2 rounded-lg bg-yellow-100 text-yellow-700 text-base font-semibold">小确幸 x53</span>
+<span class="px-2 py-1 rounded-lg bg-purple-100 text-purple-600 text-xs">感动 x8</span>
+<span class="px-3 py-1.5 rounded-lg bg-orange-100 text-orange-600 text-sm">期待 x24</span>
+<span class="px-2 py-1 rounded-lg bg-pink-100 text-pink-500 text-xs">温暖 x12</span>
+</div>
+</div>
+<div class="masonry-grid">
+<div class="masonry-item bg-mood-happy dark:bg-yellow-900/20 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 group">
+<div class="relative h-48 overflow-hidden">
+<img alt="Warm sunrise over a grassy field" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="Warm sunrise over a grassy field" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC0XjMatVfzgqn6Mpbz0GjbXVFJh_BuXBjgoaaRdhaP07RNZUJ_3fEI65LH8A22EE3IjRHl4B_9XujGACKX6R6fc2qzukwUlytbLRXU_pwgkekBe8Xjn8mquxugtO9DmdXVVsc4zUeHRatJK0a_9kLbCP-q5xRHwtB0eYC9RDzu_faLxD55eacqGgC3KGi2dcJt3Yy6eZLS73eaWldZ4fSCosPvYzrPLV8OKvuQ5R53XzZ1ySIn5l-sgn5VV1CousmvXt7phBXtqbyg"/>
+<div class="absolute top-3 right-3 bg-white/90 dark:bg-black/50 backdrop-blur-sm px-2 py-1 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-200 flex items-center gap-1">
+<span class="material-icons-round text-[14px] text-orange-400">wb_sunny</span>
+                    清晨
+                </div>
+</div>
+<div class="p-4">
+<h3 class="font-bold text-gray-800 dark:text-gray-100 mb-1">遇见初阳</h3>
+<p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed line-clamp-2">今天起得很早，在公园散步时看到第一缕阳光穿过树叶。</p>
+<div class="mt-3 flex items-center justify-between">
+<span class="text-xs text-gray-500 dark:text-gray-400 font-medium">10月24日</span>
+<div class="flex items-center gap-1 text-primary">
+<span class="material-icons-round text-sm">favorite</span>
+<span class="text-xs font-bold">12</span>
+</div>
+</div>
+</div>
+</div>
+<div class="masonry-item bg-mood-calm dark:bg-cyan-900/20 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
+<div class="flex items-center gap-2 mb-3">
+<div class="w-8 h-8 rounded-full bg-white dark:bg-gray-700 flex items-center justify-center text-cyan-500">
+<span class="material-icons-round text-lg">water_drop</span>
+</div>
+<span class="text-xs font-bold text-cyan-600 dark:text-cyan-400 tracking-wide uppercase">Inner Peace</span>
+</div>
+<h3 class="font-bold text-gray-800 dark:text-gray-100 text-lg mb-2">下雨天读书</h3>
+<p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">窗外是淅淅沥沥的小雨声，手里捧着一本很久没读完的书，此刻世界只有我和文字。</p>
+<div class="mt-4 pt-4 border-t border-cyan-100 dark:border-cyan-800/30 flex justify-between items-center">
+<span class="text-xs text-cyan-600 dark:text-cyan-400">昨天 14:30</span>
+<span class="material-icons-outlined text-cyan-400 text-lg">more_horiz</span>
+</div>
+</div>
+<div class="masonry-item bg-mood-excited dark:bg-red-900/20 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 group">
+<div class="relative aspect-square overflow-hidden">
+<img alt="Delicious chocolate cake slice on plate" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="Delicious chocolate cake slice on plate" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAmMRkYiI5e-GWzU4niHAvMMHQk8pryOsMUFv01YOCLZpPFSEZBr1uAMBTIIZvHyAQoUXQiJK2PKD6EKIkUJiGPcROijquPnCryBo55mjjRmFo-zE9YH0CRj95fPojV-VF39YORgJX3ypT5GZLWdyUJjm1aKNavdAI5UoXGv8DsCtOQhS1ST72bVpgs86Af833FTqPZfELWDUpKSfgx7A_WvDitx3aY_cenDiSb6RMTbTKW5BBAsysD6Qf4VT14dxfHE4My2fPIeQ10"/>
+<div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+<h3 class="text-white font-bold text-sm">街角那家新开的甜品店🍰</h3>
+</div>
+</div>
+<div class="px-4 py-3 flex justify-between items-center">
+<span class="text-xs text-gray-500 dark:text-gray-400">刚刚</span>
+<div class="flex -space-x-2">
+<div class="w-6 h-6 rounded-full bg-primary/20 border border-white dark:border-gray-800"></div>
+<div class="w-6 h-6 rounded-full bg-red-400/20 border border-white dark:border-gray-800"></div>
+</div>
+</div>
+</div>
+<div class="masonry-item bg-mood-grateful dark:bg-purple-900/20 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
+<div class="flex justify-between items-start mb-2">
+<span class="inline-block px-2 py-1 rounded-md bg-white/60 dark:bg-black/20 text-xs text-purple-600 dark:text-purple-300 font-medium">#小确幸</span>
+<span class="material-icons-round text-purple-300 text-xl">auto_awesome</span>
+</div>
+<p class="text-sm font-medium text-gray-800 dark:text-gray-100 leading-relaxed mb-3">
+                翻旧外套的时候，意外发现了去年冬天塞在口袋里的100块钱，感觉像是一笔意外之财，立刻决定去买杯奶茶奖励自己。
+            </p>
+<div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+<span class="material-icons-outlined text-[14px]">location_on</span>
+<span>家中卧室</span>
+</div>
+<div class="mt-3 text-right text-xs text-purple-400">2小时前</div>
+</div>
+<div class="masonry-item bg-mood-fresh dark:bg-green-900/20 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 group">
+<div class="relative h-32 overflow-hidden">
+<img alt="Green forest trees looking up" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="Green forest trees looking up" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBHjcJIdQlELJN1RYjqXqPSxZccLaWiWdhrH-pmaJyp5KkM_Lg0AaB_pmr5T3RDoS_Xtl7jqvAyM7IjIjEl9WlTgqTLgGOvkhsjJyydqsp5JRsrEAmehPAoZu3Irhwe62Al_mPnZziaMjuglPU-GEHcujHAXtnq1uW4L9hLoc2QGBTlXsUIX2kgyDRN9lsECJNBD0x4BeFdDFoMsD-HcDIQeP1xbVK40QDICfWSJmGn0Fy2fU0ZzaSL414xLdJOZ5ykTpyAz295VoL6"/>
+</div>
+<div class="p-4">
+<h3 class="font-bold text-gray-800 dark:text-gray-100 mb-1">周末爬山</h3>
+<p class="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">虽然很累，但是山顶的风景真的值了。呼吸着新鲜空气，感觉整个人都活过来了。</p>
+<div class="mt-3 flex items-center gap-2">
+<span class="px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900 text-[10px] text-green-600 dark:text-green-300 font-bold">OUTDOOR</span>
+<span class="text-xs text-gray-400 ml-auto">周六</span>
+</div>
+</div>
+</div>
+<div class="masonry-item bg-white dark:bg-gray-800 border-2 border-dashed border-primary/20 rounded-xl p-6 flex flex-col items-center justify-center text-center shadow-sm hover:border-primary/50 transition-colors cursor-pointer">
+<div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mb-2 text-primary">
+<span class="material-icons-round">edit</span>
+</div>
+<p class="text-sm text-gray-500 dark:text-gray-400 font-medium">记录今天的小美好...</p>
+</div>
+<div class="masonry-item bg-blue-50 dark:bg-blue-900/20 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
+<div class="p-4">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-icons-round text-blue-400">movie_filter</span>
+<h3 class="font-bold text-gray-800 dark:text-gray-100">重温《怦然心动》</h3>
+</div>
+<p class="text-sm text-gray-600 dark:text-gray-300 mb-3">"Some of us get dipped in flat, some in satin, some in gloss. But every once in a while you find someone who's iridescent..."</p>
+<div class="h-1 w-full bg-blue-100 dark:bg-blue-800 rounded-full overflow-hidden">
+<div class="h-full bg-blue-400 w-3/4 rounded-full"></div>
+</div>
+<div class="mt-2 flex justify-between text-xs text-gray-400">
+<span>Movie Night</span>
+<span>Oct 20</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<nav class="fixed bottom-0 w-full bg-white dark:bg-background-dark border-t border-gray-100 dark:border-gray-800 pb-safe-bottom z-50 rounded-t-2xl shadow-[0_-5px_10px_-5px_rgba(0,0,0,0.05)]">
+<div class="flex justify-between items-end px-4 py-3">
+<a class="flex flex-col items-center justify-center w-full group gap-1" href="#">
+<span class="material-icons-outlined text-[24px] text-gray-400 group-hover:text-primary transition-colors">calendar_today</span>
+<span class="text-[10px] font-medium text-gray-400 group-hover:text-primary transition-colors">日程</span>
+</a>
+<a class="flex flex-col items-center justify-center w-full group gap-1" href="#">
+<span class="material-icons-outlined text-[24px] text-gray-400 group-hover:text-primary transition-colors">restaurant</span>
+<span class="text-[10px] font-medium text-gray-400 group-hover:text-primary transition-colors">美食</span>
+</a>
+<a class="flex flex-col items-center justify-center w-full group gap-1" href="#">
+<span class="material-icons-round text-[24px] text-gray-400 text-primary transition-colors">auto_awesome</span>
+<span class="text-[10px] font-medium text-primary">小确幸</span>
+</a>
+<a class="flex flex-col items-center justify-center w-full group gap-1" href="#">
+<span class="material-icons-outlined text-[24px] text-gray-400 group-hover:text-primary transition-colors">flight</span>
+<span class="text-[10px] font-medium text-gray-400 group-hover:text-primary transition-colors">旅行</span>
+</a>
+<a class="flex flex-col items-center justify-center w-full group gap-1" href="#">
+<span class="material-icons-outlined text-[24px] text-gray-400 group-hover:text-primary transition-colors">flag</span>
+<span class="text-[10px] font-medium text-gray-400 group-hover:text-primary transition-colors">目标</span>
+</a>
+<a class="flex flex-col items-center justify-center w-full group gap-1" href="#">
+<span class="material-icons-outlined text-[24px] text-gray-400 group-hover:text-primary transition-colors">groups</span>
+<span class="text-[10px] font-medium text-gray-400 group-hover:text-primary transition-colors">羁绊</span>
+</a>
+</div>
+</nav>
+<script>
+    // Simple JS to handle safe area spacing on mobile if needed, though usually handled by css 'pb-safe-bottom' utilities if configured.
+    // Tailwind Config injection handles the design system.
+</script>
+
+</body></html>

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>旅行行程详情 - 人生博物馆</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2bcdee",
+                        "primary-dark": "#22a5bf",
+                        "background-light": "#f6f8f8",
+                        "background-dark": "#101f22",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "PingFang SC", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar hide for cleaner mobile look */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        /* Timeline line dash effect */
+        .timeline-line {
+            background-image: linear-gradient(to bottom, #d1d5db 50%, rgba(255,255,255,0) 0%);
+            background-position: left;
+            background-size: 2px 10px;
+            background-repeat: repeat-y;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-800 dark:text-white antialiased selection:bg-primary/30">
+<!-- Mobile Container -->
+<div class="mx-auto w-full max-w-md min-h-screen relative bg-background-light dark:bg-background-dark shadow-2xl overflow-hidden pb-24">
+<!-- Header Section -->
+<header class="relative h-72 w-full">
+<!-- Hero Image -->
+<div class="absolute inset-0 w-full h-full overflow-hidden rounded-b-[2rem]">
+<img alt="Scenic view of Kyoto streets with traditional buildings" class="w-full h-full object-cover" data-alt="Scenic view of Kyoto streets with traditional buildings" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBqzuvT4SLwK60RZGQtTRYL9-JjFNcTjoiIVYBw-c5cgG5p6WfqcWKFfRYOGGuFLu8wIM1l_GklBy5iYzC3MIqBxSI1oTXnMIl6poa1Kbow9-318BVk39hJi55sbMLNjorP_NwWLQqXLyHkX48A6OHOmTaGKwrJfP7OzUS1MB37nX2I7DFc6RaUOqQa5yguJCBpaYCc08KKgDuVRuRx_pRVVwSQss62tQSBs7W9wjy2RnVmAHdQHXPhqGkIMoolzkPXowRomjbj5ln4"/>
+<!-- Gradient Overlay -->
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+</div>
+<!-- Navbar -->
+<div class="absolute top-0 left-0 w-full p-4 pt-8 flex justify-between items-center z-10 text-white">
+<button class="p-2 rounded-full bg-white/10 backdrop-blur-md hover:bg-white/20 transition">
+<span class="material-icons">arrow_back</span>
+</button>
+<div class="flex gap-3 items-center"><button class="p-2 rounded-full bg-white/10 backdrop-blur-md hover:bg-white/20 transition flex items-center justify-center text-white">
+<span class="material-icons text-xl">bookmark_border</span>
+</button>
+<button class="p-2 rounded-full bg-white/10 backdrop-blur-md hover:bg-white/20 transition flex items-center justify-center text-white">
+<span class="material-icons text-xl">edit</span>
+</button>
+<button class="p-2 rounded-full bg-white/10 backdrop-blur-md hover:bg-white/20 transition flex items-center justify-center text-white">
+<span class="material-icons text-xl">add</span>
+</button>
+<button class="flex items-center gap-1 px-3 py-1.5 rounded-full bg-primary/90 backdrop-blur-md text-xs font-medium hover:bg-primary transition shadow-lg shadow-primary/20">
+<span class="material-icons text-sm">ios_share</span>
+<span>一键导出</span>
+</button>
+</div>
+</div>
+<!-- Trip Info Overlay -->
+<div class="absolute bottom-6 left-6 right-6 text-white z-10">
+<div class="flex items-center gap-2 mb-2">
+<span class="bg-white/20 backdrop-blur-md px-2 py-0.5 rounded text-xs font-medium border border-white/10">5 天 4 晚</span>
+<span class="flex items-center text-xs opacity-90">
+<span class="material-icons text-sm mr-1">location_on</span> 日本 · 京都
+                    </span>
+</div>
+<h1 class="text-3xl font-bold mb-1 tracking-tight">初秋京都漫步</h1>
+<p class="text-sm text-white/80 font-light">2023.10.15 - 2023.10.19</p>
+</div>
+</header>
+<!-- Main Timeline Content -->
+<div class="relative px-5 pt-8">
+<!-- Continuous Timeline Vertical Line -->
+<div class="absolute left-9 top-10 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700"></div>
+<!-- Day 1 Block -->
+<div class="relative mb-10">
+<!-- Date Header -->
+<div class="flex items-center mb-6 relative">
+<div class="w-8 flex flex-col items-center justify-center z-10 bg-background-light dark:bg-background-dark py-1">
+<div class="w-3 h-3 rounded-full bg-primary ring-4 ring-primary/20"></div>
+</div>
+<div class="ml-4">
+<h2 class="text-lg font-bold text-slate-800 dark:text-white leading-tight">第一天</h2>
+<p class="text-xs text-slate-500 dark:text-slate-400">10月15日 · 星期五</p>
+</div>
+</div>
+<!-- Timeline Items Group -->
+<div class="pl-12 space-y-6">
+<!-- Companion Card -->
+<div class="bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="flex -space-x-2">
+<img alt="Portrait of a young woman smiling" class="w-8 h-8 rounded-full border-2 border-white dark:border-slate-800 object-cover" data-alt="Portrait of a young woman smiling" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA1dYnKR7FixUUaLo0ebXhhIT6JnPPsrSurBq2jcEOOMNCyDyv9MGTx6d-xLEw3aVKDglsoUqrio_xhal5AoQQAmoTzYwB50XiAYKGxENWY2IaQuY9pK7b5aSfyN8nXp584y8svO_xumW1hzev3Gmu3RfKmHYFh9fUWQS_il8Jo2bvL3M1aFHmkcU8VzHzCC5V780tBVKfOPpx6gaHnPPq1ExISdUtDUnXmq6a7UCNLoj3w5tfL_WVVE4UbSyBCRLz40FyYCCTiTFZo"/>
+<img alt="Portrait of a man with glasses" class="w-8 h-8 rounded-full border-2 border-white dark:border-slate-800 object-cover" data-alt="Portrait of a man with glasses" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBlUqU-_GWlnZImTO_Kj-jWMOgIMdUhkYNyENgLOvhmA-r-jqzpYS52VgiSarEkJh53H3q7MzzyIJav5LcS0TOVcFHv4eliO_OrARILQiG5KKvGXsSqjCiu58DkP2dVg0z4VEJzmAfL4Huhoq1AbSUCeSWN4-69cbPnzl2yAuJ1sE9HWkj14qViP2rRJZwquIqFTpzycYhXWQBUpcY4WRixTdsLy4wNF_qvIk6ZWiY9WCRO9nZchBm7zpb57c8h1hJ5fcfhNlUFmAhJ"/>
+</div>
+<span class="text-sm text-slate-600 dark:text-slate-300">与 <span class="text-primary font-medium">@Alice</span>, <span class="text-primary font-medium">@Ben</span> 同行</span>
+</div>
+<span class="material-icons text-slate-300 text-sm">group</span>
+</div>
+<!-- Memory Card: Image & Text -->
+<div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden group">
+<div class="relative h-48 overflow-hidden">
+<img alt="Red Torii gates at Fushimi Inari Shrine" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" data-alt="Red Torii gates at Fushimi Inari Shrine" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCosUDqvLbtdJUynjkBAeWU1QF2O0jZh2LHLN5F-Q0HoKkPw8Co5PdkkLHU4KgQsh3-E85q9D6rnM6YgMy7C02Efn02q5DIn9kCuTOa3fn4CD5a2TIco8FTkeRI30a4eIT50rHp35uABcuwQXbIlX6qfxLqaVhp5nONYMUhTECl3ohpnzijdMSYD86ij7HL4NC0rk5sh22gKRa-gxm43p_0XxboRN-jgjccl00ZMeezA7-7uQEo07f-QlbXZlRmQ8K48O1Cn36JiXcm"/>
+<div class="absolute bottom-2 right-2 bg-black/50 backdrop-blur-sm text-white text-[10px] px-2 py-0.5 rounded-full flex items-center">
+<span class="material-icons text-[10px] mr-1">access_time</span> 09:30 AM
+                            </div>
+</div>
+<div class="p-4">
+<h3 class="font-bold text-slate-800 dark:text-white mb-1">伏见稻荷大社</h3>
+<p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-2">
+                                早起爬山果然是正确的选择！千本鸟居真的太壮观了，光影斑驳下的红色鸟居仿佛通往另一个世界。
+                            </p>
+<div class="mt-3 flex gap-2">
+<span class="inline-flex items-center text-[10px] text-primary bg-primary/10 px-2 py-1 rounded-md">#神社</span>
+<span class="inline-flex items-center text-[10px] text-primary bg-primary/10 px-2 py-1 rounded-md">#徒步</span>
+</div>
+</div>
+</div>
+<!-- Food Card: Horizontal Small -->
+<div class="bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex gap-3">
+<div class="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden relative">
+<img alt="Close up of matcha green tea dessert" class="w-full h-full object-cover" data-alt="Close up of matcha green tea dessert" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCz0ZLYHipBFs6nZU665gOuM-8IrKCKhikLZPpoIC5KEUEj42bpGq4jybIab6WmqkfLIcC0yaUqb4arnRq5J6L_ZdlApupcjl0PxCGko7fUCp60OCprH_B8cL2VZ2mU48YWP8vIVd1iYcoJqM9Ay_UXfAwSA-seowywgtGLGVcp3Rh3zPP0q6M2-pASOh9RZ2gn8_LwMmwJI3mgOPx94gXTirmmtuoewEQfRc13f9SapSMrEjdQfWIWqIKq_IxyHYRlZrbv-Tm_pEq-"/>
+</div>
+<div class="flex flex-col justify-center flex-1">
+<div class="flex items-center gap-1 mb-1">
+<span class="material-icons text-primary text-xs">restaurant</span>
+<span class="text-xs font-semibold text-primary uppercase tracking-wider">午间小憩</span>
+</div>
+<h4 class="font-bold text-slate-800 dark:text-white text-sm">中村藤吉 · 抹茶甜品</h4>
+<p class="text-xs text-slate-400 mt-0.5 truncate">宇治抹茶冰淇淋真的太浓郁了！</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Day 2 Block -->
+<div class="relative mb-10">
+<!-- Date Header -->
+<div class="flex items-center mb-6 relative">
+<div class="w-8 flex flex-col items-center justify-center z-10 bg-background-light dark:bg-background-dark py-1">
+<div class="w-3 h-3 rounded-full bg-slate-300 dark:bg-slate-600 ring-4 ring-slate-100 dark:ring-slate-700"></div>
+</div>
+<div class="ml-4">
+<h2 class="text-lg font-bold text-slate-800 dark:text-white leading-tight">第二天</h2>
+<p class="text-xs text-slate-500 dark:text-slate-400">10月16日 · 星期六</p>
+</div>
+</div>
+<!-- Timeline Items Group -->
+<div class="pl-12 space-y-6">
+<!-- Memory Card: Gallery Style -->
+<div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden p-3">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-icons text-sm">camera_alt</span>
+</div>
+<div>
+<h3 class="text-sm font-bold text-slate-800 dark:text-white">清水寺周边</h3>
+<p class="text-[10px] text-slate-400">14:20 PM</p>
+</div>
+</div>
+<button class="text-slate-400 hover:text-primary transition">
+<span class="material-icons text-lg">more_horiz</span>
+</button>
+</div>
+<div class="grid grid-cols-2 gap-2 mb-3">
+<img alt="People walking in kimono on street" class="w-full h-32 object-cover rounded-lg" data-alt="People walking in kimono on street" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAKyf0mNiZ0TAc0cDBuDh729VN8zm8R-lF-JlOBczemlVSfDxlTXyG9D-4CqGvj4VGLsjyH_nyxHz36t5YCWIUdFilyoKvFftQ0lxzt6pmOkOgpBI_gvBZAInqTnxhG3lNNaOqRyxJCT-lzLS3lmLEkNBMXJ6LnIbYkBwU51lRvY0DqIG10oPqPfaoC12BgWZPmW74AWxyipq5A_nuiETA3saO846Avvh5KoAF7C0KINcR5Dmp2orHJWlVQTu97pn9w2S1O1IDzigGp"/>
+<img alt="Traditional wooden pagoda temple" class="w-full h-32 object-cover rounded-lg" data-alt="Traditional wooden pagoda temple" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBuT10tYFcn-doux9nf76wexULnaAXe1_2k1m02UsCet0czIwfXMlL4ctiLleAX4asYuPY9ArxyQCQHlN5pcQx9BpEG3CYk0N-yxFknKtVtT84j9C0vhgo6bMG-z-hGn_ep5B9fLZU4hrQqP_6fe5NUi3EPA6k-BtVBFeNO3llR8QYpHkT0eCvEYimxA6gOwpPH9QfqPjVdgErCJIz5GewLRk9fgtTG_yl9mkI-jzPAqZ8tPtzPiFTEVE9wUmC0ay1Lm8AblzlkQfvm"/>
+</div>
+<p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                            穿着和服走在二年坂三年坂，虽然游客很多，但那种古朴的氛围依然让人沉醉。
+                        </p>
+</div>
+<!-- Food Card: Horizontal Small -->
+<div class="bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex gap-3">
+<div class="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden relative">
+<img alt="Bowl of udon noodles with tempura" class="w-full h-full object-cover" data-alt="Bowl of udon noodles with tempura" src="https://lh3.googleusercontent.com/aida-public/AB6AXuALHNpHJdZVS3gX91J8xhJPIAkdmQggL-zsHER5OYfCWeWK66y8fn0-fDQw1OrO0x9vKYrip7hamtpxGpPKSCzfaxG7oXTQueRKJYUeVN10LLlD1oV4byKC41LVC5NdJYVszGqCpGPS7m04WE3NXwyn-bPxKRo9dAOJHG_U8XLvKawFnaKvKQ7ea6AVDAV7FvsLFFWSS5NtdtpP3B5c-qcjsYd5PcOy459H7BqJtMVhQQUguv6IQXftS6Neb-0uvscRUD7OP7G364qo"/>
+</div>
+<div class="flex flex-col justify-center flex-1">
+<div class="flex items-center gap-1 mb-1">
+<span class="material-icons text-primary text-xs">restaurant</span>
+<span class="text-xs font-semibold text-primary uppercase tracking-wider">晚餐</span>
+</div>
+<h4 class="font-bold text-slate-800 dark:text-white text-sm">京都乌冬面专门店</h4>
+<p class="text-xs text-slate-400 mt-0.5 truncate">排队半小时，汤头鲜美。</p>
+</div>
+</div>
+</div>
+</div>
+<!-- End of Trip Marker -->
+<div class="relative pb-8 pl-12">
+<div class="flex items-center text-slate-400 text-xs italic">
+<span class="w-8 h-[1px] bg-slate-300 dark:bg-slate-700 mr-2"></span>
+                    旅程未完待续...
+                 </div>
+</div>
+</div>
+<!-- Floating Action Button -->
+<button class="fixed bottom-6 right-6 w-14 h-14 bg-primary text-white rounded-full shadow-xl shadow-primary/40 flex items-center justify-center hover:bg-primary-dark hover:scale-105 transition-all duration-300 z-50 group">
+<span class="material-icons text-3xl group-hover:rotate-90 transition-transform duration-300">add</span>
+</button>
+</div>
+</body></html>

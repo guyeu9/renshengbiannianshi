@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>美食心愿详情页 - 人生博物馆</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+            extend: {
+                colors: {
+                    "primary": "#2beeee",
+                    "primary-dark": "#22bebe", 
+                    "background-light": "#f6f8f8",
+                    "background-dark": "#102222",
+                    "surface-light": "#ffffff",
+                    "surface-dark": "#1a2c2c",
+                },
+                fontFamily: {
+                    "display": ["Plus Jakarta Sans", "PingFang SC", "Microsoft YaHei", "sans-serif"],
+                    "body": ["PingFang SC", "Microsoft YaHei", "sans-serif"]
+                },
+                borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "2xl": "2rem", "full": "9999px"},
+                boxShadow: {
+                    'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                    'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
+                }
+            },
+            },
+        }
+    </script>
+<style>
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        .dark .glass-panel {
+            background: rgba(26, 44, 44, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-100 antialiased min-h-screen pb-32 relative overflow-x-hidden">
+<nav class="fixed top-0 w-full z-50 px-4 pt-12 pb-4 flex justify-between items-center dark:text-white">
+<button class="p-2 rounded-full bg-black/20 backdrop-blur-md hover:bg-black/30 transition-colors text-gray-800">
+<span class="material-icons-round text-2xl">arrow_back</span>
+</button>
+<div class="flex gap-3">
+<button class="p-2 rounded-full bg-black/20 backdrop-blur-md hover:bg-black/30 transition-colors text-gray-800">
+<span class="material-icons-round text-xl">ios_share</span>
+</button>
+<button class="p-2 rounded-full bg-black/20 backdrop-blur-md hover:bg-black/30 transition-colors text-gray-800">
+<span class="material-icons-round text-xl">more_horiz</span>
+</button>
+</div>
+</nav>
+<main class="relative px-5 z-10 flex flex-col gap-6 pt-24">
+<div class="bg-surface-light dark:bg-surface-dark rounded-2xl p-6 shadow-soft dark:shadow-none border border-white/50 dark:border-white/5 relative overflow-hidden">
+<div class="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-full -mr-10 -mt-10 pointer-events-none"></div>
+<div class="flex justify-between items-start mb-2 relative z-10">
+<h1 class="text-2xl font-bold text-gray-900 dark:text-white leading-tight">隐世·日式料理</h1>
+<div class="flex flex-col items-end">
+<span class="text-xs text-gray-400 dark:text-gray-500 font-medium">预估人均</span>
+<span class="text-lg font-bold text-primary-dark dark:text-primary">¥ 680</span>
+</div>
+</div>
+<hr class="border-gray-100 dark:border-gray-800 my-4"/>
+<div class="flex items-center justify-between group cursor-pointer active:opacity-70 transition-opacity relative z-10">
+<div class="flex items-center gap-3 overflow-hidden">
+<div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+<span class="material-icons-round text-primary-dark dark:text-primary text-sm">location_on</span>
+</div>
+<div class="flex flex-col truncate">
+<span class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">上海市徐汇区武康路 376 号</span>
+<span class="text-xs text-gray-400 truncate">Ferguson Lane, Shanghai</span>
+</div>
+</div>
+<div class="w-8 h-8 rounded-full border border-gray-100 dark:border-gray-700 flex items-center justify-center flex-shrink-0 bg-gray-50 dark:bg-white/5">
+<span class="material-icons-round text-gray-400 text-sm">near_me</span>
+</div>
+</div>
+</div>
+<section>
+<div class="bg-surface-light dark:bg-surface-dark rounded-2xl p-5 shadow-sm border border-white/50 dark:border-white/5">
+<div class="flex items-center gap-2 mb-3">
+<span class="material-icons-round text-primary text-lg">edit_note</span>
+<h2 class="text-sm font-bold text-gray-900 dark:text-white">心愿备注</h2>
+</div>
+<p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed font-body">
+            听说这家的大腹特别赞，想和张三一起去尝尝。记得提前一周预订板前的位置！
+        </p>
+</div>
+</section><section class="mt-2">
+<div class="bg-surface-light dark:bg-surface-dark rounded-2xl p-5 shadow-sm border border-white/50 dark:border-white/5">
+<div class="flex items-center gap-2 mb-3">
+<span class="material-icons-round text-primary text-lg">local_offer</span>
+<h2 class="text-sm font-bold text-gray-900 dark:text-white">美食标签</h2>
+</div>
+<div class="flex flex-wrap gap-2">
+<span class="px-3 py-1 rounded-full bg-primary/10 text-primary-dark dark:text-primary text-xs font-medium border border-primary/20"># 日料精选</span>
+<span class="px-3 py-1 rounded-full bg-primary/10 text-primary-dark dark:text-primary text-xs font-medium border border-primary/20"># 约会必去</span>
+<span class="px-3 py-1 rounded-full bg-primary/10 text-primary-dark dark:text-primary text-xs font-medium border border-primary/20"># Omakase</span>
+<span class="px-3 py-1 rounded-full bg-primary/10 text-primary-dark dark:text-primary text-xs font-medium border border-primary/20"># 武康路美食</span>
+</div>
+</div>
+</section><section class="mt-2">
+<div class="flex items-center justify-between mb-4 px-1">
+<h2 class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+<span class="material-icons-round text-primary text-lg">grid_view</span>
+            打卡相册
+        </h2>
+<span class="text-xs text-gray-400 font-medium">共 9 张</span>
+</div>
+<div class="grid grid-cols-3 gap-2 rounded-2xl overflow-hidden">
+<img alt="Food 1" class="w-full h-24 object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBgRh8-ta4K29QQDs6M93V1mgLfzEgYz6bB2gUER1SVDLsTMLzKDfqGFb9Fo7t2FckvMT6zrpPBea51zTXRpwttcQYnhQgdCPK2LQ8t2-jo8Rr-qs3kDKiKSEkSNZTnMonFndLcJ1jABelzs-fHzjA-0Sun_hib_ePZLRkHCmOus6sWXYVRK-me03Wzru_zH60h8UArUfpDdJphk5YO2fXreuBddmFIb3Azhqr4LR0zTOHT_sFUIRqPBWdCX8_H-wwOpV5haZSTja8o"/>
+<img alt="Food 2" class="w-full h-24 object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBgRh8-ta4K29QQDs6M93V1mgLfzEgYz6bB2gUER1SVDLsTMLzKDfqGFb9Fo7t2FckvMT6zrpPBea51zTXRpwttcQYnhQgdCPK2LQ8t2-jo8Rr-qs3kDKiKSEkSNZTnMonFndLcJ1jABelzs-fHzjA-0Sun_hib_ePZLRkHCmOus6sWXYVRK-me03Wzru_zH60h8UArUfpDdJphk5YO2fXreuBddmFIb3Azhqr4LR0zTOHT_sFUIRqPBWdCX8_H-wwOpV5haZSTja8o"/>
+<img alt="Food 3" class="w-full h-24 object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBgRh8-ta4K29QQDs6M93V1mgLfzEgYz6bB2gUER1SVDLsTMLzKDfqGFb9Fo7t2FckvMT6zrpPBea51zTXRpwttcQYnhQgdCPK2LQ8t2-jo8Rr-qs3kDKiKSEkSNZTnMonFndLcJ1jABelzs-fHzjA-0Sun_hib_ePZLRkHCmOus6sWXYVRK-me03Wzru_zH60h8UArUfpDdJphk5YO2fXreuBddmFIb3Azhqr4LR0zTOHT_sFUIRqPBWdCX8_H-wwOpV5haZSTja8o"/>
+<img alt="Food 4" class="w-full h-24 object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBgRh8-ta4K29QQDs6M93V1mgLfzEgYz6bB2gUER1SVDLsTMLzKDfqGFb9Fo7t2FckvMT6zrpPBea51zTXRpwttcQYnhQgdCPK2LQ8t2-jo8Rr-qs3kDKiKSEkSNZTnMonFndLcJ1jABelzs-fHzjA-0Sun_hib_ePZLRkHCmOus6sWXYVRK-me03Wzru_zH60h8UArUfpDdJphk5YO2fXreuBddmFIb3Azhqr4LR0zTOHT_sFUIRqPBWdCX8_H-wwOpV5haZSTja8o"/>
+<img alt="Food 5" class="w-full h-24 object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBgRh8-ta4K29QQDs6M93V1mgLfzEgYz6bB2gUER1SVDLsTMLzKDfqGFb9Fo7t2FckvMT6zrpPBea51zTXRpwttcQYnhQgdCPK2LQ8t2-jo8Rr-qs3kDKiKSEkSNZTnMonFndLcJ1jABelzs-fHzjA-0Sun_hib_ePZLRkHCmOus6sWXYVRK-me03Wzru_zH60h8UArUfpDdJphk5YO2fXreuBddmFIb3Azhqr4LR0zTOHT_sFUIRqPBWdCX8_H-wwOpV5haZSTja8o"/>
+<div class="relative w-full h-24">
+<img alt="More" class="w-full h-full object-cover brightness-50" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBgRh8-ta4K29QQDs6M93V1mgLfzEgYz6bB2gUER1SVDLsTMLzKDfqGFb9Fo7t2FckvMT6zrpPBea51zTXRpwttcQYnhQgdCPK2LQ8t2-jo8Rr-qs3kDKiKSEkSNZTnMonFndLcJ1jABelzs-fHzjA-0Sun_hib_ePZLRkHCmOus6sWXYVRK-me03Wzru_zH60h8UArUfpDdJphk5YO2fXreuBddmFIb3Azhqr4LR0zTOHT_sFUIRqPBWdCX8_H-wwOpV5haZSTja8o"/>
+<span class="absolute inset-0 flex items-center justify-center text-white font-bold">+4</span>
+</div>
+</div>
+</section>
+<section class="mt-2">
+<div class="flex items-center justify-between mb-4 px-1">
+<h2 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+<span class="w-1 h-4 rounded-full bg-primary"></span>
+                    万物关联
+                </h2>
+<span class="text-xs text-primary font-medium">计划关联</span>
+</div>
+<div class="flex overflow-x-auto no-scrollbar gap-4 pb-4 -mx-5 px-5 snap-x">
+<div class="snap-start flex-shrink-0 w-32 bg-surface-light dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-gray-100 dark:border-white/5 flex flex-col items-center justify-center gap-2 group relative">
+<div class="absolute inset-0 border-2 border-dashed border-primary/20 rounded-xl pointer-events-none"></div>
+<div class="relative">
+<img alt="Portrait of a smiling woman" class="w-12 h-12 rounded-full object-cover border-2 border-white dark:border-gray-700 shadow-sm opacity-90 grayscale-[30%]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAbPh6GXmRAOPfx54OTSCVsQE_iKSmzMRqM7oWsMvTWQNW5bmafJYB_zWCYQe9n7fU3peshTONHSeN9oDcIzu4bxXTdkKynF9p4fwEPSHzBv7CgSs80EP5VjhNyG88li5A4-qGTtleMZ4ibRON6PXoT3ZDp-_Og0UGnSqVDa_saVHYOmoc6ONHDUVXDV0kh5f_1YL_MUjh89Br8De5-81rMdscjEkCCDL5pJys0VxQRhAqDXG1hIqd2zMzbOnq2_lWv9pYS4fnnMerh"/>
+<div class="absolute -bottom-1 -right-1 bg-blue-100 text-blue-600 p-0.5 rounded-full border border-white">
+<span class="material-icons-round text-[10px] block">person_add</span>
+</div>
+</div>
+<span class="text-xs font-medium text-gray-700 dark:text-gray-200">张三</span>
+<span class="text-[10px] text-gray-400">想一起去</span>
+</div>
+<div class="snap-start flex-shrink-0 w-40 bg-surface-light dark:bg-surface-dark rounded-xl p-3 shadow-sm border border-gray-100 dark:border-white/5 flex flex-col gap-2 relative overflow-hidden group">
+<div class="absolute top-0 right-0 w-16 h-16 bg-primary/5 rounded-bl-full -mr-4 -mt-4"></div>
+<div class="flex items-center gap-2 z-10">
+<div class="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500 flex items-center justify-center">
+<span class="material-icons-round text-sm">map</span>
+</div>
+<span class="text-[10px] text-gray-400 font-bold tracking-wider uppercase">Plan</span>
+</div>
+<div class="z-10 mt-1">
+<span class="text-xs font-bold text-gray-800 dark:text-gray-100 block truncate">2024 上海美食之旅</span>
+<span class="text-[10px] text-gray-400 block mt-0.5">计划行程</span>
+</div>
+</div>
+<div class="snap-start flex-shrink-0 w-12 flex items-center justify-center">
+<button class="w-10 h-10 rounded-full border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center text-gray-400 hover:text-primary hover:border-primary transition-colors">
+<span class="material-icons-round text-lg">add</span>
+</button>
+</div>
+</div>
+</section>
+</main>
+<div class="fixed bottom-0 left-0 w-full z-40 bg-surface-light/80 dark:bg-surface-dark/90 backdrop-blur-xl border-t border-gray-100 dark:border-white/5 pb-safe pt-2 px-6">
+<div class="flex items-center gap-4 h-16 max-w-lg mx-auto mb-4">
+<div class="flex items-center gap-1">
+<button class="flex flex-col items-center justify-center w-14 h-full gap-1 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">
+<span class="material-icons-round text-xl">edit</span>
+<span class="text-[10px]">编辑</span>
+</button>
+<button class="flex flex-col items-center justify-center w-14 h-full gap-1 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">
+<span class="material-icons-round text-xl">share</span>
+<span class="text-[10px]">分享</span>
+</button>
+</div>
+<button class="flex-1 h-12 bg-primary hover:bg-primary-dark text-background-dark font-bold rounded-full shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all active:scale-[0.98]">
+<span class="material-icons-round text-xl">check_circle</span>
+<span>标记已品尝</span>
+</button>
+</div>
+</div>
+</body></html>

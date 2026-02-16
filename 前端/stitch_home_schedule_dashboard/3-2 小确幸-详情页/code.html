@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>小确幸详情（文字优先版） - Life Museum</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=Noto+Sans+SC:wght@300;400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#2bcdee",
+              "primary-dark": "#24abc7",
+              "background-light": "#f6f8f8",
+              "background-dark": "#101f22",
+              "neutral-surface": "#ffffff",
+              "neutral-surface-dark": "#182b2f",
+            },
+            fontFamily: {
+              "display": ["Plus Jakarta Sans", "Noto Sans SC", "sans-serif"],
+              "body": ["Noto Sans SC", "Plus Jakarta Sans", "sans-serif"],
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+            spacing: {
+              '18': '4.5rem',
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .glass-nav {
+            background: rgba(246, 248, 248, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .dark .glass-nav {
+            background: rgba(16, 31, 34, 0.7);
+        }
+        .glass-float-bar {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .dark .glass-float-bar {
+            background: rgba(24, 43, 47, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100 font-display antialiased pb-32">
+<div class="fixed top-0 left-0 w-full z-20 px-5 pt-12 pb-4 flex justify-between items-center pointer-events-none">
+<button class="pointer-events-auto w-10 h-10 rounded-full bg-neutral-surface/50 dark:bg-neutral-surface-dark/50 backdrop-blur-md flex items-center justify-center text-slate-800 dark:text-white hover:bg-neutral-surface/80 transition-colors shadow-sm">
+<span class="material-icons-round text-xl">arrow_back_ios_new</span>
+</button>
+<button class="pointer-events-auto w-10 h-10 rounded-full bg-neutral-surface/50 dark:bg-neutral-surface-dark/50 backdrop-blur-md flex items-center justify-center text-slate-800 dark:text-white hover:bg-neutral-surface/80 transition-colors shadow-sm">
+<span class="material-icons-round text-xl">more_horiz</span>
+</button>
+</div>
+<div class="px-5 pt-28 pb-6">
+<div class="mb-6">
+<div class="flex items-center justify-between mb-5 text-sm text-slate-400 dark:text-slate-500 font-medium">
+<div class="flex items-center gap-2">
+<span class="bg-primary/10 text-primary px-2 py-0.5 rounded text-xs font-bold">小确幸</span>
+<span class="font-display">2023.10.24</span>
+<span class="w-1 h-1 rounded-full bg-slate-300"></span>
+<span>14:30</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="material-icons-round text-primary text-base">location_on</span>
+<span>上海 · 武康路</span>
+</div>
+</div>
+<h1 class="text-3xl font-bold mb-4 text-slate-800 dark:text-white font-body leading-tight tracking-tight">遇见秋日的小确幸</h1>
+<p class="text-lg leading-relaxed text-slate-600 dark:text-slate-300 font-body text-justify mb-6">
+            今天路过花店，被橱窗里那一抹灿烂的金黄吸引。没忍住买了一束向日葵，抱在怀里的时候，仿佛拥抱了整个秋天的阳光。心情瞬间变得明亮起来，连路边的梧桐树叶都显得格外温柔。原来快乐可以这么简单，只要一束花就够了。🌻
+        </p>
+<div class="flex flex-wrap gap-2 mb-2">
+<span class="inline-flex items-center gap-1.5 bg-orange-50 dark:bg-orange-900/20 text-orange-500 dark:text-orange-400 px-3 py-1.5 rounded-full text-sm font-semibold border border-orange-100 dark:border-orange-900/30">
+<span class="material-icons-round text-sm">wb_sunny</span>
+<span>治愈 · Healing</span>
+</span>
+<span class="inline-flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1.5 rounded-full text-sm font-semibold border border-primary/20">
+<span class="material-icons-round text-sm">local_florist</span>
+<span>花店偶遇</span>
+</span>
+</div>
+</div>
+<div class="grid grid-cols-3 gap-2 mb-10 rounded-xl overflow-hidden">
+<div class="col-span-3 h-64 relative">
+<img alt="Sunny bouquet of sunflowers in a vase on a wooden table" class="w-full h-full object-cover rounded-xl shadow-sm" data-alt="Sunny bouquet of sunflowers in a vase on a wooden table" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDobZLijSnSOtxOBYWcZSL1YXXEjwJFxNGPyxP8d4AoHVSYBMmSXZyJa48xl6WXsea1fnDcxAx6yNUWe0ZtEJyNFXAT0OykqNtvecXTXuZKJPMxl2sVIO7dGflJoZNRUyqxYv5om9SFKDs3_ulug_0V5lUVTxdsrgwYViEPz_jkHralq4zZJXVao8fl0bAgUX72AJ0M8Uwamn8QODzfqhSwqmxAWKI3RdTeA11XIkSLieWDImWQW_rpStbj47sYH-sPD7jhcvy8jqES"/>
+</div>
+<div class="h-28 bg-slate-200 dark:bg-slate-700 rounded-lg overflow-hidden relative">
+<img alt="Detail of sunflower petals" class="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBCeTWYsEgcEGuqIs6uKCGW2JSPgI41IIdh4eUiMovqt-tiSXyFeO79tolQIJ0WqRb4stfiQc1yYond9scXTVkwHGKAbeVybvp124S7-83uGi4GiMTUP8ziSagxlS56RVgX94qJ5_ZZod-Rdnm40Szp6c5mzqRlGNR4u9BhfArBWB7Y4R0jB9xqMeqgOFnhDwLWkFU90MR6q2gZH8Mim4O5Oh3K3J-i_vhdDmfgImJDdSD6DCOF2KCcBFc1t1TwzIVK7_DbPKm3a7Pm"/>
+</div>
+<div class="h-28 bg-slate-200 dark:bg-slate-700 rounded-lg overflow-hidden relative">
+<img alt="Sunlight through leaves" class="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDPv-335l2ZKuyM8DUvyjGmtUeDIOSWv7l2ZL9ahDcDHv9xRMJs9zqI6qYvuZ1xVA_JUFQQqofJIyecDRNjNH_EGD33BoPT_hX3c34FCjh1NThKnpzKgXfv_vSYFhiuHHRaI2xzFkkMYFwEewHV03eGBeohaqSdh6He3ctPpfSwoTR9OE3vD1S9wez78IztdYNsk63oGfKu9vZzNsbSSRSCd6nCbxGZlMlAc9qyM8UfahgsN3Mcv_x1UkMKbS8dJ5J9B5MLITPDNcoS"/>
+</div>
+<div class="h-28 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center text-slate-400 border border-dashed border-slate-300 dark:border-slate-700">
+<span class="text-xs">+2</span>
+</div>
+</div>
+<div class="mb-8">
+<div class="flex items-center justify-between mb-4 px-1">
+<h2 class="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+<span class="w-1.5 h-5 rounded-full bg-primary"></span>
+                万物关联
+                <span class="text-xs font-normal text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">3</span>
+</h2>
+<button class="text-primary text-sm font-medium flex items-center hover:opacity-80">
+<span class="material-icons-round text-base mr-0.5">add_circle_outline</span>
+                关联
+            </button>
+</div>
+<div class="flex gap-4 overflow-x-auto no-scrollbar pb-2 -mx-5 px-5">
+<div class="flex-shrink-0 w-36 bg-white dark:bg-neutral-surface-dark rounded-lg p-3 shadow-sm border border-slate-100 dark:border-slate-800 relative group active:scale-95 transition-transform duration-150">
+<div class="absolute top-2 right-2 text-primary opacity-20">
+<span class="material-icons-round text-3xl">people</span>
+</div>
+<div class="mb-3">
+<img alt="Portrait of a smiling young woman" class="w-12 h-12 rounded-full object-cover border-2 border-white dark:border-slate-700 shadow-sm" data-alt="Portrait of a smiling young woman" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAoR8EE-oNVHNXM0PY6Tiyd9xIH5-DsWTI79ewhnCvOq8BA_DC3QnhmaF7wgt7QSoadrRl6Cgqh2ZY9HsGapDPGQLSakS-7M6VM4KHvKqJ3yzoz6ktuhmXjeXxJKgt4JF3OqizOCELsz5DUUcjiAA_HWkHPNvwYgfe1ShgomXWOldzlRTohuGRApYky10XaxnemHN8JKceHw1cOXV_liEZXNqk8M5o4mfZpecBFYVK1meJaDDdqyqGnYZiB-03zOYCR3JeXcx2HAsON"/>
+</div>
+<div>
+<p class="text-xs text-slate-400 dark:text-slate-500 mb-0.5">关联朋友</p>
+<h3 class="font-bold text-slate-800 dark:text-white truncate">林晓晓</h3>
+<p class="text-[10px] text-slate-400 mt-1 truncate">一起逛的花店</p>
+</div>
+</div>
+<div class="flex-shrink-0 w-36 bg-white dark:bg-neutral-surface-dark rounded-lg p-3 shadow-sm border border-slate-100 dark:border-slate-800 relative group active:scale-95 transition-transform duration-150">
+<div class="absolute top-2 right-2 text-primary opacity-20">
+<span class="material-icons-round text-3xl">map</span>
+</div>
+<div class="mb-3 w-12 h-12 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-500 dark:text-orange-400">
+<span class="material-icons-round text-2xl">flight_takeoff</span>
+</div>
+<div>
+<p class="text-xs text-slate-400 dark:text-slate-500 mb-0.5">关联旅行</p>
+<h3 class="font-bold text-slate-800 dark:text-white truncate">秋日上海之旅</h3>
+<p class="text-[10px] text-slate-400 mt-1 truncate">Day 2 行程</p>
+</div>
+</div>
+<div class="flex-shrink-0 w-36 bg-white dark:bg-neutral-surface-dark rounded-lg p-3 shadow-sm border border-slate-100 dark:border-slate-800 relative group active:scale-95 transition-transform duration-150">
+<div class="absolute top-2 right-2 text-primary opacity-20">
+<span class="material-icons-round text-3xl">track_changes</span>
+</div>
+<div class="mb-3 w-12 h-12 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-500 dark:text-emerald-400">
+<span class="material-icons-round text-2xl">eco</span>
+</div>
+<div>
+<p class="text-xs text-slate-400 dark:text-slate-500 mb-0.5">关联目标</p>
+<h3 class="font-bold text-slate-800 dark:text-white truncate">2023 幸福计划</h3>
+<p class="text-[10px] text-slate-400 mt-1 truncate">完成度 +1%</p>
+</div>
+</div>
+<div class="flex-shrink-0 w-36 bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 border border-dashed border-slate-300 dark:border-slate-700 flex flex-col items-center justify-center text-slate-400 active:bg-slate-100 dark:active:bg-slate-800 transition-colors">
+<span class="material-icons-round text-3xl mb-1">add</span>
+<span class="text-xs font-medium">添加关联</span>
+</div>
+</div>
+</div>
+<div class="mb-24 opacity-80">
+<h2 class="text-sm font-bold text-slate-500 dark:text-slate-400 mb-3 px-1 uppercase tracking-wider">
+            此地 · 往昔
+        </h2>
+<div class="bg-white dark:bg-neutral-surface-dark rounded-lg p-4 flex items-center gap-4 shadow-sm border border-slate-100 dark:border-slate-800">
+<div class="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+<img alt="Coffee cup on a cafe table" class="w-full h-full object-cover" data-alt="Coffee cup on a cafe table" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBog6j45ieu5VXmdAPV8DH42zk_peyMQ3y8yO0HvsW_FvaVBP8y3QG1ys0z1CKgog1Dp7OkUw_dQBLt8XjkX1A1Q1cV5ZDfieVVxZk-sX9vLypmE1FX4SJPIZRgQlZm0hyE3hmSqxZjbNvwaIAuP92ZRo7KZnhjwSKHR6jg7c0Vm6Vuq4tVxezF6r3Vujp4GD-nq0dUjxJ0hsxaio_2P9gUSfmmesky5Q0y6D4OZIRoOoWgee4Ko2PJEDHJBkwFJbxFRJKJkNJV_ohn"/>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start">
+<h4 class="font-bold text-slate-800 dark:text-white truncate">上次来武康路喝咖啡</h4>
+<span class="text-xs text-slate-400">2022.11</span>
+</div>
+<p class="text-sm text-slate-500 dark:text-slate-400 truncate mt-1">那是去年的秋天，也是一样的晴天...</p>
+</div>
+<span class="material-icons-round text-slate-300">chevron_right</span>
+</div>
+</div>
+</div>
+<div class="fixed bottom-6 left-0 w-full z-30 px-6 flex justify-center pointer-events-none">
+<div class="glass-float-bar rounded-full px-6 py-3 flex items-center gap-8 shadow-2xl pointer-events-auto">
+<button class="flex flex-col items-center justify-center gap-1 group">
+<span class="material-icons-round text-2xl text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">edit</span>
+<span class="text-[10px] font-medium text-slate-500 dark:text-slate-400 group-hover:text-primary transition-colors">编辑</span>
+</button>
+<div class="w-px h-6 bg-slate-200 dark:bg-slate-700"></div>
+<button class="flex flex-col items-center justify-center gap-1 group">
+<span class="material-icons-round text-2xl text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">favorite_border</span>
+<span class="text-[10px] font-medium text-slate-500 dark:text-slate-400 group-hover:text-primary transition-colors">收藏</span>
+</button>
+<div class="w-px h-6 bg-slate-200 dark:bg-slate-700"></div>
+<button class="flex flex-col items-center justify-center gap-1 group">
+<span class="material-icons-round text-2xl text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">share</span>
+<span class="text-[10px] font-medium text-slate-500 dark:text-slate-400 group-hover:text-primary transition-colors">分享</span>
+</button>
+</div>
+</div>
+
+</body></html>

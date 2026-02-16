@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>人生博物馆 - 羁绊 - 相遇</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0095FF",
+                        "primary-light": "#E6F4FF",
+                        "cyan-brand": "#0095FF",
+                        "cyan-soft": "#E6F4FF",
+                        "background-light": "#fdfaf7",
+                        "background-dark": "#221910",
+                        "neutral-soft": "#f4f2f0",
+                        "text-main": "#181411",
+                        "text-muted": "#897561"
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "Noto Sans SC", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "2xl": "1.75rem",
+                        "3xl": "2rem",
+                        "full": "9999px"
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 149, 255, 0.08)',
+                        'modal': '0 10px 40px -10px rgba(0, 0, 0, 0.15)',
+                        'inner-light': 'inset 0 2px 4px 0 rgba(255, 255, 255, 0.3)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-filled {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .active-nav .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1;
+        }::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #e5e0dc;
+            border-radius: 20px;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-text-main font-display min-h-screen flex flex-col pb-20 overflow-hidden">
+<header class="sticky top-0 z-30 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-4 pt-4 pb-2">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-3">
+<button class="p-2 -ml-2 rounded-full hover:bg-neutral-soft dark:hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-text-main text-2xl font-bold">arrow_back</span>
+</button>
+<h1 class="text-xl font-bold tracking-tight text-text-main">羁绊</h1>
+</div>
+<button class="p-2 -mr-2 rounded-full hover:bg-neutral-soft dark:hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-text-main font-bold">more_horiz</span>
+</button>
+</div>
+<div class="flex bg-neutral-soft dark:bg-white/5 p-1 rounded-full mb-4 relative">
+<button class="flex-1 py-2.5 text-sm font-medium text-text-muted rounded-full transition-all hover:text-text-main">朋友档案</button>
+<button class="flex-1 py-2.5 text-sm font-bold text-text-main bg-white dark:bg-background-dark shadow-sm rounded-full transition-all">相遇</button>
+</div>
+<div class="flex gap-3 mb-2">
+<div class="relative flex-1">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-text-muted text-xl">search</span>
+<input class="w-full bg-neutral-soft dark:bg-white/5 border-none rounded-2xl py-3.5 pl-11 pr-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 placeholder:text-text-muted/70 transition-all" placeholder="搜索相遇回忆..." type="text"/>
+</div>
+<div class="flex gap-2">
+<button class="w-12 h-12 flex items-center justify-center bg-neutral-soft dark:bg-white/5 rounded-2xl hover:bg-neutral-soft/80 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-text-muted">tune</span>
+</button>
+<button class="w-12 h-12 flex items-center justify-center bg-neutral-soft dark:bg-white/5 rounded-2xl hover:bg-neutral-soft/80 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-text-muted">add</span>
+</button>
+</div>
+</div>
+</header>
+<main class="flex-1 px-4 py-6 relative blur-sm pointer-events-none">
+<div class="absolute left-[2.25rem] top-0 bottom-0 w-[2px] bg-primary-light dark:bg-white/5 -z-10"></div>
+<div class="space-y-6">
+<div class="flex gap-4 group cursor-pointer">
+<div class="relative flex flex-col items-center pt-1">
+<div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center border-[3px] border-background-light dark:border-background-dark shadow-sm z-10 transition-transform group-hover:scale-110">
+<span class="material-symbols-outlined text-white text-lg">calendar_today</span>
+</div>
+</div>
+<div class="flex-1 bg-white dark:bg-white/5 p-5 rounded-3xl shadow-soft dark:shadow-none border border-transparent hover:border-primary/10 dark:hover:border-white/10 active:scale-[0.98] transition-all duration-300">
+<div class="flex justify-between items-center mb-3">
+<p class="text-sm font-bold text-primary">2023年10月15日</p>
+<span class="material-symbols-outlined text-text-muted/50 text-sm">chevron_right</span>
+</div>
+<h3 class="font-bold text-lg text-text-main mb-2 leading-tight">
+                    与 <span class="text-primary">小明</span> 在 Oishii Sushi 共进晚餐
+                </h3>
+<p class="text-text-muted text-sm leading-relaxed mb-4 line-clamp-2">
+                    分享了最近的职场趣闻，寿司的味道依然如故。聊到了关于明年的旅行计划。
+                </p>
+<div class="flex items-center gap-2">
+<div class="relative">
+<img class="w-8 h-8 rounded-full border-2 border-white dark:border-background-dark shadow-sm object-cover" data-alt="User avatar of a smiling man" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAGk_HxDxrbpCRA6nSpTvEx_Io_FA5-C-wqijGhFkRJZFjWpnNLZ-k-AQhJwTA8l2oHDOwDJJGVRBDrNX54Ud6jT0MXlkXTfMYEVYfvY9GS_joYMeb0OOUimcx0PQfqw8ibMAAGF1F-3looMH4sH5jO8v6-GAII_IFmIqZ1Zw9NSsu7YxXpTCTVudfG0FG1Pc8uu9R9BL407BNh7DUcIWczb_gQ7MDiJ3oHnBwVnQHuH8ZpZMnIOjAQmw_d-cboUPe_DoRuhUg9ZyI6"/>
+<div class="absolute -right-1 -bottom-1 w-4 h-4 bg-primary text-white text-[8px] font-bold flex items-center justify-center rounded-full border border-white">Me</div>
+</div>
+<div class="w-8 h-8 rounded-full bg-primary-light dark:bg-white/10 text-primary font-bold text-xs flex items-center justify-center border-2 border-white dark:border-background-dark">
+                        M
+                    </div>
+</div>
+</div>
+</div>
+<div class="flex gap-4 group cursor-pointer">
+<div class="relative flex flex-col items-center pt-1">
+<div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center border-[3px] border-background-light dark:border-background-dark shadow-sm z-10 transition-transform group-hover:scale-110">
+<span class="material-symbols-outlined text-primary text-lg icon-filled">flight_takeoff</span>
+</div>
+</div>
+<div class="flex-1 bg-white dark:bg-white/5 p-5 rounded-3xl shadow-soft dark:shadow-none border border-transparent hover:border-primary/10 dark:hover:border-white/10 active:scale-[0.98] transition-all duration-300">
+<div class="flex justify-between items-center mb-3">
+<p class="text-sm font-bold text-primary">2023年9月20日</p>
+<span class="material-symbols-outlined text-text-muted/50 text-sm">chevron_right</span>
+</div>
+<h3 class="font-bold text-lg text-text-main mb-2 leading-tight">
+                    与 <span class="text-primary">佳佳、阿强</span> 开启 京都之旅
+                </h3>
+<p class="text-text-muted text-sm leading-relaxed mb-4 line-clamp-2">
+                    清水寺的晚霞非常壮丽。三个人的旅行虽然偶尔有小摩擦，但更多的是欢笑。
+                </p>
+<div class="flex items-center gap-3">
+<div class="flex -space-x-2">
+<img class="w-8 h-8 rounded-full border-2 border-white dark:border-background-dark object-cover" data-alt="Avatar of a smiling young woman" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAfqbTtlSzcGbxP6sDWFkXEXnXY7S9cEL6Bt3EJFPLD4Rw4StNb79kcTLEPX-DpJkD-EixDzyQ6VaF22CHOCaE0oYW39n2OsTFHJzLc152j70DhBjAAR5fvSJSTauBaUMy49hKBlkyVA9qW0YTbdc9La2XSgErXsEHMkPotxhkDCM3ji8Ztz0Pniue06QW1WXBgJvIZt2LvcGUYOW4SBrEjzS-xqNRpXpHhqISfj24SoyJj7wCWaf9vQce7Lm5-lO3SsHbeXAYpSmqo"/>
+<img class="w-8 h-8 rounded-full border-2 border-white dark:border-background-dark object-cover" data-alt="Avatar of a man with glasses" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDtAP63KUCiq0PzWilgClTpCmQSFmEXpK9FGb2IB7ogpjVWu_vs342c4QeGysBwdHS1jP7MGfXnuwRozaxnI_8Lp0i_JBo7-3uqhagGpgt8MVAOyhMUAcz4GQl-Y7kqzYE0pzBFVw3esKYOm4MnQJsTRx4cv14lraUivp1APir-9n02Ajzdl3nPBejG-cCs69Tle82GmPCROQzKPfEerHtNsruSKQycVv2lM7wbb8YO66mUp0XgOgqr8aoGHomDB5UjYoVUdB4WxGos"/>
+</div>
+<span class="text-xs text-text-muted font-medium bg-neutral-soft dark:bg-white/5 px-2 py-1 rounded-full">+2 位伙伴</span>
+</div>
+</div>
+</div>
+<div class="flex gap-4 group cursor-pointer">
+<div class="relative flex flex-col items-center pt-1">
+<div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center border-[3px] border-background-light dark:border-background-dark shadow-sm z-10 transition-transform group-hover:scale-110">
+<span class="material-symbols-outlined text-primary text-lg icon-filled">park</span>
+</div>
+</div>
+<div class="flex-1 bg-white dark:bg-white/5 p-5 rounded-3xl shadow-soft dark:shadow-none border border-transparent hover:border-primary/10 dark:hover:border-white/10 active:scale-[0.98] transition-all duration-300">
+<div class="flex justify-between items-center mb-3">
+<p class="text-sm font-bold text-primary">2023年8月05日</p>
+<span class="material-symbols-outlined text-text-muted/50 text-sm">chevron_right</span>
+</div>
+<h3 class="font-bold text-lg text-text-main mb-2 leading-tight">
+                    在 公园 与 <span class="text-primary">小红</span> 散步
+                </h3>
+<p class="text-text-muted text-sm leading-relaxed mb-4 line-clamp-2">
+                    初秋的微风，我们聊了很多关于未来的想法。生活就是由这些平凡的时刻组成的。
+                </p>
+<div class="flex -space-x-2">
+<img class="w-8 h-8 rounded-full border-2 border-white dark:border-background-dark object-cover" data-alt="Profile photo of a woman with red hair" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBjJ_wNHKW7CgtCLI2HD7UJjfBb-w2Tp1oreBYKtJEJmzS5ZocJ7P1u3GIskb2LWreXDDihpXzWjEhSt8rrwn9356112wZu2fz8HepNGNfOaxTFiTK5SwltbAsJAVWsOi-Z6p4X03UtTN4lIn8u61_jer0T8mer3Iti8vGeLepODSFiOFyaTHMLD95vuDshdpk13EscElon4D_4POOR2ir6Zij-MR2SykIenIJ6PdLNzSosTQGzQDymOcI7dYq936Ve4oFdBcZ8sL9A"/>
+</div>
+</div>
+</div>
+</div>
+<div class="py-12 text-center">
+<div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-neutral-soft/50 dark:bg-white/5">
+<div class="w-1 h-1 rounded-full bg-text-muted/40"></div>
+<p class="text-text-muted/60 text-xs font-medium tracking-wide">已加载全部美好回忆</p>
+<div class="w-1 h-1 rounded-full bg-text-muted/40"></div>
+</div>
+</div>
+</main>
+<nav class="fixed bottom-0 w-full bg-white dark:bg-background-dark border-t border-neutral-soft dark:border-white/5 px-2 py-3 pb-safe flex justify-around items-end z-40 blur-sm pointer-events-none">
+<a class="flex flex-col items-center gap-1.5 p-2 w-1/6 text-text-muted hover:text-primary transition-colors group" href="#">
+<span class="material-symbols-outlined text-[24px] group-hover:-translate-y-1 transition-transform">calendar_month</span>
+<span class="text-[10px] font-medium">日程</span>
+</a>
+<a class="flex flex-col items-center gap-1.5 p-2 w-1/6 text-text-muted hover:text-primary transition-colors group" href="#">
+<span class="material-symbols-outlined text-[24px] group-hover:-translate-y-1 transition-transform">restaurant</span>
+<span class="text-[10px] font-medium">美食</span>
+</a>
+<a class="flex flex-col items-center gap-1.5 p-2 w-1/6 text-text-muted hover:text-primary transition-colors group" href="#">
+<span class="material-symbols-outlined text-[24px] group-hover:-translate-y-1 transition-transform">auto_awesome</span>
+<span class="text-[10px] font-medium">小确幸</span>
+</a>
+<a class="flex flex-col items-center gap-1.5 p-2 w-1/6 text-text-muted hover:text-primary transition-colors group" href="#">
+<span class="material-symbols-outlined text-[24px] group-hover:-translate-y-1 transition-transform">flight</span>
+<span class="text-[10px] font-medium">旅行</span>
+</a>
+<a class="flex flex-col items-center gap-1.5 p-2 w-1/6 text-text-muted hover:text-primary transition-colors group" href="#">
+<span class="material-symbols-outlined text-[24px] group-hover:-translate-y-1 transition-transform">flag</span>
+<span class="text-[10px] font-medium">目标</span>
+</a>
+<a class="flex flex-col items-center gap-1.5 p-2 w-1/6 text-primary active-nav group" href="#" style="color: #2bcdee;">
+<span class="material-symbols-outlined text-[24px] icon-filled group-hover:-translate-y-1 transition-transform">groups</span>
+<span class="text-[10px] font-bold">羁绊</span>
+</a>
+</nav>
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+<div class="absolute inset-0 bg-black/40 backdrop-blur-[2px]"></div>
+<div class="relative w-full max-w-md bg-white dark:bg-[#2A2A2A] rounded-3xl shadow-modal overflow-hidden animate-in fade-in zoom-in duration-300">
+<div class="flex items-center justify-between p-5 border-b border-neutral-100 dark:border-white/5">
+<button class="w-8 h-8 rounded-full flex items-center justify-center text-text-muted hover:bg-neutral-soft dark:hover:bg-white/10">
+<span class="material-symbols-outlined text-xl">close</span>
+</button>
+<h2 class="text-lg font-bold text-text-main">记录相遇</h2>
+<button class="px-4 py-1.5 bg-cyan-brand text-white text-sm font-bold rounded-full hover:bg-cyan-brand/90 transition-colors shadow-sm" style="background-color: #0095FF;">
+            保存
+        </button>
+</div>
+<div class="p-5 max-h-[70vh] overflow-y-auto space-y-6"><div class="space-y-2">
+<label class="text-sm font-bold text-text-muted block">标题</label>
+<input class="w-full bg-neutral-soft dark:bg-white/5 border-none rounded-2xl px-4 py-3 text-sm font-medium text-text-main placeholder:text-text-muted/50 focus:ring-2 focus:ring-primary/20 transition-all" placeholder="给这次相遇起个名字..." type="text"/>
+</div>
+<div class="space-y-3">
+<label class="text-sm font-bold text-text-muted block">选择好友</label>
+<div class="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+<div class="flex flex-col items-center gap-2 min-w-[60px] group cursor-pointer">
+<div class="w-14 h-14 rounded-full bg-neutral-soft dark:bg-white/5 flex items-center justify-center border-2 border-dashed border-cyan-brand/30 text-cyan-brand group-hover:bg-cyan-soft dark:group-hover:bg-cyan-brand/20 transition-colors" style="color: #0095FF;">
+<span class="material-symbols-outlined">add</span>
+</div>
+<span class="text-xs font-medium text-text-muted">添加</span>
+</div>
+<div class="flex flex-col items-center gap-2 min-w-[60px] cursor-pointer relative">
+<div class="w-14 h-14 rounded-full p-0.5 border-2 border-cyan-brand" style="border-color: #0095FF;">
+<img class="w-full h-full rounded-full object-cover" data-alt="Friend avatar 1" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAfqbTtlSzcGbxP6sDWFkXEXnXY7S9cEL6Bt3EJFPLD4Rw4StNb79kcTLEPX-DpJkD-EixDzyQ6VaF22CHOCaE0oYW39n2OsTFHJzLc152j70DhBjAAR5fvSJSTauBaUMy49hKBlkyVA9qW0YTbdc9La2XSgErXsEHMkPotxhkDCM3ji8Ztz0Pniue06QW1WXBgJvIZt2LvcGUYOW4SBrEjzS-xqNRpXpHhqISfj24SoyJj7wCWaf9vQce7Lm5-lO3SsHbeXAYpSmqo"/>
+</div>
+<span class="text-xs font-medium text-text-main">佳佳</span>
+<div class="absolute -top-0 -right-0 bg-cyan-brand text-white rounded-full w-5 h-5 flex items-center justify-center border-2 border-white" style="background-color: #0095FF;">
+<span class="material-symbols-outlined text-[12px] font-bold">check</span>
+</div>
+</div>
+<div class="flex flex-col items-center gap-2 min-w-[60px] cursor-pointer opacity-70 hover:opacity-100 transition-opacity">
+<div class="w-14 h-14 rounded-full p-0.5 border-2 border-transparent">
+<img class="w-full h-full rounded-full object-cover grayscale" data-alt="Friend avatar 2" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDtAP63KUCiq0PzWilgClTpCmQSFmEXpK9FGb2IB7ogpjVWu_vs342c4QeGysBwdHS1jP7MGfXnuwRozaxnI_8Lp0i_JBo7-3uqhagGpgt8MVAOyhMUAcz4GQl-Y7kqzYE0pzBFVw3esKYOm4MnQJsTRx4cv14lraUivp1APir-9n02Ajzdl3nPBejG-cCs69Tle82GmPCROQzKPfEerHtNsruSKQycVv2lM7wbb8YO66mUp0XgOgqr8aoGHomDB5UjYoVUdB4WxGos"/>
+</div>
+<span class="text-xs font-medium text-text-muted">阿强</span>
+</div>
+<div class="flex flex-col items-center gap-2 min-w-[60px] cursor-pointer opacity-70 hover:opacity-100 transition-opacity">
+<div class="w-14 h-14 rounded-full p-0.5 border-2 border-transparent">
+<img class="w-full h-full rounded-full object-cover grayscale" data-alt="Friend avatar 3" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBjJ_wNHKW7CgtCLI2HD7UJjfBb-w2Tp1oreBYKtJEJmzS5ZocJ7P1u3GIskb2LWreXDDihpXzWjEhSt8rrwn9356112wZu2fz8HepNGNfOaxTFiTK5SwltbAsJAVWsOi-Z6p4X03UtTN4lIn8u61_jer0T8mer3Iti8vGeLepODSFiOFyaTHMLD95vuDshdpk13EscElon4D_4POOR2ir6Zij-MR2SykIenIJ6PdLNzSosTQGzQDymOcI7dYq936Ve4oFdBcZ8sL9A"/>
+</div>
+<span class="text-xs font-medium text-text-muted">小红</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="space-y-2">
+<label class="text-sm font-bold text-text-muted block">日期</label>
+<div class="flex items-center bg-neutral-soft dark:bg-white/5 rounded-2xl px-4 py-3">
+<span class="material-symbols-outlined text-cyan-brand mr-2 text-lg" style="color: #0095FF;">calendar_today</span>
+<input class="bg-transparent border-none text-sm font-medium w-full p-0 focus:ring-0 text-text-main" type="date" value="2023-10-24"/>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-bold text-text-muted block">地点</label>
+<div class="flex items-center bg-neutral-soft dark:bg-white/5 rounded-2xl px-4 py-3">
+<span class="material-symbols-outlined text-cyan-brand mr-2 text-lg" style="color: #0095FF;">location_on</span>
+<input class="bg-transparent border-none text-sm font-medium w-full p-0 focus:ring-0 text-text-main placeholder:text-text-muted/50" placeholder="在哪里相遇?" type="text"/>
+</div>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-bold text-text-muted block">心情分享</label>
+<textarea class="w-full h-24 bg-neutral-soft dark:bg-white/5 border-none rounded-2xl p-4 text-sm font-medium text-text-main placeholder:text-text-muted/50 focus:ring-2 focus:ring-cyan-brand/20 resize-none" placeholder="记录下这美好的一刻..."></textarea>
+</div><div class="space-y-3">
+<label class="text-sm font-bold text-text-muted block">上传照片</label>
+<div class="grid grid-cols-4 gap-2">
+<div class="aspect-square rounded-2xl bg-neutral-soft dark:bg-white/5 flex items-center justify-center border-2 border-dashed border-primary/20 hover:bg-primary-light transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-primary">add_a_photo</span>
+</div>
+<div class="aspect-square rounded-2xl bg-neutral-soft dark:bg-white/5"></div>
+<div class="aspect-square rounded-2xl bg-neutral-soft dark:bg-white/5"></div>
+<div class="aspect-square rounded-2xl bg-neutral-soft dark:bg-white/5"></div>
+</div>
+</div>
+<div class="space-y-3">
+<label class="text-sm font-bold text-text-muted flex items-center gap-1">
+            万物关联
+            <span class="material-symbols-outlined text-base text-cyan-brand/70" style="color: rgba(0, 149, 255, 0.7);" title="关联其他模块">link</span>
+</label>
+<div class="flex flex-col gap-3">
+<label class="flex items-center gap-3 p-3 rounded-2xl border border-neutral-200 dark:border-white/10 hover:bg-cyan-soft/50 dark:hover:bg-white/5 cursor-pointer transition-colors group">
+<div class="w-10 h-10 rounded-xl bg-orange-100 text-orange-500 flex items-center justify-center">
+<span class="material-symbols-outlined">restaurant</span>
+</div>
+<div class="flex-1">
+<p class="text-sm font-bold text-text-main">关联美食</p>
+<p class="text-xs text-text-muted">刚才一起吃了什么?</p>
+</div>
+<input class="form-checkbox w-5 h-5 text-cyan-brand rounded-full border-gray-300 focus:ring-cyan-brand" style="color: #0095FF;" type="checkbox"/>
+</label>
+<label class="flex items-center gap-3 p-3 rounded-2xl border border-neutral-200 dark:border-white/10 bg-cyan-soft/30 dark:bg-cyan-brand/10 border-cyan-brand/30 cursor-pointer transition-colors group" style="border-color: rgba(0, 149, 255, 0.3);">
+<div class="w-10 h-10 rounded-xl bg-cyan-100 text-cyan-600 flex items-center justify-center">
+<span class="material-symbols-outlined">flight</span>
+</div>
+<div class="flex-1">
+<p class="text-sm font-bold text-text-main">关联旅行</p>
+<p class="text-xs text-text-muted">是在旅途中相遇吗?</p>
+</div>
+<div class="w-5 h-5 rounded-full bg-cyan-brand flex items-center justify-center" style="background-color: #0095FF;">
+<span class="material-symbols-outlined text-white text-xs font-bold">check</span>
+</div>
+</label>
+<label class="flex items-center gap-3 p-3 rounded-2xl border border-neutral-200 dark:border-white/10 hover:bg-cyan-soft/50 dark:hover:bg-white/5 cursor-pointer transition-colors group">
+<div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-500 flex items-center justify-center">
+<span class="material-symbols-outlined">flag</span>
+</div>
+<div class="flex-1">
+<p class="text-sm font-bold text-text-main">关联目标</p>
+<p class="text-xs text-text-muted">是否达成了共同目标?</p>
+</div>
+<input class="form-checkbox w-5 h-5 text-cyan-brand rounded-full border-gray-300 focus:ring-cyan-brand" style="color: #0095FF;" type="checkbox"/>
+</label>
+</div>
+</div>
+</div>
+</div>
+</div>
+<style>.pb-safe {
+        padding-bottom: env(safe-area-inset-bottom, 20px);
+    }
+</style>
+</body></html>

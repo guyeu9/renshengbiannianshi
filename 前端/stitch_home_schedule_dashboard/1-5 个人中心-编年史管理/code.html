@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>编年史管理中心</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1152d4",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101622",
+                    },
+                    fontFamily: {
+                        "display": ["Work Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                    backgroundImage: {
+                        'paper-texture': "url('https://www.transparenttextures.com/patterns/cream-paper.png')",
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-[#111418] dark:text-white antialiased">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden pb-24">
+<div class="fixed top-0 left-0 right-0 z-50 flex items-center justify-between bg-background-light/80 px-4 py-4 backdrop-blur-md dark:bg-background-dark/80">
+<button class="flex h-10 w-10 items-center justify-center rounded-full text-gray-900 transition-colors hover:bg-gray-200 dark:text-white dark:hover:bg-gray-800">
+<span class="material-symbols-outlined text-[24px]">arrow_back_ios_new</span>
+</button>
+<h1 class="text-lg font-bold text-gray-900 dark:text-white">编年史管理</h1>
+<button class="flex h-10 w-10 items-center justify-center rounded-full text-gray-900 transition-colors hover:bg-gray-200 dark:text-white dark:hover:bg-gray-800">
+<span class="material-symbols-outlined text-[24px]">history</span>
+</button>
+</div>
+<div class="mt-20 flex flex-col gap-6 px-5">
+<div>
+<div class="mb-4 flex items-center justify-between">
+<h2 class="text-xl font-bold text-gray-900 dark:text-white">已生成的编年史</h2>
+<span class="text-sm text-gray-500 dark:text-gray-400">共 3 本</span>
+</div>
+<div class="flex flex-col gap-4">
+<div class="group relative flex overflow-hidden rounded-xl bg-white p-3 shadow-sm transition-all hover:shadow-md dark:bg-[#1e2736]">
+<div class="relative h-32 w-24 flex-shrink-0 overflow-hidden rounded-lg bg-gray-200 shadow-inner">
+<div class="absolute inset-0 flex flex-col items-center justify-center bg-amber-100 p-2 text-center text-amber-900 dark:bg-amber-900/40 dark:text-amber-100">
+<span class="text-xs font-serif opacity-70">The Chronicle</span>
+<span class="mt-1 text-lg font-bold font-serif leading-tight">2023<br/>年度回顾</span>
+</div>
+<div class="absolute bottom-0 left-0 h-full w-2 bg-gradient-to-r from-black/20 to-transparent"></div>
+</div>
+<div class="ml-4 flex flex-1 flex-col justify-between py-1">
+<div>
+<div class="flex items-start justify-between">
+<h3 class="text-lg font-bold text-gray-900 dark:text-white">2023 年度回忆录</h3>
+<button class="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700">
+<span class="material-symbols-outlined text-[20px]">more_horiz</span>
+</button>
+</div>
+<p class="mt-1 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+<span class="material-symbols-outlined text-[14px]">date_range</span>
+                                2023.01.01 - 2023.12.31
+                            </p>
+<p class="mt-0.5 text-xs text-gray-400">生成于 2024.01.05</p>
+</div>
+<div class="flex items-center gap-3 mt-3">
+<button class="flex flex-1 items-center justify-center gap-1 rounded-lg bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
+<span class="material-symbols-outlined text-[16px]">visibility</span>
+                                预览
+                            </button>
+<button class="flex items-center justify-center rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
+                                PDF
+                            </button>
+<button class="flex items-center justify-center rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
+                                EPUB
+                            </button>
+</div>
+</div>
+</div>
+<div class="group relative flex overflow-hidden rounded-xl bg-white p-3 shadow-sm transition-all hover:shadow-md dark:bg-[#1e2736]">
+<div class="relative h-32 w-24 flex-shrink-0 overflow-hidden rounded-lg bg-gray-200 shadow-inner">
+<div class="absolute inset-0 flex flex-col items-center justify-center bg-blue-100 p-2 text-center text-blue-900 dark:bg-blue-900/40 dark:text-blue-100">
+<span class="text-xs font-serif opacity-70">Travel Log</span>
+<span class="mt-1 text-lg font-bold font-serif leading-tight">日本<br/>之旅</span>
+</div>
+<div class="absolute bottom-0 left-0 h-full w-2 bg-gradient-to-r from-black/20 to-transparent"></div>
+</div>
+<div class="ml-4 flex flex-1 flex-col justify-between py-1">
+<div>
+<div class="flex items-start justify-between">
+<h3 class="text-lg font-bold text-gray-900 dark:text-white">樱花季·日本行</h3>
+<button class="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700">
+<span class="material-symbols-outlined text-[20px]">more_horiz</span>
+</button>
+</div>
+<p class="mt-1 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+<span class="material-symbols-outlined text-[14px]">date_range</span>
+                                2023.03.20 - 2023.04.05
+                            </p>
+<p class="mt-0.5 text-xs text-gray-400">生成于 2023.04.10</p>
+</div>
+<div class="flex items-center gap-3 mt-3">
+<button class="flex flex-1 items-center justify-center gap-1 rounded-lg bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
+<span class="material-symbols-outlined text-[16px]">visibility</span>
+                                预览
+                            </button>
+<button class="flex items-center justify-center rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
+                                PDF
+                            </button>
+<button class="flex items-center justify-center rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
+                                EPUB
+                            </button>
+</div>
+</div>
+</div>
+<div class="group relative flex overflow-hidden rounded-xl bg-white p-3 shadow-sm transition-all hover:shadow-md dark:bg-[#1e2736]">
+<div class="relative h-32 w-24 flex-shrink-0 overflow-hidden rounded-lg bg-gray-200 shadow-inner">
+<div class="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 p-2 text-center text-gray-800 dark:bg-gray-800 dark:text-gray-200">
+<span class="text-xs font-serif opacity-70">Memory</span>
+<span class="mt-1 text-lg font-bold font-serif leading-tight">2022<br/>精选</span>
+</div>
+<div class="absolute bottom-0 left-0 h-full w-2 bg-gradient-to-r from-black/20 to-transparent"></div>
+</div>
+<div class="ml-4 flex flex-1 flex-col justify-between py-1">
+<div>
+<div class="flex items-start justify-between">
+<h3 class="text-lg font-bold text-gray-900 dark:text-white">2022 年度精选</h3>
+<button class="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700">
+<span class="material-symbols-outlined text-[20px]">more_horiz</span>
+</button>
+</div>
+<p class="mt-1 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+<span class="material-symbols-outlined text-[14px]">date_range</span>
+                                2022.01.01 - 2022.12.31
+                            </p>
+<p class="mt-0.5 text-xs text-gray-400">生成于 2023.01.15</p>
+</div>
+<div class="flex items-center gap-3 mt-3">
+<button class="flex flex-1 items-center justify-center gap-1 rounded-lg bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
+<span class="material-symbols-outlined text-[16px]">visibility</span>
+                                预览
+                            </button>
+<button class="flex items-center justify-center rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
+                                PDF
+                            </button>
+<button class="flex items-center justify-center rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
+                                EPUB
+                            </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-2">
+<h2 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">创建新的篇章</h2>
+<div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-blue-700 p-6 text-white shadow-lg shadow-primary/30">
+<div class="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl"></div>
+<div class="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-white/10 blur-3xl"></div>
+<div class="relative z-10 flex flex-col items-center gap-4 text-center">
+<div class="flex h-16 w-16 items-center justify-center rounded-full bg-white/20 backdrop-blur-md">
+<span class="material-symbols-outlined text-[36px]">auto_stories</span>
+</div>
+<div>
+<h3 class="text-xl font-bold">生成新编年史</h3>
+<p class="mt-1 text-sm text-blue-100">选择时间段，将记忆汇编成书</p>
+</div>
+<button class="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 font-bold text-primary shadow-sm transition-transform active:scale-95">
+<span class="material-symbols-outlined">add_circle</span>
+                        开始生成
+                    </button>
+</div>
+</div>
+<div class="mt-6 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
+<p class="mb-3 text-xs font-medium uppercase text-gray-500 dark:text-gray-400">快速选择范围</p>
+<div class="grid grid-cols-2 gap-3">
+<button class="flex flex-col gap-1 rounded-lg bg-white p-3 text-left shadow-sm ring-1 ring-gray-900/5 transition-all hover:ring-primary dark:bg-[#1e2736] dark:ring-gray-700">
+<span class="material-symbols-outlined text-primary">calendar_month</span>
+<span class="font-medium text-gray-900 dark:text-white">2023 年度</span>
+<span class="text-xs text-gray-500">Jan 1 - Dec 31</span>
+</button>
+<button class="flex flex-col gap-1 rounded-lg bg-white p-3 text-left shadow-sm ring-1 ring-gray-900/5 transition-all hover:ring-primary dark:bg-[#1e2736] dark:ring-gray-700">
+<span class="material-symbols-outlined text-purple-500">date_range</span>
+<span class="font-medium text-gray-900 dark:text-white">自定义时间</span>
+<span class="text-xs text-gray-500">自由选择区间</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<div class="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white/90 px-6 py-4 backdrop-blur-xl dark:border-gray-800 dark:bg-[#101622]/90">
+<div class="flex items-center justify-between gap-4">
+<div class="flex flex-col">
+<span class="text-xs text-gray-500 dark:text-gray-400">存储空间</span>
+<div class="flex items-center gap-2">
+<div class="h-2 w-24 rounded-full bg-gray-200 dark:bg-gray-700">
+<div class="h-2 w-3/4 rounded-full bg-primary"></div>
+</div>
+<span class="text-xs font-bold text-gray-900 dark:text-white">75%</span>
+</div>
+</div>
+<button class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
+                 管理云端
+             </button>
+</div>
+</div>
+</div>
+
+</body></html>
