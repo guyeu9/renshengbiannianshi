@@ -2214,6 +2214,1428 @@ class FriendRecordsCompanion extends UpdateCompanion<FriendRecord> {
   }
 }
 
+class $TravelRecordsTable extends TravelRecords
+    with TableInfo<$TravelRecordsTable, TravelRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TravelRecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _tripIdMeta = const VerificationMeta('tripId');
+  @override
+  late final GeneratedColumn<String> tripId = GeneratedColumn<String>(
+      'trip_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+      'title', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _contentMeta =
+      const VerificationMeta('content');
+  @override
+  late final GeneratedColumn<String> content = GeneratedColumn<String>(
+      'content', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _imagesMeta = const VerificationMeta('images');
+  @override
+  late final GeneratedColumn<String> images = GeneratedColumn<String>(
+      'images', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _destinationMeta =
+      const VerificationMeta('destination');
+  @override
+  late final GeneratedColumn<String> destination = GeneratedColumn<String>(
+      'destination', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _latitudeMeta =
+      const VerificationMeta('latitude');
+  @override
+  late final GeneratedColumn<double> latitude = GeneratedColumn<double>(
+      'latitude', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _longitudeMeta =
+      const VerificationMeta('longitude');
+  @override
+  late final GeneratedColumn<double> longitude = GeneratedColumn<double>(
+      'longitude', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _cityMeta = const VerificationMeta('city');
+  @override
+  late final GeneratedColumn<String> city = GeneratedColumn<String>(
+      'city', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _moodMeta = const VerificationMeta('mood');
+  @override
+  late final GeneratedColumn<String> mood = GeneratedColumn<String>(
+      'mood', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _expenseTransportMeta =
+      const VerificationMeta('expenseTransport');
+  @override
+  late final GeneratedColumn<double> expenseTransport = GeneratedColumn<double>(
+      'expense_transport', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _expenseHotelMeta =
+      const VerificationMeta('expenseHotel');
+  @override
+  late final GeneratedColumn<double> expenseHotel = GeneratedColumn<double>(
+      'expense_hotel', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _expenseFoodMeta =
+      const VerificationMeta('expenseFood');
+  @override
+  late final GeneratedColumn<double> expenseFood = GeneratedColumn<double>(
+      'expense_food', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _expenseTicketMeta =
+      const VerificationMeta('expenseTicket');
+  @override
+  late final GeneratedColumn<double> expenseTicket = GeneratedColumn<double>(
+      'expense_ticket', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _isWishlistMeta =
+      const VerificationMeta('isWishlist');
+  @override
+  late final GeneratedColumn<bool> isWishlist = GeneratedColumn<bool>(
+      'is_wishlist', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_wishlist" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _wishlistDoneMeta =
+      const VerificationMeta('wishlistDone');
+  @override
+  late final GeneratedColumn<bool> wishlistDone = GeneratedColumn<bool>(
+      'wishlist_done', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("wishlist_done" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _planDateMeta =
+      const VerificationMeta('planDate');
+  @override
+  late final GeneratedColumn<DateTime> planDate = GeneratedColumn<DateTime>(
+      'plan_date', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _recordDateMeta =
+      const VerificationMeta('recordDate');
+  @override
+  late final GeneratedColumn<DateTime> recordDate = GeneratedColumn<DateTime>(
+      'record_date', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _isDeletedMeta =
+      const VerificationMeta('isDeleted');
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+      'is_deleted', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_deleted" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        tripId,
+        title,
+        content,
+        images,
+        destination,
+        latitude,
+        longitude,
+        city,
+        mood,
+        expenseTransport,
+        expenseHotel,
+        expenseFood,
+        expenseTicket,
+        isWishlist,
+        wishlistDone,
+        planDate,
+        recordDate,
+        createdAt,
+        updatedAt,
+        isDeleted
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'travel_records';
+  @override
+  VerificationContext validateIntegrity(Insertable<TravelRecord> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('trip_id')) {
+      context.handle(_tripIdMeta,
+          tripId.isAcceptableOrUnknown(data['trip_id']!, _tripIdMeta));
+    } else if (isInserting) {
+      context.missing(_tripIdMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+          _titleMeta, title.isAcceptableOrUnknown(data['title']!, _titleMeta));
+    }
+    if (data.containsKey('content')) {
+      context.handle(_contentMeta,
+          content.isAcceptableOrUnknown(data['content']!, _contentMeta));
+    }
+    if (data.containsKey('images')) {
+      context.handle(_imagesMeta,
+          images.isAcceptableOrUnknown(data['images']!, _imagesMeta));
+    }
+    if (data.containsKey('destination')) {
+      context.handle(
+          _destinationMeta,
+          destination.isAcceptableOrUnknown(
+              data['destination']!, _destinationMeta));
+    }
+    if (data.containsKey('latitude')) {
+      context.handle(_latitudeMeta,
+          latitude.isAcceptableOrUnknown(data['latitude']!, _latitudeMeta));
+    }
+    if (data.containsKey('longitude')) {
+      context.handle(_longitudeMeta,
+          longitude.isAcceptableOrUnknown(data['longitude']!, _longitudeMeta));
+    }
+    if (data.containsKey('city')) {
+      context.handle(
+          _cityMeta, city.isAcceptableOrUnknown(data['city']!, _cityMeta));
+    }
+    if (data.containsKey('mood')) {
+      context.handle(
+          _moodMeta, mood.isAcceptableOrUnknown(data['mood']!, _moodMeta));
+    }
+    if (data.containsKey('expense_transport')) {
+      context.handle(
+          _expenseTransportMeta,
+          expenseTransport.isAcceptableOrUnknown(
+              data['expense_transport']!, _expenseTransportMeta));
+    }
+    if (data.containsKey('expense_hotel')) {
+      context.handle(
+          _expenseHotelMeta,
+          expenseHotel.isAcceptableOrUnknown(
+              data['expense_hotel']!, _expenseHotelMeta));
+    }
+    if (data.containsKey('expense_food')) {
+      context.handle(
+          _expenseFoodMeta,
+          expenseFood.isAcceptableOrUnknown(
+              data['expense_food']!, _expenseFoodMeta));
+    }
+    if (data.containsKey('expense_ticket')) {
+      context.handle(
+          _expenseTicketMeta,
+          expenseTicket.isAcceptableOrUnknown(
+              data['expense_ticket']!, _expenseTicketMeta));
+    }
+    if (data.containsKey('is_wishlist')) {
+      context.handle(
+          _isWishlistMeta,
+          isWishlist.isAcceptableOrUnknown(
+              data['is_wishlist']!, _isWishlistMeta));
+    }
+    if (data.containsKey('wishlist_done')) {
+      context.handle(
+          _wishlistDoneMeta,
+          wishlistDone.isAcceptableOrUnknown(
+              data['wishlist_done']!, _wishlistDoneMeta));
+    }
+    if (data.containsKey('plan_date')) {
+      context.handle(_planDateMeta,
+          planDate.isAcceptableOrUnknown(data['plan_date']!, _planDateMeta));
+    }
+    if (data.containsKey('record_date')) {
+      context.handle(
+          _recordDateMeta,
+          recordDate.isAcceptableOrUnknown(
+              data['record_date']!, _recordDateMeta));
+    } else if (isInserting) {
+      context.missing(_recordDateMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(_isDeletedMeta,
+          isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  TravelRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TravelRecord(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      tripId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}trip_id'])!,
+      title: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}title']),
+      content: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}content']),
+      images: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}images']),
+      destination: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}destination']),
+      latitude: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}latitude']),
+      longitude: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}longitude']),
+      city: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}city']),
+      mood: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}mood']),
+      expenseTransport: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}expense_transport']),
+      expenseHotel: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}expense_hotel']),
+      expenseFood: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}expense_food']),
+      expenseTicket: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}expense_ticket']),
+      isWishlist: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_wishlist'])!,
+      wishlistDone: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}wishlist_done'])!,
+      planDate: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}plan_date']),
+      recordDate: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}record_date'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+      isDeleted: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
+    );
+  }
+
+  @override
+  $TravelRecordsTable createAlias(String alias) {
+    return $TravelRecordsTable(attachedDatabase, alias);
+  }
+}
+
+class TravelRecord extends DataClass implements Insertable<TravelRecord> {
+  final String id;
+  final String tripId;
+  final String? title;
+  final String? content;
+  final String? images;
+  final String? destination;
+  final double? latitude;
+  final double? longitude;
+  final String? city;
+  final String? mood;
+  final double? expenseTransport;
+  final double? expenseHotel;
+  final double? expenseFood;
+  final double? expenseTicket;
+  final bool isWishlist;
+  final bool wishlistDone;
+  final DateTime? planDate;
+  final DateTime recordDate;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final bool isDeleted;
+  const TravelRecord(
+      {required this.id,
+      required this.tripId,
+      this.title,
+      this.content,
+      this.images,
+      this.destination,
+      this.latitude,
+      this.longitude,
+      this.city,
+      this.mood,
+      this.expenseTransport,
+      this.expenseHotel,
+      this.expenseFood,
+      this.expenseTicket,
+      required this.isWishlist,
+      required this.wishlistDone,
+      this.planDate,
+      required this.recordDate,
+      required this.createdAt,
+      required this.updatedAt,
+      required this.isDeleted});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['trip_id'] = Variable<String>(tripId);
+    if (!nullToAbsent || title != null) {
+      map['title'] = Variable<String>(title);
+    }
+    if (!nullToAbsent || content != null) {
+      map['content'] = Variable<String>(content);
+    }
+    if (!nullToAbsent || images != null) {
+      map['images'] = Variable<String>(images);
+    }
+    if (!nullToAbsent || destination != null) {
+      map['destination'] = Variable<String>(destination);
+    }
+    if (!nullToAbsent || latitude != null) {
+      map['latitude'] = Variable<double>(latitude);
+    }
+    if (!nullToAbsent || longitude != null) {
+      map['longitude'] = Variable<double>(longitude);
+    }
+    if (!nullToAbsent || city != null) {
+      map['city'] = Variable<String>(city);
+    }
+    if (!nullToAbsent || mood != null) {
+      map['mood'] = Variable<String>(mood);
+    }
+    if (!nullToAbsent || expenseTransport != null) {
+      map['expense_transport'] = Variable<double>(expenseTransport);
+    }
+    if (!nullToAbsent || expenseHotel != null) {
+      map['expense_hotel'] = Variable<double>(expenseHotel);
+    }
+    if (!nullToAbsent || expenseFood != null) {
+      map['expense_food'] = Variable<double>(expenseFood);
+    }
+    if (!nullToAbsent || expenseTicket != null) {
+      map['expense_ticket'] = Variable<double>(expenseTicket);
+    }
+    map['is_wishlist'] = Variable<bool>(isWishlist);
+    map['wishlist_done'] = Variable<bool>(wishlistDone);
+    if (!nullToAbsent || planDate != null) {
+      map['plan_date'] = Variable<DateTime>(planDate);
+    }
+    map['record_date'] = Variable<DateTime>(recordDate);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    return map;
+  }
+
+  TravelRecordsCompanion toCompanion(bool nullToAbsent) {
+    return TravelRecordsCompanion(
+      id: Value(id),
+      tripId: Value(tripId),
+      title:
+          title == null && nullToAbsent ? const Value.absent() : Value(title),
+      content: content == null && nullToAbsent
+          ? const Value.absent()
+          : Value(content),
+      images:
+          images == null && nullToAbsent ? const Value.absent() : Value(images),
+      destination: destination == null && nullToAbsent
+          ? const Value.absent()
+          : Value(destination),
+      latitude: latitude == null && nullToAbsent
+          ? const Value.absent()
+          : Value(latitude),
+      longitude: longitude == null && nullToAbsent
+          ? const Value.absent()
+          : Value(longitude),
+      city: city == null && nullToAbsent ? const Value.absent() : Value(city),
+      mood: mood == null && nullToAbsent ? const Value.absent() : Value(mood),
+      expenseTransport: expenseTransport == null && nullToAbsent
+          ? const Value.absent()
+          : Value(expenseTransport),
+      expenseHotel: expenseHotel == null && nullToAbsent
+          ? const Value.absent()
+          : Value(expenseHotel),
+      expenseFood: expenseFood == null && nullToAbsent
+          ? const Value.absent()
+          : Value(expenseFood),
+      expenseTicket: expenseTicket == null && nullToAbsent
+          ? const Value.absent()
+          : Value(expenseTicket),
+      isWishlist: Value(isWishlist),
+      wishlistDone: Value(wishlistDone),
+      planDate: planDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(planDate),
+      recordDate: Value(recordDate),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      isDeleted: Value(isDeleted),
+    );
+  }
+
+  factory TravelRecord.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TravelRecord(
+      id: serializer.fromJson<String>(json['id']),
+      tripId: serializer.fromJson<String>(json['tripId']),
+      title: serializer.fromJson<String?>(json['title']),
+      content: serializer.fromJson<String?>(json['content']),
+      images: serializer.fromJson<String?>(json['images']),
+      destination: serializer.fromJson<String?>(json['destination']),
+      latitude: serializer.fromJson<double?>(json['latitude']),
+      longitude: serializer.fromJson<double?>(json['longitude']),
+      city: serializer.fromJson<String?>(json['city']),
+      mood: serializer.fromJson<String?>(json['mood']),
+      expenseTransport: serializer.fromJson<double?>(json['expenseTransport']),
+      expenseHotel: serializer.fromJson<double?>(json['expenseHotel']),
+      expenseFood: serializer.fromJson<double?>(json['expenseFood']),
+      expenseTicket: serializer.fromJson<double?>(json['expenseTicket']),
+      isWishlist: serializer.fromJson<bool>(json['isWishlist']),
+      wishlistDone: serializer.fromJson<bool>(json['wishlistDone']),
+      planDate: serializer.fromJson<DateTime?>(json['planDate']),
+      recordDate: serializer.fromJson<DateTime>(json['recordDate']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'tripId': serializer.toJson<String>(tripId),
+      'title': serializer.toJson<String?>(title),
+      'content': serializer.toJson<String?>(content),
+      'images': serializer.toJson<String?>(images),
+      'destination': serializer.toJson<String?>(destination),
+      'latitude': serializer.toJson<double?>(latitude),
+      'longitude': serializer.toJson<double?>(longitude),
+      'city': serializer.toJson<String?>(city),
+      'mood': serializer.toJson<String?>(mood),
+      'expenseTransport': serializer.toJson<double?>(expenseTransport),
+      'expenseHotel': serializer.toJson<double?>(expenseHotel),
+      'expenseFood': serializer.toJson<double?>(expenseFood),
+      'expenseTicket': serializer.toJson<double?>(expenseTicket),
+      'isWishlist': serializer.toJson<bool>(isWishlist),
+      'wishlistDone': serializer.toJson<bool>(wishlistDone),
+      'planDate': serializer.toJson<DateTime?>(planDate),
+      'recordDate': serializer.toJson<DateTime>(recordDate),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+    };
+  }
+
+  TravelRecord copyWith(
+          {String? id,
+          String? tripId,
+          Value<String?> title = const Value.absent(),
+          Value<String?> content = const Value.absent(),
+          Value<String?> images = const Value.absent(),
+          Value<String?> destination = const Value.absent(),
+          Value<double?> latitude = const Value.absent(),
+          Value<double?> longitude = const Value.absent(),
+          Value<String?> city = const Value.absent(),
+          Value<String?> mood = const Value.absent(),
+          Value<double?> expenseTransport = const Value.absent(),
+          Value<double?> expenseHotel = const Value.absent(),
+          Value<double?> expenseFood = const Value.absent(),
+          Value<double?> expenseTicket = const Value.absent(),
+          bool? isWishlist,
+          bool? wishlistDone,
+          Value<DateTime?> planDate = const Value.absent(),
+          DateTime? recordDate,
+          DateTime? createdAt,
+          DateTime? updatedAt,
+          bool? isDeleted}) =>
+      TravelRecord(
+        id: id ?? this.id,
+        tripId: tripId ?? this.tripId,
+        title: title.present ? title.value : this.title,
+        content: content.present ? content.value : this.content,
+        images: images.present ? images.value : this.images,
+        destination: destination.present ? destination.value : this.destination,
+        latitude: latitude.present ? latitude.value : this.latitude,
+        longitude: longitude.present ? longitude.value : this.longitude,
+        city: city.present ? city.value : this.city,
+        mood: mood.present ? mood.value : this.mood,
+        expenseTransport: expenseTransport.present
+            ? expenseTransport.value
+            : this.expenseTransport,
+        expenseHotel:
+            expenseHotel.present ? expenseHotel.value : this.expenseHotel,
+        expenseFood: expenseFood.present ? expenseFood.value : this.expenseFood,
+        expenseTicket:
+            expenseTicket.present ? expenseTicket.value : this.expenseTicket,
+        isWishlist: isWishlist ?? this.isWishlist,
+        wishlistDone: wishlistDone ?? this.wishlistDone,
+        planDate: planDate.present ? planDate.value : this.planDate,
+        recordDate: recordDate ?? this.recordDate,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+        isDeleted: isDeleted ?? this.isDeleted,
+      );
+  TravelRecord copyWithCompanion(TravelRecordsCompanion data) {
+    return TravelRecord(
+      id: data.id.present ? data.id.value : this.id,
+      tripId: data.tripId.present ? data.tripId.value : this.tripId,
+      title: data.title.present ? data.title.value : this.title,
+      content: data.content.present ? data.content.value : this.content,
+      images: data.images.present ? data.images.value : this.images,
+      destination:
+          data.destination.present ? data.destination.value : this.destination,
+      latitude: data.latitude.present ? data.latitude.value : this.latitude,
+      longitude: data.longitude.present ? data.longitude.value : this.longitude,
+      city: data.city.present ? data.city.value : this.city,
+      mood: data.mood.present ? data.mood.value : this.mood,
+      expenseTransport: data.expenseTransport.present
+          ? data.expenseTransport.value
+          : this.expenseTransport,
+      expenseHotel: data.expenseHotel.present
+          ? data.expenseHotel.value
+          : this.expenseHotel,
+      expenseFood:
+          data.expenseFood.present ? data.expenseFood.value : this.expenseFood,
+      expenseTicket: data.expenseTicket.present
+          ? data.expenseTicket.value
+          : this.expenseTicket,
+      isWishlist:
+          data.isWishlist.present ? data.isWishlist.value : this.isWishlist,
+      wishlistDone: data.wishlistDone.present
+          ? data.wishlistDone.value
+          : this.wishlistDone,
+      planDate: data.planDate.present ? data.planDate.value : this.planDate,
+      recordDate:
+          data.recordDate.present ? data.recordDate.value : this.recordDate,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TravelRecord(')
+          ..write('id: $id, ')
+          ..write('tripId: $tripId, ')
+          ..write('title: $title, ')
+          ..write('content: $content, ')
+          ..write('images: $images, ')
+          ..write('destination: $destination, ')
+          ..write('latitude: $latitude, ')
+          ..write('longitude: $longitude, ')
+          ..write('city: $city, ')
+          ..write('mood: $mood, ')
+          ..write('expenseTransport: $expenseTransport, ')
+          ..write('expenseHotel: $expenseHotel, ')
+          ..write('expenseFood: $expenseFood, ')
+          ..write('expenseTicket: $expenseTicket, ')
+          ..write('isWishlist: $isWishlist, ')
+          ..write('wishlistDone: $wishlistDone, ')
+          ..write('planDate: $planDate, ')
+          ..write('recordDate: $recordDate, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('isDeleted: $isDeleted')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+        id,
+        tripId,
+        title,
+        content,
+        images,
+        destination,
+        latitude,
+        longitude,
+        city,
+        mood,
+        expenseTransport,
+        expenseHotel,
+        expenseFood,
+        expenseTicket,
+        isWishlist,
+        wishlistDone,
+        planDate,
+        recordDate,
+        createdAt,
+        updatedAt,
+        isDeleted
+      ]);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TravelRecord &&
+          other.id == this.id &&
+          other.tripId == this.tripId &&
+          other.title == this.title &&
+          other.content == this.content &&
+          other.images == this.images &&
+          other.destination == this.destination &&
+          other.latitude == this.latitude &&
+          other.longitude == this.longitude &&
+          other.city == this.city &&
+          other.mood == this.mood &&
+          other.expenseTransport == this.expenseTransport &&
+          other.expenseHotel == this.expenseHotel &&
+          other.expenseFood == this.expenseFood &&
+          other.expenseTicket == this.expenseTicket &&
+          other.isWishlist == this.isWishlist &&
+          other.wishlistDone == this.wishlistDone &&
+          other.planDate == this.planDate &&
+          other.recordDate == this.recordDate &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.isDeleted == this.isDeleted);
+}
+
+class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
+  final Value<String> id;
+  final Value<String> tripId;
+  final Value<String?> title;
+  final Value<String?> content;
+  final Value<String?> images;
+  final Value<String?> destination;
+  final Value<double?> latitude;
+  final Value<double?> longitude;
+  final Value<String?> city;
+  final Value<String?> mood;
+  final Value<double?> expenseTransport;
+  final Value<double?> expenseHotel;
+  final Value<double?> expenseFood;
+  final Value<double?> expenseTicket;
+  final Value<bool> isWishlist;
+  final Value<bool> wishlistDone;
+  final Value<DateTime?> planDate;
+  final Value<DateTime> recordDate;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<bool> isDeleted;
+  final Value<int> rowid;
+  const TravelRecordsCompanion({
+    this.id = const Value.absent(),
+    this.tripId = const Value.absent(),
+    this.title = const Value.absent(),
+    this.content = const Value.absent(),
+    this.images = const Value.absent(),
+    this.destination = const Value.absent(),
+    this.latitude = const Value.absent(),
+    this.longitude = const Value.absent(),
+    this.city = const Value.absent(),
+    this.mood = const Value.absent(),
+    this.expenseTransport = const Value.absent(),
+    this.expenseHotel = const Value.absent(),
+    this.expenseFood = const Value.absent(),
+    this.expenseTicket = const Value.absent(),
+    this.isWishlist = const Value.absent(),
+    this.wishlistDone = const Value.absent(),
+    this.planDate = const Value.absent(),
+    this.recordDate = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TravelRecordsCompanion.insert({
+    required String id,
+    required String tripId,
+    this.title = const Value.absent(),
+    this.content = const Value.absent(),
+    this.images = const Value.absent(),
+    this.destination = const Value.absent(),
+    this.latitude = const Value.absent(),
+    this.longitude = const Value.absent(),
+    this.city = const Value.absent(),
+    this.mood = const Value.absent(),
+    this.expenseTransport = const Value.absent(),
+    this.expenseHotel = const Value.absent(),
+    this.expenseFood = const Value.absent(),
+    this.expenseTicket = const Value.absent(),
+    this.isWishlist = const Value.absent(),
+    this.wishlistDone = const Value.absent(),
+    this.planDate = const Value.absent(),
+    required DateTime recordDate,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.isDeleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        tripId = Value(tripId),
+        recordDate = Value(recordDate),
+        createdAt = Value(createdAt),
+        updatedAt = Value(updatedAt);
+  static Insertable<TravelRecord> custom({
+    Expression<String>? id,
+    Expression<String>? tripId,
+    Expression<String>? title,
+    Expression<String>? content,
+    Expression<String>? images,
+    Expression<String>? destination,
+    Expression<double>? latitude,
+    Expression<double>? longitude,
+    Expression<String>? city,
+    Expression<String>? mood,
+    Expression<double>? expenseTransport,
+    Expression<double>? expenseHotel,
+    Expression<double>? expenseFood,
+    Expression<double>? expenseTicket,
+    Expression<bool>? isWishlist,
+    Expression<bool>? wishlistDone,
+    Expression<DateTime>? planDate,
+    Expression<DateTime>? recordDate,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<bool>? isDeleted,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (tripId != null) 'trip_id': tripId,
+      if (title != null) 'title': title,
+      if (content != null) 'content': content,
+      if (images != null) 'images': images,
+      if (destination != null) 'destination': destination,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
+      if (city != null) 'city': city,
+      if (mood != null) 'mood': mood,
+      if (expenseTransport != null) 'expense_transport': expenseTransport,
+      if (expenseHotel != null) 'expense_hotel': expenseHotel,
+      if (expenseFood != null) 'expense_food': expenseFood,
+      if (expenseTicket != null) 'expense_ticket': expenseTicket,
+      if (isWishlist != null) 'is_wishlist': isWishlist,
+      if (wishlistDone != null) 'wishlist_done': wishlistDone,
+      if (planDate != null) 'plan_date': planDate,
+      if (recordDate != null) 'record_date': recordDate,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TravelRecordsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? tripId,
+      Value<String?>? title,
+      Value<String?>? content,
+      Value<String?>? images,
+      Value<String?>? destination,
+      Value<double?>? latitude,
+      Value<double?>? longitude,
+      Value<String?>? city,
+      Value<String?>? mood,
+      Value<double?>? expenseTransport,
+      Value<double?>? expenseHotel,
+      Value<double?>? expenseFood,
+      Value<double?>? expenseTicket,
+      Value<bool>? isWishlist,
+      Value<bool>? wishlistDone,
+      Value<DateTime?>? planDate,
+      Value<DateTime>? recordDate,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<bool>? isDeleted,
+      Value<int>? rowid}) {
+    return TravelRecordsCompanion(
+      id: id ?? this.id,
+      tripId: tripId ?? this.tripId,
+      title: title ?? this.title,
+      content: content ?? this.content,
+      images: images ?? this.images,
+      destination: destination ?? this.destination,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      city: city ?? this.city,
+      mood: mood ?? this.mood,
+      expenseTransport: expenseTransport ?? this.expenseTransport,
+      expenseHotel: expenseHotel ?? this.expenseHotel,
+      expenseFood: expenseFood ?? this.expenseFood,
+      expenseTicket: expenseTicket ?? this.expenseTicket,
+      isWishlist: isWishlist ?? this.isWishlist,
+      wishlistDone: wishlistDone ?? this.wishlistDone,
+      planDate: planDate ?? this.planDate,
+      recordDate: recordDate ?? this.recordDate,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isDeleted: isDeleted ?? this.isDeleted,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (tripId.present) {
+      map['trip_id'] = Variable<String>(tripId.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (content.present) {
+      map['content'] = Variable<String>(content.value);
+    }
+    if (images.present) {
+      map['images'] = Variable<String>(images.value);
+    }
+    if (destination.present) {
+      map['destination'] = Variable<String>(destination.value);
+    }
+    if (latitude.present) {
+      map['latitude'] = Variable<double>(latitude.value);
+    }
+    if (longitude.present) {
+      map['longitude'] = Variable<double>(longitude.value);
+    }
+    if (city.present) {
+      map['city'] = Variable<String>(city.value);
+    }
+    if (mood.present) {
+      map['mood'] = Variable<String>(mood.value);
+    }
+    if (expenseTransport.present) {
+      map['expense_transport'] = Variable<double>(expenseTransport.value);
+    }
+    if (expenseHotel.present) {
+      map['expense_hotel'] = Variable<double>(expenseHotel.value);
+    }
+    if (expenseFood.present) {
+      map['expense_food'] = Variable<double>(expenseFood.value);
+    }
+    if (expenseTicket.present) {
+      map['expense_ticket'] = Variable<double>(expenseTicket.value);
+    }
+    if (isWishlist.present) {
+      map['is_wishlist'] = Variable<bool>(isWishlist.value);
+    }
+    if (wishlistDone.present) {
+      map['wishlist_done'] = Variable<bool>(wishlistDone.value);
+    }
+    if (planDate.present) {
+      map['plan_date'] = Variable<DateTime>(planDate.value);
+    }
+    if (recordDate.present) {
+      map['record_date'] = Variable<DateTime>(recordDate.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TravelRecordsCompanion(')
+          ..write('id: $id, ')
+          ..write('tripId: $tripId, ')
+          ..write('title: $title, ')
+          ..write('content: $content, ')
+          ..write('images: $images, ')
+          ..write('destination: $destination, ')
+          ..write('latitude: $latitude, ')
+          ..write('longitude: $longitude, ')
+          ..write('city: $city, ')
+          ..write('mood: $mood, ')
+          ..write('expenseTransport: $expenseTransport, ')
+          ..write('expenseHotel: $expenseHotel, ')
+          ..write('expenseFood: $expenseFood, ')
+          ..write('expenseTicket: $expenseTicket, ')
+          ..write('isWishlist: $isWishlist, ')
+          ..write('wishlistDone: $wishlistDone, ')
+          ..write('planDate: $planDate, ')
+          ..write('recordDate: $recordDate, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $TripsTable extends Trips with TableInfo<$TripsTable, Trip> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TripsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+      'name', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _startDateMeta =
+      const VerificationMeta('startDate');
+  @override
+  late final GeneratedColumn<DateTime> startDate = GeneratedColumn<DateTime>(
+      'start_date', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _endDateMeta =
+      const VerificationMeta('endDate');
+  @override
+  late final GeneratedColumn<DateTime> endDate = GeneratedColumn<DateTime>(
+      'end_date', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _destinationsMeta =
+      const VerificationMeta('destinations');
+  @override
+  late final GeneratedColumn<String> destinations = GeneratedColumn<String>(
+      'destinations', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _totalExpenseMeta =
+      const VerificationMeta('totalExpense');
+  @override
+  late final GeneratedColumn<double> totalExpense = GeneratedColumn<double>(
+      'total_expense', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        name,
+        startDate,
+        endDate,
+        destinations,
+        totalExpense,
+        createdAt,
+        updatedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'trips';
+  @override
+  VerificationContext validateIntegrity(Insertable<Trip> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+          _nameMeta, name.isAcceptableOrUnknown(data['name']!, _nameMeta));
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('start_date')) {
+      context.handle(_startDateMeta,
+          startDate.isAcceptableOrUnknown(data['start_date']!, _startDateMeta));
+    }
+    if (data.containsKey('end_date')) {
+      context.handle(_endDateMeta,
+          endDate.isAcceptableOrUnknown(data['end_date']!, _endDateMeta));
+    }
+    if (data.containsKey('destinations')) {
+      context.handle(
+          _destinationsMeta,
+          destinations.isAcceptableOrUnknown(
+              data['destinations']!, _destinationsMeta));
+    }
+    if (data.containsKey('total_expense')) {
+      context.handle(
+          _totalExpenseMeta,
+          totalExpense.isAcceptableOrUnknown(
+              data['total_expense']!, _totalExpenseMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Trip map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Trip(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      name: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
+      startDate: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}start_date']),
+      endDate: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}end_date']),
+      destinations: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}destinations']),
+      totalExpense: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}total_expense']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+    );
+  }
+
+  @override
+  $TripsTable createAlias(String alias) {
+    return $TripsTable(attachedDatabase, alias);
+  }
+}
+
+class Trip extends DataClass implements Insertable<Trip> {
+  final String id;
+  final String name;
+  final DateTime? startDate;
+  final DateTime? endDate;
+  final String? destinations;
+  final double? totalExpense;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const Trip(
+      {required this.id,
+      required this.name,
+      this.startDate,
+      this.endDate,
+      this.destinations,
+      this.totalExpense,
+      required this.createdAt,
+      required this.updatedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || startDate != null) {
+      map['start_date'] = Variable<DateTime>(startDate);
+    }
+    if (!nullToAbsent || endDate != null) {
+      map['end_date'] = Variable<DateTime>(endDate);
+    }
+    if (!nullToAbsent || destinations != null) {
+      map['destinations'] = Variable<String>(destinations);
+    }
+    if (!nullToAbsent || totalExpense != null) {
+      map['total_expense'] = Variable<double>(totalExpense);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  TripsCompanion toCompanion(bool nullToAbsent) {
+    return TripsCompanion(
+      id: Value(id),
+      name: Value(name),
+      startDate: startDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(startDate),
+      endDate: endDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(endDate),
+      destinations: destinations == null && nullToAbsent
+          ? const Value.absent()
+          : Value(destinations),
+      totalExpense: totalExpense == null && nullToAbsent
+          ? const Value.absent()
+          : Value(totalExpense),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory Trip.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Trip(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      startDate: serializer.fromJson<DateTime?>(json['startDate']),
+      endDate: serializer.fromJson<DateTime?>(json['endDate']),
+      destinations: serializer.fromJson<String?>(json['destinations']),
+      totalExpense: serializer.fromJson<double?>(json['totalExpense']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'startDate': serializer.toJson<DateTime?>(startDate),
+      'endDate': serializer.toJson<DateTime?>(endDate),
+      'destinations': serializer.toJson<String?>(destinations),
+      'totalExpense': serializer.toJson<double?>(totalExpense),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  Trip copyWith(
+          {String? id,
+          String? name,
+          Value<DateTime?> startDate = const Value.absent(),
+          Value<DateTime?> endDate = const Value.absent(),
+          Value<String?> destinations = const Value.absent(),
+          Value<double?> totalExpense = const Value.absent(),
+          DateTime? createdAt,
+          DateTime? updatedAt}) =>
+      Trip(
+        id: id ?? this.id,
+        name: name ?? this.name,
+        startDate: startDate.present ? startDate.value : this.startDate,
+        endDate: endDate.present ? endDate.value : this.endDate,
+        destinations:
+            destinations.present ? destinations.value : this.destinations,
+        totalExpense:
+            totalExpense.present ? totalExpense.value : this.totalExpense,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+  Trip copyWithCompanion(TripsCompanion data) {
+    return Trip(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      startDate: data.startDate.present ? data.startDate.value : this.startDate,
+      endDate: data.endDate.present ? data.endDate.value : this.endDate,
+      destinations: data.destinations.present
+          ? data.destinations.value
+          : this.destinations,
+      totalExpense: data.totalExpense.present
+          ? data.totalExpense.value
+          : this.totalExpense,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Trip(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('startDate: $startDate, ')
+          ..write('endDate: $endDate, ')
+          ..write('destinations: $destinations, ')
+          ..write('totalExpense: $totalExpense, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, name, startDate, endDate, destinations,
+      totalExpense, createdAt, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Trip &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.startDate == this.startDate &&
+          other.endDate == this.endDate &&
+          other.destinations == this.destinations &&
+          other.totalExpense == this.totalExpense &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class TripsCompanion extends UpdateCompanion<Trip> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<DateTime?> startDate;
+  final Value<DateTime?> endDate;
+  final Value<String?> destinations;
+  final Value<double?> totalExpense;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const TripsCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.startDate = const Value.absent(),
+    this.endDate = const Value.absent(),
+    this.destinations = const Value.absent(),
+    this.totalExpense = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TripsCompanion.insert({
+    required String id,
+    required String name,
+    this.startDate = const Value.absent(),
+    this.endDate = const Value.absent(),
+    this.destinations = const Value.absent(),
+    this.totalExpense = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        name = Value(name),
+        createdAt = Value(createdAt),
+        updatedAt = Value(updatedAt);
+  static Insertable<Trip> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<DateTime>? startDate,
+    Expression<DateTime>? endDate,
+    Expression<String>? destinations,
+    Expression<double>? totalExpense,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (startDate != null) 'start_date': startDate,
+      if (endDate != null) 'end_date': endDate,
+      if (destinations != null) 'destinations': destinations,
+      if (totalExpense != null) 'total_expense': totalExpense,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TripsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? name,
+      Value<DateTime?>? startDate,
+      Value<DateTime?>? endDate,
+      Value<String?>? destinations,
+      Value<double?>? totalExpense,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<int>? rowid}) {
+    return TripsCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      destinations: destinations ?? this.destinations,
+      totalExpense: totalExpense ?? this.totalExpense,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (startDate.present) {
+      map['start_date'] = Variable<DateTime>(startDate.value);
+    }
+    if (endDate.present) {
+      map['end_date'] = Variable<DateTime>(endDate.value);
+    }
+    if (destinations.present) {
+      map['destinations'] = Variable<String>(destinations.value);
+    }
+    if (totalExpense.present) {
+      map['total_expense'] = Variable<double>(totalExpense.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TripsCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('startDate: $startDate, ')
+          ..write('endDate: $endDate, ')
+          ..write('destinations: $destinations, ')
+          ..write('totalExpense: $totalExpense, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $TimelineEventsTable extends TimelineEvents
     with TableInfo<$TimelineEventsTable, TimelineEvent> {
   @override
@@ -3553,6 +4975,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $FoodRecordsTable foodRecords = $FoodRecordsTable(this);
   late final $MomentRecordsTable momentRecords = $MomentRecordsTable(this);
   late final $FriendRecordsTable friendRecords = $FriendRecordsTable(this);
+  late final $TravelRecordsTable travelRecords = $TravelRecordsTable(this);
+  late final $TripsTable trips = $TripsTable(this);
   late final $TimelineEventsTable timelineEvents = $TimelineEventsTable(this);
   late final $EntityLinksTable entityLinks = $EntityLinksTable(this);
   late final $LinkLogsTable linkLogs = $LinkLogsTable(this);
@@ -3568,6 +4992,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         foodRecords,
         momentRecords,
         friendRecords,
+        travelRecords,
+        trips,
         timelineEvents,
         entityLinks,
         linkLogs
@@ -4560,6 +5986,635 @@ typedef $$FriendRecordsTableProcessedTableManager = ProcessedTableManager<
     ),
     FriendRecord,
     PrefetchHooks Function()>;
+typedef $$TravelRecordsTableCreateCompanionBuilder = TravelRecordsCompanion
+    Function({
+  required String id,
+  required String tripId,
+  Value<String?> title,
+  Value<String?> content,
+  Value<String?> images,
+  Value<String?> destination,
+  Value<double?> latitude,
+  Value<double?> longitude,
+  Value<String?> city,
+  Value<String?> mood,
+  Value<double?> expenseTransport,
+  Value<double?> expenseHotel,
+  Value<double?> expenseFood,
+  Value<double?> expenseTicket,
+  Value<bool> isWishlist,
+  Value<bool> wishlistDone,
+  Value<DateTime?> planDate,
+  required DateTime recordDate,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+  Value<bool> isDeleted,
+  Value<int> rowid,
+});
+typedef $$TravelRecordsTableUpdateCompanionBuilder = TravelRecordsCompanion
+    Function({
+  Value<String> id,
+  Value<String> tripId,
+  Value<String?> title,
+  Value<String?> content,
+  Value<String?> images,
+  Value<String?> destination,
+  Value<double?> latitude,
+  Value<double?> longitude,
+  Value<String?> city,
+  Value<String?> mood,
+  Value<double?> expenseTransport,
+  Value<double?> expenseHotel,
+  Value<double?> expenseFood,
+  Value<double?> expenseTicket,
+  Value<bool> isWishlist,
+  Value<bool> wishlistDone,
+  Value<DateTime?> planDate,
+  Value<DateTime> recordDate,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<bool> isDeleted,
+  Value<int> rowid,
+});
+
+class $$TravelRecordsTableFilterComposer
+    extends Composer<_$AppDatabase, $TravelRecordsTable> {
+  $$TravelRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get tripId => $composableBuilder(
+      column: $table.tripId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get title => $composableBuilder(
+      column: $table.title, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get content => $composableBuilder(
+      column: $table.content, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get images => $composableBuilder(
+      column: $table.images, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get destination => $composableBuilder(
+      column: $table.destination, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get latitude => $composableBuilder(
+      column: $table.latitude, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get longitude => $composableBuilder(
+      column: $table.longitude, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get city => $composableBuilder(
+      column: $table.city, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get mood => $composableBuilder(
+      column: $table.mood, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get expenseTransport => $composableBuilder(
+      column: $table.expenseTransport,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get expenseHotel => $composableBuilder(
+      column: $table.expenseHotel, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get expenseFood => $composableBuilder(
+      column: $table.expenseFood, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get expenseTicket => $composableBuilder(
+      column: $table.expenseTicket, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isWishlist => $composableBuilder(
+      column: $table.isWishlist, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get wishlistDone => $composableBuilder(
+      column: $table.wishlistDone, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get planDate => $composableBuilder(
+      column: $table.planDate, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get recordDate => $composableBuilder(
+      column: $table.recordDate, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnFilters(column));
+}
+
+class $$TravelRecordsTableOrderingComposer
+    extends Composer<_$AppDatabase, $TravelRecordsTable> {
+  $$TravelRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get tripId => $composableBuilder(
+      column: $table.tripId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get title => $composableBuilder(
+      column: $table.title, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get content => $composableBuilder(
+      column: $table.content, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get images => $composableBuilder(
+      column: $table.images, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get destination => $composableBuilder(
+      column: $table.destination, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get latitude => $composableBuilder(
+      column: $table.latitude, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get longitude => $composableBuilder(
+      column: $table.longitude, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get city => $composableBuilder(
+      column: $table.city, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get mood => $composableBuilder(
+      column: $table.mood, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get expenseTransport => $composableBuilder(
+      column: $table.expenseTransport,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get expenseHotel => $composableBuilder(
+      column: $table.expenseHotel,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get expenseFood => $composableBuilder(
+      column: $table.expenseFood, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get expenseTicket => $composableBuilder(
+      column: $table.expenseTicket,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isWishlist => $composableBuilder(
+      column: $table.isWishlist, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get wishlistDone => $composableBuilder(
+      column: $table.wishlistDone,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get planDate => $composableBuilder(
+      column: $table.planDate, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get recordDate => $composableBuilder(
+      column: $table.recordDate, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnOrderings(column));
+}
+
+class $$TravelRecordsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TravelRecordsTable> {
+  $$TravelRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get tripId =>
+      $composableBuilder(column: $table.tripId, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get content =>
+      $composableBuilder(column: $table.content, builder: (column) => column);
+
+  GeneratedColumn<String> get images =>
+      $composableBuilder(column: $table.images, builder: (column) => column);
+
+  GeneratedColumn<String> get destination => $composableBuilder(
+      column: $table.destination, builder: (column) => column);
+
+  GeneratedColumn<double> get latitude =>
+      $composableBuilder(column: $table.latitude, builder: (column) => column);
+
+  GeneratedColumn<double> get longitude =>
+      $composableBuilder(column: $table.longitude, builder: (column) => column);
+
+  GeneratedColumn<String> get city =>
+      $composableBuilder(column: $table.city, builder: (column) => column);
+
+  GeneratedColumn<String> get mood =>
+      $composableBuilder(column: $table.mood, builder: (column) => column);
+
+  GeneratedColumn<double> get expenseTransport => $composableBuilder(
+      column: $table.expenseTransport, builder: (column) => column);
+
+  GeneratedColumn<double> get expenseHotel => $composableBuilder(
+      column: $table.expenseHotel, builder: (column) => column);
+
+  GeneratedColumn<double> get expenseFood => $composableBuilder(
+      column: $table.expenseFood, builder: (column) => column);
+
+  GeneratedColumn<double> get expenseTicket => $composableBuilder(
+      column: $table.expenseTicket, builder: (column) => column);
+
+  GeneratedColumn<bool> get isWishlist => $composableBuilder(
+      column: $table.isWishlist, builder: (column) => column);
+
+  GeneratedColumn<bool> get wishlistDone => $composableBuilder(
+      column: $table.wishlistDone, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get planDate =>
+      $composableBuilder(column: $table.planDate, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get recordDate => $composableBuilder(
+      column: $table.recordDate, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+}
+
+class $$TravelRecordsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $TravelRecordsTable,
+    TravelRecord,
+    $$TravelRecordsTableFilterComposer,
+    $$TravelRecordsTableOrderingComposer,
+    $$TravelRecordsTableAnnotationComposer,
+    $$TravelRecordsTableCreateCompanionBuilder,
+    $$TravelRecordsTableUpdateCompanionBuilder,
+    (
+      TravelRecord,
+      BaseReferences<_$AppDatabase, $TravelRecordsTable, TravelRecord>
+    ),
+    TravelRecord,
+    PrefetchHooks Function()> {
+  $$TravelRecordsTableTableManager(_$AppDatabase db, $TravelRecordsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TravelRecordsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TravelRecordsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TravelRecordsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> tripId = const Value.absent(),
+            Value<String?> title = const Value.absent(),
+            Value<String?> content = const Value.absent(),
+            Value<String?> images = const Value.absent(),
+            Value<String?> destination = const Value.absent(),
+            Value<double?> latitude = const Value.absent(),
+            Value<double?> longitude = const Value.absent(),
+            Value<String?> city = const Value.absent(),
+            Value<String?> mood = const Value.absent(),
+            Value<double?> expenseTransport = const Value.absent(),
+            Value<double?> expenseHotel = const Value.absent(),
+            Value<double?> expenseFood = const Value.absent(),
+            Value<double?> expenseTicket = const Value.absent(),
+            Value<bool> isWishlist = const Value.absent(),
+            Value<bool> wishlistDone = const Value.absent(),
+            Value<DateTime?> planDate = const Value.absent(),
+            Value<DateTime> recordDate = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              TravelRecordsCompanion(
+            id: id,
+            tripId: tripId,
+            title: title,
+            content: content,
+            images: images,
+            destination: destination,
+            latitude: latitude,
+            longitude: longitude,
+            city: city,
+            mood: mood,
+            expenseTransport: expenseTransport,
+            expenseHotel: expenseHotel,
+            expenseFood: expenseFood,
+            expenseTicket: expenseTicket,
+            isWishlist: isWishlist,
+            wishlistDone: wishlistDone,
+            planDate: planDate,
+            recordDate: recordDate,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            isDeleted: isDeleted,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String tripId,
+            Value<String?> title = const Value.absent(),
+            Value<String?> content = const Value.absent(),
+            Value<String?> images = const Value.absent(),
+            Value<String?> destination = const Value.absent(),
+            Value<double?> latitude = const Value.absent(),
+            Value<double?> longitude = const Value.absent(),
+            Value<String?> city = const Value.absent(),
+            Value<String?> mood = const Value.absent(),
+            Value<double?> expenseTransport = const Value.absent(),
+            Value<double?> expenseHotel = const Value.absent(),
+            Value<double?> expenseFood = const Value.absent(),
+            Value<double?> expenseTicket = const Value.absent(),
+            Value<bool> isWishlist = const Value.absent(),
+            Value<bool> wishlistDone = const Value.absent(),
+            Value<DateTime?> planDate = const Value.absent(),
+            required DateTime recordDate,
+            required DateTime createdAt,
+            required DateTime updatedAt,
+            Value<bool> isDeleted = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              TravelRecordsCompanion.insert(
+            id: id,
+            tripId: tripId,
+            title: title,
+            content: content,
+            images: images,
+            destination: destination,
+            latitude: latitude,
+            longitude: longitude,
+            city: city,
+            mood: mood,
+            expenseTransport: expenseTransport,
+            expenseHotel: expenseHotel,
+            expenseFood: expenseFood,
+            expenseTicket: expenseTicket,
+            isWishlist: isWishlist,
+            wishlistDone: wishlistDone,
+            planDate: planDate,
+            recordDate: recordDate,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            isDeleted: isDeleted,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$TravelRecordsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $TravelRecordsTable,
+    TravelRecord,
+    $$TravelRecordsTableFilterComposer,
+    $$TravelRecordsTableOrderingComposer,
+    $$TravelRecordsTableAnnotationComposer,
+    $$TravelRecordsTableCreateCompanionBuilder,
+    $$TravelRecordsTableUpdateCompanionBuilder,
+    (
+      TravelRecord,
+      BaseReferences<_$AppDatabase, $TravelRecordsTable, TravelRecord>
+    ),
+    TravelRecord,
+    PrefetchHooks Function()>;
+typedef $$TripsTableCreateCompanionBuilder = TripsCompanion Function({
+  required String id,
+  required String name,
+  Value<DateTime?> startDate,
+  Value<DateTime?> endDate,
+  Value<String?> destinations,
+  Value<double?> totalExpense,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+  Value<int> rowid,
+});
+typedef $$TripsTableUpdateCompanionBuilder = TripsCompanion Function({
+  Value<String> id,
+  Value<String> name,
+  Value<DateTime?> startDate,
+  Value<DateTime?> endDate,
+  Value<String?> destinations,
+  Value<double?> totalExpense,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+
+class $$TripsTableFilterComposer extends Composer<_$AppDatabase, $TripsTable> {
+  $$TripsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get startDate => $composableBuilder(
+      column: $table.startDate, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get endDate => $composableBuilder(
+      column: $table.endDate, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get destinations => $composableBuilder(
+      column: $table.destinations, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get totalExpense => $composableBuilder(
+      column: $table.totalExpense, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$TripsTableOrderingComposer
+    extends Composer<_$AppDatabase, $TripsTable> {
+  $$TripsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get startDate => $composableBuilder(
+      column: $table.startDate, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get endDate => $composableBuilder(
+      column: $table.endDate, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get destinations => $composableBuilder(
+      column: $table.destinations,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get totalExpense => $composableBuilder(
+      column: $table.totalExpense,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$TripsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TripsTable> {
+  $$TripsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get startDate =>
+      $composableBuilder(column: $table.startDate, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get endDate =>
+      $composableBuilder(column: $table.endDate, builder: (column) => column);
+
+  GeneratedColumn<String> get destinations => $composableBuilder(
+      column: $table.destinations, builder: (column) => column);
+
+  GeneratedColumn<double> get totalExpense => $composableBuilder(
+      column: $table.totalExpense, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$TripsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $TripsTable,
+    Trip,
+    $$TripsTableFilterComposer,
+    $$TripsTableOrderingComposer,
+    $$TripsTableAnnotationComposer,
+    $$TripsTableCreateCompanionBuilder,
+    $$TripsTableUpdateCompanionBuilder,
+    (Trip, BaseReferences<_$AppDatabase, $TripsTable, Trip>),
+    Trip,
+    PrefetchHooks Function()> {
+  $$TripsTableTableManager(_$AppDatabase db, $TripsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TripsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TripsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TripsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> name = const Value.absent(),
+            Value<DateTime?> startDate = const Value.absent(),
+            Value<DateTime?> endDate = const Value.absent(),
+            Value<String?> destinations = const Value.absent(),
+            Value<double?> totalExpense = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              TripsCompanion(
+            id: id,
+            name: name,
+            startDate: startDate,
+            endDate: endDate,
+            destinations: destinations,
+            totalExpense: totalExpense,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String name,
+            Value<DateTime?> startDate = const Value.absent(),
+            Value<DateTime?> endDate = const Value.absent(),
+            Value<String?> destinations = const Value.absent(),
+            Value<double?> totalExpense = const Value.absent(),
+            required DateTime createdAt,
+            required DateTime updatedAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              TripsCompanion.insert(
+            id: id,
+            name: name,
+            startDate: startDate,
+            endDate: endDate,
+            destinations: destinations,
+            totalExpense: totalExpense,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$TripsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $TripsTable,
+    Trip,
+    $$TripsTableFilterComposer,
+    $$TripsTableOrderingComposer,
+    $$TripsTableAnnotationComposer,
+    $$TripsTableCreateCompanionBuilder,
+    $$TripsTableUpdateCompanionBuilder,
+    (Trip, BaseReferences<_$AppDatabase, $TripsTable, Trip>),
+    Trip,
+    PrefetchHooks Function()>;
 typedef $$TimelineEventsTableCreateCompanionBuilder = TimelineEventsCompanion
     Function({
   required String id,
@@ -5226,6 +7281,10 @@ class $AppDatabaseManager {
       $$MomentRecordsTableTableManager(_db, _db.momentRecords);
   $$FriendRecordsTableTableManager get friendRecords =>
       $$FriendRecordsTableTableManager(_db, _db.friendRecords);
+  $$TravelRecordsTableTableManager get travelRecords =>
+      $$TravelRecordsTableTableManager(_db, _db.travelRecords);
+  $$TripsTableTableManager get trips =>
+      $$TripsTableTableManager(_db, _db.trips);
   $$TimelineEventsTableTableManager get timelineEvents =>
       $$TimelineEventsTableTableManager(_db, _db.timelineEvents);
   $$EntityLinksTableTableManager get entityLinks =>

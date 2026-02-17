@@ -406,7 +406,7 @@ class MomentDetailPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: const [
-                Text('万物关联', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                Text('万物互联', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
                 SizedBox(height: 10),
                 Text('该详情页当前为样例数据，关联展示将在列表切换为数据库数据后接入。', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8), height: 1.5)),
               ],
@@ -894,7 +894,7 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
                     onTap: _editLocation,
                   ),
                   const SizedBox(height: 18),
-                  Text('万物关联', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: const Color(0xFF6B7280).withValues(alpha: 0.9))),
+                  Text('万物互联', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: const Color(0xFF6B7280).withValues(alpha: 0.9))),
                   const SizedBox(height: 10),
                   _UniversalLinkCard(
                     title: '关联人生目标',

@@ -64,6 +64,47 @@ class FriendRecords extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class TravelRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get tripId => text()();
+  TextColumn get title => text().nullable()();
+  TextColumn get content => text().nullable()();
+  TextColumn get images => text().nullable()();
+  TextColumn get destination => text().nullable()();
+  RealColumn get latitude => real().nullable()();
+  RealColumn get longitude => real().nullable()();
+  TextColumn get city => text().nullable()();
+  TextColumn get mood => text().nullable()();
+  RealColumn get expenseTransport => real().nullable()();
+  RealColumn get expenseHotel => real().nullable()();
+  RealColumn get expenseFood => real().nullable()();
+  RealColumn get expenseTicket => real().nullable()();
+  BoolColumn get isWishlist => boolean().withDefault(const Constant(false))();
+  BoolColumn get wishlistDone => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get planDate => dateTime().nullable()();
+  DateTimeColumn get recordDate => dateTime()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class Trips extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  DateTimeColumn get startDate => dateTime().nullable()();
+  DateTimeColumn get endDate => dateTime().nullable()();
+  TextColumn get destinations => text().nullable()();
+  RealColumn get totalExpense => real().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 class TimelineEvents extends Table {
   TextColumn get id => text()();
   TextColumn get title => text()();

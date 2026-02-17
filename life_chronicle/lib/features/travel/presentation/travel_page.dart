@@ -1,6 +1,13 @@
+import 'dart:convert';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:drift/drift.dart' show Value;
+import 'package:uuid/uuid.dart';
+
+import '../../../core/database/app_database.dart';
+import '../../../core/database/database_providers.dart';
 
 class TravelPage extends StatefulWidget {
   const TravelPage({super.key});
@@ -901,22 +908,171 @@ class TravelDetailPage extends StatelessWidget {
   }
 }
 
-class TravelCreatePage extends StatefulWidget {
+class TravelCreatePage extends ConsumerStatefulWidget {
   const TravelCreatePage({super.key});
 
   @override
-  State<TravelCreatePage> createState() => _TravelCreatePageState();
+  ConsumerState<TravelCreatePage> createState() => _TravelCreatePageState();
 }
 
-class _TravelCreatePageState extends State<TravelCreatePage> {
+class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
   bool _addToWishlist = true;
   bool _checkItem1Done = true;
   bool _checkItem2Done = false;
 
+  final Set<String> _linkedFriendIds = {};
+
+  final _titleController = TextEditingController();
+  final _noteController = TextEditingController();
+  final _destinationController = TextEditingController();
+  final _budgetController = TextEditingController();
+  final _flightLinkController = TextEditingController();
+  final _hotelLinkController = TextEditingController();
   final TextEditingController _dateRangeController = TextEditingController(text: '2023年12月24日 - 12月28日');
+
+  Future<void> _selectLinkedFriends() async {
+    final db = ref.read(appDatabaseProvider);
+    final selected = await showModalBottomSheet<Set<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StreamBuilder<List<FriendRecord>>(
+          stream: db.friendDao.watchAllActive(),
+          builder: (context, snapshot) {
+            final friends = snapshot.data ?? const <FriendRecord>[];
+            return _MultiSelectBottomSheet(
+              title: '同行者 (羁绊)',
+              items: friends
+                  .map(
+                    (f) => _SelectItem(
+                      id: f.id,
+                      title: f.name,
+                      leading: _AvatarCircle(name: f.name),
+                    ),
+                  )
+                  .toList(growable: false),
+              initialSelected: _linkedFriendIds,
+            );
+          },
+        );
+      },
+    );
+    if (selected == null) return;
+    setState(() {
+      _linkedFriendIds
+        ..clear()
+        ..addAll(selected);
+    });
+  }
+
+  (DateTime?, DateTime?) _parseDateRange(String text) {
+    final numbers = RegExp(r'\d+').allMatches(text).map((m) => int.parse(m.group(0)!)).toList();
+    if (numbers.length < 3) {
+      return (null, null);
+    }
+    final startYear = numbers[0];
+    final startMonth = numbers[1];
+    final startDay = numbers[2];
+    DateTime? start;
+    DateTime? end;
+    try {
+      start = DateTime(startYear, startMonth, startDay);
+    } catch (_) {
+      start = null;
+    }
+    if (numbers.length >= 5) {
+      final endYear = numbers.length >= 6 ? numbers[3] : startYear;
+      final endMonth = numbers.length >= 6 ? numbers[4] : numbers[3];
+      final endDay = numbers.length >= 6 ? numbers[5] : numbers[4];
+      try {
+        end = DateTime(endYear, endMonth, endDay);
+      } catch (_) {
+        end = null;
+      }
+    }
+    return (start, end);
+  }
+
+  Future<void> _save() async {
+    final title = _titleController.text.trim();
+    if (title.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请先填写行程标题')));
+      return;
+    }
+
+    final db = ref.read(appDatabaseProvider);
+    const uuid = Uuid();
+    final now = DateTime.now();
+    final recordDate = DateTime(now.year, now.month, now.day);
+    final tripId = uuid.v4();
+    final travelId = uuid.v4();
+
+    final destination = _destinationController.text.trim();
+    final budget = double.tryParse(_budgetController.text.trim());
+    final note = _noteController.text.trim();
+    final flightLink = _flightLinkController.text.trim();
+    final hotelLink = _hotelLinkController.text.trim();
+    final parts = <String>[];
+    if (note.isNotEmpty) parts.add(note);
+    if (flightLink.isNotEmpty) parts.add('机票/交通：$flightLink');
+    if (hotelLink.isNotEmpty) parts.add('住宿：$hotelLink');
+    final content = parts.isEmpty ? null : parts.join('\n');
+    final (startDate, endDate) = _parseDateRange(_dateRangeController.text.trim());
+    final destinations = destination.isEmpty ? null : jsonEncode([destination]);
+
+    await db.into(db.trips).insertOnConflictUpdate(
+          TripsCompanion.insert(
+            id: tripId,
+            name: title,
+            startDate: Value(startDate),
+            endDate: Value(endDate),
+            destinations: Value(destinations),
+            totalExpense: Value(budget),
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+
+    await db.into(db.travelRecords).insertOnConflictUpdate(
+          TravelRecordsCompanion.insert(
+            id: travelId,
+            tripId: tripId,
+            title: Value(title),
+            content: Value(content),
+            destination: Value(destination.isEmpty ? null : destination),
+            isWishlist: Value(_addToWishlist),
+            wishlistDone: const Value(false),
+            planDate: Value(startDate),
+            recordDate: recordDate,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+
+    for (final id in _linkedFriendIds) {
+      await db.linkDao.createLink(
+        sourceType: 'travel',
+        sourceId: travelId,
+        targetType: 'friend',
+        targetId: id,
+        now: now,
+      );
+    }
+
+    if (!mounted) return;
+    Navigator.of(context).pop();
+  }
 
   @override
   void dispose() {
+    _titleController.dispose();
+    _noteController.dispose();
+    _destinationController.dispose();
+    _budgetController.dispose();
+    _flightLinkController.dispose();
+    _hotelLinkController.dispose();
     _dateRangeController.dispose();
     super.dispose();
   }
@@ -954,7 +1110,7 @@ class _TravelCreatePageState extends State<TravelCreatePage> {
                       const Spacer(),
                       Padding(
                         padding: const EdgeInsets.only(left: 10),
-                        child: _PrimaryPillButton(icon: null, label: '创建', onTap: () {}),
+                        child: _PrimaryPillButton(icon: null, label: '创建', onTap: _save),
                       ),
                     ],
                   ),
@@ -1022,6 +1178,7 @@ class _TravelCreatePageState extends State<TravelCreatePage> {
                     const Text('行程标题', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF9CA3AF))),
                     const SizedBox(height: 8),
                     _RoundedFilledField(
+                      controller: _titleController,
                       hintText: '给这次行程起个标题...',
                       textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF111827)),
                     ),
@@ -1029,6 +1186,7 @@ class _TravelCreatePageState extends State<TravelCreatePage> {
                     const Text('备注与设想', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF9CA3AF))),
                     const SizedBox(height: 8),
                     _RoundedFilledField(
+                      controller: _noteController,
                       hintText: '记录关于这次行程的备注或初步设想...',
                       minLines: 3,
                       maxLines: 6,
@@ -1051,7 +1209,7 @@ class _TravelCreatePageState extends State<TravelCreatePage> {
                     _InfoRow(
                       icon: Icons.place,
                       label: '目的地',
-                      child: const _PlainTextField(hintText: '例如：京都, 日本'),
+                      child: _PlainTextField(controller: _destinationController, hintText: '例如：京都, 日本'),
                     ),
                     Divider(height: 1, color: Colors.black.withValues(alpha: 0.05)),
                     _InfoRow(
@@ -1065,10 +1223,10 @@ class _TravelCreatePageState extends State<TravelCreatePage> {
                       icon: Icons.paid,
                       label: '预算金额',
                       child: Row(
-                        children: const [
-                          Text('¥', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
-                          SizedBox(width: 6),
-                          Expanded(child: _PlainTextField(hintText: '0.00', keyboardType: TextInputType.number)),
+                        children: [
+                          const Text('¥', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                          const SizedBox(width: 6),
+                          Expanded(child: _PlainTextField(controller: _budgetController, hintText: '0.00', keyboardType: TextInputType.number)),
                         ],
                       ),
                     ),
@@ -1080,7 +1238,7 @@ class _TravelCreatePageState extends State<TravelCreatePage> {
                 children: [
                   const Expanded(child: _SectionTitle(label: '同行者 (羁绊)')),
                   TextButton(
-                    onPressed: () {},
+                    onPressed: _selectLinkedFriends,
                     style: TextButton.styleFrom(
                       foregroundColor: const Color(0xFF2BCDEE),
                       textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
@@ -1098,14 +1256,21 @@ class _TravelCreatePageState extends State<TravelCreatePage> {
                 ),
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: const [
-                      _CompanionInviteChip(),
-                      SizedBox(width: 14),
-                      _CompanionAvatarChip(name: 'Alice', imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCplARom1thybC1GgKxC_04lQgbUPjp3U0r0DkcfFdBQFVUstS1aAjlR7ywS28cBBTKY0RdpLhD3gSfiUz6CCz1eeUcTDuJY-bRzWJwmZnkcEyG1sn2aabaC_d0CnuTz10sE70UzOsVCn0xI8Igi2QipyBbgDfTzRrKeScOfP457_GO2BdfAcZrAeKKVG1qAdRq4gT6uBChWQIqyoSAiAr-D_BE3TMBIyBshmDVNjnTtGoRSxqL3MLg5L176BGYaHZOtscWlGluXgpl', showFavorite: true),
-                      SizedBox(width: 14),
-                      _CompanionAvatarChip(name: 'Bob', imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCQiVIB0_5acJayiUH-UPm3j2qu_CAwxHHR0DTusQGDA06E1QkFb0_uquRTxdkVhDZP4vkpcOgjBXFacMLeYSNR_vjDzXsl0yQuw8-MIXg1nr_wbmWXizb0tHOmmg8NCdL_h-8KZq49uAz4abaafPzCGeOu8_uKkkN8ydMdqSyLKrxR2ruJHALYRhZ0Nd7NgPACeksBkzNU1-KCCYHlAL0wtnmEaVls6UNTwTWOfuo_tHBCi58xOaEZMqmWyOdSj67QKJjkPdZbmsMm'),
-                    ],
+                  child: StreamBuilder<List<FriendRecord>>(
+                    stream: ref.read(appDatabaseProvider).friendDao.watchAllActive(),
+                    builder: (context, snapshot) {
+                      final friends = snapshot.data ?? const <FriendRecord>[];
+                      final selectedFriends = friends.where((f) => _linkedFriendIds.contains(f.id)).toList(growable: false);
+                      return Row(
+                        children: [
+                          const _CompanionInviteChip(),
+                          for (final friend in selectedFriends) ...[
+                            const SizedBox(width: 14),
+                            _CompanionNameChip(name: friend.name),
+                          ],
+                        ],
+                      );
+                    },
                   ),
                 ),
               ),
@@ -1156,9 +1321,9 @@ class _TravelCreatePageState extends State<TravelCreatePage> {
                       child: Text('预订链接', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF9CA3AF))),
                     ),
                     const SizedBox(height: 10),
-                    _IconInputRow(icon: Icons.flight, rotateIcon: true, hintText: '粘贴机票/交通预订链接'),
+                    _IconInputRow(icon: Icons.flight, rotateIcon: true, hintText: '粘贴机票/交通预订链接', controller: _flightLinkController),
                     const SizedBox(height: 10),
-                    _IconInputRow(icon: Icons.hotel, hintText: '粘贴酒店/住宿预订链接'),
+                    _IconInputRow(icon: Icons.hotel, hintText: '粘贴酒店/住宿预订链接', controller: _hotelLinkController),
                   ],
                 ),
               ),
@@ -1259,15 +1424,177 @@ class _TravelCreatePageState extends State<TravelCreatePage> {
   }
 }
 
-class TravelJournalCreatePage extends StatefulWidget {
+class TravelJournalCreatePage extends ConsumerStatefulWidget {
   const TravelJournalCreatePage({super.key});
 
   @override
-  State<TravelJournalCreatePage> createState() => _TravelJournalCreatePageState();
+  ConsumerState<TravelJournalCreatePage> createState() => _TravelJournalCreatePageState();
 }
 
-class _TravelJournalCreatePageState extends State<TravelJournalCreatePage> {
+class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePage> {
   int _selectedMoodIndex = 1;
+
+  final Set<String> _linkedFriendIds = {};
+  final Set<String> _linkedFoodIds = {};
+
+  final _titleController = TextEditingController();
+  final _contentController = TextEditingController();
+  final _imageUrls = <String>[
+    'https://lh3.googleusercontent.com/aida-public/AB6AXuDSiJy4vj3-8R2angY1JfjCncAqBOa2quEtlvEu-dhous2uMskWujq6_nV_uyBKbFQdUGbsn9LMLFfUXUnb93xjTnwyUkIBL2k_igAoKKCbVjWb4l_6Bzu_J_JQDjkC_q4virmec5Zg6uJshfYhdZ73YLp1Y2aJ4-FadDuJVpYP6l8YrR4pBHlCm2qYqcXqYdmrMHOcRO9BESLt1VEvo63DlI3rZlPB9phtt4CrHYWAKXQcpuSvk_FdIIE8sjo5sWyMivQPa7UmvXMv',
+    'https://lh3.googleusercontent.com/aida-public/AB6AXuAJXbnLKvlLG_61cAfkgftdbG_VeN-Yd9sRyc_avp_eCsvTCh21uahLpTGC3iI_KDsW2C0C2cjsuhmB5GVqLdN9l5ve6Fzr8QKkE1_-OA5InnsZeKPDhM42i0rzGdClRzvbmqPtTr0VtxyZMXQj6yEkd31OHKG8dPCGea2pMS41BQKPF4Yv2HuvEVgJ83pTUSKVFkHTtmViPfZbWoKYv__IMLWuBD0XSC5s2-UQqiv-PtaOA2zn5wOKrAt4IHLAPkjrP1_S_Fu-YKIv',
+  ];
+
+  Future<void> _selectLinkedFriends() async {
+    final db = ref.read(appDatabaseProvider);
+    final selected = await showModalBottomSheet<Set<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StreamBuilder<List<FriendRecord>>(
+          stream: db.friendDao.watchAllActive(),
+          builder: (context, snapshot) {
+            final friends = snapshot.data ?? const <FriendRecord>[];
+            return _MultiSelectBottomSheet(
+              title: '同行朋友',
+              items: friends
+                  .map(
+                    (f) => _SelectItem(
+                      id: f.id,
+                      title: f.name,
+                      leading: _AvatarCircle(name: f.name),
+                    ),
+                  )
+                  .toList(growable: false),
+              initialSelected: _linkedFriendIds,
+            );
+          },
+        );
+      },
+    );
+    if (selected == null) return;
+    setState(() {
+      _linkedFriendIds
+        ..clear()
+        ..addAll(selected);
+    });
+  }
+
+  Future<void> _selectLinkedFoods() async {
+    final db = ref.read(appDatabaseProvider);
+    final selected = await showModalBottomSheet<Set<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StreamBuilder<List<FoodRecord>>(
+          stream: db.foodDao.watchAllActive(),
+          builder: (context, snapshot) {
+            final foods = snapshot.data ?? const <FoodRecord>[];
+            return _MultiSelectBottomSheet(
+              title: '关联美食',
+              items: foods
+                  .map(
+                    (f) => _SelectItem(
+                      id: f.id,
+                      title: f.title,
+                      leading: const _IconSquare(color: Color(0xFFFFEDD5), icon: Icons.restaurant, iconColor: Color(0xFFFB923C)),
+                    ),
+                  )
+                  .toList(growable: false),
+              initialSelected: _linkedFoodIds,
+            );
+          },
+        );
+      },
+    );
+    if (selected == null) return;
+    setState(() {
+      _linkedFoodIds
+        ..clear()
+        ..addAll(selected);
+    });
+  }
+
+  Future<void> _publish() async {
+    final title = _titleController.text.trim();
+    if (title.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请先填写游记标题')));
+      return;
+    }
+
+    final db = ref.read(appDatabaseProvider);
+    const uuid = Uuid();
+    final now = DateTime.now();
+    final recordDate = DateTime(now.year, now.month, now.day);
+    final tripId = uuid.v4();
+    final travelId = uuid.v4();
+
+    const destination = '京都, 清水寺';
+    final images = _imageUrls.isEmpty ? null : jsonEncode(_imageUrls);
+    final content = _contentController.text.trim();
+    final mood = _moods[_selectedMoodIndex].label;
+
+    await db.into(db.trips).insertOnConflictUpdate(
+          TripsCompanion.insert(
+            id: tripId,
+            name: title,
+            startDate: Value(recordDate),
+            endDate: Value(recordDate),
+            destinations: Value(jsonEncode([destination])),
+            totalExpense: const Value(null),
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+
+    await db.into(db.travelRecords).insertOnConflictUpdate(
+          TravelRecordsCompanion.insert(
+            id: travelId,
+            tripId: tripId,
+            title: Value(title),
+            content: Value(content.isEmpty ? null : content),
+            images: Value(images),
+            destination: const Value(destination),
+            mood: Value(mood),
+            isWishlist: const Value(false),
+            wishlistDone: const Value(false),
+            recordDate: recordDate,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+
+    for (final id in _linkedFriendIds) {
+      await db.linkDao.createLink(
+        sourceType: 'travel',
+        sourceId: travelId,
+        targetType: 'friend',
+        targetId: id,
+        now: now,
+      );
+    }
+    for (final id in _linkedFoodIds) {
+      await db.linkDao.createLink(
+        sourceType: 'travel',
+        sourceId: travelId,
+        targetType: 'food',
+        targetId: id,
+        now: now,
+      );
+    }
+
+    if (!mounted) return;
+    Navigator.of(context).pop();
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _contentController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1302,7 +1629,7 @@ class _TravelJournalCreatePageState extends State<TravelJournalCreatePage> {
                       const Spacer(),
                       Padding(
                         padding: const EdgeInsets.only(left: 10),
-                        child: _PrimaryPillButton(icon: null, label: '发布', onTap: () {}),
+                        child: _PrimaryPillButton(icon: null, label: '发布', onTap: _publish),
                       ),
                     ],
                   ),
@@ -1321,12 +1648,14 @@ class _TravelJournalCreatePageState extends State<TravelJournalCreatePage> {
             child: Column(
               children: [
                 _RoundedFilledField(
+                  controller: _titleController,
                   hintText: '给这段游记起个标题...',
                   fillColor: const Color(0xFFF1F5F9),
                   textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
                 ),
                 const SizedBox(height: 12),
                 _RoundedFilledField(
+                  controller: _contentController,
                   hintText: '此刻有什么想记录的？描述你的见闻与感悟...',
                   fillColor: Colors.transparent,
                   minLines: 5,
@@ -1340,15 +1669,8 @@ class _TravelJournalCreatePageState extends State<TravelJournalCreatePage> {
                   crossAxisSpacing: 8,
                   physics: const NeverScrollableScrollPhysics(),
                   shrinkWrap: true,
-                  children: const [
-                    _PhotoGridItem(
-                      imageUrl:
-                          'https://lh3.googleusercontent.com/aida-public/AB6AXuDSiJy4vj3-8R2angY1JfjCncAqBOa2quEtlvEu-dhous2uMskWujq6_nV_uyBKbFQdUGbsn9LMLFfUXUnb93xjTnwyUkIBL2k_igAoKKCbVjWb4l_6Bzu_J_JQDjkC_q4virmec5Zg6uJshfYhdZ73YLp1Y2aJ4-FadDuJVpYP6l8YrR4pBHlCm2qYqcXqYdmrMHOcRO9BESLt1VEvo63DlI3rZlPB9phtt4CrHYWAKXQcpuSvk_FdIIE8sjo5sWyMivQPa7UmvXMv',
-                    ),
-                    _PhotoGridItem(
-                      imageUrl:
-                          'https://lh3.googleusercontent.com/aida-public/AB6AXuAJXbnLKvlLG_61cAfkgftdbG_VeN-Yd9sRyc_avp_eCsvTCh21uahLpTGC3iI_KDsW2C0C2cjsuhmB5GVqLdN9l5ve6Fzr8QKkE1_-OA5InnsZeKPDhM42i0rzGdClRzvbmqPtTr0VtxyZMXQj6yEkd31OHKG8dPCGea2pMS41BQKPF4Yv2HuvEVgJ83pTUSKVFkHTtmViPfZbWoKYv__IMLWuBD0XSC5s2-UQqiv-PtaOA2zn5wOKrAt4IHLAPkjrP1_S_Fu-YKIv',
-                    ),
+                  children: [
+                    ..._imageUrls.map((url) => _PhotoGridItem(imageUrl: url)),
                     _PhotoAddGridItem(),
                   ],
                 ),
@@ -1364,7 +1686,7 @@ class _TravelJournalCreatePageState extends State<TravelJournalCreatePage> {
             ),
           ),
           const SizedBox(height: 14),
-          const _SectionTitle(label: '万物关联'),
+          const _SectionTitle(label: '万物互联'),
           const SizedBox(height: 10),
           Container(
             decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
@@ -1443,15 +1765,40 @@ class _TravelJournalCreatePageState extends State<TravelJournalCreatePage> {
                   icon: Icons.groups,
                   title: '同行朋友',
                   subtitle: null,
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      _TinyAvatar(url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCl9nn5TZbEqIM0RhyOIwQgMwpoY7yUPtcRu3jpcF8UPok-9lbm4fbn-Og09ppd8Ancn09tGexDq_ORJzJVdcGY3EyCX9Zq-54wI2yKz7VglOdj16M2Yfqvo1DEHqH9gxIz2glbsmcbr8x0Tdr9MxNMATUjVC9aNjT5aamcmCbwsj2oZXKnaG4aKFxZyiwNOoURdnkC7dh6z5pINcqn1ELEjJxd6nc1YFtGtjO_g6hxQxT9f9fN7UVKXrZdvpMkbSAsZx-kd5UFmXya'),
-                      SizedBox(width: 6),
-                      _TinyAvatar(url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBg4HeIqON_KNpEUoHNkGRJOZTcTdMJosl9zwU7xUF9NfHGrdW5R4Gixg2p_Mm2b-XIA2Tm2UBkOtqSnN_ZFK4n673ETjRDiqW11CMkdwHrwTJA0sXsF5UP2uO_RKVI6fOKkwYU6je2Hn3sKpc_xWxph9usJb7n7u5Aq8Za-F_B5JhoztC4ZBU0kAHN-jMwg__p-ijlVncXn22ZcIpw8qMcAZexpMVlWJn_tZQmTgWmXg9vAc43v8j-WQlCDxlk7JPB3KSkOJYu0AJh'),
-                      SizedBox(width: 6),
-                      _TinyAdd(),
-                    ],
+                  onTap: _selectLinkedFriends,
+                  trailing: StreamBuilder<List<FriendRecord>>(
+                    stream: ref.read(appDatabaseProvider).friendDao.watchAllActive(),
+                    builder: (context, snapshot) {
+                      final friends = snapshot.data ?? const <FriendRecord>[];
+                      final selectedFriends = friends.where((f) => _linkedFriendIds.contains(f.id)).toList(growable: false);
+                      final visibleFriends = selectedFriends.take(2).toList(growable: false);
+                      final overflow = selectedFriends.length - visibleFriends.length;
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (selectedFriends.isEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(8)),
+                              child: const Text('未选择', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
+                            )
+                          else ...[
+                            for (final friend in visibleFriends) ...[
+                              _TinyLetterAvatar(name: friend.name),
+                              const SizedBox(width: 6),
+                            ],
+                            if (overflow > 0)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                                decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(999)),
+                                child: Text('+$overflow', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF3B82F6))),
+                              ),
+                          ],
+                          const SizedBox(width: 8),
+                          const Icon(Icons.chevron_right, color: Color(0xFFCBD5E1)),
+                        ],
+                      );
+                    },
                   ),
                 ),
                 Divider(height: 1, color: Colors.black.withValues(alpha: 0.05)),
@@ -1461,13 +1808,17 @@ class _TravelJournalCreatePageState extends State<TravelJournalCreatePage> {
                   icon: Icons.restaurant,
                   title: '关联美食',
                   subtitle: '选择本次旅行的美食记录',
+                  onTap: _selectLinkedFoods,
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(8)),
-                        child: const Text('未关联', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
+                        child: Text(
+                          _linkedFoodIds.isEmpty ? '未关联' : '已关联 ${_linkedFoodIds.length} 项',
+                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF64748B)),
+                        ),
                       ),
                       const SizedBox(width: 8),
                       const Icon(Icons.chevron_right, color: Color(0xFFCBD5E1)),
@@ -2115,6 +2466,7 @@ class _RoundedFilledField extends StatelessWidget {
     this.minLines = 1,
     this.maxLines = 1,
     this.fillColor,
+    this.controller,
   });
 
   final String hintText;
@@ -2122,10 +2474,12 @@ class _RoundedFilledField extends StatelessWidget {
   final int minLines;
   final int maxLines;
   final Color? fillColor;
+  final TextEditingController? controller;
 
   @override
   Widget build(BuildContext context) {
     return TextField(
+      controller: controller,
       minLines: minLines,
       maxLines: maxLines,
       style: textStyle,
@@ -2142,11 +2496,12 @@ class _RoundedFilledField extends StatelessWidget {
 }
 
 class _IconInputRow extends StatelessWidget {
-  const _IconInputRow({required this.icon, required this.hintText, this.rotateIcon = false});
+  const _IconInputRow({required this.icon, required this.hintText, this.rotateIcon = false, this.controller});
 
   final IconData icon;
   final String hintText;
   final bool rotateIcon;
+  final TextEditingController? controller;
 
   @override
   Widget build(BuildContext context) {
@@ -2162,6 +2517,7 @@ class _IconInputRow extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: TextField(
+              controller: controller,
               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
               decoration: InputDecoration(
                 isDense: true,
@@ -2211,40 +2567,16 @@ class _CompanionInviteChip extends StatelessWidget {
   }
 }
 
-class _CompanionAvatarChip extends StatelessWidget {
-  const _CompanionAvatarChip({required this.name, required this.imageUrl, this.showFavorite = false});
+class _CompanionNameChip extends StatelessWidget {
+  const _CompanionNameChip({required this.name});
 
   final String name;
-  final String imageUrl;
-  final bool showFavorite;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Stack(
-          clipBehavior: Clip.none,
-          children: [
-            ClipOval(
-              child: SizedBox(
-                width: 52,
-                height: 52,
-                child: Image.network(imageUrl, fit: BoxFit.cover),
-              ),
-            ),
-            if (showFavorite)
-              Positioned(
-                right: -2,
-                bottom: -2,
-                child: Container(
-                  width: 18,
-                  height: 18,
-                  decoration: BoxDecoration(color: const Color(0xFF2BCDEE), shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
-                  child: const Icon(Icons.favorite, size: 10, color: Colors.white),
-                ),
-              ),
-          ],
-        ),
+        _AvatarCircle(name: name),
         const SizedBox(height: 8),
         SizedBox(
           width: 64,
@@ -2399,6 +2731,7 @@ class _AssociationRow extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.trailing,
+    this.onTap,
   });
 
   final Color iconBg;
@@ -2407,35 +2740,206 @@ class _AssociationRow extends StatelessWidget {
   final String title;
   final String? subtitle;
   final Widget trailing;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      child: Row(
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
-            child: Icon(icon, size: 18, color: iconColor),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                if (subtitle != null) ...[
-                  const SizedBox(height: 3),
-                  Text(subtitle!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
-                ],
-              ],
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
+              child: Icon(icon, size: 18, color: iconColor),
             ),
-          ),
-          trailing,
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 3),
+                    Text(subtitle!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                  ],
+                ],
+              ),
+            ),
+            trailing,
+          ],
+        ),
       ),
+    );
+  }
+}
+
+class _BottomSheetShell extends StatelessWidget {
+  const _BottomSheetShell({
+    required this.title,
+    required this.actionText,
+    required this.onAction,
+    required this.child,
+  });
+
+  final String title;
+  final String actionText;
+  final VoidCallback onAction;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+      child: Material(
+        color: Colors.white,
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+                child: Row(
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: TextButton.styleFrom(foregroundColor: const Color(0xFF6B7280), textStyle: const TextStyle(fontWeight: FontWeight.w800)),
+                      child: const Text('取消'),
+                    ),
+                    Expanded(
+                      child: Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                    ),
+                    TextButton(
+                      onPressed: onAction,
+                      style: TextButton.styleFrom(foregroundColor: const Color(0xFF2BCDEE), textStyle: const TextStyle(fontWeight: FontWeight.w900)),
+                      child: Text(actionText),
+                    ),
+                  ],
+                ),
+              ),
+              child,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SelectItem {
+  const _SelectItem({required this.id, required this.title, required this.leading});
+
+  final String id;
+  final String title;
+  final Widget leading;
+}
+
+class _MultiSelectBottomSheet extends StatefulWidget {
+  const _MultiSelectBottomSheet({
+    required this.title,
+    required this.items,
+    required this.initialSelected,
+  });
+
+  final String title;
+  final List<_SelectItem> items;
+  final Set<String> initialSelected;
+
+  @override
+  State<_MultiSelectBottomSheet> createState() => _MultiSelectBottomSheetState();
+}
+
+class _MultiSelectBottomSheetState extends State<_MultiSelectBottomSheet> {
+  late final Set<String> _selected = {...widget.initialSelected};
+
+  @override
+  Widget build(BuildContext context) {
+    return _BottomSheetShell(
+      title: widget.title,
+      actionText: '确定',
+      onAction: () => Navigator.of(context).pop(_selected),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.7),
+        child: ListView.separated(
+          padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
+          itemBuilder: (context, index) {
+            final item = widget.items[index];
+            final checked = _selected.contains(item.id);
+            return InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () {
+                setState(() {
+                  if (checked) {
+                    _selected.remove(item.id);
+                  } else {
+                    _selected.add(item.id);
+                  }
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                decoration: BoxDecoration(
+                  color: checked ? const Color(0xFF2BCDEE).withValues(alpha: 0.08) : const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: checked ? const Color(0xFF2BCDEE).withValues(alpha: 0.22) : const Color(0xFFF1F5F9)),
+                ),
+                child: Row(
+                  children: [
+                    item.leading,
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(item.title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF111827)))),
+                    Icon(checked ? Icons.check_circle : Icons.radio_button_unchecked, color: checked ? const Color(0xFF2BCDEE) : const Color(0xFFCBD5E1)),
+                  ],
+                ),
+              ),
+            );
+          },
+          separatorBuilder: (context, index) => const SizedBox(height: 10),
+          itemCount: widget.items.length,
+        ),
+      ),
+    );
+  }
+}
+
+class _AvatarCircle extends StatelessWidget {
+  const _AvatarCircle({required this.name});
+
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    final trimmed = name.trim();
+    final letter = trimmed.isEmpty ? '?' : trimmed.substring(0, 1);
+    return Container(
+      width: 34,
+      height: 34,
+      decoration: const BoxDecoration(color: Color(0xFFF1F5F9), shape: BoxShape.circle),
+      alignment: Alignment.center,
+      child: Text(letter, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF334155))),
+    );
+  }
+}
+
+class _IconSquare extends StatelessWidget {
+  const _IconSquare({required this.color, required this.icon, required this.iconColor});
+
+  final Color color;
+  final IconData icon;
+  final Color iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 34,
+      height: 34,
+      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)),
+      child: Icon(icon, color: iconColor, size: 18),
     );
   }
 }
@@ -2487,16 +2991,21 @@ class _TinyAvatar extends StatelessWidget {
   }
 }
 
-class _TinyAdd extends StatelessWidget {
-  const _TinyAdd();
+class _TinyLetterAvatar extends StatelessWidget {
+  const _TinyLetterAvatar({required this.name});
+
+  final String name;
 
   @override
   Widget build(BuildContext context) {
+    final trimmed = name.trim();
+    final letter = trimmed.isEmpty ? '?' : trimmed.substring(0, 1);
     return Container(
       width: 28,
       height: 28,
-      decoration: BoxDecoration(color: const Color(0xFFF1F5F9), shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
-      child: const Icon(Icons.add, size: 16, color: Color(0xFF94A3B8)),
+      decoration: BoxDecoration(color: const Color(0xFFEFF6FF), shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
+      alignment: Alignment.center,
+      child: Text(letter, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF3B82F6))),
     );
   }
 }

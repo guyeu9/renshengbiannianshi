@@ -1,6 +1,11 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../app/app_theme.dart';
+import '../../../core/database/app_database.dart';
+import '../../../core/database/database_providers.dart';
 
 class GoalPage extends StatelessWidget {
   const GoalPage({super.key});
@@ -948,8 +953,254 @@ class _TextMemoryCard extends StatelessWidget {
   }
 }
 
-class GoalCreatePage extends StatelessWidget {
+class GoalCreatePage extends ConsumerStatefulWidget {
   const GoalCreatePage({super.key});
+
+  @override
+  ConsumerState<GoalCreatePage> createState() => _GoalCreatePageState();
+}
+
+class _GoalCreatePageState extends ConsumerState<GoalCreatePage> {
+  final Set<String> _linkedMomentIds = {};
+  final Set<String> _linkedFoodIds = {};
+  final Set<String> _linkedFriendIds = {};
+  final Set<String> _linkedTravelIds = {};
+  final _titleController = TextEditingController();
+  final _categoryController = TextEditingController();
+  final _dueDateController = TextEditingController();
+  final _descriptionController = TextEditingController();
+
+  Future<void> _selectLinkedMoments() async {
+    final db = ref.read(appDatabaseProvider);
+    final selected = await showModalBottomSheet<Set<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StreamBuilder<List<MomentRecord>>(
+          stream: db.momentDao.watchAllActive(),
+          builder: (context, snapshot) {
+            final moments = snapshot.data ?? const <MomentRecord>[];
+            return _MultiSelectBottomSheet(
+              title: '关联小确幸',
+              items: moments
+                  .map(
+                    (m) => _SelectItem(
+                      id: m.id,
+                      title: m.content?.isNotEmpty == true ? m.content! : '小确幸记录',
+                      leading: const _IconSquare(color: Color(0xFFEFF6FF), icon: Icons.auto_awesome, iconColor: Color(0xFF60A5FA)),
+                    ),
+                  )
+                  .toList(growable: false),
+              initialSelected: _linkedMomentIds,
+            );
+          },
+        );
+      },
+    );
+    if (selected == null) return;
+    setState(() {
+      _linkedMomentIds
+        ..clear()
+        ..addAll(selected);
+    });
+  }
+
+  Future<void> _selectLinkedFoods() async {
+    final db = ref.read(appDatabaseProvider);
+    final selected = await showModalBottomSheet<Set<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StreamBuilder<List<FoodRecord>>(
+          stream: db.foodDao.watchAllActive(),
+          builder: (context, snapshot) {
+            final foods = snapshot.data ?? const <FoodRecord>[];
+            return _MultiSelectBottomSheet(
+              title: '关联美食',
+              items: foods
+                  .map(
+                    (f) => _SelectItem(
+                      id: f.id,
+                      title: f.title,
+                      leading: const _IconSquare(color: Color(0xFFFFEDD5), icon: Icons.restaurant, iconColor: Color(0xFFFB923C)),
+                    ),
+                  )
+                  .toList(growable: false),
+              initialSelected: _linkedFoodIds,
+            );
+          },
+        );
+      },
+    );
+    if (selected == null) return;
+    setState(() {
+      _linkedFoodIds
+        ..clear()
+        ..addAll(selected);
+    });
+  }
+
+  Future<void> _selectLinkedFriends() async {
+    final db = ref.read(appDatabaseProvider);
+    final selected = await showModalBottomSheet<Set<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StreamBuilder<List<FriendRecord>>(
+          stream: db.friendDao.watchAllActive(),
+          builder: (context, snapshot) {
+            final friends = snapshot.data ?? const <FriendRecord>[];
+            return _MultiSelectBottomSheet(
+              title: '关联羁绊',
+              items: friends
+                  .map(
+                    (f) => _SelectItem(
+                      id: f.id,
+                      title: f.name,
+                      leading: _AvatarCircle(name: f.name),
+                    ),
+                  )
+                  .toList(growable: false),
+              initialSelected: _linkedFriendIds,
+            );
+          },
+        );
+      },
+    );
+    if (selected == null) return;
+    setState(() {
+      _linkedFriendIds
+        ..clear()
+        ..addAll(selected);
+    });
+  }
+
+  Future<void> _selectLinkedTravels() async {
+    final db = ref.read(appDatabaseProvider);
+    final selected = await showModalBottomSheet<Set<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StreamBuilder<List<TravelRecord>>(
+          stream: db.watchAllActiveTravelRecords(),
+          builder: (context, snapshot) {
+            final travels = snapshot.data ?? const <TravelRecord>[];
+            return _MultiSelectBottomSheet(
+              title: '关联旅行',
+              items: travels
+                  .map(
+                    (t) => _SelectItem(
+                      id: t.id,
+                      title: t.title?.isNotEmpty == true ? t.title! : '旅行记录',
+                      leading: const _IconSquare(color: Color(0xFFF0FDF4), icon: Icons.flight_takeoff, iconColor: Color(0xFF22C55E)),
+                    ),
+                  )
+                  .toList(growable: false),
+              initialSelected: _linkedTravelIds,
+            );
+          },
+        );
+      },
+    );
+    if (selected == null) return;
+    setState(() {
+      _linkedTravelIds
+        ..clear()
+        ..addAll(selected);
+    });
+  }
+
+  Future<void> _save() async {
+    final title = _titleController.text.trim();
+    if (title.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请先填写目标标题')));
+      return;
+    }
+
+    final db = ref.read(appDatabaseProvider);
+    const uuid = Uuid();
+    final now = DateTime.now();
+    final recordDate = DateTime(now.year, now.month, now.day);
+    final goalId = uuid.v4();
+
+    final category = _categoryController.text.trim();
+    final dueDateText = _dueDateController.text.trim();
+    final dueDate = dueDateText.isEmpty ? null : DateTime.tryParse(dueDateText);
+    final description = _descriptionController.text.trim();
+    final noteParts = <String>[];
+    if (category.isNotEmpty) noteParts.add('分类：$category');
+    if (dueDateText.isNotEmpty) noteParts.add('截止：$dueDateText');
+    if (description.isNotEmpty) noteParts.add(description);
+    final note = noteParts.isEmpty ? null : noteParts.join('\n');
+
+    await db.into(db.timelineEvents).insertOnConflictUpdate(
+          TimelineEventsCompanion.insert(
+            id: goalId,
+            title: title,
+            eventType: 'goal',
+            startAt: Value(dueDate ?? recordDate),
+            endAt: const Value(null),
+            note: Value(note),
+            recordDate: recordDate,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+
+    for (final id in _linkedMomentIds) {
+      await db.linkDao.createLink(
+        sourceType: 'goal',
+        sourceId: goalId,
+        targetType: 'moment',
+        targetId: id,
+        now: now,
+      );
+    }
+    for (final id in _linkedFoodIds) {
+      await db.linkDao.createLink(
+        sourceType: 'goal',
+        sourceId: goalId,
+        targetType: 'food',
+        targetId: id,
+        now: now,
+      );
+    }
+    for (final id in _linkedFriendIds) {
+      await db.linkDao.createLink(
+        sourceType: 'goal',
+        sourceId: goalId,
+        targetType: 'friend',
+        targetId: id,
+        now: now,
+      );
+    }
+    for (final id in _linkedTravelIds) {
+      await db.linkDao.createLink(
+        sourceType: 'goal',
+        sourceId: goalId,
+        targetType: 'travel',
+        targetId: id,
+        now: now,
+      );
+    }
+
+    if (!mounted) return;
+    Navigator.of(context).pop();
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _categoryController.dispose();
+    _dueDateController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -959,7 +1210,7 @@ class GoalCreatePage extends StatelessWidget {
         backgroundColor: Colors.white.withValues(alpha: 0.75),
         title: const Text('新建目标', style: TextStyle(fontWeight: FontWeight.w900)),
         actions: [
-          TextButton(onPressed: () {}, child: const Text('保存', style: TextStyle(fontWeight: FontWeight.w900))),
+          TextButton(onPressed: _save, child: const Text('保存', style: TextStyle(fontWeight: FontWeight.w900))),
         ],
       ),
       body: ListView(
@@ -968,24 +1219,24 @@ class GoalCreatePage extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFF3F4F6))),
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('标题', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                SizedBox(height: 10),
-                TextField(decoration: InputDecoration(hintText: '例如：读完24本书', border: InputBorder.none)),
-                SizedBox(height: 12),
-                Text('分类', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                SizedBox(height: 10),
-                TextField(decoration: InputDecoration(hintText: '成长/健康/旅行…', border: InputBorder.none)),
-                SizedBox(height: 12),
-                Text('截止时间', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                SizedBox(height: 10),
-                TextField(decoration: InputDecoration(hintText: 'YYYY-MM-DD', border: InputBorder.none)),
-                SizedBox(height: 12),
-                Text('描述', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                SizedBox(height: 10),
-                TextField(minLines: 4, maxLines: 10, decoration: InputDecoration(hintText: '写下你的目标规划…', border: InputBorder.none)),
+                const Text('标题', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                const SizedBox(height: 10),
+                TextField(controller: _titleController, decoration: const InputDecoration(hintText: '例如：读完24本书', border: InputBorder.none)),
+                const SizedBox(height: 12),
+                const Text('分类', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                const SizedBox(height: 10),
+                TextField(controller: _categoryController, decoration: const InputDecoration(hintText: '成长/健康/旅行…', border: InputBorder.none)),
+                const SizedBox(height: 12),
+                const Text('截止时间', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                const SizedBox(height: 10),
+                TextField(controller: _dueDateController, decoration: const InputDecoration(hintText: 'YYYY-MM-DD', border: InputBorder.none)),
+                const SizedBox(height: 12),
+                const Text('描述', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                const SizedBox(height: 10),
+                TextField(controller: _descriptionController, minLines: 4, maxLines: 10, decoration: const InputDecoration(hintText: '写下你的目标规划…', border: InputBorder.none)),
               ],
             ),
           ),
@@ -1001,7 +1252,7 @@ class GoalCreatePage extends StatelessWidget {
                     SizedBox(width: 4),
                     SizedBox(width: 4, height: 16, child: DecoratedBox(decoration: BoxDecoration(color: Color(0xFF2BCDEE), borderRadius: BorderRadius.all(Radius.circular(999))))),
                     SizedBox(width: 10),
-                    Text('万物关联', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                    Text('万物互联', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -1010,28 +1261,32 @@ class GoalCreatePage extends StatelessWidget {
                   icon: Icons.auto_awesome,
                   iconColor: Color(0xFF60A5FA),
                   title: '关联小确幸',
-                  trailingText: '选择小确幸',
+                  trailingText: _linkedMomentIds.isEmpty ? '选择小确幸' : '已选 ${_linkedMomentIds.length} 条',
+                  onTap: _selectLinkedMoments,
                 ),
                 _GoalLinkRow(
                   iconBackground: Color(0xFFFFEDD5),
                   icon: Icons.restaurant,
                   iconColor: Color(0xFFFB923C),
                   title: '关联美食',
-                  trailingText: '选择美食记录',
+                  trailingText: _linkedFoodIds.isEmpty ? '选择美食记录' : '已选 ${_linkedFoodIds.length} 条',
+                  onTap: _selectLinkedFoods,
                 ),
                 _GoalLinkRow(
                   iconBackground: Color(0xFFFCE7F3),
                   icon: Icons.people,
                   iconColor: Color(0xFFEC4899),
                   title: '关联羁绊',
-                  trailingText: '选择朋友/相遇',
+                  trailingText: _linkedFriendIds.isEmpty ? '选择朋友/相遇' : '已选 ${_linkedFriendIds.length} 位',
+                  onTap: _selectLinkedFriends,
                 ),
                 _GoalLinkRow(
                   iconBackground: Color(0xFFF0FDF4),
                   icon: Icons.flight_takeoff,
                   iconColor: Color(0xFF22C55E),
                   title: '关联旅行',
-                  trailingText: '选择旅行记录',
+                  trailingText: _linkedTravelIds.isEmpty ? '选择旅行记录' : '已选 ${_linkedTravelIds.length} 条',
+                  onTap: _selectLinkedTravels,
                 ),
               ],
             ),
@@ -1049,6 +1304,7 @@ class _GoalLinkRow extends StatelessWidget {
     required this.iconColor,
     required this.title,
     required this.trailingText,
+    this.onTap,
   });
 
   final Color iconBackground;
@@ -1056,12 +1312,13 @@ class _GoalLinkRow extends StatelessWidget {
   final Color iconColor;
   final String title;
   final String trailingText;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       borderRadius: BorderRadius.circular(16),
-      onTap: () {},
+      onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 10),
         child: Row(
@@ -1080,6 +1337,172 @@ class _GoalLinkRow extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _BottomSheetShell extends StatelessWidget {
+  const _BottomSheetShell({
+    required this.title,
+    required this.actionText,
+    required this.onAction,
+    required this.child,
+  });
+
+  final String title;
+  final String actionText;
+  final VoidCallback onAction;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+      child: Material(
+        color: Colors.white,
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+                child: Row(
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: TextButton.styleFrom(foregroundColor: const Color(0xFF6B7280), textStyle: const TextStyle(fontWeight: FontWeight.w800)),
+                      child: const Text('取消'),
+                    ),
+                    Expanded(
+                      child: Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                    ),
+                    TextButton(
+                      onPressed: onAction,
+                      style: TextButton.styleFrom(foregroundColor: const Color(0xFF2BCDEE), textStyle: const TextStyle(fontWeight: FontWeight.w900)),
+                      child: Text(actionText),
+                    ),
+                  ],
+                ),
+              ),
+              child,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SelectItem {
+  const _SelectItem({required this.id, required this.title, required this.leading});
+
+  final String id;
+  final String title;
+  final Widget leading;
+}
+
+class _MultiSelectBottomSheet extends StatefulWidget {
+  const _MultiSelectBottomSheet({
+    required this.title,
+    required this.items,
+    required this.initialSelected,
+  });
+
+  final String title;
+  final List<_SelectItem> items;
+  final Set<String> initialSelected;
+
+  @override
+  State<_MultiSelectBottomSheet> createState() => _MultiSelectBottomSheetState();
+}
+
+class _MultiSelectBottomSheetState extends State<_MultiSelectBottomSheet> {
+  late final Set<String> _selected = {...widget.initialSelected};
+
+  @override
+  Widget build(BuildContext context) {
+    return _BottomSheetShell(
+      title: widget.title,
+      actionText: '确定',
+      onAction: () => Navigator.of(context).pop(_selected),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.7),
+        child: ListView.separated(
+          padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
+          itemBuilder: (context, index) {
+            final item = widget.items[index];
+            final checked = _selected.contains(item.id);
+            return InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () {
+                setState(() {
+                  if (checked) {
+                    _selected.remove(item.id);
+                  } else {
+                    _selected.add(item.id);
+                  }
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                decoration: BoxDecoration(
+                  color: checked ? const Color(0xFF2BCDEE).withValues(alpha: 0.08) : const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: checked ? const Color(0xFF2BCDEE).withValues(alpha: 0.22) : const Color(0xFFF1F5F9)),
+                ),
+                child: Row(
+                  children: [
+                    item.leading,
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(item.title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF111827)))),
+                    Icon(checked ? Icons.check_circle : Icons.radio_button_unchecked, color: checked ? const Color(0xFF2BCDEE) : const Color(0xFFCBD5E1)),
+                  ],
+                ),
+              ),
+            );
+          },
+          separatorBuilder: (context, index) => const SizedBox(height: 10),
+          itemCount: widget.items.length,
+        ),
+      ),
+    );
+  }
+}
+
+class _AvatarCircle extends StatelessWidget {
+  const _AvatarCircle({required this.name});
+
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    final trimmed = name.trim();
+    final letter = trimmed.isEmpty ? '?' : trimmed.substring(0, 1);
+    return Container(
+      width: 34,
+      height: 34,
+      decoration: const BoxDecoration(color: Color(0xFFF1F5F9), shape: BoxShape.circle),
+      alignment: Alignment.center,
+      child: Text(letter, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF334155))),
+    );
+  }
+}
+
+class _IconSquare extends StatelessWidget {
+  const _IconSquare({required this.color, required this.icon, required this.iconColor});
+
+  final Color color;
+  final IconData icon;
+  final Color iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 34,
+      height: 34,
+      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)),
+      child: Icon(icon, color: iconColor, size: 18),
     );
   }
 }

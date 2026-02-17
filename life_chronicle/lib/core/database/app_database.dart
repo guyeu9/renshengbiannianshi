@@ -12,14 +12,14 @@ part 'daos/friend_dao.dart';
 part 'daos/link_dao.dart';
 
 @DriftDatabase(
-  tables: [FoodRecords, MomentRecords, FriendRecords, TimelineEvents, EntityLinks, LinkLogs],
+  tables: [FoodRecords, MomentRecords, FriendRecords, TravelRecords, Trips, TimelineEvents, EntityLinks, LinkLogs],
   daos: [FoodDao, MomentDao, FriendDao, LinkDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(dbconn.openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -35,6 +35,10 @@ class AppDatabase extends _$AppDatabase {
               await m.createTable(foodRecords);
               await m.createTable(momentRecords);
               await m.createTable(friendRecords);
+            },
+            3: (m) async {
+              await m.createTable(travelRecords);
+              await m.createTable(trips);
             },
           };
           await runMigrationSteps(m, from, to, steps: steps);
@@ -62,6 +66,13 @@ class AppDatabase extends _$AppDatabase {
           ..where((t) => t.recordDate.isBiggerOrEqualValue(start))
           ..where((t) => t.recordDate.isSmallerThanValue(end))
           ..orderBy([(t) => OrderingTerm.asc(t.startAt, nulls: NullsOrder.last)]))
+        .watch();
+  }
+
+  Stream<List<TravelRecord>> watchAllActiveTravelRecords() {
+    return (select(travelRecords)
+          ..where((t) => t.isDeleted.equals(false))
+          ..orderBy([(t) => OrderingTerm(expression: t.recordDate, mode: OrderingMode.desc)]))
         .watch();
   }
 }

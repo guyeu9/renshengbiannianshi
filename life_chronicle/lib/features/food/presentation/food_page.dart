@@ -676,7 +676,7 @@ class FoodWishlistDetailPage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text('万物关联', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                  const Text('万物互联', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
                   const SizedBox(height: 10),
                   _LinkBlock(icon: Icons.group, title: '计划同伴', chips: const ['小明', 'Sarah']),
                 ],
@@ -883,7 +883,7 @@ class FoodDetailPage extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  const Text('万物关联', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                  const Text('万物互联', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
                   const SizedBox(height: 10),
                   _LinkBlock(
                     icon: Icons.people,
@@ -1463,7 +1463,7 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _SectionHeader(title: '万物关联'),
+        const _SectionHeader(title: '万物互联'),
         const SizedBox(height: 10),
         ClipRRect(
           borderRadius: BorderRadius.circular(24),

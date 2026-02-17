@@ -127,7 +127,7 @@ class ProfilePage extends StatelessWidget {
                         _ListItem(
                           icon: Icons.hub,
                           iconColor: const Color(0xFF4CAF50),
-                          title: '万物关联',
+                          title: '万物互联',
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(builder: (_) => const UniversalLinkPage()),
                           ),
@@ -663,7 +663,100 @@ class FavoritesCenterPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const _PlaceholderPage(title: '个人中心-收藏');
+    const background = Color(0xFFF2F4F6);
+    const primary = Color(0xFF8AB4F8);
+    return Scaffold(
+      backgroundColor: background,
+      appBar: AppBar(
+        backgroundColor: Colors.white.withValues(alpha: 0.7),
+        title: const Text('收藏中心', style: TextStyle(fontWeight: FontWeight.w800)),
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFF3F4F6)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('收藏概览', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      _FavoriteSummaryChip(
+                        label: '美食',
+                        count: '128',
+                        color: const Color(0xFFFFEDD5),
+                        textColor: const Color(0xFFFB923C),
+                      ),
+                      const SizedBox(width: 10),
+                      _FavoriteSummaryChip(
+                        label: '旅行',
+                        count: '45',
+                        color: const Color(0xFFDBEAFE),
+                        textColor: const Color(0xFF3B82F6),
+                      ),
+                      const SizedBox(width: 10),
+                      _FavoriteSummaryChip(
+                        label: '小确幸',
+                        count: '53',
+                        color: const Color(0xFFFCE7F3),
+                        textColor: const Color(0xFFEC4899),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                const Text('最近收藏', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                const Spacer(),
+                TextButton(
+                  onPressed: () {},
+                  style: TextButton.styleFrom(foregroundColor: primary, textStyle: const TextStyle(fontWeight: FontWeight.w900)),
+                  child: const Text('查看全部'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            _FavoriteItemCard(
+              title: '京都乌冬面专门店',
+              subtitle: '美食 · 2024.12.15',
+              tag: '晚餐',
+              tagColor: const Color(0xFFFFEDD5),
+              tagTextColor: const Color(0xFFFB923C),
+              imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAKyf0mNiZ0TAc0cDBuDh729VN8zm8R-lF-JlOBczemlVSfDxlTXyG9D-4CqGvj4VGLsjyH_nyxHz36t5YCWIUdFilyoKvFftQ0lxzt6pmOkOgpBI_gvBZAInqTnxhG3lNNaOqRyxJCT-lzLS3lmLEkNBMXJ6LnIbYkBwU51lRvY0DqIG10oPqPfaoC12BgWZPmW74AWxyipq5A_nuiETA3saO846Avvh5KoAF7C0KINcR5Dmp2orHJWlVQTu97pn9w2S1O1IDzigGp',
+            ),
+            const SizedBox(height: 12),
+            _FavoriteItemCard(
+              title: '圣托里尼之旅',
+              subtitle: '旅行 · 2024.10.12',
+              tag: '在路上',
+              tagColor: const Color(0xFFDBEAFE),
+              tagTextColor: const Color(0xFF3B82F6),
+              imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAiYeR0YcCn1tfLzR2C2qW7pWwiTIIzX5y9HcELMdQlsNCZvTqnJ41-B1ywijjoYzk_kaGbsMNndOTvAGoPUk9OIdsfsainDuqObiaIAJ1ggBT2W_sadXiE3WlCdjh5JHOSptSe6uIHLP9jUHWc1LU6_TIwZcj6Qz14mI7QoVIrSDXJUMfVfMU0rGHzPTzcMJRaZBBLmmGcbMzlO2zr5R5SveBseZ7IY2suW8zTiFnU1s_9_fH1swq0ZImopSmXI3-V_iTjIqb-uT3m',
+            ),
+            const SizedBox(height: 12),
+            _FavoriteItemCard(
+              title: '雨后河堤散步',
+              subtitle: '小确幸 · 2024.09.01',
+              tag: '心情',
+              tagColor: const Color(0xFFFCE7F3),
+              tagTextColor: const Color(0xFFEC4899),
+              imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAJXbnLKvlLG_61cAfkgftdbG_VeN-Yd9sRyc_avp_eCsvTCh21uahLpTGC3iI_KDsW2C0C2cjsuhmB5GVqLdN9l5ve6Fzr8QKkE1_-OA5InnsZeKPDhM42i0rzGdClRzvbmqPtTr0VtxyZMXQj6yEkd31OHKG8dPCGea2pMS41BQKPF4Yv2HuvEVgJ83pTUSKVFkHTtmViPfZbWoKYv__IMLWuBD0XSC5s2-UQqiv-PtaOA2zn5wOKrAt4IHLAPkjrP1_S_Fu-YKIv',
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -672,7 +765,246 @@ class ChronicleManagePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const _PlaceholderPage(title: '个人中心-编年史管理');
+    const background = Color(0xFFF2F4F6);
+    const primary = Color(0xFF8AB4F8);
+    return Scaffold(
+      backgroundColor: background,
+      appBar: AppBar(
+        backgroundColor: Colors.white.withValues(alpha: 0.7),
+        title: const Text('编年史管理', style: TextStyle(fontWeight: FontWeight.w800)),
+        actions: [
+          TextButton(
+            onPressed: () {},
+            style: TextButton.styleFrom(foregroundColor: primary, textStyle: const TextStyle(fontWeight: FontWeight.w900)),
+            child: const Text('生成新版本'),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          children: [
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFF3F4F6)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text('版本说明', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                  SizedBox(height: 8),
+                  Text('系统会保留每次生成的编年史版本，支持预览、导出与标记为精选。', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B), height: 1.5)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            _ChronicleVersionCard(
+              title: '2024 年度编年史',
+              range: '2024.01.01 - 2024.12.31',
+              tags: const ['年度', '精选'],
+              primaryAction: '预览',
+              secondaryAction: '导出',
+            ),
+            const SizedBox(height: 12),
+            _ChronicleVersionCard(
+              title: '2024 上半年精选',
+              range: '2024.01.01 - 2024.06.30',
+              tags: const ['专题'],
+              primaryAction: '预览',
+              secondaryAction: '导出',
+            ),
+            const SizedBox(height: 12),
+            _ChronicleVersionCard(
+              title: '旅行主题合集',
+              range: '2023.05.01 - 2024.03.31',
+              tags: const ['旅行', '专题'],
+              primaryAction: '预览',
+              secondaryAction: '导出',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FavoriteSummaryChip extends StatelessWidget {
+  const _FavoriteSummaryChip({
+    required this.label,
+    required this.count,
+    required this.color,
+    required this.textColor,
+  });
+
+  final String label;
+  final String count;
+  final Color color;
+  final Color textColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(14)),
+        child: Column(
+          children: [
+            Text(count, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: textColor)),
+            const SizedBox(height: 4),
+            Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: textColor)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FavoriteItemCard extends StatelessWidget {
+  const _FavoriteItemCard({
+    required this.title,
+    required this.subtitle,
+    required this.tag,
+    required this.tagColor,
+    required this.tagTextColor,
+    required this.imageUrl,
+  });
+
+  final String title;
+  final String subtitle;
+  final String tag;
+  final Color tagColor;
+  final Color tagTextColor;
+  final String imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFF3F4F6)),
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: SizedBox(
+              width: 72,
+              height: 72,
+              child: Image.network(imageUrl, fit: BoxFit.cover),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                const SizedBox(height: 6),
+                Text(subtitle, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(color: tagColor, borderRadius: BorderRadius.circular(999)),
+                  child: Text(tag, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: tagTextColor)),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right, color: Color(0xFFCBD5E1)),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChronicleVersionCard extends StatelessWidget {
+  const _ChronicleVersionCard({
+    required this.title,
+    required this.range,
+    required this.tags,
+    required this.primaryAction,
+    required this.secondaryAction,
+  });
+
+  final String title;
+  final String range;
+  final List<String> tags;
+  final String primaryAction;
+  final String secondaryAction;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFF3F4F6)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+              ),
+              const Icon(Icons.auto_stories, size: 18, color: Color(0xFF8AB4F8)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(range, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              for (final tag in tags)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(999)),
+                  child: Text(tag, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF3B82F6))),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF8AB4F8),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    textStyle: const TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                  onPressed: () {},
+                  child: Text(primaryAction),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF64748B),
+                    side: const BorderSide(color: Color(0xFFE5E7EB)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    textStyle: const TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                  onPressed: () {},
+                  child: Text(secondaryAction),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -691,7 +1023,7 @@ class UniversalLinkPage extends ConsumerWidget {
       backgroundColor: const Color(0xFFF2F4F6),
       appBar: AppBar(
         backgroundColor: Colors.white.withValues(alpha: 0.7),
-        title: const Text('个人中心-万物关联', style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text('个人中心-万物互联', style: TextStyle(fontWeight: FontWeight.w800)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UniversalLinkAllLogsPage())),
@@ -715,7 +1047,7 @@ class UniversalLinkPage extends ConsumerWidget {
                 children: [
                   Text('说明', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
                   SizedBox(height: 8),
-                  Text('万物关联的底层是 entity_links + link_logs；这里展示最近的关联操作日志，便于校验各模块是否已正确写入关联。', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B), height: 1.5)),
+                  Text('万物互联的底层是 entity_links + link_logs；这里展示最近的关联操作日志，便于校验各模块是否已正确写入关联。', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B), height: 1.5)),
                 ],
               ),
             ),
@@ -805,7 +1137,7 @@ class UniversalLinkAllLogsPage extends ConsumerWidget {
       backgroundColor: const Color(0xFFF2F4F6),
       appBar: AppBar(
         backgroundColor: Colors.white.withValues(alpha: 0.7),
-        title: const Text('个人中心-万物关联-全部日志', style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text('个人中心-万物互联-全部日志', style: TextStyle(fontWeight: FontWeight.w800)),
       ),
       body: SafeArea(
         child: StreamBuilder<List<LinkLog>>(
