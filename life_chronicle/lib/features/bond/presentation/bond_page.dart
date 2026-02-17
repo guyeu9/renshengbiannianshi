@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:drift/drift.dart' show Value;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
+
+import '../../../core/database/app_database.dart';
+import '../../../core/database/database_providers.dart';
 
 class BondPage extends StatefulWidget {
   const BondPage({super.key});
@@ -1257,24 +1263,183 @@ class _SmallMemoryCard extends StatelessWidget {
   }
 }
 
-class EncounterCreatePage extends StatefulWidget {
+class EncounterCreatePage extends ConsumerStatefulWidget {
   const EncounterCreatePage({super.key});
 
   @override
-  State<EncounterCreatePage> createState() => _EncounterCreatePageState();
+  ConsumerState<EncounterCreatePage> createState() => _EncounterCreatePageState();
 }
 
-class _EncounterCreatePageState extends State<EncounterCreatePage> {
+class _EncounterCreatePageState extends ConsumerState<EncounterCreatePage> {
+  static const _uuid = Uuid();
+
   final _titleController = TextEditingController();
-  final _contentController = TextEditingController();
+  final _moodController = TextEditingController();
   final _placeController = TextEditingController();
+
+  DateTime _date = DateTime.now();
+  final List<String> _imageUrls = [];
+
+  final Set<String> _linkedFriendIds = {};
+  final Set<String> _linkedFoodIds = {};
+  bool _linkTravel = false;
+  bool _linkGoal = false;
 
   @override
   void dispose() {
     _titleController.dispose();
-    _contentController.dispose();
+    _moodController.dispose();
     _placeController.dispose();
     super.dispose();
+  }
+
+  String _formatDate(DateTime d) {
+    String two(int v) => v.toString().padLeft(2, '0');
+    return '${d.year}-${two(d.month)}-${two(d.day)}';
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked == null) return;
+    setState(() => _date = picked);
+  }
+
+  void _addPlaceholderImage() {
+    setState(() {
+      _imageUrls.add(
+        'https://lh3.googleusercontent.com/aida-public/AB6AXuAot94lcCxv_cm5mGQBGYXWaKOLR1xcuPovBRmN4mYBOHgM37Y_vCdOG2RP7PRo1KNivOJqyobA5gWwHf5Ta0oaE_sxMYGe-ARTD6T3iNnEX_HZikKHuKZXVTnB4hUGka-aRMS9dKrXx4SEVHTJIMJE7eE28Kg0bZZTFe8aLwrKemUYmSet8WdVZZ0v6LZl0xr_A3iPV_CWpKaQzbRxBGwaG7WU1ry830-9feZfYSjzm3PXl_NYjVT9X92nA8d01mV9Hi19yL7FHud3',
+      );
+    });
+  }
+
+  void _removeImageAt(int index) {
+    setState(() => _imageUrls.removeAt(index));
+  }
+
+  Future<void> _selectFriends() async {
+    final db = ref.read(appDatabaseProvider);
+    final selected = await showModalBottomSheet<Set<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StreamBuilder<List<FriendRecord>>(
+          stream: db.friendDao.watchAllActive(),
+          builder: (context, snapshot) {
+            final items = (snapshot.data ?? const <FriendRecord>[])
+                .map(
+                  (f) => _SelectItem(
+                    id: f.id,
+                    title: f.name,
+                    leading: _AvatarCircle(name: f.name),
+                  ),
+                )
+                .toList(growable: false);
+            return _MultiSelectBottomSheet(title: '选择相遇对象', items: items, initialSelected: _linkedFriendIds);
+          },
+        );
+      },
+    );
+    if (selected == null) return;
+    setState(() {
+      _linkedFriendIds
+        ..clear()
+        ..addAll(selected);
+    });
+  }
+
+  Future<void> _selectFoods() async {
+    final db = ref.read(appDatabaseProvider);
+    final selected = await showModalBottomSheet<Set<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StreamBuilder<List<FoodRecord>>(
+          stream: db.foodDao.watchAllActive(),
+          builder: (context, snapshot) {
+            final items = (snapshot.data ?? const <FoodRecord>[])
+                .map(
+                  (f) => _SelectItem(
+                    id: f.id,
+                    title: f.title,
+                    leading: const _IconSquare(color: Color(0xFFFFEDD5), icon: Icons.restaurant, iconColor: Color(0xFFFB923C)),
+                  ),
+                )
+                .toList(growable: false);
+            return _MultiSelectBottomSheet(title: '关联美食', items: items, initialSelected: _linkedFoodIds);
+          },
+        );
+      },
+    );
+    if (selected == null) return;
+    setState(() {
+      _linkedFoodIds
+        ..clear()
+        ..addAll(selected);
+    });
+  }
+
+  Future<void> _save() async {
+    final title = _titleController.text.trim();
+    if (title.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请先填写标题')));
+      return;
+    }
+
+    final db = ref.read(appDatabaseProvider);
+    final now = DateTime.now();
+    final encounterId = _uuid.v4();
+    final recordDate = DateTime(_date.year, _date.month, _date.day);
+
+    final place = _placeController.text.trim();
+    final mood = _moodController.text.trim();
+    final noteParts = <String>[];
+    if (place.isNotEmpty) noteParts.add('地点：$place');
+    if (mood.isNotEmpty) noteParts.add('心情分享：$mood');
+    final note = noteParts.isEmpty ? null : noteParts.join('\n');
+
+    await db.into(db.timelineEvents).insertOnConflictUpdate(
+          TimelineEventsCompanion.insert(
+            id: encounterId,
+            title: title,
+            eventType: 'encounter',
+            startAt: Value(recordDate),
+            endAt: const Value(null),
+            note: Value(note),
+            recordDate: recordDate,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+
+    for (final id in _linkedFriendIds) {
+      await db.linkDao.createLink(
+        sourceType: 'encounter',
+        sourceId: encounterId,
+        targetType: 'friend',
+        targetId: id,
+        now: now,
+      );
+    }
+    for (final id in _linkedFoodIds) {
+      await db.linkDao.createLink(
+        sourceType: 'encounter',
+        sourceId: encounterId,
+        targetType: 'food',
+        targetId: id,
+        now: now,
+      );
+    }
+
+    if (!mounted) return;
+    Navigator.of(context).pop();
   }
 
   @override
@@ -1285,137 +1450,169 @@ class _EncounterCreatePageState extends State<EncounterCreatePage> {
         bottom: false,
         child: Column(
           children: [
-            Container(
-              padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.92),
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 18, offset: const Offset(0, 10))],
-              ),
-              child: Row(
-                children: [
-                  IconButton(onPressed: () => Navigator.of(context).pop(), icon: const Icon(Icons.arrow_back)),
-                  const Expanded(
-                    child: Text('新建相遇', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                  ),
-                  IconButton(onPressed: () {}, icon: const Icon(Icons.more_horiz)),
-                ],
-              ),
+            _CreateTopBar(
+              title: '记录相遇',
+              onCancel: () => Navigator.of(context).maybePop(),
+              actionText: '保存',
+              onAction: _save,
             ),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 140),
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 120),
                 children: [
-                  _FormCard(
+                  _SectionCard(
+                    title: '标题',
+                    child: TextField(
+                      controller: _titleController,
+                      decoration: const InputDecoration(
+                        hintText: '一句话概括这次相遇',
+                        border: InputBorder.none,
+                      ),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _SectionCard(
                     title: '相遇对象',
-                    child: Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
+                    child: Column(
                       children: [
-                        const _ChipPill(text: '小明'),
-                        const _ChipPill(text: 'Sarah'),
-                        InkWell(
-                          borderRadius: BorderRadius.circular(999),
-                          onTap: () {},
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(color: const Color(0xFFE5E7EB)),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.add, size: 16, color: Color(0xFF2BCDEE)),
-                                SizedBox(width: 6),
-                                Text('添加', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF2BCDEE))),
-                              ],
-                            ),
+                        SizedBox(
+                          height: 56,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: _SelectedAvatarsRow(
+                                  selectedIds: _linkedFriendIds,
+                                  onTap: _selectFriends,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              OutlinedButton.icon(
+                                onPressed: _selectFriends,
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: const Color(0xFF2BCDEE),
+                                  side: BorderSide(color: const Color(0xFF2BCDEE).withValues(alpha: 0.25)),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                ),
+                                icon: const Icon(Icons.add, size: 18),
+                                label: const Text('添加', style: TextStyle(fontWeight: FontWeight.w900)),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 14),
-                  _FormCard(
-                    title: '日期',
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: () {},
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF3F4F6),
-                          borderRadius: BorderRadius.circular(16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _FieldCard(
+                          label: '日期',
+                          icon: Icons.calendar_today,
+                          iconColor: const Color(0xFF0095FF),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: _pickDate,
+                            child: Row(
+                              children: [
+                                Text(_formatDate(_date), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                                const Spacer(),
+                                const Icon(Icons.edit, size: 18, color: Color(0xFF94A3B8)),
+                              ],
+                            ),
+                          ),
                         ),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.calendar_today, size: 16, color: Color(0xFF64748B)),
-                            SizedBox(width: 10),
-                            Expanded(child: Text('2023年10月15日', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF111827)))),
-                            Icon(Icons.chevron_right, color: Color(0xFF9CA3AF)),
-                          ],
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _FieldCard(
+                          label: '地点',
+                          icon: Icons.location_on,
+                          iconColor: const Color(0xFF0095FF),
+                          child: TextField(
+                            controller: _placeController,
+                            decoration: const InputDecoration(hintText: '在哪里相遇?', border: InputBorder.none),
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
                   const SizedBox(height: 14),
-                  _FormCard(
-                    title: '地点',
+                  _SectionCard(
+                    title: '心情分享',
                     child: TextField(
-                      controller: _placeController,
-                      decoration: InputDecoration(
-                        hintText: '例如：Oishii Sushi',
-                        filled: true,
-                        fillColor: const Color(0xFFF3F4F6),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                      ),
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF111827)),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  _FormCard(
-                    title: '标题',
-                    child: TextField(
-                      controller: _titleController,
-                      decoration: InputDecoration(
-                        hintText: '一句话概括这次相遇',
-                        filled: true,
-                        fillColor: const Color(0xFFF3F4F6),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                      ),
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF111827)),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  _FormCard(
-                    title: '记录',
-                    child: TextField(
-                      controller: _contentController,
+                      controller: _moodController,
                       minLines: 4,
                       maxLines: 7,
-                      decoration: InputDecoration(
-                        hintText: '写下你们做了什么、聊了什么、有什么感受...',
-                        filled: true,
-                        fillColor: const Color(0xFFF3F4F6),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                      decoration: const InputDecoration(
+                        hintText: '记录下这美好的一刻...',
+                        border: InputBorder.none,
                       ),
                       style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF111827), height: 1.45),
                     ),
                   ),
                   const SizedBox(height: 14),
-                  _FormCard(
-                    title: '标签',
-                    child: Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: const [
-                        _ChipPill(text: '美食'),
-                        _ChipPill(text: '旅行计划'),
-                        _ChipPill(text: '近况分享'),
+                  _SectionCard(
+                    title: '上传照片',
+                    child: Column(
+                      children: [
+                        GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 4,
+                            mainAxisSpacing: 10,
+                            crossAxisSpacing: 10,
+                          ),
+                          itemCount: _imageUrls.length + 1,
+                          itemBuilder: (context, index) {
+                            if (index == _imageUrls.length) {
+                              return _PhotoAddTile(onTap: _addPlaceholderImage);
+                            }
+                            return _PhotoTile(url: _imageUrls[index], onRemove: () => _removeImageAt(index));
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _SectionCard(
+                    title: '万物关联',
+                    trailing: const Icon(Icons.link, size: 18, color: Color(0xFF0095FF)),
+                    child: Column(
+                      children: [
+                        _LinkToggleRow(
+                          title: '关联美食',
+                          subtitle: _linkedFoodIds.isEmpty ? '刚才一起吃了什么?' : '已选 ${_linkedFoodIds.length} 条',
+                          iconBackground: const Color(0xFFFFEDD5),
+                          icon: Icons.restaurant,
+                          iconColor: const Color(0xFFFB923C),
+                          checked: _linkedFoodIds.isNotEmpty,
+                          onTap: _selectFoods,
+                        ),
+                        const SizedBox(height: 10),
+                        _LinkToggleRow(
+                          title: '关联旅行',
+                          subtitle: '是在旅途中相遇吗?',
+                          iconBackground: const Color(0xFFE0F2FE),
+                          icon: Icons.flight,
+                          iconColor: const Color(0xFF0095FF),
+                          checked: _linkTravel,
+                          onTap: () => setState(() => _linkTravel = !_linkTravel),
+                        ),
+                        const SizedBox(height: 10),
+                        _LinkToggleRow(
+                          title: '关联目标',
+                          subtitle: '是否达成了共同目标?',
+                          iconBackground: const Color(0xFFF3E8FF),
+                          icon: Icons.flag,
+                          iconColor: const Color(0xFFA855F7),
+                          checked: _linkGoal,
+                          onTap: () => setState(() => _linkGoal = !_linkGoal),
+                        ),
                       ],
                     ),
                   ),
@@ -1424,71 +1621,6 @@ class _EncounterCreatePageState extends State<EncounterCreatePage> {
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-          child: Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFFE5E7EB)),
-                    foregroundColor: const Color(0xFF111827),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    backgroundColor: Colors.white,
-                  ),
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('取消', style: TextStyle(fontWeight: FontWeight.w900)),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2BCDEE),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    elevation: 0,
-                  ),
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('保存', style: TextStyle(fontWeight: FontWeight.w900)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FormCard extends StatelessWidget {
-  const _FormCard({required this.title, required this.child});
-
-  final String title;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFF3F4F6)),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 14, offset: const Offset(0, 6))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-          const SizedBox(height: 10),
-          child,
-        ],
       ),
     );
   }
@@ -1505,6 +1637,442 @@ class _ChipPill extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(999)),
       child: Text(text, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF64748B))),
+    );
+  }
+}
+
+class _CreateTopBar extends StatelessWidget {
+  const _CreateTopBar({
+    required this.title,
+    required this.onCancel,
+    required this.actionText,
+    required this.onAction,
+  });
+
+  final String title;
+  final VoidCallback onCancel;
+  final String actionText;
+  final VoidCallback onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.92),
+        border: const Border(bottom: BorderSide(color: Color(0xFFF3F4F6))),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 16, offset: const Offset(0, 10))],
+      ),
+      child: Row(
+        children: [
+          TextButton(
+            onPressed: onCancel,
+            style: TextButton.styleFrom(foregroundColor: const Color(0xFF64748B), textStyle: const TextStyle(fontWeight: FontWeight.w800)),
+            child: const Text('取消'),
+          ),
+          Expanded(child: Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827)))),
+          ElevatedButton(
+            onPressed: onAction,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2BCDEE),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              textStyle: const TextStyle(fontWeight: FontWeight.w900),
+            ),
+            child: Text(actionText),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({required this.title, this.trailing, required this.child});
+
+  final String title;
+  final Widget? trailing;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFF3F4F6)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 14, offset: const Offset(0, 6))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF64748B))),
+              const Spacer(),
+              if (trailing != null) trailing!,
+            ],
+          ),
+          const SizedBox(height: 10),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _FieldCard extends StatelessWidget {
+  const _FieldCard({
+    required this.label,
+    required this.icon,
+    required this.iconColor,
+    required this.child,
+  });
+
+  final String label;
+  final IconData icon;
+  final Color iconColor;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFF3F4F6)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 14, offset: const Offset(0, 6))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF64748B))),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Icon(icon, size: 16, color: iconColor),
+              const SizedBox(width: 8),
+              Expanded(child: child),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PhotoTile extends StatelessWidget {
+  const _PhotoTile({required this.url, required this.onRemove});
+
+  final String url;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.network(url, fit: BoxFit.cover),
+          Positioned(
+            right: 6,
+            top: 6,
+            child: InkWell(
+              onTap: onRemove,
+              borderRadius: BorderRadius.circular(999),
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.45), borderRadius: BorderRadius.circular(999)),
+                child: const Icon(Icons.close, size: 14, color: Colors.white),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PhotoAddTile extends StatelessWidget {
+  const _PhotoAddTile({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFF3F4F6),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFF2BCDEE).withValues(alpha: 0.2), width: 2),
+        ),
+        child: const Center(child: Icon(Icons.add_a_photo, color: Color(0xFF2BCDEE))),
+      ),
+    );
+  }
+}
+
+class _LinkToggleRow extends StatelessWidget {
+  const _LinkToggleRow({
+    required this.title,
+    required this.subtitle,
+    required this.iconBackground,
+    required this.icon,
+    required this.iconColor,
+    required this.checked,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final Color iconBackground;
+  final IconData icon;
+  final Color iconColor;
+  final bool checked;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: checked ? const Color(0xFF0095FF).withValues(alpha: 0.06) : Colors.transparent,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: checked ? const Color(0xFF0095FF).withValues(alpha: 0.18) : const Color(0xFFE5E7EB)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(color: iconBackground, borderRadius: BorderRadius.circular(14)),
+              child: Icon(icon, color: iconColor),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                  const SizedBox(height: 2),
+                  Text(subtitle, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                ],
+              ),
+            ),
+            if (checked)
+              Container(
+                width: 22,
+                height: 22,
+                decoration: const BoxDecoration(color: Color(0xFF0095FF), shape: BoxShape.circle),
+                child: const Icon(Icons.check, size: 14, color: Colors.white),
+              )
+            else
+              const Icon(Icons.radio_button_unchecked, color: Color(0xFFCBD5E1)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SelectItem {
+  const _SelectItem({required this.id, required this.title, required this.leading});
+
+  final String id;
+  final String title;
+  final Widget leading;
+}
+
+class _MultiSelectBottomSheet extends StatefulWidget {
+  const _MultiSelectBottomSheet({required this.title, required this.items, required this.initialSelected});
+
+  final String title;
+  final List<_SelectItem> items;
+  final Set<String> initialSelected;
+
+  @override
+  State<_MultiSelectBottomSheet> createState() => _MultiSelectBottomSheetState();
+}
+
+class _MultiSelectBottomSheetState extends State<_MultiSelectBottomSheet> {
+  late final Set<String> _selected = {...widget.initialSelected};
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+      child: Material(
+        color: Colors.white,
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+                child: Row(
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: TextButton.styleFrom(foregroundColor: const Color(0xFF6B7280), textStyle: const TextStyle(fontWeight: FontWeight.w800)),
+                      child: const Text('取消'),
+                    ),
+                    Expanded(child: Text(widget.title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF111827)))),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(_selected),
+                      style: TextButton.styleFrom(foregroundColor: const Color(0xFF2BCDEE), textStyle: const TextStyle(fontWeight: FontWeight.w900)),
+                      child: const Text('确定'),
+                    ),
+                  ],
+                ),
+              ),
+              ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.7),
+                child: ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
+                  itemBuilder: (context, index) {
+                    final item = widget.items[index];
+                    final checked = _selected.contains(item.id);
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () {
+                        setState(() {
+                          if (checked) {
+                            _selected.remove(item.id);
+                          } else {
+                            _selected.add(item.id);
+                          }
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: checked ? const Color(0xFF2BCDEE).withValues(alpha: 0.08) : const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: checked ? const Color(0xFF2BCDEE).withValues(alpha: 0.22) : const Color(0xFFF1F5F9)),
+                        ),
+                        child: Row(
+                          children: [
+                            item.leading,
+                            const SizedBox(width: 10),
+                            Expanded(child: Text(item.title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF111827)))),
+                            Icon(checked ? Icons.check_circle : Icons.radio_button_unchecked, color: checked ? const Color(0xFF2BCDEE) : const Color(0xFFCBD5E1)),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                  separatorBuilder: (context, index) => const SizedBox(height: 10),
+                  itemCount: widget.items.length,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AvatarCircle extends StatelessWidget {
+  const _AvatarCircle({required this.name});
+
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    final trimmed = name.trim();
+    final letter = trimmed.isEmpty ? '?' : trimmed.substring(0, 1);
+    return Container(
+      width: 34,
+      height: 34,
+      decoration: const BoxDecoration(color: Color(0xFFF1F5F9), shape: BoxShape.circle),
+      alignment: Alignment.center,
+      child: Text(letter, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF334155))),
+    );
+  }
+}
+
+class _IconSquare extends StatelessWidget {
+  const _IconSquare({required this.color, required this.icon, required this.iconColor});
+
+  final Color color;
+  final IconData icon;
+  final Color iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 34,
+      height: 34,
+      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)),
+      child: Icon(icon, color: iconColor, size: 18),
+    );
+  }
+}
+
+class _SelectedAvatarsRow extends ConsumerWidget {
+  const _SelectedAvatarsRow({required this.selectedIds, required this.onTap});
+
+  final Set<String> selectedIds;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final db = ref.watch(appDatabaseProvider);
+    return StreamBuilder<List<FriendRecord>>(
+      stream: db.friendDao.watchAllActive(),
+      builder: (context, snapshot) {
+        final all = snapshot.data ?? const <FriendRecord>[];
+        final selected = all.where((f) => selectedIds.contains(f.id)).toList(growable: false);
+        return InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF3F4F6),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Row(
+              children: [
+                if (selected.isEmpty)
+                  const Expanded(
+                    child: Text('请选择相遇对象', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF94A3B8))),
+                  )
+                else
+                  Expanded(
+                    child: Row(
+                      children: [
+                        for (final f in selected.take(4)) ...[
+                          _AvatarCircle(name: f.name),
+                          const SizedBox(width: 8),
+                        ],
+                        if (selected.length > 4)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(999)),
+                            child: Text('+${selected.length - 4}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF64748B))),
+                          ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

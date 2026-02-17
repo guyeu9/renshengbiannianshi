@@ -991,11 +991,94 @@ class GoalCreatePage extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 6),
             decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFF3F4F6))),
-            child: const Text('万物互联（待接入）', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF9CA3AF))),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    SizedBox(width: 4),
+                    SizedBox(width: 4, height: 16, child: DecoratedBox(decoration: BoxDecoration(color: Color(0xFF2BCDEE), borderRadius: BorderRadius.all(Radius.circular(999))))),
+                    SizedBox(width: 10),
+                    Text('万物互联', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _GoalLinkRow(
+                  iconBackground: Color(0xFFEFF6FF),
+                  icon: Icons.auto_awesome,
+                  iconColor: Color(0xFF60A5FA),
+                  title: '关联小确幸',
+                  trailingText: '选择小确幸',
+                ),
+                _GoalLinkRow(
+                  iconBackground: Color(0xFFFFEDD5),
+                  icon: Icons.restaurant,
+                  iconColor: Color(0xFFFB923C),
+                  title: '关联美食',
+                  trailingText: '选择美食记录',
+                ),
+                _GoalLinkRow(
+                  iconBackground: Color(0xFFFCE7F3),
+                  icon: Icons.people,
+                  iconColor: Color(0xFFEC4899),
+                  title: '关联羁绊',
+                  trailingText: '选择朋友/相遇',
+                ),
+                _GoalLinkRow(
+                  iconBackground: Color(0xFFF0FDF4),
+                  icon: Icons.flight_takeoff,
+                  iconColor: Color(0xFF22C55E),
+                  title: '关联旅行',
+                  trailingText: '选择旅行记录',
+                ),
+              ],
+            ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _GoalLinkRow extends StatelessWidget {
+  const _GoalLinkRow({
+    required this.iconBackground,
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.trailingText,
+  });
+
+  final Color iconBackground;
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String trailingText;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () {},
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(color: iconBackground, borderRadius: BorderRadius.circular(12)),
+              child: Icon(icon, color: iconColor, size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF111827)))),
+            Text(trailingText, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+            const SizedBox(width: 6),
+            const Icon(Icons.chevron_right, size: 18, color: Color(0xFFD1D5DB)),
+          ],
+        ),
       ),
     );
   }

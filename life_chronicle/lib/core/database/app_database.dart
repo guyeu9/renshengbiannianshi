@@ -1,11 +1,7 @@
-import 'dart:io';
-
 import 'package:drift/drift.dart';
-import 'package:drift/native.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
+import 'db_connection_io.dart' if (dart.library.html) 'db_connection_web.dart' as dbconn;
 import 'tables.dart';
 import 'migration_steps.dart';
 
@@ -20,7 +16,7 @@ part 'daos/link_dao.dart';
   daos: [FoodDao, MomentDao, FriendDao, LinkDao],
 )
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(_openConnection());
+  AppDatabase() : super(dbconn.openConnection());
 
   @override
   int get schemaVersion => 2;
@@ -68,12 +64,4 @@ class AppDatabase extends _$AppDatabase {
           ..orderBy([(t) => OrderingTerm.asc(t.startAt, nulls: NullsOrder.last)]))
         .watch();
   }
-}
-
-LazyDatabase _openConnection() {
-  return LazyDatabase(() async {
-    final dir = await getApplicationDocumentsDirectory();
-    final file = File(p.join(dir.path, 'life_chronicle.sqlite'));
-    return NativeDatabase.createInBackground(file);
-  });
 }
