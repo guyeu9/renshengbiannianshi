@@ -12,7 +12,7 @@ class _BondPageState extends State<BondPage> {
 
   void _handleAdd() {
     if (_tabIndex == 1) {
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const _EncounterCreatePage()));
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EncounterCreatePage()));
     }
   }
 
@@ -20,12 +20,6 @@ class _BondPageState extends State<BondPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF6F6F6),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF2BCDEE),
-        foregroundColor: Colors.white,
-        onPressed: _handleAdd,
-        child: const Icon(Icons.add, size: 28),
-      ),
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -1263,14 +1257,14 @@ class _SmallMemoryCard extends StatelessWidget {
   }
 }
 
-class _EncounterCreatePage extends StatefulWidget {
-  const _EncounterCreatePage();
+class EncounterCreatePage extends StatefulWidget {
+  const EncounterCreatePage({super.key});
 
   @override
-  State<_EncounterCreatePage> createState() => _EncounterCreatePageState();
+  State<EncounterCreatePage> createState() => _EncounterCreatePageState();
 }
 
-class _EncounterCreatePageState extends State<_EncounterCreatePage> {
+class _EncounterCreatePageState extends State<EncounterCreatePage> {
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
   final _placeController = TextEditingController();

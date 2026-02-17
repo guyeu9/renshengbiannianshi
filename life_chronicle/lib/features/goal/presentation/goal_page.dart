@@ -9,12 +9,6 @@ class GoalPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8F8),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF2BCDEE),
-        foregroundColor: Colors.white,
-        onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GoalCreatePage())),
-        child: const Icon(Icons.add, size: 28),
-      ),
       body: SafeArea(
         bottom: false,
         child: Column(

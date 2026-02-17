@@ -12,10 +12,10 @@ class HomeSchedulePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      extendBodyBehindAppBar: false,
       appBar: const _GlassHeader(),
       body: ListView(
-        padding: EdgeInsets.fromLTRB(20, MediaQuery.paddingOf(context).top + 16, 20, 140),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 140),
         children: const [
           _FlashbackSection(),
           SizedBox(height: 16),
@@ -25,12 +25,6 @@ class HomeSchedulePage extends StatelessWidget {
           SizedBox(height: 16),
           _EventStream(),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
-        onPressed: () {},
-        child: const Icon(Icons.add, size: 28),
       ),
     );
   }
@@ -373,6 +367,10 @@ class _CalendarCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final focusMonth = DateTime(now.year, now.month, 1);
+    final selectedDay = DateTime(now.year, now.month, now.day);
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -391,34 +389,14 @@ class _CalendarCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Stack(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              _CalendarHeader(),
-              SizedBox(height: 14),
-              _WeekdayRow(),
-              SizedBox(height: 10),
-              _CalendarGrid(),
-            ],
-          ),
-          Positioned(
-            top: 0,
-            right: 0,
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: AppTheme.primary.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                icon: const Icon(Icons.add, color: AppTheme.primary),
-                onPressed: () {},
-              ),
-            ),
-          ),
+          _CalendarHeader(month: focusMonth.month, year: focusMonth.year),
+          const SizedBox(height: 14),
+          const _WeekdayRow(),
+          const SizedBox(height: 10),
+          _CalendarGrid(focusMonth: focusMonth, selectedDay: selectedDay),
         ],
       ),
     );
@@ -426,22 +404,25 @@ class _CalendarCard extends StatelessWidget {
 }
 
 class _CalendarHeader extends StatelessWidget {
-  const _CalendarHeader();
+  const _CalendarHeader({required this.month, required this.year});
+
+  final int month;
+  final int year;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        const Text(
-          '10月',
+        Text(
+          '$month月',
           style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: AppTheme.textMain),
         ),
         const SizedBox(width: 8),
-        const Padding(
+        Padding(
           padding: EdgeInsets.only(bottom: 4),
           child: Text(
-            '2023',
+            '$year',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Color(0xFF9CA3AF)),
           ),
         ),
@@ -506,43 +487,89 @@ class _WeekdayRow extends StatelessWidget {
 }
 
 class _CalendarGrid extends StatelessWidget {
-  const _CalendarGrid();
+  const _CalendarGrid({required this.focusMonth, required this.selectedDay});
+
+  final DateTime focusMonth;
+  final DateTime selectedDay;
+
+  List<_CalendarCellData> _buildCells() {
+    final year = focusMonth.year;
+    final month = focusMonth.month;
+    final daysInMonth = DateUtils.getDaysInMonth(year, month);
+    final firstDay = DateTime(year, month, 1);
+    final leadingDays = firstDay.weekday % 7;
+    final prevMonthDays = DateTime(year, month, 0).day;
+
+    const dotBlue = Color(0xFF60A5FA);
+
+    return List.generate(42, (index) {
+      final dayOffset = index - leadingDays + 1;
+      final isPrevMonth = dayOffset <= 0;
+      final isNextMonth = dayOffset > daysInMonth;
+      final muted = isPrevMonth || isNextMonth;
+
+      final displayDay = isPrevMonth
+          ? prevMonthDays + dayOffset
+          : isNextMonth
+              ? dayOffset - daysInMonth
+              : dayOffset;
+
+      final selected = !muted && displayDay == selectedDay.day;
+
+      if (muted) {
+        return _CalendarCellData(day: '$displayDay', muted: true);
+      }
+
+      if (displayDay == 1) {
+        return _CalendarCellData(day: '$displayDay', selected: selected, dots: const [dotBlue]);
+      }
+      if (displayDay == 2) {
+        return _CalendarCellData(day: '$displayDay', selected: selected, icon: Icons.star, iconColor: const Color(0xFFFBBF24));
+      }
+      if (displayDay == 4) {
+        return _CalendarCellData(
+          day: '$displayDay',
+          selected: selected,
+          icon: Icons.fitness_center,
+          iconColor: const Color(0xFFC084FC),
+        );
+      }
+      if (displayDay == 6) {
+        return _CalendarCellData(day: '$displayDay', selected: selected, icon: Icons.favorite, iconColor: const Color(0xFFF87171));
+      }
+      if (displayDay == 9) {
+        return _CalendarCellData(
+          day: '$displayDay',
+          selected: selected,
+          multiIcons: const [
+            _MiniIcon(Icons.restaurant, Color(0xFFFB923C)),
+            _MiniIcon(Icons.flight, dotBlue),
+          ],
+        );
+      }
+      if (displayDay == 13) {
+        return _CalendarCellData(
+          day: '$displayDay',
+          selected: selected,
+          icon: Icons.energy_savings_leaf,
+          iconColor: const Color(0xFF22C55E),
+        );
+      }
+
+      return _CalendarCellData(day: '$displayDay', selected: selected);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final cells = <_CalendarCellData>[
-      const _CalendarCellData(day: '28', muted: true),
-      const _CalendarCellData(day: '29', muted: true),
-      const _CalendarCellData(day: '30', muted: true),
-      const _CalendarCellData(day: '1', dots: [Color(0xFF60A5FA)]),
-      const _CalendarCellData(day: '2', icon: Icons.star, iconColor: Color(0xFFFBBF24)),
-      const _CalendarCellData(day: '3'),
-      const _CalendarCellData(day: '4', icon: Icons.fitness_center, iconColor: Color(0xFFC084FC)),
-      const _CalendarCellData(day: '5'),
-      const _CalendarCellData(day: '6', icon: Icons.favorite, iconColor: Color(0xFFF87171)),
-      const _CalendarCellData(day: '7'),
-      const _CalendarCellData(day: '8'),
-      const _CalendarCellData(
-        day: '9',
-        selected: true,
-        multiIcons: [
-          _MiniIcon(Icons.restaurant, Color(0xFFFB923C)),
-          _MiniIcon(Icons.flight, Color(0xFF60A5FA)),
-        ],
-      ),
-      const _CalendarCellData(day: '10'),
-      const _CalendarCellData(day: '11'),
-      const _CalendarCellData(day: '12'),
-      const _CalendarCellData(day: '13', icon: Icons.energy_savings_leaf, iconColor: Color(0xFF22C55E)),
-      const _CalendarCellData(day: '14'),
-    ];
+    final cells = _buildCells();
 
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 7,
-        mainAxisSpacing: 18,
+        mainAxisSpacing: 12,
         crossAxisSpacing: 0,
         childAspectRatio: 1.2,
       ),
@@ -612,10 +639,7 @@ class _CalendarCell extends StatelessWidget {
             ),
           ],
         ),
-        child: const Text(
-          '9',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white),
-        ),
+        child: Text(data.day, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white)),
       );
     }
 
