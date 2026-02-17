@@ -1001,7 +1001,7 @@ class GoalCreatePage extends StatelessWidget {
                     SizedBox(width: 4),
                     SizedBox(width: 4, height: 16, child: DecoratedBox(decoration: BoxDecoration(color: Color(0xFF2BCDEE), borderRadius: BorderRadius.all(Radius.circular(999))))),
                     SizedBox(width: 10),
-                    Text('万物互联', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                    Text('万物关联', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
                   ],
                 ),
                 const SizedBox(height: 12),

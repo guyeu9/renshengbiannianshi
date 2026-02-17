@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:drift/drift.dart' show OrderingMode, OrderingTerm;
+
+import '../../../core/database/app_database.dart';
+import '../../../core/database/database_providers.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -121,7 +127,7 @@ class ProfilePage extends StatelessWidget {
                         _ListItem(
                           icon: Icons.hub,
                           iconColor: const Color(0xFF4CAF50),
-                          title: '万物互联',
+                          title: '万物关联',
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(builder: (_) => const UniversalLinkPage()),
                           ),
@@ -670,29 +676,213 @@ class ChronicleManagePage extends StatelessWidget {
   }
 }
 
-class UniversalLinkPage extends StatelessWidget {
+class UniversalLinkPage extends ConsumerWidget {
   const UniversalLinkPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return _PlaceholderPage(
-      title: '个人中心-万物互联',
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UniversalLinkAllLogsPage())),
-          child: const Text('全部日志'),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final db = ref.watch(appDatabaseProvider);
+
+    final logsQuery = (db.select(db.linkLogs)
+      ..orderBy([(t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc)])
+      ..limit(50));
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF2F4F6),
+      appBar: AppBar(
+        backgroundColor: Colors.white.withValues(alpha: 0.7),
+        title: const Text('个人中心-万物关联', style: TextStyle(fontWeight: FontWeight.w800)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UniversalLinkAllLogsPage())),
+            child: const Text('全部日志'),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          children: [
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFF3F4F6)),
+              ),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('说明', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                  SizedBox(height: 8),
+                  Text('万物关联的底层是 entity_links + link_logs；这里展示最近的关联操作日志，便于校验各模块是否已正确写入关联。', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B), height: 1.5)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                const Text('最近日志', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                const Spacer(),
+                TextButton(
+                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UniversalLinkAllLogsPage())),
+                  style: TextButton.styleFrom(foregroundColor: const Color(0xFF2BCDEE), textStyle: const TextStyle(fontWeight: FontWeight.w900)),
+                  child: const Text('查看全部'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            StreamBuilder<List<LinkLog>>(
+              stream: logsQuery.watch(),
+              builder: (context, snapshot) {
+                final items = snapshot.data ?? const <LinkLog>[];
+
+                if (snapshot.connectionState == ConnectionState.waiting && items.isEmpty) {
+                  return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()));
+                }
+
+                if (items.isEmpty) {
+                  return Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFF3F4F6))),
+                    child: const Text('暂无日志：请在任意新建页发布一条记录并进行关联。', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                  );
+                }
+
+                return Container(
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFF3F4F6))),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: items.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF3F4F6)),
+                    itemBuilder: (context, index) {
+                      final log = items[index];
+                      return ListTile(
+                        dense: true,
+                        leading: Container(
+                          width: 34,
+                          height: 34,
+                          decoration: BoxDecoration(
+                            color: log.action == 'delete' ? const Color(0xFFFFEBEE) : const Color(0xFFEFF6FF),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          alignment: Alignment.center,
+                          child: Icon(log.action == 'delete' ? Icons.link_off : Icons.link, size: 18, color: log.action == 'delete' ? const Color(0xFFEF4444) : const Color(0xFF3B82F6)),
+                        ),
+                        title: Text(
+                          '${_typeLabel(log.sourceType)} → ${_typeLabel(log.targetType)}',
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
+                        ),
+                        subtitle: Text(
+                          '${log.action} · ${log.createdAt.toLocal().toString().substring(0, 19)}\n${log.sourceType}:${log.sourceId}  →  ${log.targetType}:${log.targetId}',
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B), height: 1.35),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
 
-class UniversalLinkAllLogsPage extends StatelessWidget {
+class UniversalLinkAllLogsPage extends ConsumerWidget {
   const UniversalLinkAllLogsPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const _PlaceholderPage(title: '个人中心-万物互联-全部日志');
+  Widget build(BuildContext context, WidgetRef ref) {
+    final db = ref.watch(appDatabaseProvider);
+    final logsQuery = (db.select(db.linkLogs)
+      ..orderBy([(t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc)])
+      ..limit(300));
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF2F4F6),
+      appBar: AppBar(
+        backgroundColor: Colors.white.withValues(alpha: 0.7),
+        title: const Text('个人中心-万物关联-全部日志', style: TextStyle(fontWeight: FontWeight.w800)),
+      ),
+      body: SafeArea(
+        child: StreamBuilder<List<LinkLog>>(
+          stream: logsQuery.watch(),
+          builder: (context, snapshot) {
+            final items = snapshot.data ?? const <LinkLog>[];
+            if (snapshot.connectionState == ConnectionState.waiting && items.isEmpty) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (items.isEmpty) {
+              return const Center(
+                child: Text('暂无日志', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF6B7280))),
+              );
+            }
+
+            return ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              itemCount: items.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              itemBuilder: (context, index) {
+                final log = items[index];
+                return Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFF3F4F6))),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: log.action == 'delete' ? const Color(0xFFFFEBEE) : const Color(0xFFEFF6FF),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Text(log.action, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: log.action == 'delete' ? const Color(0xFFEF4444) : const Color(0xFF2563EB))),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(_typeLabel(log.sourceType), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                          const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Icon(Icons.chevron_right, size: 18, color: Color(0xFFCBD5E1))),
+                          Text(_typeLabel(log.targetType), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                          const Spacer(),
+                          Text(log.createdAt.toLocal().toString().substring(0, 19), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text('${log.sourceType}:${log.sourceId}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                      const SizedBox(height: 6),
+                      Text('${log.targetType}:${log.targetId}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+String _typeLabel(String t) {
+  switch (t) {
+    case 'food':
+      return '美食';
+    case 'moment':
+      return '小确幸';
+    case 'friend':
+      return '朋友';
+    case 'encounter':
+      return '相遇';
+    case 'travel':
+      return '旅行';
+    case 'goal':
+      return '目标';
+    default:
+      return t;
   }
 }
 
@@ -751,10 +941,9 @@ class HelpFeedbackPage extends StatelessWidget {
 }
 
 class _PlaceholderPage extends StatelessWidget {
-  const _PlaceholderPage({required this.title, this.actions});
+  const _PlaceholderPage({required this.title});
 
   final String title;
-  final List<Widget>? actions;
 
   @override
   Widget build(BuildContext context) {
@@ -763,7 +952,7 @@ class _PlaceholderPage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.white.withValues(alpha: 0.7),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
-        actions: actions,
+        actions: null,
       ),
       body: const SafeArea(
         child: Center(
@@ -773,4 +962,3 @@ class _PlaceholderPage extends StatelessWidget {
     );
   }
 }
-

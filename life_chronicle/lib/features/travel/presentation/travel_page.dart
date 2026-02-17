@@ -1364,6 +1364,8 @@ class _TravelJournalCreatePageState extends State<TravelJournalCreatePage> {
             ),
           ),
           const SizedBox(height: 14),
+          const _SectionTitle(label: '万物关联'),
+          const SizedBox(height: 10),
           Container(
             decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
             child: Column(

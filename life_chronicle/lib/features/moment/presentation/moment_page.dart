@@ -403,7 +403,14 @@ class MomentDetailPage extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFF3F4F6))),
-            child: const Text('万物互联（待接入）', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF9CA3AF))),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text('万物关联', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                SizedBox(height: 10),
+                Text('该详情页当前为样例数据，关联展示将在列表切换为数据库数据后接入。', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8), height: 1.5)),
+              ],
+            ),
           ),
         ],
       ),
@@ -651,7 +658,7 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
         content: Value(mergedContent.isEmpty ? null : mergedContent),
         images: Value(_imageUrls.isEmpty ? null : jsonEncode(_imageUrls)),
         mood: mood.label,
-        moodColor: Value('#${mood.color.value.toRadixString(16).padLeft(8, '0')}'),
+        moodColor: Value('#${mood.color.toARGB32().toRadixString(16).padLeft(8, '0')}'),
         sceneTag: Value(tag?.trim().isEmpty == true ? null : tag),
         city: Value(location.isEmpty ? null : location),
         latitude: const Value(null),
@@ -887,7 +894,7 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
                     onTap: _editLocation,
                   ),
                   const SizedBox(height: 18),
-                  Text('万物互联', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: const Color(0xFF6B7280).withValues(alpha: 0.9))),
+                  Text('万物关联', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: const Color(0xFF6B7280).withValues(alpha: 0.9))),
                   const SizedBox(height: 10),
                   _UniversalLinkCard(
                     title: '关联人生目标',

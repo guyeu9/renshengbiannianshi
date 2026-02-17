@@ -2150,7 +2150,7 @@ class _EncounterDetailPage extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 14),
-                        const Text('万物互联', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                        const Text('万物关联', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
                         const SizedBox(height: 10),
                         Wrap(
                           spacing: 8,
