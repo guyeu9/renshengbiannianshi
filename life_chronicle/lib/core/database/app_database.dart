@@ -19,7 +19,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(dbconn.openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -39,6 +39,12 @@ class AppDatabase extends _$AppDatabase {
             3: (m) async {
               await m.createTable(travelRecords);
               await m.createTable(trips);
+            },
+            4: (m) async {
+              await m.addColumn(foodRecords, foodRecords.isFavorite);
+              await m.addColumn(momentRecords, momentRecords.isFavorite);
+              await m.addColumn(friendRecords, friendRecords.isFavorite);
+              await m.addColumn(travelRecords, travelRecords.isFavorite);
             },
           };
           await runMigrationSteps(m, from, to, steps: steps);

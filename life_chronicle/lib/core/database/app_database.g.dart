@@ -89,6 +89,16 @@ class $FoodRecordsTable extends FoodRecords
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('CHECK ("is_wishlist" IN (0, 1))'),
       defaultValue: const Constant(false));
+  static const VerificationMeta _isFavoriteMeta =
+      const VerificationMeta('isFavorite');
+  @override
+  late final GeneratedColumn<bool> isFavorite = GeneratedColumn<bool>(
+      'is_favorite', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_favorite" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _wishlistDoneMeta =
       const VerificationMeta('wishlistDone');
   @override
@@ -143,6 +153,7 @@ class $FoodRecordsTable extends FoodRecords
         city,
         mood,
         isWishlist,
+        isFavorite,
         wishlistDone,
         recordDate,
         createdAt,
@@ -222,6 +233,12 @@ class $FoodRecordsTable extends FoodRecords
           isWishlist.isAcceptableOrUnknown(
               data['is_wishlist']!, _isWishlistMeta));
     }
+    if (data.containsKey('is_favorite')) {
+      context.handle(
+          _isFavoriteMeta,
+          isFavorite.isAcceptableOrUnknown(
+              data['is_favorite']!, _isFavoriteMeta));
+    }
     if (data.containsKey('wishlist_done')) {
       context.handle(
           _wishlistDoneMeta,
@@ -289,6 +306,8 @@ class $FoodRecordsTable extends FoodRecords
           .read(DriftSqlType.string, data['${effectivePrefix}mood']),
       isWishlist: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_wishlist'])!,
+      isFavorite: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_favorite'])!,
       wishlistDone: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}wishlist_done'])!,
       recordDate: attachedDatabase.typeMapping
@@ -323,6 +342,7 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
   final String? city;
   final String? mood;
   final bool isWishlist;
+  final bool isFavorite;
   final bool wishlistDone;
   final DateTime recordDate;
   final DateTime createdAt;
@@ -343,6 +363,7 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
       this.city,
       this.mood,
       required this.isWishlist,
+      required this.isFavorite,
       required this.wishlistDone,
       required this.recordDate,
       required this.createdAt,
@@ -387,6 +408,7 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
       map['mood'] = Variable<String>(mood);
     }
     map['is_wishlist'] = Variable<bool>(isWishlist);
+    map['is_favorite'] = Variable<bool>(isFavorite);
     map['wishlist_done'] = Variable<bool>(wishlistDone);
     map['record_date'] = Variable<DateTime>(recordDate);
     map['created_at'] = Variable<DateTime>(createdAt);
@@ -423,6 +445,7 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
       city: city == null && nullToAbsent ? const Value.absent() : Value(city),
       mood: mood == null && nullToAbsent ? const Value.absent() : Value(mood),
       isWishlist: Value(isWishlist),
+      isFavorite: Value(isFavorite),
       wishlistDone: Value(wishlistDone),
       recordDate: Value(recordDate),
       createdAt: Value(createdAt),
@@ -449,6 +472,7 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
       city: serializer.fromJson<String?>(json['city']),
       mood: serializer.fromJson<String?>(json['mood']),
       isWishlist: serializer.fromJson<bool>(json['isWishlist']),
+      isFavorite: serializer.fromJson<bool>(json['isFavorite']),
       wishlistDone: serializer.fromJson<bool>(json['wishlistDone']),
       recordDate: serializer.fromJson<DateTime>(json['recordDate']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -474,6 +498,7 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
       'city': serializer.toJson<String?>(city),
       'mood': serializer.toJson<String?>(mood),
       'isWishlist': serializer.toJson<bool>(isWishlist),
+      'isFavorite': serializer.toJson<bool>(isFavorite),
       'wishlistDone': serializer.toJson<bool>(wishlistDone),
       'recordDate': serializer.toJson<DateTime>(recordDate),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -497,6 +522,7 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
           Value<String?> city = const Value.absent(),
           Value<String?> mood = const Value.absent(),
           bool? isWishlist,
+          bool? isFavorite,
           bool? wishlistDone,
           DateTime? recordDate,
           DateTime? createdAt,
@@ -518,6 +544,7 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
         city: city.present ? city.value : this.city,
         mood: mood.present ? mood.value : this.mood,
         isWishlist: isWishlist ?? this.isWishlist,
+        isFavorite: isFavorite ?? this.isFavorite,
         wishlistDone: wishlistDone ?? this.wishlistDone,
         recordDate: recordDate ?? this.recordDate,
         createdAt: createdAt ?? this.createdAt,
@@ -543,6 +570,8 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
       mood: data.mood.present ? data.mood.value : this.mood,
       isWishlist:
           data.isWishlist.present ? data.isWishlist.value : this.isWishlist,
+      isFavorite:
+          data.isFavorite.present ? data.isFavorite.value : this.isFavorite,
       wishlistDone: data.wishlistDone.present
           ? data.wishlistDone.value
           : this.wishlistDone,
@@ -571,6 +600,7 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
           ..write('city: $city, ')
           ..write('mood: $mood, ')
           ..write('isWishlist: $isWishlist, ')
+          ..write('isFavorite: $isFavorite, ')
           ..write('wishlistDone: $wishlistDone, ')
           ..write('recordDate: $recordDate, ')
           ..write('createdAt: $createdAt, ')
@@ -596,6 +626,7 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
       city,
       mood,
       isWishlist,
+      isFavorite,
       wishlistDone,
       recordDate,
       createdAt,
@@ -619,6 +650,7 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
           other.city == this.city &&
           other.mood == this.mood &&
           other.isWishlist == this.isWishlist &&
+          other.isFavorite == this.isFavorite &&
           other.wishlistDone == this.wishlistDone &&
           other.recordDate == this.recordDate &&
           other.createdAt == this.createdAt &&
@@ -641,6 +673,7 @@ class FoodRecordsCompanion extends UpdateCompanion<FoodRecord> {
   final Value<String?> city;
   final Value<String?> mood;
   final Value<bool> isWishlist;
+  final Value<bool> isFavorite;
   final Value<bool> wishlistDone;
   final Value<DateTime> recordDate;
   final Value<DateTime> createdAt;
@@ -662,6 +695,7 @@ class FoodRecordsCompanion extends UpdateCompanion<FoodRecord> {
     this.city = const Value.absent(),
     this.mood = const Value.absent(),
     this.isWishlist = const Value.absent(),
+    this.isFavorite = const Value.absent(),
     this.wishlistDone = const Value.absent(),
     this.recordDate = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -684,6 +718,7 @@ class FoodRecordsCompanion extends UpdateCompanion<FoodRecord> {
     this.city = const Value.absent(),
     this.mood = const Value.absent(),
     this.isWishlist = const Value.absent(),
+    this.isFavorite = const Value.absent(),
     this.wishlistDone = const Value.absent(),
     required DateTime recordDate,
     required DateTime createdAt,
@@ -710,6 +745,7 @@ class FoodRecordsCompanion extends UpdateCompanion<FoodRecord> {
     Expression<String>? city,
     Expression<String>? mood,
     Expression<bool>? isWishlist,
+    Expression<bool>? isFavorite,
     Expression<bool>? wishlistDone,
     Expression<DateTime>? recordDate,
     Expression<DateTime>? createdAt,
@@ -732,6 +768,7 @@ class FoodRecordsCompanion extends UpdateCompanion<FoodRecord> {
       if (city != null) 'city': city,
       if (mood != null) 'mood': mood,
       if (isWishlist != null) 'is_wishlist': isWishlist,
+      if (isFavorite != null) 'is_favorite': isFavorite,
       if (wishlistDone != null) 'wishlist_done': wishlistDone,
       if (recordDate != null) 'record_date': recordDate,
       if (createdAt != null) 'created_at': createdAt,
@@ -756,6 +793,7 @@ class FoodRecordsCompanion extends UpdateCompanion<FoodRecord> {
       Value<String?>? city,
       Value<String?>? mood,
       Value<bool>? isWishlist,
+      Value<bool>? isFavorite,
       Value<bool>? wishlistDone,
       Value<DateTime>? recordDate,
       Value<DateTime>? createdAt,
@@ -777,6 +815,7 @@ class FoodRecordsCompanion extends UpdateCompanion<FoodRecord> {
       city: city ?? this.city,
       mood: mood ?? this.mood,
       isWishlist: isWishlist ?? this.isWishlist,
+      isFavorite: isFavorite ?? this.isFavorite,
       wishlistDone: wishlistDone ?? this.wishlistDone,
       recordDate: recordDate ?? this.recordDate,
       createdAt: createdAt ?? this.createdAt,
@@ -831,6 +870,9 @@ class FoodRecordsCompanion extends UpdateCompanion<FoodRecord> {
     if (isWishlist.present) {
       map['is_wishlist'] = Variable<bool>(isWishlist.value);
     }
+    if (isFavorite.present) {
+      map['is_favorite'] = Variable<bool>(isFavorite.value);
+    }
     if (wishlistDone.present) {
       map['wishlist_done'] = Variable<bool>(wishlistDone.value);
     }
@@ -869,6 +911,7 @@ class FoodRecordsCompanion extends UpdateCompanion<FoodRecord> {
           ..write('city: $city, ')
           ..write('mood: $mood, ')
           ..write('isWishlist: $isWishlist, ')
+          ..write('isFavorite: $isFavorite, ')
           ..write('wishlistDone: $wishlistDone, ')
           ..write('recordDate: $recordDate, ')
           ..write('createdAt: $createdAt, ')
@@ -936,6 +979,16 @@ class $MomentRecordsTable extends MomentRecords
   late final GeneratedColumn<String> city = GeneratedColumn<String>(
       'city', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _isFavoriteMeta =
+      const VerificationMeta('isFavorite');
+  @override
+  late final GeneratedColumn<bool> isFavorite = GeneratedColumn<bool>(
+      'is_favorite', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_favorite" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _recordDateMeta =
       const VerificationMeta('recordDate');
   @override
@@ -975,6 +1028,7 @@ class $MomentRecordsTable extends MomentRecords
         latitude,
         longitude,
         city,
+        isFavorite,
         recordDate,
         createdAt,
         updatedAt,
@@ -1029,6 +1083,12 @@ class $MomentRecordsTable extends MomentRecords
       context.handle(
           _cityMeta, city.isAcceptableOrUnknown(data['city']!, _cityMeta));
     }
+    if (data.containsKey('is_favorite')) {
+      context.handle(
+          _isFavoriteMeta,
+          isFavorite.isAcceptableOrUnknown(
+              data['is_favorite']!, _isFavoriteMeta));
+    }
     if (data.containsKey('record_date')) {
       context.handle(
           _recordDateMeta,
@@ -1080,6 +1140,8 @@ class $MomentRecordsTable extends MomentRecords
           .read(DriftSqlType.double, data['${effectivePrefix}longitude']),
       city: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}city']),
+      isFavorite: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_favorite'])!,
       recordDate: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}record_date'])!,
       createdAt: attachedDatabase.typeMapping
@@ -1107,6 +1169,7 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
   final double? latitude;
   final double? longitude;
   final String? city;
+  final bool isFavorite;
   final DateTime recordDate;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -1121,6 +1184,7 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
       this.latitude,
       this.longitude,
       this.city,
+      required this.isFavorite,
       required this.recordDate,
       required this.createdAt,
       required this.updatedAt,
@@ -1151,6 +1215,7 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
     if (!nullToAbsent || city != null) {
       map['city'] = Variable<String>(city);
     }
+    map['is_favorite'] = Variable<bool>(isFavorite);
     map['record_date'] = Variable<DateTime>(recordDate);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -1180,6 +1245,7 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
           ? const Value.absent()
           : Value(longitude),
       city: city == null && nullToAbsent ? const Value.absent() : Value(city),
+      isFavorite: Value(isFavorite),
       recordDate: Value(recordDate),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -1200,6 +1266,7 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
       latitude: serializer.fromJson<double?>(json['latitude']),
       longitude: serializer.fromJson<double?>(json['longitude']),
       city: serializer.fromJson<String?>(json['city']),
+      isFavorite: serializer.fromJson<bool>(json['isFavorite']),
       recordDate: serializer.fromJson<DateTime>(json['recordDate']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -1219,6 +1286,7 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
       'latitude': serializer.toJson<double?>(latitude),
       'longitude': serializer.toJson<double?>(longitude),
       'city': serializer.toJson<String?>(city),
+      'isFavorite': serializer.toJson<bool>(isFavorite),
       'recordDate': serializer.toJson<DateTime>(recordDate),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -1236,6 +1304,7 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
           Value<double?> latitude = const Value.absent(),
           Value<double?> longitude = const Value.absent(),
           Value<String?> city = const Value.absent(),
+          bool? isFavorite,
           DateTime? recordDate,
           DateTime? createdAt,
           DateTime? updatedAt,
@@ -1250,6 +1319,7 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
         latitude: latitude.present ? latitude.value : this.latitude,
         longitude: longitude.present ? longitude.value : this.longitude,
         city: city.present ? city.value : this.city,
+        isFavorite: isFavorite ?? this.isFavorite,
         recordDate: recordDate ?? this.recordDate,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
@@ -1266,6 +1336,8 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
       latitude: data.latitude.present ? data.latitude.value : this.latitude,
       longitude: data.longitude.present ? data.longitude.value : this.longitude,
       city: data.city.present ? data.city.value : this.city,
+      isFavorite:
+          data.isFavorite.present ? data.isFavorite.value : this.isFavorite,
       recordDate:
           data.recordDate.present ? data.recordDate.value : this.recordDate,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
@@ -1286,6 +1358,7 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
           ..write('latitude: $latitude, ')
           ..write('longitude: $longitude, ')
           ..write('city: $city, ')
+          ..write('isFavorite: $isFavorite, ')
           ..write('recordDate: $recordDate, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -1305,6 +1378,7 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
       latitude,
       longitude,
       city,
+      isFavorite,
       recordDate,
       createdAt,
       updatedAt,
@@ -1322,6 +1396,7 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
           other.latitude == this.latitude &&
           other.longitude == this.longitude &&
           other.city == this.city &&
+          other.isFavorite == this.isFavorite &&
           other.recordDate == this.recordDate &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -1338,6 +1413,7 @@ class MomentRecordsCompanion extends UpdateCompanion<MomentRecord> {
   final Value<double?> latitude;
   final Value<double?> longitude;
   final Value<String?> city;
+  final Value<bool> isFavorite;
   final Value<DateTime> recordDate;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -1353,6 +1429,7 @@ class MomentRecordsCompanion extends UpdateCompanion<MomentRecord> {
     this.latitude = const Value.absent(),
     this.longitude = const Value.absent(),
     this.city = const Value.absent(),
+    this.isFavorite = const Value.absent(),
     this.recordDate = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -1369,6 +1446,7 @@ class MomentRecordsCompanion extends UpdateCompanion<MomentRecord> {
     this.latitude = const Value.absent(),
     this.longitude = const Value.absent(),
     this.city = const Value.absent(),
+    this.isFavorite = const Value.absent(),
     required DateTime recordDate,
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -1389,6 +1467,7 @@ class MomentRecordsCompanion extends UpdateCompanion<MomentRecord> {
     Expression<double>? latitude,
     Expression<double>? longitude,
     Expression<String>? city,
+    Expression<bool>? isFavorite,
     Expression<DateTime>? recordDate,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -1405,6 +1484,7 @@ class MomentRecordsCompanion extends UpdateCompanion<MomentRecord> {
       if (latitude != null) 'latitude': latitude,
       if (longitude != null) 'longitude': longitude,
       if (city != null) 'city': city,
+      if (isFavorite != null) 'is_favorite': isFavorite,
       if (recordDate != null) 'record_date': recordDate,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -1423,6 +1503,7 @@ class MomentRecordsCompanion extends UpdateCompanion<MomentRecord> {
       Value<double?>? latitude,
       Value<double?>? longitude,
       Value<String?>? city,
+      Value<bool>? isFavorite,
       Value<DateTime>? recordDate,
       Value<DateTime>? createdAt,
       Value<DateTime>? updatedAt,
@@ -1438,6 +1519,7 @@ class MomentRecordsCompanion extends UpdateCompanion<MomentRecord> {
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       city: city ?? this.city,
+      isFavorite: isFavorite ?? this.isFavorite,
       recordDate: recordDate ?? this.recordDate,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -1476,6 +1558,9 @@ class MomentRecordsCompanion extends UpdateCompanion<MomentRecord> {
     if (city.present) {
       map['city'] = Variable<String>(city.value);
     }
+    if (isFavorite.present) {
+      map['is_favorite'] = Variable<bool>(isFavorite.value);
+    }
     if (recordDate.present) {
       map['record_date'] = Variable<DateTime>(recordDate.value);
     }
@@ -1506,6 +1591,7 @@ class MomentRecordsCompanion extends UpdateCompanion<MomentRecord> {
           ..write('latitude: $latitude, ')
           ..write('longitude: $longitude, ')
           ..write('city: $city, ')
+          ..write('isFavorite: $isFavorite, ')
           ..write('recordDate: $recordDate, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -1586,6 +1672,16 @@ class $FriendRecordsTable extends FriendRecords
   late final GeneratedColumn<String> contactFrequency = GeneratedColumn<String>(
       'contact_frequency', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _isFavoriteMeta =
+      const VerificationMeta('isFavorite');
+  @override
+  late final GeneratedColumn<bool> isFavorite = GeneratedColumn<bool>(
+      'is_favorite', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_favorite" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _createdAtMeta =
       const VerificationMeta('createdAt');
   @override
@@ -1621,6 +1717,7 @@ class $FriendRecordsTable extends FriendRecords
         groupName,
         lastMeetDate,
         contactFrequency,
+        isFavorite,
         createdAt,
         updatedAt,
         isDeleted
@@ -1690,6 +1787,12 @@ class $FriendRecordsTable extends FriendRecords
           contactFrequency.isAcceptableOrUnknown(
               data['contact_frequency']!, _contactFrequencyMeta));
     }
+    if (data.containsKey('is_favorite')) {
+      context.handle(
+          _isFavoriteMeta,
+          isFavorite.isAcceptableOrUnknown(
+              data['is_favorite']!, _isFavoriteMeta));
+    }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
           createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
@@ -1737,6 +1840,8 @@ class $FriendRecordsTable extends FriendRecords
           DriftSqlType.dateTime, data['${effectivePrefix}last_meet_date']),
       contactFrequency: attachedDatabase.typeMapping.read(
           DriftSqlType.string, data['${effectivePrefix}contact_frequency']),
+      isFavorite: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_favorite'])!,
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
       updatedAt: attachedDatabase.typeMapping
@@ -1764,6 +1869,7 @@ class FriendRecord extends DataClass implements Insertable<FriendRecord> {
   final String? groupName;
   final DateTime? lastMeetDate;
   final String? contactFrequency;
+  final bool isFavorite;
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isDeleted;
@@ -1779,6 +1885,7 @@ class FriendRecord extends DataClass implements Insertable<FriendRecord> {
       this.groupName,
       this.lastMeetDate,
       this.contactFrequency,
+      required this.isFavorite,
       required this.createdAt,
       required this.updatedAt,
       required this.isDeleted});
@@ -1814,6 +1921,7 @@ class FriendRecord extends DataClass implements Insertable<FriendRecord> {
     if (!nullToAbsent || contactFrequency != null) {
       map['contact_frequency'] = Variable<String>(contactFrequency);
     }
+    map['is_favorite'] = Variable<bool>(isFavorite);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
@@ -1851,6 +1959,7 @@ class FriendRecord extends DataClass implements Insertable<FriendRecord> {
       contactFrequency: contactFrequency == null && nullToAbsent
           ? const Value.absent()
           : Value(contactFrequency),
+      isFavorite: Value(isFavorite),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       isDeleted: Value(isDeleted),
@@ -1872,6 +1981,7 @@ class FriendRecord extends DataClass implements Insertable<FriendRecord> {
       groupName: serializer.fromJson<String?>(json['groupName']),
       lastMeetDate: serializer.fromJson<DateTime?>(json['lastMeetDate']),
       contactFrequency: serializer.fromJson<String?>(json['contactFrequency']),
+      isFavorite: serializer.fromJson<bool>(json['isFavorite']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
@@ -1892,6 +2002,7 @@ class FriendRecord extends DataClass implements Insertable<FriendRecord> {
       'groupName': serializer.toJson<String?>(groupName),
       'lastMeetDate': serializer.toJson<DateTime?>(lastMeetDate),
       'contactFrequency': serializer.toJson<String?>(contactFrequency),
+      'isFavorite': serializer.toJson<bool>(isFavorite),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
@@ -1910,6 +2021,7 @@ class FriendRecord extends DataClass implements Insertable<FriendRecord> {
           Value<String?> groupName = const Value.absent(),
           Value<DateTime?> lastMeetDate = const Value.absent(),
           Value<String?> contactFrequency = const Value.absent(),
+          bool? isFavorite,
           DateTime? createdAt,
           DateTime? updatedAt,
           bool? isDeleted}) =>
@@ -1929,6 +2041,7 @@ class FriendRecord extends DataClass implements Insertable<FriendRecord> {
         contactFrequency: contactFrequency.present
             ? contactFrequency.value
             : this.contactFrequency,
+        isFavorite: isFavorite ?? this.isFavorite,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
         isDeleted: isDeleted ?? this.isDeleted,
@@ -1953,6 +2066,8 @@ class FriendRecord extends DataClass implements Insertable<FriendRecord> {
       contactFrequency: data.contactFrequency.present
           ? data.contactFrequency.value
           : this.contactFrequency,
+      isFavorite:
+          data.isFavorite.present ? data.isFavorite.value : this.isFavorite,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
@@ -1973,6 +2088,7 @@ class FriendRecord extends DataClass implements Insertable<FriendRecord> {
           ..write('groupName: $groupName, ')
           ..write('lastMeetDate: $lastMeetDate, ')
           ..write('contactFrequency: $contactFrequency, ')
+          ..write('isFavorite: $isFavorite, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted')
@@ -1993,6 +2109,7 @@ class FriendRecord extends DataClass implements Insertable<FriendRecord> {
       groupName,
       lastMeetDate,
       contactFrequency,
+      isFavorite,
       createdAt,
       updatedAt,
       isDeleted);
@@ -2011,6 +2128,7 @@ class FriendRecord extends DataClass implements Insertable<FriendRecord> {
           other.groupName == this.groupName &&
           other.lastMeetDate == this.lastMeetDate &&
           other.contactFrequency == this.contactFrequency &&
+          other.isFavorite == this.isFavorite &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted);
@@ -2028,6 +2146,7 @@ class FriendRecordsCompanion extends UpdateCompanion<FriendRecord> {
   final Value<String?> groupName;
   final Value<DateTime?> lastMeetDate;
   final Value<String?> contactFrequency;
+  final Value<bool> isFavorite;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<bool> isDeleted;
@@ -2044,6 +2163,7 @@ class FriendRecordsCompanion extends UpdateCompanion<FriendRecord> {
     this.groupName = const Value.absent(),
     this.lastMeetDate = const Value.absent(),
     this.contactFrequency = const Value.absent(),
+    this.isFavorite = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
@@ -2061,6 +2181,7 @@ class FriendRecordsCompanion extends UpdateCompanion<FriendRecord> {
     this.groupName = const Value.absent(),
     this.lastMeetDate = const Value.absent(),
     this.contactFrequency = const Value.absent(),
+    this.isFavorite = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.isDeleted = const Value.absent(),
@@ -2081,6 +2202,7 @@ class FriendRecordsCompanion extends UpdateCompanion<FriendRecord> {
     Expression<String>? groupName,
     Expression<DateTime>? lastMeetDate,
     Expression<String>? contactFrequency,
+    Expression<bool>? isFavorite,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
@@ -2098,6 +2220,7 @@ class FriendRecordsCompanion extends UpdateCompanion<FriendRecord> {
       if (groupName != null) 'group_name': groupName,
       if (lastMeetDate != null) 'last_meet_date': lastMeetDate,
       if (contactFrequency != null) 'contact_frequency': contactFrequency,
+      if (isFavorite != null) 'is_favorite': isFavorite,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
@@ -2117,6 +2240,7 @@ class FriendRecordsCompanion extends UpdateCompanion<FriendRecord> {
       Value<String?>? groupName,
       Value<DateTime?>? lastMeetDate,
       Value<String?>? contactFrequency,
+      Value<bool>? isFavorite,
       Value<DateTime>? createdAt,
       Value<DateTime>? updatedAt,
       Value<bool>? isDeleted,
@@ -2133,6 +2257,7 @@ class FriendRecordsCompanion extends UpdateCompanion<FriendRecord> {
       groupName: groupName ?? this.groupName,
       lastMeetDate: lastMeetDate ?? this.lastMeetDate,
       contactFrequency: contactFrequency ?? this.contactFrequency,
+      isFavorite: isFavorite ?? this.isFavorite,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
@@ -2176,6 +2301,9 @@ class FriendRecordsCompanion extends UpdateCompanion<FriendRecord> {
     if (contactFrequency.present) {
       map['contact_frequency'] = Variable<String>(contactFrequency.value);
     }
+    if (isFavorite.present) {
+      map['is_favorite'] = Variable<bool>(isFavorite.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -2205,6 +2333,7 @@ class FriendRecordsCompanion extends UpdateCompanion<FriendRecord> {
           ..write('groupName: $groupName, ')
           ..write('lastMeetDate: $lastMeetDate, ')
           ..write('contactFrequency: $contactFrequency, ')
+          ..write('isFavorite: $isFavorite, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
@@ -2308,6 +2437,16 @@ class $TravelRecordsTable extends TravelRecords
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('CHECK ("is_wishlist" IN (0, 1))'),
       defaultValue: const Constant(false));
+  static const VerificationMeta _isFavoriteMeta =
+      const VerificationMeta('isFavorite');
+  @override
+  late final GeneratedColumn<bool> isFavorite = GeneratedColumn<bool>(
+      'is_favorite', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_favorite" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _wishlistDoneMeta =
       const VerificationMeta('wishlistDone');
   @override
@@ -2369,6 +2508,7 @@ class $TravelRecordsTable extends TravelRecords
         expenseFood,
         expenseTicket,
         isWishlist,
+        isFavorite,
         wishlistDone,
         planDate,
         recordDate,
@@ -2461,6 +2601,12 @@ class $TravelRecordsTable extends TravelRecords
           isWishlist.isAcceptableOrUnknown(
               data['is_wishlist']!, _isWishlistMeta));
     }
+    if (data.containsKey('is_favorite')) {
+      context.handle(
+          _isFavoriteMeta,
+          isFavorite.isAcceptableOrUnknown(
+              data['is_favorite']!, _isFavoriteMeta));
+    }
     if (data.containsKey('wishlist_done')) {
       context.handle(
           _wishlistDoneMeta,
@@ -2534,6 +2680,8 @@ class $TravelRecordsTable extends TravelRecords
           .read(DriftSqlType.double, data['${effectivePrefix}expense_ticket']),
       isWishlist: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_wishlist'])!,
+      isFavorite: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_favorite'])!,
       wishlistDone: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}wishlist_done'])!,
       planDate: attachedDatabase.typeMapping
@@ -2571,6 +2719,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
   final double? expenseFood;
   final double? expenseTicket;
   final bool isWishlist;
+  final bool isFavorite;
   final bool wishlistDone;
   final DateTime? planDate;
   final DateTime recordDate;
@@ -2593,6 +2742,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
       this.expenseFood,
       this.expenseTicket,
       required this.isWishlist,
+      required this.isFavorite,
       required this.wishlistDone,
       this.planDate,
       required this.recordDate,
@@ -2641,6 +2791,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
       map['expense_ticket'] = Variable<double>(expenseTicket);
     }
     map['is_wishlist'] = Variable<bool>(isWishlist);
+    map['is_favorite'] = Variable<bool>(isFavorite);
     map['wishlist_done'] = Variable<bool>(wishlistDone);
     if (!nullToAbsent || planDate != null) {
       map['plan_date'] = Variable<DateTime>(planDate);
@@ -2687,6 +2838,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
           ? const Value.absent()
           : Value(expenseTicket),
       isWishlist: Value(isWishlist),
+      isFavorite: Value(isFavorite),
       wishlistDone: Value(wishlistDone),
       planDate: planDate == null && nullToAbsent
           ? const Value.absent()
@@ -2717,6 +2869,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
       expenseFood: serializer.fromJson<double?>(json['expenseFood']),
       expenseTicket: serializer.fromJson<double?>(json['expenseTicket']),
       isWishlist: serializer.fromJson<bool>(json['isWishlist']),
+      isFavorite: serializer.fromJson<bool>(json['isFavorite']),
       wishlistDone: serializer.fromJson<bool>(json['wishlistDone']),
       planDate: serializer.fromJson<DateTime?>(json['planDate']),
       recordDate: serializer.fromJson<DateTime>(json['recordDate']),
@@ -2744,6 +2897,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
       'expenseFood': serializer.toJson<double?>(expenseFood),
       'expenseTicket': serializer.toJson<double?>(expenseTicket),
       'isWishlist': serializer.toJson<bool>(isWishlist),
+      'isFavorite': serializer.toJson<bool>(isFavorite),
       'wishlistDone': serializer.toJson<bool>(wishlistDone),
       'planDate': serializer.toJson<DateTime?>(planDate),
       'recordDate': serializer.toJson<DateTime>(recordDate),
@@ -2769,6 +2923,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
           Value<double?> expenseFood = const Value.absent(),
           Value<double?> expenseTicket = const Value.absent(),
           bool? isWishlist,
+          bool? isFavorite,
           bool? wishlistDone,
           Value<DateTime?> planDate = const Value.absent(),
           DateTime? recordDate,
@@ -2795,6 +2950,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
         expenseTicket:
             expenseTicket.present ? expenseTicket.value : this.expenseTicket,
         isWishlist: isWishlist ?? this.isWishlist,
+        isFavorite: isFavorite ?? this.isFavorite,
         wishlistDone: wishlistDone ?? this.wishlistDone,
         planDate: planDate.present ? planDate.value : this.planDate,
         recordDate: recordDate ?? this.recordDate,
@@ -2828,6 +2984,8 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
           : this.expenseTicket,
       isWishlist:
           data.isWishlist.present ? data.isWishlist.value : this.isWishlist,
+      isFavorite:
+          data.isFavorite.present ? data.isFavorite.value : this.isFavorite,
       wishlistDone: data.wishlistDone.present
           ? data.wishlistDone.value
           : this.wishlistDone,
@@ -2858,6 +3016,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
           ..write('expenseFood: $expenseFood, ')
           ..write('expenseTicket: $expenseTicket, ')
           ..write('isWishlist: $isWishlist, ')
+          ..write('isFavorite: $isFavorite, ')
           ..write('wishlistDone: $wishlistDone, ')
           ..write('planDate: $planDate, ')
           ..write('recordDate: $recordDate, ')
@@ -2885,6 +3044,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
         expenseFood,
         expenseTicket,
         isWishlist,
+        isFavorite,
         wishlistDone,
         planDate,
         recordDate,
@@ -2911,6 +3071,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
           other.expenseFood == this.expenseFood &&
           other.expenseTicket == this.expenseTicket &&
           other.isWishlist == this.isWishlist &&
+          other.isFavorite == this.isFavorite &&
           other.wishlistDone == this.wishlistDone &&
           other.planDate == this.planDate &&
           other.recordDate == this.recordDate &&
@@ -2935,6 +3096,7 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
   final Value<double?> expenseFood;
   final Value<double?> expenseTicket;
   final Value<bool> isWishlist;
+  final Value<bool> isFavorite;
   final Value<bool> wishlistDone;
   final Value<DateTime?> planDate;
   final Value<DateTime> recordDate;
@@ -2958,6 +3120,7 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
     this.expenseFood = const Value.absent(),
     this.expenseTicket = const Value.absent(),
     this.isWishlist = const Value.absent(),
+    this.isFavorite = const Value.absent(),
     this.wishlistDone = const Value.absent(),
     this.planDate = const Value.absent(),
     this.recordDate = const Value.absent(),
@@ -2982,6 +3145,7 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
     this.expenseFood = const Value.absent(),
     this.expenseTicket = const Value.absent(),
     this.isWishlist = const Value.absent(),
+    this.isFavorite = const Value.absent(),
     this.wishlistDone = const Value.absent(),
     this.planDate = const Value.absent(),
     required DateTime recordDate,
@@ -3010,6 +3174,7 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
     Expression<double>? expenseFood,
     Expression<double>? expenseTicket,
     Expression<bool>? isWishlist,
+    Expression<bool>? isFavorite,
     Expression<bool>? wishlistDone,
     Expression<DateTime>? planDate,
     Expression<DateTime>? recordDate,
@@ -3034,6 +3199,7 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
       if (expenseFood != null) 'expense_food': expenseFood,
       if (expenseTicket != null) 'expense_ticket': expenseTicket,
       if (isWishlist != null) 'is_wishlist': isWishlist,
+      if (isFavorite != null) 'is_favorite': isFavorite,
       if (wishlistDone != null) 'wishlist_done': wishlistDone,
       if (planDate != null) 'plan_date': planDate,
       if (recordDate != null) 'record_date': recordDate,
@@ -3060,6 +3226,7 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
       Value<double?>? expenseFood,
       Value<double?>? expenseTicket,
       Value<bool>? isWishlist,
+      Value<bool>? isFavorite,
       Value<bool>? wishlistDone,
       Value<DateTime?>? planDate,
       Value<DateTime>? recordDate,
@@ -3083,6 +3250,7 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
       expenseFood: expenseFood ?? this.expenseFood,
       expenseTicket: expenseTicket ?? this.expenseTicket,
       isWishlist: isWishlist ?? this.isWishlist,
+      isFavorite: isFavorite ?? this.isFavorite,
       wishlistDone: wishlistDone ?? this.wishlistDone,
       planDate: planDate ?? this.planDate,
       recordDate: recordDate ?? this.recordDate,
@@ -3141,6 +3309,9 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
     if (isWishlist.present) {
       map['is_wishlist'] = Variable<bool>(isWishlist.value);
     }
+    if (isFavorite.present) {
+      map['is_favorite'] = Variable<bool>(isFavorite.value);
+    }
     if (wishlistDone.present) {
       map['wishlist_done'] = Variable<bool>(wishlistDone.value);
     }
@@ -3183,6 +3354,7 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
           ..write('expenseFood: $expenseFood, ')
           ..write('expenseTicket: $expenseTicket, ')
           ..write('isWishlist: $isWishlist, ')
+          ..write('isFavorite: $isFavorite, ')
           ..write('wishlistDone: $wishlistDone, ')
           ..write('planDate: $planDate, ')
           ..write('recordDate: $recordDate, ')
@@ -5016,6 +5188,7 @@ typedef $$FoodRecordsTableCreateCompanionBuilder = FoodRecordsCompanion
   Value<String?> city,
   Value<String?> mood,
   Value<bool> isWishlist,
+  Value<bool> isFavorite,
   Value<bool> wishlistDone,
   required DateTime recordDate,
   required DateTime createdAt,
@@ -5039,6 +5212,7 @@ typedef $$FoodRecordsTableUpdateCompanionBuilder = FoodRecordsCompanion
   Value<String?> city,
   Value<String?> mood,
   Value<bool> isWishlist,
+  Value<bool> isFavorite,
   Value<bool> wishlistDone,
   Value<DateTime> recordDate,
   Value<DateTime> createdAt,
@@ -5098,6 +5272,9 @@ class $$FoodRecordsTableFilterComposer
 
   ColumnFilters<bool> get isWishlist => $composableBuilder(
       column: $table.isWishlist, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isFavorite => $composableBuilder(
+      column: $table.isFavorite, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get wishlistDone => $composableBuilder(
       column: $table.wishlistDone, builder: (column) => ColumnFilters(column));
@@ -5167,6 +5344,9 @@ class $$FoodRecordsTableOrderingComposer
   ColumnOrderings<bool> get isWishlist => $composableBuilder(
       column: $table.isWishlist, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<bool> get isFavorite => $composableBuilder(
+      column: $table.isFavorite, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<bool> get wishlistDone => $composableBuilder(
       column: $table.wishlistDone,
       builder: (column) => ColumnOrderings(column));
@@ -5235,6 +5415,9 @@ class $$FoodRecordsTableAnnotationComposer
   GeneratedColumn<bool> get isWishlist => $composableBuilder(
       column: $table.isWishlist, builder: (column) => column);
 
+  GeneratedColumn<bool> get isFavorite => $composableBuilder(
+      column: $table.isFavorite, builder: (column) => column);
+
   GeneratedColumn<bool> get wishlistDone => $composableBuilder(
       column: $table.wishlistDone, builder: (column) => column);
 
@@ -5288,6 +5471,7 @@ class $$FoodRecordsTableTableManager extends RootTableManager<
             Value<String?> city = const Value.absent(),
             Value<String?> mood = const Value.absent(),
             Value<bool> isWishlist = const Value.absent(),
+            Value<bool> isFavorite = const Value.absent(),
             Value<bool> wishlistDone = const Value.absent(),
             Value<DateTime> recordDate = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
@@ -5310,6 +5494,7 @@ class $$FoodRecordsTableTableManager extends RootTableManager<
             city: city,
             mood: mood,
             isWishlist: isWishlist,
+            isFavorite: isFavorite,
             wishlistDone: wishlistDone,
             recordDate: recordDate,
             createdAt: createdAt,
@@ -5332,6 +5517,7 @@ class $$FoodRecordsTableTableManager extends RootTableManager<
             Value<String?> city = const Value.absent(),
             Value<String?> mood = const Value.absent(),
             Value<bool> isWishlist = const Value.absent(),
+            Value<bool> isFavorite = const Value.absent(),
             Value<bool> wishlistDone = const Value.absent(),
             required DateTime recordDate,
             required DateTime createdAt,
@@ -5354,6 +5540,7 @@ class $$FoodRecordsTableTableManager extends RootTableManager<
             city: city,
             mood: mood,
             isWishlist: isWishlist,
+            isFavorite: isFavorite,
             wishlistDone: wishlistDone,
             recordDate: recordDate,
             createdAt: createdAt,
@@ -5391,6 +5578,7 @@ typedef $$MomentRecordsTableCreateCompanionBuilder = MomentRecordsCompanion
   Value<double?> latitude,
   Value<double?> longitude,
   Value<String?> city,
+  Value<bool> isFavorite,
   required DateTime recordDate,
   required DateTime createdAt,
   required DateTime updatedAt,
@@ -5408,6 +5596,7 @@ typedef $$MomentRecordsTableUpdateCompanionBuilder = MomentRecordsCompanion
   Value<double?> latitude,
   Value<double?> longitude,
   Value<String?> city,
+  Value<bool> isFavorite,
   Value<DateTime> recordDate,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
@@ -5450,6 +5639,9 @@ class $$MomentRecordsTableFilterComposer
 
   ColumnFilters<String> get city => $composableBuilder(
       column: $table.city, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isFavorite => $composableBuilder(
+      column: $table.isFavorite, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get recordDate => $composableBuilder(
       column: $table.recordDate, builder: (column) => ColumnFilters(column));
@@ -5500,6 +5692,9 @@ class $$MomentRecordsTableOrderingComposer
   ColumnOrderings<String> get city => $composableBuilder(
       column: $table.city, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<bool> get isFavorite => $composableBuilder(
+      column: $table.isFavorite, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get recordDate => $composableBuilder(
       column: $table.recordDate, builder: (column) => ColumnOrderings(column));
 
@@ -5549,6 +5744,9 @@ class $$MomentRecordsTableAnnotationComposer
   GeneratedColumn<String> get city =>
       $composableBuilder(column: $table.city, builder: (column) => column);
 
+  GeneratedColumn<bool> get isFavorite => $composableBuilder(
+      column: $table.isFavorite, builder: (column) => column);
+
   GeneratedColumn<DateTime> get recordDate => $composableBuilder(
       column: $table.recordDate, builder: (column) => column);
 
@@ -5597,6 +5795,7 @@ class $$MomentRecordsTableTableManager extends RootTableManager<
             Value<double?> latitude = const Value.absent(),
             Value<double?> longitude = const Value.absent(),
             Value<String?> city = const Value.absent(),
+            Value<bool> isFavorite = const Value.absent(),
             Value<DateTime> recordDate = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
@@ -5613,6 +5812,7 @@ class $$MomentRecordsTableTableManager extends RootTableManager<
             latitude: latitude,
             longitude: longitude,
             city: city,
+            isFavorite: isFavorite,
             recordDate: recordDate,
             createdAt: createdAt,
             updatedAt: updatedAt,
@@ -5629,6 +5829,7 @@ class $$MomentRecordsTableTableManager extends RootTableManager<
             Value<double?> latitude = const Value.absent(),
             Value<double?> longitude = const Value.absent(),
             Value<String?> city = const Value.absent(),
+            Value<bool> isFavorite = const Value.absent(),
             required DateTime recordDate,
             required DateTime createdAt,
             required DateTime updatedAt,
@@ -5645,6 +5846,7 @@ class $$MomentRecordsTableTableManager extends RootTableManager<
             latitude: latitude,
             longitude: longitude,
             city: city,
+            isFavorite: isFavorite,
             recordDate: recordDate,
             createdAt: createdAt,
             updatedAt: updatedAt,
@@ -5686,6 +5888,7 @@ typedef $$FriendRecordsTableCreateCompanionBuilder = FriendRecordsCompanion
   Value<String?> groupName,
   Value<DateTime?> lastMeetDate,
   Value<String?> contactFrequency,
+  Value<bool> isFavorite,
   required DateTime createdAt,
   required DateTime updatedAt,
   Value<bool> isDeleted,
@@ -5704,6 +5907,7 @@ typedef $$FriendRecordsTableUpdateCompanionBuilder = FriendRecordsCompanion
   Value<String?> groupName,
   Value<DateTime?> lastMeetDate,
   Value<String?> contactFrequency,
+  Value<bool> isFavorite,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
   Value<bool> isDeleted,
@@ -5753,6 +5957,9 @@ class $$FriendRecordsTableFilterComposer
   ColumnFilters<String> get contactFrequency => $composableBuilder(
       column: $table.contactFrequency,
       builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isFavorite => $composableBuilder(
+      column: $table.isFavorite, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
@@ -5809,6 +6016,9 @@ class $$FriendRecordsTableOrderingComposer
       column: $table.contactFrequency,
       builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<bool> get isFavorite => $composableBuilder(
+      column: $table.isFavorite, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 
@@ -5861,6 +6071,9 @@ class $$FriendRecordsTableAnnotationComposer
   GeneratedColumn<String> get contactFrequency => $composableBuilder(
       column: $table.contactFrequency, builder: (column) => column);
 
+  GeneratedColumn<bool> get isFavorite => $composableBuilder(
+      column: $table.isFavorite, builder: (column) => column);
+
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
@@ -5908,6 +6121,7 @@ class $$FriendRecordsTableTableManager extends RootTableManager<
             Value<String?> groupName = const Value.absent(),
             Value<DateTime?> lastMeetDate = const Value.absent(),
             Value<String?> contactFrequency = const Value.absent(),
+            Value<bool> isFavorite = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
             Value<bool> isDeleted = const Value.absent(),
@@ -5925,6 +6139,7 @@ class $$FriendRecordsTableTableManager extends RootTableManager<
             groupName: groupName,
             lastMeetDate: lastMeetDate,
             contactFrequency: contactFrequency,
+            isFavorite: isFavorite,
             createdAt: createdAt,
             updatedAt: updatedAt,
             isDeleted: isDeleted,
@@ -5942,6 +6157,7 @@ class $$FriendRecordsTableTableManager extends RootTableManager<
             Value<String?> groupName = const Value.absent(),
             Value<DateTime?> lastMeetDate = const Value.absent(),
             Value<String?> contactFrequency = const Value.absent(),
+            Value<bool> isFavorite = const Value.absent(),
             required DateTime createdAt,
             required DateTime updatedAt,
             Value<bool> isDeleted = const Value.absent(),
@@ -5959,6 +6175,7 @@ class $$FriendRecordsTableTableManager extends RootTableManager<
             groupName: groupName,
             lastMeetDate: lastMeetDate,
             contactFrequency: contactFrequency,
+            isFavorite: isFavorite,
             createdAt: createdAt,
             updatedAt: updatedAt,
             isDeleted: isDeleted,
@@ -6003,6 +6220,7 @@ typedef $$TravelRecordsTableCreateCompanionBuilder = TravelRecordsCompanion
   Value<double?> expenseFood,
   Value<double?> expenseTicket,
   Value<bool> isWishlist,
+  Value<bool> isFavorite,
   Value<bool> wishlistDone,
   Value<DateTime?> planDate,
   required DateTime recordDate,
@@ -6028,6 +6246,7 @@ typedef $$TravelRecordsTableUpdateCompanionBuilder = TravelRecordsCompanion
   Value<double?> expenseFood,
   Value<double?> expenseTicket,
   Value<bool> isWishlist,
+  Value<bool> isFavorite,
   Value<bool> wishlistDone,
   Value<DateTime?> planDate,
   Value<DateTime> recordDate,
@@ -6091,6 +6310,9 @@ class $$TravelRecordsTableFilterComposer
 
   ColumnFilters<bool> get isWishlist => $composableBuilder(
       column: $table.isWishlist, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isFavorite => $composableBuilder(
+      column: $table.isFavorite, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get wishlistDone => $composableBuilder(
       column: $table.wishlistDone, builder: (column) => ColumnFilters(column));
@@ -6168,6 +6390,9 @@ class $$TravelRecordsTableOrderingComposer
   ColumnOrderings<bool> get isWishlist => $composableBuilder(
       column: $table.isWishlist, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<bool> get isFavorite => $composableBuilder(
+      column: $table.isFavorite, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<bool> get wishlistDone => $composableBuilder(
       column: $table.wishlistDone,
       builder: (column) => ColumnOrderings(column));
@@ -6242,6 +6467,9 @@ class $$TravelRecordsTableAnnotationComposer
   GeneratedColumn<bool> get isWishlist => $composableBuilder(
       column: $table.isWishlist, builder: (column) => column);
 
+  GeneratedColumn<bool> get isFavorite => $composableBuilder(
+      column: $table.isFavorite, builder: (column) => column);
+
   GeneratedColumn<bool> get wishlistDone => $composableBuilder(
       column: $table.wishlistDone, builder: (column) => column);
 
@@ -6302,6 +6530,7 @@ class $$TravelRecordsTableTableManager extends RootTableManager<
             Value<double?> expenseFood = const Value.absent(),
             Value<double?> expenseTicket = const Value.absent(),
             Value<bool> isWishlist = const Value.absent(),
+            Value<bool> isFavorite = const Value.absent(),
             Value<bool> wishlistDone = const Value.absent(),
             Value<DateTime?> planDate = const Value.absent(),
             Value<DateTime> recordDate = const Value.absent(),
@@ -6326,6 +6555,7 @@ class $$TravelRecordsTableTableManager extends RootTableManager<
             expenseFood: expenseFood,
             expenseTicket: expenseTicket,
             isWishlist: isWishlist,
+            isFavorite: isFavorite,
             wishlistDone: wishlistDone,
             planDate: planDate,
             recordDate: recordDate,
@@ -6350,6 +6580,7 @@ class $$TravelRecordsTableTableManager extends RootTableManager<
             Value<double?> expenseFood = const Value.absent(),
             Value<double?> expenseTicket = const Value.absent(),
             Value<bool> isWishlist = const Value.absent(),
+            Value<bool> isFavorite = const Value.absent(),
             Value<bool> wishlistDone = const Value.absent(),
             Value<DateTime?> planDate = const Value.absent(),
             required DateTime recordDate,
@@ -6374,6 +6605,7 @@ class $$TravelRecordsTableTableManager extends RootTableManager<
             expenseFood: expenseFood,
             expenseTicket: expenseTicket,
             isWishlist: isWishlist,
+            isFavorite: isFavorite,
             wishlistDone: wishlistDone,
             planDate: planDate,
             recordDate: recordDate,

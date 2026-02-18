@@ -15,6 +15,7 @@ class FoodRecords extends Table {
   TextColumn get city => text().nullable()();
   TextColumn get mood => text().nullable()();
   BoolColumn get isWishlist => boolean().withDefault(const Constant(false))();
+  BoolColumn get isFavorite => boolean().withDefault(const Constant(false))();
   BoolColumn get wishlistDone => boolean().withDefault(const Constant(false))();
   DateTimeColumn get recordDate => dateTime()();
   DateTimeColumn get createdAt => dateTime()();
@@ -35,6 +36,7 @@ class MomentRecords extends Table {
   RealColumn get latitude => real().nullable()();
   RealColumn get longitude => real().nullable()();
   TextColumn get city => text().nullable()();
+  BoolColumn get isFavorite => boolean().withDefault(const Constant(false))();
   DateTimeColumn get recordDate => dateTime()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
@@ -56,6 +58,7 @@ class FriendRecords extends Table {
   TextColumn get groupName => text().nullable()();
   DateTimeColumn get lastMeetDate => dateTime().nullable()();
   TextColumn get contactFrequency => text().nullable()();
+  BoolColumn get isFavorite => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
@@ -80,6 +83,7 @@ class TravelRecords extends Table {
   RealColumn get expenseFood => real().nullable()();
   RealColumn get expenseTicket => real().nullable()();
   BoolColumn get isWishlist => boolean().withDefault(const Constant(false))();
+  BoolColumn get isFavorite => boolean().withDefault(const Constant(false))();
   BoolColumn get wishlistDone => boolean().withDefault(const Constant(false))();
   DateTimeColumn get planDate => dateTime().nullable()();
   DateTimeColumn get recordDate => dateTime()();

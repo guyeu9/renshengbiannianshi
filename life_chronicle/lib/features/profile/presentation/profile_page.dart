@@ -883,6 +883,7 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
   }) {
     final items = <_FavoriteItem>[];
     for (final record in foods) {
+      if (!record.isFavorite) continue;
       final images = _parseStringList(record.images);
       final tags = _parseStringList(record.tags);
       items.add(
@@ -899,6 +900,7 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
       );
     }
     for (final record in travels) {
+      if (!record.isFavorite) continue;
       final images = _parseStringList(record.images);
       final title = (record.title ?? '').trim();
       final destination = (record.destination ?? '').trim();
@@ -917,6 +919,7 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
       );
     }
     for (final record in moments) {
+      if (!record.isFavorite) continue;
       final images = _parseStringList(record.images);
       final mood = record.mood.trim();
       final scene = (record.sceneTag ?? '').trim();
@@ -934,6 +937,7 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
       );
     }
     for (final record in friends) {
+      if (!record.isFavorite) continue;
       final group = (record.groupName ?? '').trim();
       items.add(
         _FavoriteItem(

@@ -17,6 +17,15 @@ class FoodDao extends DatabaseAccessor<AppDatabase> with _$FoodDaoMixin {
     );
   }
 
+  Future<void> updateFavorite(String id, {required bool isFavorite, required DateTime now}) async {
+    await (update(db.foodRecords)..where((t) => t.id.equals(id))).write(
+      FoodRecordsCompanion(
+        isFavorite: Value(isFavorite),
+        updatedAt: Value(now),
+      ),
+    );
+  }
+
   Future<FoodRecord?> findById(String id) {
     return (select(db.foodRecords)
           ..where((t) => t.id.equals(id))
