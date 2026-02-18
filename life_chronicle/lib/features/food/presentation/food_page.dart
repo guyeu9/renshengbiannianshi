@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:drift/drift.dart' show OrderingMode, OrderingTerm, Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/database/app_database.dart';
@@ -17,6 +19,36 @@ class FoodPage extends StatefulWidget {
 
 class _FoodPageState extends State<FoodPage> {
   var _modeIndex = 0;
+  var _filterDateIndex = 0;
+  DateTimeRange? _filterCustomRange;
+  Set<String> _filterFriendIds = {};
+
+  Future<void> _openFilterSheet() async {
+    final result = await showModalBottomSheet<_FilterResult>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Consumer(
+          builder: (context, ref, _) {
+            final db = ref.read(appDatabaseProvider);
+            return _FilterBottomSheet(
+              initialDateIndex: _filterDateIndex,
+              initialCustomRange: _filterCustomRange,
+              initialFriendIds: _filterFriendIds,
+              friendsStream: db.friendDao.watchAllActive(),
+            );
+          },
+        );
+      },
+    );
+    if (result == null) return;
+    setState(() {
+      _filterDateIndex = result.dateIndex;
+      _filterCustomRange = result.customRange;
+      _filterFriendIds = result.friendIds;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +61,7 @@ class _FoodPageState extends State<FoodPage> {
             _FoodHeader(
               modeIndex: _modeIndex,
               onModeChanged: (next) => setState(() => _modeIndex = next),
+              onFilterTap: _openFilterSheet,
             ),
             Expanded(
               child: AnimatedSwitcher(
@@ -47,10 +80,12 @@ class _FoodHeader extends StatelessWidget {
   const _FoodHeader({
     required this.modeIndex,
     required this.onModeChanged,
+    required this.onFilterTap,
   });
 
   final int modeIndex;
   final ValueChanged<int> onModeChanged;
+  final VoidCallback onFilterTap;
 
   @override
   Widget build(BuildContext context) {
@@ -104,7 +139,7 @@ class _FoodHeader extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              _HeaderCircle(icon: Icons.tune, onTap: () {}),
+              _HeaderCircle(icon: Icons.tune, onTap: onFilterTap),
             ],
           ),
           const SizedBox(height: 12),
@@ -344,7 +379,7 @@ class _FoodRecordBody extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.network(
+                  _buildLocalImage(
                     'https://lh3.googleusercontent.com/aida-public/AB6AXuB3hTQwT6Gv-7jXrUoWgLCHuO6k4CwWkT0m4g8o5m9Y4Y8tVwZ5zNqXHcSxJrE7i4bLQ2Wn7W2n9dWw2',
                     fit: BoxFit.cover,
                   ),
@@ -525,7 +560,7 @@ class _WishlistCard extends StatelessWidget {
                 child: SizedBox(
                   width: 108,
                   height: 108,
-                  child: Image.network(item.imageUrl, fit: BoxFit.cover),
+                  child: _buildLocalImage(item.imageUrl, fit: BoxFit.cover),
                 ),
               ),
               Expanded(
@@ -620,7 +655,7 @@ class FoodWishlistDetailPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                     child: AspectRatio(
                       aspectRatio: 4 / 3,
-                      child: Image.network(item.imageUrl, fit: BoxFit.cover),
+                      child: _buildLocalImage(item.imageUrl, fit: BoxFit.cover),
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -759,7 +794,7 @@ class _FoodCard extends StatelessWidget {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      Image.network(item.imageUrl, fit: BoxFit.cover),
+                      _buildLocalImage(item.imageUrl, fit: BoxFit.cover),
                       Positioned(
                         top: 12,
                         right: 12,
@@ -935,7 +970,7 @@ class FoodDetailPage extends ConsumerWidget {
                       aspectRatio: 4 / 3,
                       child: imageUrl.isEmpty
                           ? Container(color: const Color(0xFFF3F4F6))
-                          : Image.network(imageUrl, fit: BoxFit.cover),
+                          : _buildLocalImage(imageUrl, fit: BoxFit.cover),
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -1237,10 +1272,7 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
   var _poiName = '三里屯太古里 (Sanlitun Taikoo Li)';
   var _poiAddress = '北京市朝阳区三里屯路19号';
 
-  final _imageUrls = <String>[
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuAot94lcCxv_cm5mGQBGYXWaKOLR1xcuPovBRmN4mYBOHgM37Y_vCdOG2RP7PRo1KNivOJqyobA5gWwHf5Ta0oaE_sxMYGe-ARTD6T3iNnEX_HZikKHuKZXVTnB4hUGka-aRMS9dKrXx4SEVHTJIMJE7eE28Kg0bZZTFe8aLwrKemUYmSet8WdVZZ0v6LZl0xr_A3iPV_CWpKaQzbRxBGwaG7WU1ry830-9feZfYSjzm3PXl_NYjVT9X92nA8d01mV9Hi19yL7FHud3',
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuDWXGzomX40HmgdCXHO1GaNPlPkdZFFx77X_VKg0Ge0KrSvDn3lTSxSyu2UgfdLME_4Bab5DSCKfnIv30daS79iRmdkpDn8b2avVZcNxMMDBGnSpUST_yXV8o8jkyV99XOmWCcB6z7RnFkE15jJ8L1XsiviEUWrkACEQG39_e883m6IAXMZvGQn-q93OK5oRtgNPk76YqXUpb7vnytWfTtx7khNwmShTsw2Ghsn-OBPHZJi85ZcckG5iHVVKqz9B2CEz6iPN-ZGFo8L',
-  ];
+  final _imageUrls = <String>[];
   final _tags = <String>['必吃榜', '周末探店', '辣'];
 
   final _linkedFriends = <FriendRecord>[];
@@ -1354,7 +1386,7 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
           borderRadius: BorderRadius.circular(16),
           child: Stack(
             children: [
-              Positioned.fill(child: Image.network(imageUrl, fit: BoxFit.cover)),
+              Positioned.fill(child: _buildLocalImage(imageUrl, fit: BoxFit.cover)),
               Positioned(
                 top: 6,
                 right: 6,
@@ -1824,48 +1856,10 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
   }
 
   Future<void> _showAddImageSheet(BuildContext context) async {
-    final controller = TextEditingController();
-    final url = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return _BottomSheetShell(
-          title: '添加照片',
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: controller,
-                decoration: const InputDecoration(
-                  labelText: '图片URL',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _primary,
-                    foregroundColor: _backgroundDark,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    textStyle: const TextStyle(fontWeight: FontWeight.w900),
-                  ),
-                  onPressed: () => Navigator.of(context).pop(controller.text.trim()),
-                  child: const Text('添加'),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-    controller.dispose();
-
-    final next = (url ?? '').trim();
-    if (next.isEmpty) return;
-    setState(() => _imageUrls.add(next));
+    final picker = ImagePicker();
+    final files = await picker.pickMultiImage();
+    if (files.isEmpty) return;
+    setState(() => _imageUrls.addAll(files.map((f) => f.path)));
   }
 
   Future<void> _showEditTagsSheet(BuildContext context) async {
@@ -2526,6 +2520,296 @@ class _BottomSheetShell extends StatelessWidget {
       ),
     );
   }
+}
+
+class _FilterResult {
+  const _FilterResult({
+    required this.dateIndex,
+    required this.customRange,
+    required this.friendIds,
+  });
+
+  final int dateIndex;
+  final DateTimeRange? customRange;
+  final Set<String> friendIds;
+}
+
+class _FilterBottomSheet extends StatefulWidget {
+  const _FilterBottomSheet({
+    required this.initialDateIndex,
+    required this.initialCustomRange,
+    required this.initialFriendIds,
+    required this.friendsStream,
+  });
+
+  final int initialDateIndex;
+  final DateTimeRange? initialCustomRange;
+  final Set<String> initialFriendIds;
+  final Stream<List<FriendRecord>> friendsStream;
+
+  @override
+  State<_FilterBottomSheet> createState() => _FilterBottomSheetState();
+}
+
+class _FilterBottomSheetState extends State<_FilterBottomSheet> {
+  static const _dateOptions = ['不限', '今日', '近7天', '近30天', '自定义'];
+
+  late int _dateIndex;
+  DateTimeRange? _customRange;
+  late Set<String> _selectedFriendIds;
+
+  @override
+  void initState() {
+    super.initState();
+    _dateIndex = widget.initialDateIndex;
+    _customRange = widget.initialCustomRange;
+    _selectedFriendIds = {...widget.initialFriendIds};
+  }
+
+  String _formatDate(DateTime date) {
+    String two(int v) => v.toString().padLeft(2, '0');
+    return '${date.year}.${two(date.month)}.${two(date.day)}';
+  }
+
+  Future<void> _pickCustomRange() async {
+    final now = DateTime.now();
+    final initial = _customRange ?? DateTimeRange(start: now.subtract(const Duration(days: 7)), end: now);
+    final picked = await showDateRangePicker(
+      context: context,
+      initialDateRange: initial,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked == null) return;
+    setState(() {
+      _customRange = picked;
+      _dateIndex = 4;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+      child: Material(
+        color: Colors.white,
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+                child: Row(
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: TextButton.styleFrom(foregroundColor: const Color(0xFF6B7280), textStyle: const TextStyle(fontWeight: FontWeight.w800)),
+                      child: const Text('取消'),
+                    ),
+                    const Expanded(
+                      child: Text('筛选', textAlign: TextAlign.center, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(
+                        _FilterResult(
+                          dateIndex: _dateIndex,
+                          customRange: _customRange,
+                          friendIds: _selectedFriendIds,
+                        ),
+                      ),
+                      style: TextButton.styleFrom(foregroundColor: const Color(0xFF2BCDEE), textStyle: const TextStyle(fontWeight: FontWeight.w900)),
+                      child: const Text('完成'),
+                    ),
+                  ],
+                ),
+              ),
+              ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.75),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('日期', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: [
+                          for (var i = 0; i < _dateOptions.length; i++)
+                            _FilterOptionChip(
+                              label: _dateOptions[i],
+                              selected: i == _dateIndex,
+                              onTap: () async {
+                                if (i == 4) {
+                                  await _pickCustomRange();
+                                } else {
+                                  setState(() => _dateIndex = i);
+                                }
+                              },
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      if (_dateIndex == 4)
+                        InkWell(
+                          borderRadius: BorderRadius.circular(14),
+                          onTap: _pickCustomRange,
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: const Color(0xFFE5E7EB)),
+                            ),
+                            child: Text(
+                              _customRange == null
+                                  ? '请选择日期范围'
+                                  : '${_formatDate(_customRange!.start)} - ${_formatDate(_customRange!.end)}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                color: _customRange == null ? const Color(0xFF94A3B8) : const Color(0xFF111827),
+                              ),
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 16),
+                      const Text('羁绊', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                      const SizedBox(height: 10),
+                      StreamBuilder<List<FriendRecord>>(
+                        stream: widget.friendsStream,
+                        builder: (context, snapshot) {
+                          final friends = snapshot.data ?? const <FriendRecord>[];
+                          if (friends.isEmpty) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 18),
+                              child: Text('暂无朋友档案', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+                            );
+                          }
+                          return ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: friends.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 10),
+                            itemBuilder: (context, index) {
+                              final friend = friends[index];
+                              final checked = _selectedFriendIds.contains(friend.id);
+                              return _FilterFriendTile(
+                                name: friend.name,
+                                checked: checked,
+                                onTap: () {
+                                  setState(() {
+                                    if (checked) {
+                                      _selectedFriendIds.remove(friend.id);
+                                    } else {
+                                      _selectedFriendIds.add(friend.id);
+                                    }
+                                  });
+                                },
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterOptionChip extends StatelessWidget {
+  const _FilterOptionChip({required this.label, required this.selected, required this.onTap});
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFF2BCDEE).withValues(alpha: 0.12) : const Color(0xFFF3F4F6),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: selected ? const Color(0xFF2BCDEE).withValues(alpha: 0.3) : const Color(0xFFF3F4F6)),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: selected ? const Color(0xFF2BCDEE) : const Color(0xFF64748B)),
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterFriendTile extends StatelessWidget {
+  const _FilterFriendTile({required this.name, required this.checked, required this.onTap});
+
+  final String name;
+  final bool checked;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final trimmed = name.trim();
+    final letter = trimmed.isEmpty ? '?' : trimmed.characters.first;
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          color: checked ? const Color(0xFF2BCDEE).withValues(alpha: 0.08) : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: checked ? const Color(0xFF2BCDEE).withValues(alpha: 0.22) : const Color(0xFFF1F5F9)),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 16,
+              backgroundColor: const Color(0xFFE5E7EB),
+              child: Text(letter, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF64748B))),
+            ),
+            const SizedBox(width: 10),
+            Expanded(child: Text(name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF111827)))),
+            Icon(checked ? Icons.check_circle : Icons.radio_button_unchecked, color: checked ? const Color(0xFF2BCDEE) : const Color(0xFFCBD5E1)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+Widget _buildLocalImage(String path, {BoxFit fit = BoxFit.cover}) {
+  final trimmed = path.trim();
+  if (trimmed.isEmpty) {
+    return const SizedBox.shrink();
+  }
+  final isNetwork = trimmed.startsWith('http://') || trimmed.startsWith('https://');
+  if (isNetwork) {
+    return Image.network(trimmed, fit: fit);
+  }
+  return FutureBuilder<Uint8List>(
+    future: XFile(trimmed).readAsBytes(),
+    builder: (context, snapshot) {
+      if (snapshot.hasData) {
+        return Image.memory(snapshot.data!, fit: fit);
+      }
+      return Container(color: const Color(0xFFF1F5F9));
+    },
+  );
 }
 
 class _SmallAvatar extends StatelessWidget {

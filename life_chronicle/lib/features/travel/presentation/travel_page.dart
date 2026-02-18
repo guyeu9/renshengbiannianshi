@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:uuid/uuid.dart';
 
@@ -20,6 +22,36 @@ enum _TravelViewMode { wishlist, onTheRoad }
 
 class _TravelPageState extends State<TravelPage> {
   _TravelViewMode _mode = _TravelViewMode.onTheRoad;
+  var _filterDateIndex = 0;
+  DateTimeRange? _filterCustomRange;
+  Set<String> _filterFriendIds = {};
+
+  Future<void> _openFilterSheet() async {
+    final result = await showModalBottomSheet<_FilterResult>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Consumer(
+          builder: (context, ref, _) {
+            final db = ref.read(appDatabaseProvider);
+            return _FilterBottomSheet(
+              initialDateIndex: _filterDateIndex,
+              initialCustomRange: _filterCustomRange,
+              initialFriendIds: _filterFriendIds,
+              friendsStream: db.friendDao.watchAllActive(),
+            );
+          },
+        );
+      },
+    );
+    if (result == null) return;
+    setState(() {
+      _filterDateIndex = result.dateIndex;
+      _filterCustomRange = result.customRange;
+      _filterFriendIds = result.friendIds;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +62,7 @@ class _TravelPageState extends State<TravelPage> {
         child: CustomScrollView(
           slivers: [
             const SliverToBoxAdapter(child: _TravelTopBar()),
-            const SliverToBoxAdapter(child: _TravelSearchRow()),
+            SliverToBoxAdapter(child: _TravelSearchRow(onFilterTap: _openFilterSheet)),
             SliverPersistentHeader(
               pinned: true,
               delegate: _PinnedHeaderDelegate(
@@ -92,7 +124,9 @@ class _TravelTopBar extends StatelessWidget {
 }
 
 class _TravelSearchRow extends StatelessWidget {
-  const _TravelSearchRow();
+  const _TravelSearchRow({required this.onFilterTap});
+
+  final VoidCallback onFilterTap;
 
   @override
   Widget build(BuildContext context) {
@@ -124,7 +158,7 @@ class _TravelSearchRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          _SquareIconButton(icon: Icons.tune, onTap: () {}),
+          _SquareIconButton(icon: Icons.tune, onTap: onFilterTap),
         ],
       ),
     );
@@ -367,7 +401,7 @@ class _TravelFootprintCard extends StatelessWidget {
                 SizedBox(
                   height: 132,
                   width: double.infinity,
-                  child: Image.network(
+                  child: _buildLocalImage(
                     'https://lh3.googleusercontent.com/aida-public/AB6AXuDcni2LwtmaarwLbusdF4hZ0n64Ccbqcro_mNlE1JoQ2W7xan2Np-aL-NR0r1mERCSWD-VrgAjgPTreKg7rOJG9pEmzgkxybMW6FiEQsie94nkXwMeYNfqLdMypoYLsM_gxZuODk_-9XmCjo5SikmTNZtEUM48dwCkfdgO8YzEGhUBCwW5EEGncwjnEUcgtdljEfYCFtXRijdDC1xfkzgrno5ctBJDtBD9oohKBGaO_DSbSe1M87lySWl4_APrOOnE5Bw4-EAcJO1jc',
                     fit: BoxFit.cover,
                   ),
@@ -581,7 +615,7 @@ class _TravelOnRoadCard extends StatelessWidget {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      Image.network(entry.imageUrl, fit: BoxFit.cover),
+                      _buildLocalImage(entry.imageUrl, fit: BoxFit.cover),
                       Positioned(
                         top: 12,
                         right: 12,
@@ -632,7 +666,7 @@ class _TravelOnRoadCard extends StatelessWidget {
                                         shape: BoxShape.circle,
                                         border: Border.all(color: Colors.white, width: 2),
                                       ),
-                                      child: ClipOval(child: Image.network(entry.companions[i], fit: BoxFit.cover)),
+                                      child: ClipOval(child: _buildLocalImage(entry.companions[i], fit: BoxFit.cover)),
                                     ),
                                   ),
                                 if (entry.companions.length > 2)
@@ -744,7 +778,7 @@ class _TravelWishlistCard extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: const BorderRadius.horizontal(left: Radius.circular(18)),
-                child: SizedBox(width: 110, height: 110, child: Image.network(item.imageUrl, fit: BoxFit.cover)),
+                child: SizedBox(width: 110, height: 110, child: _buildLocalImage(item.imageUrl, fit: BoxFit.cover)),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -813,7 +847,7 @@ class TravelDetailPage extends StatelessWidget {
                 children: [
                   ClipRRect(
                     borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
-                    child: Image.network(item.imageUrl, fit: BoxFit.cover),
+                    child: _buildLocalImage(item.imageUrl, fit: BoxFit.cover),
                   ),
                   DecoratedBox(
                     decoration: const BoxDecoration(
@@ -1439,10 +1473,14 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
 
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
-  final _imageUrls = <String>[
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuDSiJy4vj3-8R2angY1JfjCncAqBOa2quEtlvEu-dhous2uMskWujq6_nV_uyBKbFQdUGbsn9LMLFfUXUnb93xjTnwyUkIBL2k_igAoKKCbVjWb4l_6Bzu_J_JQDjkC_q4virmec5Zg6uJshfYhdZ73YLp1Y2aJ4-FadDuJVpYP6l8YrR4pBHlCm2qYqcXqYdmrMHOcRO9BESLt1VEvo63DlI3rZlPB9phtt4CrHYWAKXQcpuSvk_FdIIE8sjo5sWyMivQPa7UmvXMv',
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuAJXbnLKvlLG_61cAfkgftdbG_VeN-Yd9sRyc_avp_eCsvTCh21uahLpTGC3iI_KDsW2C0C2cjsuhmB5GVqLdN9l5ve6Fzr8QKkE1_-OA5InnsZeKPDhM42i0rzGdClRzvbmqPtTr0VtxyZMXQj6yEkd31OHKG8dPCGea2pMS41BQKPF4Yv2HuvEVgJ83pTUSKVFkHTtmViPfZbWoKYv__IMLWuBD0XSC5s2-UQqiv-PtaOA2zn5wOKrAt4IHLAPkjrP1_S_Fu-YKIv',
-  ];
+  final _imageUrls = <String>[];
+
+  Future<void> _pickImages() async {
+    final picker = ImagePicker();
+    final files = await picker.pickMultiImage();
+    if (files.isEmpty) return;
+    setState(() => _imageUrls.addAll(files.map((f) => f.path)));
+  }
 
   Future<void> _selectLinkedFriends() async {
     final db = ref.read(appDatabaseProvider);
@@ -1671,15 +1709,15 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
                   shrinkWrap: true,
                   children: [
                     ..._imageUrls.map((url) => _PhotoGridItem(imageUrl: url)),
-                    _PhotoAddGridItem(),
+                    _PhotoAddGridItem(onTap: _pickImages),
                   ],
                 ),
                 const SizedBox(height: 10),
-                const Row(
+                Row(
                   children: [
-                    Text('已选 2 张', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
-                    Spacer(),
-                    Text('还可以添加 7 张', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                    Text('已选 ${_imageUrls.length} 张', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                    const Spacer(),
+                    Text('还可以添加 ${9 - _imageUrls.length} 张', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
                   ],
                 ),
               ],
@@ -2153,7 +2191,7 @@ class _TimelineItem {
               SizedBox(
                 height: 190,
                 width: double.infinity,
-                child: Image.network(
+                child: _buildLocalImage(
                   'https://lh3.googleusercontent.com/aida-public/AB6AXuCosUDqvLbtdJUynjkBAeWU1QF2O0jZh2LHLN5F-Q0HoKkPw8Co5PdkkLHU4KgQsh3-E85q9D6rnM6YgMy7C02Efn02q5DIn9kCuTOa3fn4CD5a2TIco8FTkeRI30a4eIT50rHp35uABcuwQXbIlX6qfxLqaVhp5nONYMUhTECl3ohpnzijdMSYD86ij7HL4NC0rk5sh22gKRa-gxm43p_0XxboRN-jgjccl00ZMeezA7-7uQEo07f-QlbXZlRmQ8K48O1Cn36JiXcm',
                   fit: BoxFit.cover,
                 ),
@@ -2251,7 +2289,7 @@ class _TimelineItem {
                   borderRadius: BorderRadius.circular(12),
                   child: AspectRatio(
                     aspectRatio: 1,
-                    child: Image.network(
+                    child: _buildLocalImage(
                       'https://lh3.googleusercontent.com/aida-public/AB6AXuAKyf0mNiZ0TAc0cDBuDh729VN8zm8R-lF-JlOBczemlVSfDxlTXyG9D-4CqGvj4VGLsjyH_nyxHz36t5YCWIUdFilyoKvFftQ0lxzt6pmOkOgpBI_gvBZAInqTnxhG3lNNaOqRyxJCT-lzLS3lmLEkNBMXJ6LnIbYkBwU51lRvY0DqIG10oPqPfaoC12BgWZPmW74AWxyipq5A_nuiETA3saO846Avvh5KoAF7C0KINcR5Dmp2orHJWlVQTu97pn9w2S1O1IDzigGp',
                       fit: BoxFit.cover,
                     ),
@@ -2264,7 +2302,7 @@ class _TimelineItem {
                   borderRadius: BorderRadius.circular(12),
                   child: AspectRatio(
                     aspectRatio: 1,
-                    child: Image.network(
+                    child: _buildLocalImage(
                       'https://lh3.googleusercontent.com/aida-public/AB6AXuBuT10tYFcn-doux9nf76wexULnaAXe1_2k1m02UsCet0czIwfXMlL4ctiLleAX4asYuPY9ArxyQCQHlN5pcQx9BpEG3CYk0N-yxFknKtVtT84j9C0vhgo6bMG-z-hGn_ep5B9fLZU4hrQqP_6fe5NUi3EPA6k-BtVBFeNO3llR8QYpHkT0eCvEYimxA6gOwpPH9QfqPjVdgErCJIz5GewLRk9fgtTG_yl9mkI-jzPAqZ8tPtzPiFTEVE9wUmC0ay1Lm8AblzlkQfvm',
                       fit: BoxFit.cover,
                     ),
@@ -2307,7 +2345,7 @@ class _TimelineFoodCard extends StatelessWidget {
             child: SizedBox(
               width: 64,
               height: 64,
-              child: Image.network(
+              child: _buildLocalImage(
                 'https://lh3.googleusercontent.com/aida-public/AB6AXuCz0ZLYHipBFs6nZU665gOuM-8IrKCKhikLZPpoIC5KEUEj42bpGq4jybIab6WmqkfLIcC0yaUqb4arnRq5J6L_ZdlApupcjl0PxCGko7fUCp60OCprH_B8cL2VZ2mU48YWP8vIVd1iYcoJqM9Ay_UXfAwSA-seowywgtGLGVcp3Rh3zPP0q6M2-pASOh9RZ2gn8_LwMmwJI3mgOPx94gXTirmmtuoewEQfRc13f9SapSMrEjdQfWIWqIKq_IxyHYRlZrbv-Tm_pEq-',
                 fit: BoxFit.cover,
               ),
@@ -2675,7 +2713,7 @@ class _PhotoGridItem extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Image.network(imageUrl, fit: BoxFit.cover),
+          _buildLocalImage(imageUrl, fit: BoxFit.cover),
           Align(
             alignment: Alignment.topRight,
             child: Padding(
@@ -2695,32 +2733,58 @@ class _PhotoGridItem extends StatelessWidget {
 }
 
 class _PhotoAddGridItem extends StatelessWidget {
-  const _PhotoAddGridItem();
+  const _PhotoAddGridItem({required this.onTap});
+
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return _DashedRRect(
-      radius: 12,
-      dashColor: const Color(0xFFCBD5E1),
-      dashWidth: 7,
-      dashGap: 6,
-      strokeWidth: 2,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          color: const Color(0xFFF1F5F9),
-          child: const Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.add_a_photo, size: 30, color: Color(0xFF2BCDEE)),
-              SizedBox(height: 6),
-              Text('添加照片', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF94A3B8))),
-            ],
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: _DashedRRect(
+        radius: 12,
+        dashColor: const Color(0xFFCBD5E1),
+        dashWidth: 7,
+        dashGap: 6,
+        strokeWidth: 2,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            color: const Color(0xFFF1F5F9),
+            child: const Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.add_a_photo, size: 30, color: Color(0xFF2BCDEE)),
+                SizedBox(height: 6),
+                Text('添加照片', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF94A3B8))),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+}
+
+Widget _buildLocalImage(String path, {BoxFit fit = BoxFit.cover}) {
+  final trimmed = path.trim();
+  if (trimmed.isEmpty) {
+    return const SizedBox.shrink();
+  }
+  final isNetwork = trimmed.startsWith('http://') || trimmed.startsWith('https://');
+  if (isNetwork) {
+    return Image.network(trimmed, fit: fit);
+  }
+  return FutureBuilder<Uint8List>(
+    future: XFile(trimmed).readAsBytes(),
+    builder: (context, snapshot) {
+      if (snapshot.hasData) {
+        return Image.memory(snapshot.data!, fit: fit);
+      }
+      return Container(color: const Color(0xFFF1F5F9));
+    },
+  );
 }
 
 class _AssociationRow extends StatelessWidget {
@@ -2771,6 +2835,276 @@ class _AssociationRow extends StatelessWidget {
               ),
             ),
             trailing,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterResult {
+  const _FilterResult({
+    required this.dateIndex,
+    required this.customRange,
+    required this.friendIds,
+  });
+
+  final int dateIndex;
+  final DateTimeRange? customRange;
+  final Set<String> friendIds;
+}
+
+class _FilterBottomSheet extends StatefulWidget {
+  const _FilterBottomSheet({
+    required this.initialDateIndex,
+    required this.initialCustomRange,
+    required this.initialFriendIds,
+    required this.friendsStream,
+  });
+
+  final int initialDateIndex;
+  final DateTimeRange? initialCustomRange;
+  final Set<String> initialFriendIds;
+  final Stream<List<FriendRecord>> friendsStream;
+
+  @override
+  State<_FilterBottomSheet> createState() => _FilterBottomSheetState();
+}
+
+class _FilterBottomSheetState extends State<_FilterBottomSheet> {
+  static const _dateOptions = ['不限', '今日', '近7天', '近30天', '自定义'];
+
+  late int _dateIndex;
+  DateTimeRange? _customRange;
+  late Set<String> _selectedFriendIds;
+
+  @override
+  void initState() {
+    super.initState();
+    _dateIndex = widget.initialDateIndex;
+    _customRange = widget.initialCustomRange;
+    _selectedFriendIds = {...widget.initialFriendIds};
+  }
+
+  String _formatDate(DateTime date) {
+    String two(int v) => v.toString().padLeft(2, '0');
+    return '${date.year}.${two(date.month)}.${two(date.day)}';
+  }
+
+  Future<void> _pickCustomRange() async {
+    final now = DateTime.now();
+    final initial = _customRange ?? DateTimeRange(start: now.subtract(const Duration(days: 7)), end: now);
+    final picked = await showDateRangePicker(
+      context: context,
+      initialDateRange: initial,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked == null) return;
+    setState(() {
+      _customRange = picked;
+      _dateIndex = 4;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+      child: Material(
+        color: Colors.white,
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+                child: Row(
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: TextButton.styleFrom(foregroundColor: const Color(0xFF6B7280), textStyle: const TextStyle(fontWeight: FontWeight.w800)),
+                      child: const Text('取消'),
+                    ),
+                    const Expanded(
+                      child: Text('筛选', textAlign: TextAlign.center, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(
+                        _FilterResult(
+                          dateIndex: _dateIndex,
+                          customRange: _customRange,
+                          friendIds: _selectedFriendIds,
+                        ),
+                      ),
+                      style: TextButton.styleFrom(foregroundColor: const Color(0xFF2BCDEE), textStyle: const TextStyle(fontWeight: FontWeight.w900)),
+                      child: const Text('完成'),
+                    ),
+                  ],
+                ),
+              ),
+              ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.75),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('日期', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: [
+                          for (var i = 0; i < _dateOptions.length; i++)
+                            _FilterOptionChip(
+                              label: _dateOptions[i],
+                              selected: i == _dateIndex,
+                              onTap: () async {
+                                if (i == 4) {
+                                  await _pickCustomRange();
+                                } else {
+                                  setState(() => _dateIndex = i);
+                                }
+                              },
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      if (_dateIndex == 4)
+                        InkWell(
+                          borderRadius: BorderRadius.circular(14),
+                          onTap: _pickCustomRange,
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: const Color(0xFFE5E7EB)),
+                            ),
+                            child: Text(
+                              _customRange == null
+                                  ? '请选择日期范围'
+                                  : '${_formatDate(_customRange!.start)} - ${_formatDate(_customRange!.end)}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                color: _customRange == null ? const Color(0xFF94A3B8) : const Color(0xFF111827),
+                              ),
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 16),
+                      const Text('羁绊', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                      const SizedBox(height: 10),
+                      StreamBuilder<List<FriendRecord>>(
+                        stream: widget.friendsStream,
+                        builder: (context, snapshot) {
+                          final friends = snapshot.data ?? const <FriendRecord>[];
+                          if (friends.isEmpty) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 18),
+                              child: Text('暂无朋友档案', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+                            );
+                          }
+                          return ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: friends.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 10),
+                            itemBuilder: (context, index) {
+                              final friend = friends[index];
+                              final checked = _selectedFriendIds.contains(friend.id);
+                              return _FilterFriendTile(
+                                name: friend.name,
+                                checked: checked,
+                                onTap: () {
+                                  setState(() {
+                                    if (checked) {
+                                      _selectedFriendIds.remove(friend.id);
+                                    } else {
+                                      _selectedFriendIds.add(friend.id);
+                                    }
+                                  });
+                                },
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterOptionChip extends StatelessWidget {
+  const _FilterOptionChip({required this.label, required this.selected, required this.onTap});
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFF2BCDEE).withValues(alpha: 0.12) : const Color(0xFFF3F4F6),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: selected ? const Color(0xFF2BCDEE).withValues(alpha: 0.3) : const Color(0xFFF3F4F6)),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: selected ? const Color(0xFF2BCDEE) : const Color(0xFF64748B)),
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterFriendTile extends StatelessWidget {
+  const _FilterFriendTile({required this.name, required this.checked, required this.onTap});
+
+  final String name;
+  final bool checked;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final trimmed = name.trim();
+    final letter = trimmed.isEmpty ? '?' : trimmed.characters.first;
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          color: checked ? const Color(0xFF2BCDEE).withValues(alpha: 0.08) : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: checked ? const Color(0xFF2BCDEE).withValues(alpha: 0.22) : const Color(0xFFF1F5F9)),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 16,
+              backgroundColor: const Color(0xFFE5E7EB),
+              child: Text(letter, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF64748B))),
+            ),
+            const SizedBox(width: 10),
+            Expanded(child: Text(name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF111827)))),
+            Icon(checked ? Icons.check_circle : Icons.radio_button_unchecked, color: checked ? const Color(0xFF2BCDEE) : const Color(0xFFCBD5E1)),
           ],
         ),
       ),
@@ -2985,7 +3319,7 @@ class _TinyAvatar extends StatelessWidget {
         width: size,
         height: size,
         decoration: BoxDecoration(border: Border.all(color: Colors.white, width: 2)),
-        child: ClipOval(child: Image.network(url, fit: BoxFit.cover)),
+        child: ClipOval(child: _buildLocalImage(url, fit: BoxFit.cover)),
       ),
     );
   }
