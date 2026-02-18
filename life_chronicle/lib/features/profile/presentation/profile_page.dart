@@ -1,11 +1,15 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'package:drift/drift.dart' show OrderingMode, OrderingTerm;
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
@@ -219,23 +223,86 @@ class _HeaderState extends State<_Header> {
   static const _defaultAvatarUrl =
       'https://lh3.googleusercontent.com/aida-public/AB6AXuBbKe_aCd46pUms7LLAFzD6OXtQ8lCfAXJOsCrBecRIq0Rsb6hG4jY_titPPL6OX4UEolhRaXIm5q1CN8mgX1sDnDEpjIu6VsAPEPXD_TgVO70SfpWy3Ip2I0CsCyMuTYopG68o1H3zfeCTGnhMwcli29GRkYeNRSh_bne4ffgw7Lym8TRcy9xvfIRJ7re4r_AZ6HYWFXuNljbmovvrN8K3yGjv8iiZ5MCKo2rG0vQcYlScRiJTep-ftfRgTq7kF_pycqvsKRxWyfNh';
 
-  Uint8List? _avatarBytes;
+  String? _avatarPath;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAvatar();
+  }
 
   ImageProvider _avatarProvider() {
-    final bytes = _avatarBytes;
-    if (bytes == null) {
+    final path = _avatarPath?.trim() ?? '';
+    if (path.isEmpty) {
       return const NetworkImage(_defaultAvatarUrl);
     }
-    return MemoryImage(bytes);
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return NetworkImage(path);
+    }
+    return FileImage(File(path));
   }
 
   Future<void> _pickAvatar() async {
     final picker = ImagePicker();
     final file = await picker.pickImage(source: ImageSource.gallery);
     if (file == null) return;
-    final bytes = await file.readAsBytes();
+    final storedPath = await _persistAvatar(file.path);
+    if (storedPath == null) return;
+    await _saveAvatarPath(storedPath);
     if (!mounted) return;
-    setState(() => _avatarBytes = bytes);
+    setState(() => _avatarPath = storedPath);
+  }
+
+  Future<void> _loadAvatar() async {
+    final stored = await _readAvatarPath();
+    if (!mounted) return;
+    setState(() => _avatarPath = stored);
+  }
+
+  Future<String?> _readAvatarPath() async {
+    if (kIsWeb) return null;
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File(p.join(dir.path, 'profile', 'avatar.json'));
+    if (!await file.exists()) return null;
+    try {
+      final raw = await file.readAsString();
+      final decoded = jsonDecode(raw);
+      if (decoded is Map && decoded['path'] is String) {
+        final path = (decoded['path'] as String).trim();
+        if (path.isNotEmpty && await File(path).exists()) {
+          return path;
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<void> _saveAvatarPath(String path) async {
+    if (kIsWeb) return;
+    final dir = await getApplicationDocumentsDirectory();
+    final profileDir = Directory(p.join(dir.path, 'profile'));
+    await profileDir.create(recursive: true);
+    final file = File(p.join(profileDir.path, 'avatar.json'));
+    await file.writeAsString(jsonEncode({'path': path}));
+  }
+
+  Future<String?> _persistAvatar(String path) async {
+    if (path.trim().isEmpty) return null;
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    if (kIsWeb) return path;
+    final dir = await getApplicationDocumentsDirectory();
+    final profileDir = Directory(p.join(dir.path, 'profile'));
+    await profileDir.create(recursive: true);
+    if (p.isWithin(profileDir.path, path)) {
+      return path;
+    }
+    final ext = p.extension(path);
+    final targetPath = p.join(
+      profileDir.path,
+      'avatar_${DateTime.now().millisecondsSinceEpoch}${ext.isEmpty ? '.jpg' : ext}',
+    );
+    final saved = await File(path).copy(targetPath);
+    return saved.path;
   }
 
   void _openAvatarPreview() {
@@ -445,22 +512,65 @@ class _ChronicleCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Row(
-                            children: [
-                              Icon(Icons.auto_stories, color: Color(0xFFFCD34D), size: 20),
-                              SizedBox(width: 8),
-                              Text('人生传记', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white)),
-                            ],
-                          ),
-                          SizedBox(height: 6),
-                          Text(
-                            '128条美食、45次旅行、53个小确幸',
-                            style: TextStyle(fontSize: 12, color: Color(0xFFDBEAFE), fontWeight: FontWeight.w600),
-                          ),
-                        ],
+                      child: Consumer(
+                        builder: (context, ref, _) {
+                          final db = ref.watch(appDatabaseProvider);
+                          return StreamBuilder<List<FoodRecord>>(
+                            stream: db.foodDao.watchAllActive(),
+                            builder: (context, foodSnapshot) {
+                              final foodCount = foodSnapshot.data?.length ?? 0;
+                              return StreamBuilder<List<TravelRecord>>(
+                                stream: (db.select(db.travelRecords)
+                                      ..where((t) => t.isDeleted.equals(false)))
+                                    .watch(),
+                                builder: (context, travelSnapshot) {
+                                  final travelCount = travelSnapshot.data?.length ?? 0;
+                                  return StreamBuilder<List<MomentRecord>>(
+                                    stream: db.momentDao.watchAllActive(),
+                                    builder: (context, momentSnapshot) {
+                                      final momentCount = momentSnapshot.data?.length ?? 0;
+                                      return StreamBuilder<List<TimelineEvent>>(
+                                        stream: (db.select(db.timelineEvents)
+                                              ..where((t) => t.isDeleted.equals(false))
+                                              ..where((t) => t.eventType.isIn(['encounter', 'goal'])))
+                                            .watch(),
+                                        builder: (context, timelineSnapshot) {
+                                          final events = timelineSnapshot.data ?? const <TimelineEvent>[];
+                                          var encounterCount = 0;
+                                          var goalCount = 0;
+                                          for (final e in events) {
+                                            if (e.eventType == 'encounter') {
+                                              encounterCount += 1;
+                                            } else if (e.eventType == 'goal') {
+                                              goalCount += 1;
+                                            }
+                                          }
+                                          return Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              const Row(
+                                                children: [
+                                                  Icon(Icons.auto_stories, color: Color(0xFFFCD34D), size: 20),
+                                                  SizedBox(width: 8),
+                                                  Text('人生传记', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white)),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 6),
+                                              Text(
+                                                '$foodCount条美食、$travelCount次旅行、$momentCount个小确幸、$encounterCount次相遇、$goalCount个目标',
+                                                style: const TextStyle(fontSize: 12, color: Color(0xFFDBEAFE), fontWeight: FontWeight.w600),
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                      );
+                                    },
+                                  );
+                                },
+                              );
+                            },
+                          );
+                        },
                       ),
                     ),
                     Container(

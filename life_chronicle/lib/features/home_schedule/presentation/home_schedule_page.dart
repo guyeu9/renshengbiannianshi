@@ -1,6 +1,11 @@
+import 'dart:convert';
+import 'dart:io';
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 import '../../../app/app_theme.dart';
 import '../../ai_historian/presentation/ai_historian_chat_page.dart';
@@ -33,8 +38,40 @@ class HomeSchedulePage extends StatelessWidget {
 class _GlassHeader extends StatelessWidget implements PreferredSizeWidget {
   const _GlassHeader();
 
+  static const _defaultAvatarUrl =
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuBYyAsCsUFotbFS4IxBHOEJ1DA-wBDR1IVfg1d3rW9bLa4YuRfV882W0Gj9D_oJHRv8cju9gfQyluVHnzjDzJMCZbPKUGwAA7SVIlLiY0SznM-y2S8DAks2kYgua7mWcEmcQPOrxDT1oZJJhDdKMwYsdMM7G5NPreBxZIp3VhN08wAO3i6DxKMN9Hp3_QOj-9i5MV5rtBRoa0PirbUtvk_dBOMFEDLzALxQasPjHhvOaXLyEbgAEOptmcXA27XD2JM8qtcZ_u2eFR_T';
+
   @override
   Size get preferredSize => const Size.fromHeight(72);
+
+  Future<String?> _loadAvatarPath() async {
+    if (kIsWeb) return null;
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File(p.join(dir.path, 'profile', 'avatar.json'));
+    if (!await file.exists()) return null;
+    try {
+      final raw = await file.readAsString();
+      final decoded = jsonDecode(raw);
+      if (decoded is Map && decoded['path'] is String) {
+        final path = (decoded['path'] as String).trim();
+        if (path.isNotEmpty && await File(path).exists()) {
+          return path;
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  ImageProvider _avatarProvider(String? path) {
+    final value = path?.trim() ?? '';
+    if (value.isEmpty) {
+      return const NetworkImage(_defaultAvatarUrl);
+    }
+    if (value.startsWith('http://') || value.startsWith('https://')) {
+      return NetworkImage(value);
+    }
+    return FileImage(File(value));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,11 +92,14 @@ class _GlassHeader extends StatelessWidget implements PreferredSizeWidget {
                 },
                 child: Stack(
                   children: [
-                    const CircleAvatar(
-                      radius: 22,
-                      backgroundImage: NetworkImage(
-                        'https://lh3.googleusercontent.com/aida-public/AB6AXuBYyAsCsUFotbFS4IxBHOEJ1DA-wBDR1IVfg1d3rW9bLa4YuRfV882W0Gj9D_oJHRv8cju9gfQyluVHnzjDzJMCZbPKUGwAA7SVIlLiY0SznM-y2S8DAks2kYgua7mWcEmcQPOrxDT1oZJJhDdKMwYsdMM7G5NPreBxZIp3VhN08wAO3i6DxKMN9Hp3_QOj-9i5MV5rtBRoa0PirbUtvk_dBOMFEDLzALxQasPjHhvOaXLyEbgAEOptmcXA27XD2JM8qtcZ_u2eFR_T',
-                      ),
+                    FutureBuilder<String?>(
+                      future: _loadAvatarPath(),
+                      builder: (context, snapshot) {
+                        return CircleAvatar(
+                          radius: 22,
+                          backgroundImage: _avatarProvider(snapshot.data),
+                        );
+                      },
                     ),
                     Positioned(
                       bottom: 0,

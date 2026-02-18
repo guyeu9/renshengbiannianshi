@@ -4,10 +4,12 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:drift/drift.dart' show OrderingMode, OrderingTerm, Value;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
@@ -2371,7 +2373,41 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
     final picker = ImagePicker();
     final files = await picker.pickMultiImage();
     if (files.isEmpty) return;
-    setState(() => _imageUrls.addAll(files.map((f) => f.path)));
+    final stored = await _persistImages(files);
+    if (stored.isEmpty) return;
+    setState(() => _imageUrls.addAll(stored));
+  }
+
+  Future<List<String>> _persistImages(List<XFile> files) async {
+    if (files.isEmpty) return const [];
+    if (kIsWeb) {
+      return files.map((f) => f.path).where((p) => p.trim().isNotEmpty).toList(growable: false);
+    }
+    final dir = await getApplicationDocumentsDirectory();
+    final targetDir = Directory(p.join(dir.path, 'media', 'food'));
+    await targetDir.create(recursive: true);
+    final stamp = DateTime.now().millisecondsSinceEpoch;
+    final stored = <String>[];
+    for (var i = 0; i < files.length; i += 1) {
+      final path = files[i].path.trim();
+      if (path.isEmpty) continue;
+      if (path.startsWith('http://') || path.startsWith('https://')) {
+        stored.add(path);
+        continue;
+      }
+      if (p.isWithin(targetDir.path, path)) {
+        stored.add(path);
+        continue;
+      }
+      final ext = p.extension(path);
+      final targetPath = p.join(
+        targetDir.path,
+        'food_${stamp}_$i${ext.isEmpty ? '.jpg' : ext}',
+      );
+      final copied = await File(path).copy(targetPath);
+      stored.add(copied.path);
+    }
+    return stored;
   }
 
   Future<void> _showEditTagsSheet(BuildContext context) async {

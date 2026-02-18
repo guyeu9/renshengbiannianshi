@@ -1,11 +1,15 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:drift/drift.dart' show Value;
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/database/app_database.dart';
@@ -955,6 +959,7 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
   bool _checkItem2Done = false;
 
   final Set<String> _linkedFriendIds = {};
+  String? _coverImagePath;
 
   final _titleController = TextEditingController();
   final _noteController = TextEditingController();
@@ -1028,6 +1033,16 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
     return (start, end);
   }
 
+  Future<void> _pickCoverImage() async {
+    final picker = ImagePicker();
+    final file = await picker.pickImage(source: ImageSource.gallery);
+    if (file == null) return;
+    final stored = await _persistSingleImage(file, 'travel');
+    if (stored == null) return;
+    if (!mounted) return;
+    setState(() => _coverImagePath = stored);
+  }
+
   Future<void> _save() async {
     final title = _titleController.text.trim();
     if (title.isEmpty) {
@@ -1069,12 +1084,14 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
           ),
         );
 
+    final cover = _coverImagePath?.trim().isNotEmpty == true ? jsonEncode([_coverImagePath]) : null;
     await db.into(db.travelRecords).insertOnConflictUpdate(
           TravelRecordsCompanion.insert(
             id: travelId,
             tripId: tripId,
             title: Value(title),
             content: Value(content),
+            images: Value(cover),
             destination: Value(destination.isEmpty ? null : destination),
             isWishlist: Value(_addToWishlist),
             wishlistDone: const Value(false),
@@ -1176,24 +1193,33 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
           ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
             children: [
-              _DashedRRect(
-                radius: 20,
-                dashColor: const Color(0xFF2BCDEE).withValues(alpha: 0.35),
-                dashWidth: 7,
-                dashGap: 6,
-                strokeWidth: 2,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    height: 200,
-                    color: Colors.white,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
-                        Icon(Icons.add_a_photo, color: Color(0xFF9CA3AF), size: 44),
-                        SizedBox(height: 10),
-                        Text('上传目的地封面或攻略截图', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF9CA3AF))),
-                      ],
+              InkWell(
+                borderRadius: BorderRadius.circular(20),
+                onTap: _pickCoverImage,
+                child: _DashedRRect(
+                  radius: 20,
+                  dashColor: const Color(0xFF2BCDEE).withValues(alpha: 0.35),
+                  dashWidth: 7,
+                  dashGap: 6,
+                  strokeWidth: 2,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: SizedBox(
+                      height: 200,
+                      child: _coverImagePath == null || _coverImagePath!.trim().isEmpty
+                          ? Container(
+                              color: Colors.white,
+                              child: const Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.add_a_photo, color: Color(0xFF9CA3AF), size: 44),
+                                  SizedBox(height: 10),
+                                  Text('上传目的地封面或攻略截图',
+                                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF9CA3AF))),
+                                ],
+                              ),
+                            )
+                          : _buildLocalImage(_coverImagePath!, fit: BoxFit.cover),
                     ),
                   ),
                 ),
@@ -1479,7 +1505,9 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
     final picker = ImagePicker();
     final files = await picker.pickMultiImage();
     if (files.isEmpty) return;
-    setState(() => _imageUrls.addAll(files.map((f) => f.path)));
+    final stored = await _persistPickedImages(files, 'travel');
+    if (stored.isEmpty) return;
+    setState(() => _imageUrls.addAll(stored));
   }
 
   Future<void> _selectLinkedFriends() async {
@@ -2785,6 +2813,44 @@ Widget _buildLocalImage(String path, {BoxFit fit = BoxFit.cover}) {
       return Container(color: const Color(0xFFF1F5F9));
     },
   );
+}
+
+Future<List<String>> _persistPickedImages(List<XFile> files, String folder) async {
+  if (files.isEmpty) return const [];
+  if (kIsWeb) {
+    return files.map((f) => f.path).where((p) => p.trim().isNotEmpty).toList(growable: false);
+  }
+  final dir = await getApplicationDocumentsDirectory();
+  final targetDir = Directory(p.join(dir.path, 'media', folder));
+  await targetDir.create(recursive: true);
+  final stamp = DateTime.now().millisecondsSinceEpoch;
+  final stored = <String>[];
+  for (var i = 0; i < files.length; i += 1) {
+    final path = files[i].path.trim();
+    if (path.isEmpty) continue;
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      stored.add(path);
+      continue;
+    }
+    if (p.isWithin(targetDir.path, path)) {
+      stored.add(path);
+      continue;
+    }
+    final ext = p.extension(path);
+    final targetPath = p.join(
+      targetDir.path,
+      '${folder}_${stamp}_$i${ext.isEmpty ? '.jpg' : ext}',
+    );
+    final copied = await File(path).copy(targetPath);
+    stored.add(copied.path);
+  }
+  return stored;
+}
+
+Future<String?> _persistSingleImage(XFile file, String folder) async {
+  final stored = await _persistPickedImages([file], folder);
+  if (stored.isEmpty) return null;
+  return stored.first;
 }
 
 class _AssociationRow extends StatelessWidget {
