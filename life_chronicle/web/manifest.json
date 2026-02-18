@@ -1,6 +1,6 @@
 {
-    "name": "life_chronicle",
-    "short_name": "life_chronicle",
+    "name": "人生编年史",
+    "short_name": "人生编年史",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

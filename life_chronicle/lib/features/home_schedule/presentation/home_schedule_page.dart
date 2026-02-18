@@ -370,15 +370,70 @@ class _TodayReminder extends StatelessWidget {
   }
 }
 
-class _CalendarCard extends StatelessWidget {
+class _CalendarCard extends StatefulWidget {
   const _CalendarCard();
 
   @override
-  Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final focusMonth = DateTime(now.year, now.month, 1);
-    final selectedDay = DateTime(now.year, now.month, now.day);
+  State<_CalendarCard> createState() => _CalendarCardState();
+}
 
+class _CalendarCardState extends State<_CalendarCard> {
+  late DateTime _focusMonth;
+  late DateTime _selectedDay;
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _focusMonth = DateTime(now.year, now.month, 1);
+    _selectedDay = DateTime(now.year, now.month, now.day);
+  }
+
+  void _goPrevMonth() {
+    setState(() {
+      _focusMonth = DateTime(_focusMonth.year, _focusMonth.month - 1, 1);
+      _selectedDay = _clampSelectedDay(_selectedDay, _focusMonth);
+    });
+  }
+
+  void _goNextMonth() {
+    setState(() {
+      _focusMonth = DateTime(_focusMonth.year, _focusMonth.month + 1, 1);
+      _selectedDay = _clampSelectedDay(_selectedDay, _focusMonth);
+    });
+  }
+
+  DateTime _clampSelectedDay(DateTime day, DateTime focusMonth) {
+    final maxDay = DateUtils.getDaysInMonth(focusMonth.year, focusMonth.month);
+    final clampedDay = day.day.clamp(1, maxDay);
+    return DateTime(focusMonth.year, focusMonth.month, clampedDay);
+  }
+
+  Future<void> _openMonthPicker() async {
+    final result = await showModalBottomSheet<_MonthYearValue>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => _MonthYearPickerSheet(
+        initialYear: _focusMonth.year,
+        initialMonth: _focusMonth.month,
+      ),
+    );
+    if (!mounted || result == null) return;
+    setState(() {
+      _focusMonth = DateTime(result.year, result.month, 1);
+      _selectedDay = _clampSelectedDay(_selectedDay, _focusMonth);
+    });
+  }
+
+  void _selectDay(DateTime day) {
+    setState(() {
+      _selectedDay = day;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -400,11 +455,21 @@ class _CalendarCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _CalendarHeader(month: focusMonth.month, year: focusMonth.year),
+          _CalendarHeader(
+            month: _focusMonth.month,
+            year: _focusMonth.year,
+            onPrev: _goPrevMonth,
+            onNext: _goNextMonth,
+            onPick: _openMonthPicker,
+          ),
           const SizedBox(height: 14),
           const _WeekdayRow(),
           const SizedBox(height: 10),
-          _CalendarGrid(focusMonth: focusMonth, selectedDay: selectedDay),
+          _CalendarGrid(
+            focusMonth: _focusMonth,
+            selectedDay: _selectedDay,
+            onSelectDay: _selectDay,
+          ),
         ],
       ),
     );
@@ -412,62 +477,46 @@ class _CalendarCard extends StatelessWidget {
 }
 
 class _CalendarHeader extends StatelessWidget {
-  const _CalendarHeader({required this.month, required this.year});
+  const _CalendarHeader({
+    required this.month,
+    required this.year,
+    required this.onPrev,
+    required this.onNext,
+    required this.onPick,
+  });
 
   final int month;
   final int year;
+  final VoidCallback onPrev;
+  final VoidCallback onNext;
+  final VoidCallback onPick;
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Text(
-          '$month月',
-          style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: AppTheme.textMain),
-        ),
-        const SizedBox(width: 8),
-        Padding(
-          padding: EdgeInsets.only(bottom: 4),
-          child: Text(
-            '$year',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Color(0xFF9CA3AF)),
-          ),
-        ),
-        const Spacer(),
-        Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF3F4F6),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: const [
-                    BoxShadow(color: Color(0x14000000), blurRadius: 6, offset: Offset(0, 2)),
-                  ],
-                ),
-                child: const Text(
-                  '月',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppTheme.textMain),
-                ),
+        _CalendarIconButton(icon: Icons.chevron_left, onTap: onPrev),
+        Expanded(
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: onPick,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '$year年$month月',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppTheme.textMain),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.expand_more, size: 18, color: Color(0xFF94A3B8)),
+                ],
               ),
-              const SizedBox(width: 4),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                child: Text(
-                  '周',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textMuted),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
+        _CalendarIconButton(icon: Icons.chevron_right, onTap: onNext),
       ],
     );
   }
@@ -495,10 +544,15 @@ class _WeekdayRow extends StatelessWidget {
 }
 
 class _CalendarGrid extends StatelessWidget {
-  const _CalendarGrid({required this.focusMonth, required this.selectedDay});
+  const _CalendarGrid({
+    required this.focusMonth,
+    required this.selectedDay,
+    required this.onSelectDay,
+  });
 
   final DateTime focusMonth;
   final DateTime selectedDay;
+  final ValueChanged<DateTime> onSelectDay;
 
   List<_CalendarCellData> _buildCells() {
     final year = focusMonth.year;
@@ -528,26 +582,41 @@ class _CalendarGrid extends StatelessWidget {
         return _CalendarCellData(day: '$displayDay', muted: true);
       }
 
+      final date = DateTime(year, month, displayDay);
       if (displayDay == 1) {
-        return _CalendarCellData(day: '$displayDay', selected: selected, dots: const [dotBlue]);
+        return _CalendarCellData(day: '$displayDay', date: date, selected: selected, dots: const [dotBlue]);
       }
       if (displayDay == 2) {
-        return _CalendarCellData(day: '$displayDay', selected: selected, icon: Icons.star, iconColor: const Color(0xFFFBBF24));
+        return _CalendarCellData(
+          day: '$displayDay',
+          date: date,
+          selected: selected,
+          icon: Icons.star,
+          iconColor: const Color(0xFFFBBF24),
+        );
       }
       if (displayDay == 4) {
         return _CalendarCellData(
           day: '$displayDay',
+          date: date,
           selected: selected,
           icon: Icons.fitness_center,
           iconColor: const Color(0xFFC084FC),
         );
       }
       if (displayDay == 6) {
-        return _CalendarCellData(day: '$displayDay', selected: selected, icon: Icons.favorite, iconColor: const Color(0xFFF87171));
+        return _CalendarCellData(
+          day: '$displayDay',
+          date: date,
+          selected: selected,
+          icon: Icons.favorite,
+          iconColor: const Color(0xFFF87171),
+        );
       }
       if (displayDay == 9) {
         return _CalendarCellData(
           day: '$displayDay',
+          date: date,
           selected: selected,
           multiIcons: const [
             _MiniIcon(Icons.restaurant, Color(0xFFFB923C)),
@@ -558,13 +627,14 @@ class _CalendarGrid extends StatelessWidget {
       if (displayDay == 13) {
         return _CalendarCellData(
           day: '$displayDay',
+          date: date,
           selected: selected,
           icon: Icons.energy_savings_leaf,
           iconColor: const Color(0xFF22C55E),
         );
       }
 
-      return _CalendarCellData(day: '$displayDay', selected: selected);
+      return _CalendarCellData(day: '$displayDay', date: date, selected: selected);
     });
   }
 
@@ -577,12 +647,15 @@ class _CalendarGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 7,
-        mainAxisSpacing: 12,
+        mainAxisSpacing: 10,
         crossAxisSpacing: 0,
         childAspectRatio: 1.2,
       ),
       itemCount: cells.length,
-      itemBuilder: (context, index) => _CalendarCell(data: cells[index]),
+      itemBuilder: (context, index) => _CalendarCell(
+        data: cells[index],
+        onTap: cells[index].date == null ? null : () => onSelectDay(cells[index].date!),
+      ),
     );
   }
 }
@@ -590,6 +663,7 @@ class _CalendarGrid extends StatelessWidget {
 class _CalendarCellData {
   const _CalendarCellData({
     required this.day,
+    this.date,
     this.muted = false,
     this.selected = false,
     this.icon,
@@ -599,6 +673,7 @@ class _CalendarCellData {
   });
 
   final String day;
+  final DateTime? date;
   final bool muted;
   final bool selected;
   final IconData? icon;
@@ -615,9 +690,10 @@ class _MiniIcon {
 }
 
 class _CalendarCell extends StatelessWidget {
-  const _CalendarCell({required this.data});
+  const _CalendarCell({required this.data, required this.onTap});
 
   final _CalendarCellData data;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -651,7 +727,7 @@ class _CalendarCell extends StatelessWidget {
       );
     }
 
-    return Column(
+    final content = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         dayWidget,
@@ -685,6 +761,165 @@ class _CalendarCell extends StatelessWidget {
         else
           const SizedBox(height: 12),
       ],
+    );
+    if (data.muted || onTap == null) {
+      return content;
+    }
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: onTap,
+      child: content,
+    );
+  }
+}
+
+class _CalendarIconButton extends StatelessWidget {
+  const _CalendarIconButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: onTap,
+      child: Container(
+        width: 32,
+        height: 32,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF3F4F6),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Icon(icon, size: 18, color: AppTheme.textMuted),
+      ),
+    );
+  }
+}
+
+class _MonthYearValue {
+  const _MonthYearValue(this.year, this.month);
+
+  final int year;
+  final int month;
+}
+
+class _MonthYearPickerSheet extends StatefulWidget {
+  const _MonthYearPickerSheet({required this.initialYear, required this.initialMonth});
+
+  final int initialYear;
+  final int initialMonth;
+
+  @override
+  State<_MonthYearPickerSheet> createState() => _MonthYearPickerSheetState();
+}
+
+class _MonthYearPickerSheetState extends State<_MonthYearPickerSheet> {
+  late int _year;
+  late int _month;
+
+  @override
+  void initState() {
+    super.initState();
+    _year = widget.initialYear;
+    _month = widget.initialMonth;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final years = List.generate(13, (index) => now.year - 6 + index);
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: EdgeInsets.fromLTRB(20, 12, 20, 20 + MediaQuery.paddingOf(context).bottom),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 44,
+              height: 5,
+              decoration: BoxDecoration(color: const Color(0xFFE5E7EB), borderRadius: BorderRadius.circular(999)),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Text('快速切换', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppTheme.textMain)),
+                const Spacer(),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(_MonthYearValue(_year, _month)),
+                  style: TextButton.styleFrom(foregroundColor: AppTheme.primary, textStyle: const TextStyle(fontWeight: FontWeight.w900)),
+                  child: const Text('确定'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text('年份', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppTheme.textMuted)),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final y in years)
+                  _SelectChip(
+                    label: '$y年',
+                    selected: y == _year,
+                    onTap: () => setState(() => _year = y),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text('月份', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppTheme.textMuted)),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (var m = 1; m <= 12; m++)
+                  _SelectChip(
+                    label: '$m月',
+                    selected: m == _month,
+                    onTap: () => setState(() => _month = m),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SelectChip extends StatelessWidget {
+  const _SelectChip({required this.label, required this.selected, required this.onTap});
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = selected ? AppTheme.primary : const Color(0xFFF3F4F6);
+    final fg = selected ? Colors.white : AppTheme.textMain;
+    return InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
+        child: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: fg)),
+      ),
     );
   }
 }
