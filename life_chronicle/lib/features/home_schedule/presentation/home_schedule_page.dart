@@ -11,8 +11,22 @@ import '../../../app/app_theme.dart';
 import '../../ai_historian/presentation/ai_historian_chat_page.dart';
 import '../../profile/presentation/profile_page.dart';
 
-class HomeSchedulePage extends StatelessWidget {
+class HomeSchedulePage extends StatefulWidget {
   const HomeSchedulePage({super.key});
+
+  @override
+  State<HomeSchedulePage> createState() => _HomeSchedulePageState();
+}
+
+class _HomeSchedulePageState extends State<HomeSchedulePage> {
+  late DateTime _selectedDay;
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _selectedDay = DateTime(now.year, now.month, now.day);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,14 +35,17 @@ class HomeSchedulePage extends StatelessWidget {
       appBar: const _GlassHeader(),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 140),
-        children: const [
-          _FlashbackSection(),
-          SizedBox(height: 16),
-          _TodayReminder(),
-          SizedBox(height: 16),
-          _CalendarCard(),
-          SizedBox(height: 16),
-          _EventStream(),
+        children: [
+          const _FlashbackSection(),
+          const SizedBox(height: 16),
+          const _TodayReminder(),
+          const SizedBox(height: 16),
+          _CalendarCard(
+            selectedDay: _selectedDay,
+            onSelectDay: (day) => setState(() => _selectedDay = day),
+          ),
+          const SizedBox(height: 16),
+          _EventStream(selectedDay: _selectedDay),
         ],
       ),
     );
@@ -410,36 +427,46 @@ class _TodayReminder extends StatelessWidget {
   }
 }
 
-class _CalendarCard extends StatefulWidget {
-  const _CalendarCard();
+class _CalendarCard extends ConsumerStatefulWidget {
+  const _CalendarCard({
+    required this.selectedDay,
+    required this.onSelectDay,
+  });
+
+  final DateTime selectedDay;
+  final ValueChanged<DateTime> onSelectDay;
 
   @override
-  State<_CalendarCard> createState() => _CalendarCardState();
+  ConsumerState<_CalendarCard> createState() => _CalendarCardState();
 }
 
-class _CalendarCardState extends State<_CalendarCard> {
+class _CalendarCardState extends ConsumerState<_CalendarCard> {
   late DateTime _focusMonth;
-  late DateTime _selectedDay;
 
   @override
   void initState() {
     super.initState();
     final now = DateTime.now();
     _focusMonth = DateTime(now.year, now.month, 1);
-    _selectedDay = DateTime(now.year, now.month, now.day);
   }
 
   void _goPrevMonth() {
     setState(() {
       _focusMonth = DateTime(_focusMonth.year, _focusMonth.month - 1, 1);
-      _selectedDay = _clampSelectedDay(_selectedDay, _focusMonth);
+      final newSelected = _clampSelectedDay(widget.selectedDay, _focusMonth);
+      if (newSelected != widget.selectedDay) {
+        widget.onSelectDay(newSelected);
+      }
     });
   }
 
   void _goNextMonth() {
     setState(() {
       _focusMonth = DateTime(_focusMonth.year, _focusMonth.month + 1, 1);
-      _selectedDay = _clampSelectedDay(_selectedDay, _focusMonth);
+      final newSelected = _clampSelectedDay(widget.selectedDay, _focusMonth);
+      if (newSelected != widget.selectedDay) {
+        widget.onSelectDay(newSelected);
+      }
     });
   }
 
@@ -462,56 +489,61 @@ class _CalendarCardState extends State<_CalendarCard> {
     if (!mounted || result == null) return;
     setState(() {
       _focusMonth = DateTime(result.year, result.month, 1);
-      _selectedDay = _clampSelectedDay(_selectedDay, _focusMonth);
-    });
-  }
-
-  void _selectDay(DateTime day) {
-    setState(() {
-      _selectedDay = day;
+      final newSelected = _clampSelectedDay(widget.selectedDay, _focusMonth);
+      if (newSelected != widget.selectedDay) {
+        widget.onSelectDay(newSelected);
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x1A2BCDEE),
-            blurRadius: 20,
-            offset: Offset(0, 4),
+    final db = ref.watch(appDatabaseProvider);
+    return StreamBuilder<List<TimelineEvent>>(
+      stream: db.watchEventsForMonth(_focusMonth),
+      builder: (context, snapshot) {
+        final events = snapshot.data ?? [];
+        return Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x1A2BCDEE),
+                blurRadius: 20,
+                offset: Offset(0, 4),
+              ),
+              BoxShadow(
+                color: Color(0x0A000000),
+                blurRadius: 10,
+                offset: Offset(0, 2),
+              ),
+            ],
           ),
-          BoxShadow(
-            color: Color(0x0A000000),
-            blurRadius: 10,
-            offset: Offset(0, 2),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _CalendarHeader(
+                month: _focusMonth.month,
+                year: _focusMonth.year,
+                onPrev: _goPrevMonth,
+                onNext: _goNextMonth,
+                onPick: _openMonthPicker,
+              ),
+              const SizedBox(height: 14),
+              const _WeekdayRow(),
+              const SizedBox(height: 10),
+              _CalendarGrid(
+                focusMonth: _focusMonth,
+                selectedDay: widget.selectedDay,
+                onSelectDay: widget.onSelectDay,
+                events: events,
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _CalendarHeader(
-            month: _focusMonth.month,
-            year: _focusMonth.year,
-            onPrev: _goPrevMonth,
-            onNext: _goNextMonth,
-            onPick: _openMonthPicker,
-          ),
-          const SizedBox(height: 14),
-          const _WeekdayRow(),
-          const SizedBox(height: 10),
-          _CalendarGrid(
-            focusMonth: _focusMonth,
-            selectedDay: _selectedDay,
-            onSelectDay: _selectDay,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -588,11 +620,13 @@ class _CalendarGrid extends StatelessWidget {
     required this.focusMonth,
     required this.selectedDay,
     required this.onSelectDay,
+    required this.events,
   });
 
   final DateTime focusMonth;
   final DateTime selectedDay;
   final ValueChanged<DateTime> onSelectDay;
+  final List<TimelineEvent> events;
 
   List<_CalendarCellData> _buildCells() {
     final year = focusMonth.year;
@@ -603,6 +637,7 @@ class _CalendarGrid extends StatelessWidget {
     final prevMonthDays = DateTime(year, month, 0).day;
 
     const dotBlue = Color(0xFF60A5FA);
+    const dotOrange = Color(0xFFFB923C);
 
     return List.generate(42, (index) {
       final dayOffset = index - leadingDays + 1;
@@ -623,58 +658,40 @@ class _CalendarGrid extends StatelessWidget {
       }
 
       final date = DateTime(year, month, displayDay);
-      if (displayDay == 1) {
-        return _CalendarCellData(day: '$displayDay', date: date, selected: selected, dots: const [dotBlue]);
-      }
-      if (displayDay == 2) {
-        return _CalendarCellData(
-          day: '$displayDay',
-          date: date,
-          selected: selected,
-          icon: Icons.star,
-          iconColor: const Color(0xFFFBBF24),
-        );
-      }
-      if (displayDay == 4) {
-        return _CalendarCellData(
-          day: '$displayDay',
-          date: date,
-          selected: selected,
-          icon: Icons.fitness_center,
-          iconColor: const Color(0xFFC084FC),
-        );
-      }
-      if (displayDay == 6) {
-        return _CalendarCellData(
-          day: '$displayDay',
-          date: date,
-          selected: selected,
-          icon: Icons.favorite,
-          iconColor: const Color(0xFFF87171),
-        );
-      }
-      if (displayDay == 9) {
-        return _CalendarCellData(
-          day: '$displayDay',
-          date: date,
-          selected: selected,
-          multiIcons: const [
-            _MiniIcon(Icons.restaurant, Color(0xFFFB923C)),
-            _MiniIcon(Icons.flight, dotBlue),
-          ],
-        );
-      }
-      if (displayDay == 13) {
-        return _CalendarCellData(
-          day: '$displayDay',
-          date: date,
-          selected: selected,
-          icon: Icons.energy_savings_leaf,
-          iconColor: const Color(0xFF22C55E),
-        );
+      final dayEvents = events.where((e) {
+        final eDate = e.recordDate;
+        return eDate.year == year && eDate.month == month && eDate.day == displayDay;
+      }).toList();
+
+      final dots = <Color>[];
+      bool hasNote = false;
+
+      if (dayEvents.isNotEmpty) {
+        dots.add(dotBlue);
+        if (dayEvents.any((e) => e.note != null && e.note!.isNotEmpty)) {
+          hasNote = true;
+          // Optionally add another dot for note
+          // dots.add(dotOrange); 
+        }
       }
 
-      return _CalendarCellData(day: '$displayDay', date: date, selected: selected);
+      // Keep hardcoded examples for demonstration if no real events, 
+      // but prioritize real events if available.
+      // Actually, let's mix them or just use real events. 
+      // Given the user wants "notes to show", let's rely on real events primarily.
+      // But to preserve the "demo" look if database is empty, we might keep the logic?
+      // No, better to be clean. But I will keep the special icons logic if it was based on specific dates?
+      // The previous code had hardcoded logic for day 1, 2, 4, 6, 9, 13.
+      // I will remove the hardcoded logic to fully switch to dynamic data, 
+      // as requested "ensure TimelineEvent note content displays".
+
+      return _CalendarCellData(
+        day: '$displayDay', 
+        date: date, 
+        selected: selected, 
+        dots: dots,
+        hasNote: hasNote,
+      );
     });
   }
 
@@ -710,6 +727,7 @@ class _CalendarCellData {
     this.iconColor,
     this.dots = const [],
     this.multiIcons = const [],
+    this.hasNote = false,
   });
 
   final String day;
@@ -720,6 +738,7 @@ class _CalendarCellData {
   final Color? iconColor;
   final List<Color> dots;
   final List<_MiniIcon> multiIcons;
+  final bool hasNote;
 }
 
 class _MiniIcon {
@@ -964,84 +983,101 @@ class _SelectChip extends StatelessWidget {
   }
 }
 
-class _EventStream extends StatelessWidget {
-  const _EventStream();
+class _EventStream extends ConsumerWidget {
+  const _EventStream({required this.selectedDay});
+
+  final DateTime selectedDay;
 
   @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: RichText(
-            text: const TextSpan(
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.textMain),
-              children: [
-                TextSpan(text: '日程记录'),
-                TextSpan(
-                  text: '  5个记录',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF9CA3AF)),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final db = ref.watch(appDatabaseProvider);
+    return StreamBuilder<List<TimelineEvent>>(
+      stream: db.watchEventsForDate(selectedDay),
+      builder: (context, snapshot) {
+        final events = snapshot.data ?? [];
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: RichText(
+                text: TextSpan(
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.textMain),
+                  children: [
+                    const TextSpan(text: '日程记录'),
+                    TextSpan(
+                      text: '  ${events.length}个记录',
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF9CA3AF)),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        const _TimelineItem(
-          time: '09:00',
-          title: '早午餐会议',
-          leadingImageUrl:
-              'https://lh3.googleusercontent.com/aida-public/AB6AXuDvDIrPwminF7o-n2aPp44blUUlZDGZBcEI5o-oOA0cHuiXoT8GYx0Ye4DVLakU2Yu9JPJ-YYd3mmooidnjMqs6zLkkMHHw8wfXE09l7HeU65odVplHfu_Ld2A2Nac6n98F6pfnuv7kj3Iz9F5IbNih56g2lW0SXgs0G0Amt8wm2ZCGY3VRxJ_rfQkSkx5hvgtUFqBq42t43Rva5NpiXEwviX9HtXmtHhZnD4G9Yf95-wMgdksNQ5g7JmnR3fS04L5onQSXyZxih5BO',
-          tags: [
-            _TagData(icon: Icons.restaurant, label: '美食', bg: Color(0xFFFFF7ED), fg: Color(0xFFEA580C), border: Color(0xFFFFEDD5)),
-            _TagData(icon: Icons.place, label: '蓝山咖啡馆', bg: Color(0xFFF9FAFB), fg: Color(0xFF4B5563), border: Color(0xFFF3F4F6)),
+            const SizedBox(height: 12),
+            if (events.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Center(
+                  child: Text(
+                    '${selectedDay.month}月${selectedDay.day}日 暂无日程',
+                    style: const TextStyle(color: AppTheme.textMuted),
+                  ),
+                ),
+              )
+            else
+              for (final event in events)
+                _TimelineItem(
+                  time: _formatTime(event.startAt),
+                  title: event.title,
+                  subtitle: event.note,
+                  leadingIcon: _getIconForType(event.eventType),
+                  leadingBg: _getColorForType(event.eventType).withValues(alpha: 0.1),
+                  leadingFg: _getColorForType(event.eventType),
+                  showLine: event != events.last,
+                ),
           ],
-        ),
-        const _TimelineItem(
-          time: '11:30',
-          title: '出差准备：整理行李与行程',
-          leadingIcon: Icons.park,
-          leadingBg: Color(0xFFF0FDF4),
-          leadingFg: Color(0xFF22C55E),
-          tags: [
-            _TagData(icon: Icons.travel_explore, label: '旅行', bg: Color(0xFFEFF6FF), fg: Color(0xFF2563EB), border: Color(0xFFDBEAFE)),
-          ],
-        ),
-        const _TimelineItem(
-          time: '17:30',
-          title: '完成每日30分钟阅读任务',
-          leadingIcon: Icons.menu_book,
-          leadingBg: Color(0xFFF0FDFA),
-          leadingFg: Color(0xFF14B8A6),
-          tags: [
-            _TagData(icon: Icons.track_changes, label: '目标', bg: Color(0xFFF0FDFA), fg: Color(0xFF0D9488), border: Color(0xFFCCFBF1)),
-          ],
-        ),
-        const _TimelineItem(
-          time: '14:00',
-          title: '出差准备',
-          subtitle: '整理行李，确认机票信息，打印会议资料。',
-          leadingIcon: Icons.flight_takeoff,
-          leadingBg: Color(0xFFEFF6FF),
-          leadingFg: Color(0xFF60A5FA),
-          tags: [
-            _TagData(icon: Icons.tag, label: '工作', bg: Color(0x80EFF6FF), fg: Color(0xFF2563EB), border: Color(0xFFDBEAFE)),
-          ],
-        ),
-        const _TimelineItem(
-          time: '19:30',
-          title: '能量时刻：与老友视频通话',
-          leadingIcon: Icons.videocam,
-          leadingBg: Color(0xFFF5F3FF),
-          leadingFg: Color(0xFFA78BFA),
-          tags: [
-            _TagData(icon: Icons.groups, label: '羁绊', bg: Color(0xFFF5F3FF), fg: Color(0xFF7C3AED), border: Color(0xFFEDE9FE)),
-          ],
-          showLine: false,
-        ),
-      ],
+        );
+      },
     );
+  }
+
+  String _formatTime(DateTime? time) {
+    if (time == null) return '--:--';
+    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+  }
+
+  IconData _getIconForType(String type) {
+    switch (type) {
+      case 'work':
+        return Icons.work;
+      case 'personal':
+        return Icons.person;
+      case 'travel':
+        return Icons.flight;
+      case 'food':
+        return Icons.restaurant;
+      case 'encounter':
+        return Icons.people;
+      default:
+        return Icons.event;
+    }
+  }
+
+  Color _getColorForType(String type) {
+    switch (type) {
+      case 'work':
+        return Colors.blue;
+      case 'personal':
+        return Colors.green;
+      case 'travel':
+        return Colors.purple;
+      case 'food':
+        return Colors.orange;
+      case 'encounter':
+        return Colors.pink;
+      default:
+        return Colors.grey;
+    }
   }
 }
 

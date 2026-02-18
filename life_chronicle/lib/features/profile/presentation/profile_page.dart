@@ -13,6 +13,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
+import '../../../core/utils/media_storage.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -287,22 +288,7 @@ class _HeaderState extends State<_Header> {
   }
 
   Future<String?> _persistAvatar(String path) async {
-    if (path.trim().isEmpty) return null;
-    if (path.startsWith('http://') || path.startsWith('https://')) return path;
-    if (kIsWeb) return path;
-    final dir = await getApplicationDocumentsDirectory();
-    final profileDir = Directory(p.join(dir.path, 'profile'));
-    await profileDir.create(recursive: true);
-    if (p.isWithin(profileDir.path, path)) {
-      return path;
-    }
-    final ext = p.extension(path);
-    final targetPath = p.join(
-      profileDir.path,
-      'avatar_${DateTime.now().millisecondsSinceEpoch}${ext.isEmpty ? '.jpg' : ext}',
-    );
-    final saved = await File(path).copy(targetPath);
-    return saved.path;
+    return persistImagePath(path, folder: 'profile', prefix: 'avatar');
   }
 
   void _openAvatarPreview() {

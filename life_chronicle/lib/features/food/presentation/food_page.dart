@@ -4,18 +4,17 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:drift/drift.dart' show OrderingMode, OrderingTerm, Value;
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
+import '../../../core/utils/media_storage.dart';
 
 class FoodPage extends StatefulWidget {
   const FoodPage({super.key});
@@ -2379,35 +2378,7 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
   }
 
   Future<List<String>> _persistImages(List<XFile> files) async {
-    if (files.isEmpty) return const [];
-    if (kIsWeb) {
-      return files.map((f) => f.path).where((p) => p.trim().isNotEmpty).toList(growable: false);
-    }
-    final dir = await getApplicationDocumentsDirectory();
-    final targetDir = Directory(p.join(dir.path, 'media', 'food'));
-    await targetDir.create(recursive: true);
-    final stamp = DateTime.now().millisecondsSinceEpoch;
-    final stored = <String>[];
-    for (var i = 0; i < files.length; i += 1) {
-      final path = files[i].path.trim();
-      if (path.isEmpty) continue;
-      if (path.startsWith('http://') || path.startsWith('https://')) {
-        stored.add(path);
-        continue;
-      }
-      if (p.isWithin(targetDir.path, path)) {
-        stored.add(path);
-        continue;
-      }
-      final ext = p.extension(path);
-      final targetPath = p.join(
-        targetDir.path,
-        'food_${stamp}_$i${ext.isEmpty ? '.jpg' : ext}',
-      );
-      final copied = await File(path).copy(targetPath);
-      stored.add(copied.path);
-    }
-    return stored;
+    return persistImageFiles(files, folder: 'food', prefix: 'food');
   }
 
   Future<void> _showEditTagsSheet(BuildContext context) async {
@@ -3192,6 +3163,7 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
       initialDateRange: initial,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
+      locale: const Locale('zh', 'CN'),
     );
     if (picked == null) return;
     setState(() {

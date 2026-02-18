@@ -17,6 +17,7 @@ part 'daos/link_dao.dart';
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(dbconn.openConnection());
+  AppDatabase.connect(super.executor);
 
   @override
   int get schemaVersion => 4;
@@ -80,5 +81,41 @@ class AppDatabase extends _$AppDatabase {
           ..where((t) => t.isDeleted.equals(false))
           ..orderBy([(t) => OrderingTerm(expression: t.recordDate, mode: OrderingMode.desc)]))
         .watch();
+  }
+
+  Stream<List<TimelineEvent>> watchEventsForMonth(DateTime month) {
+    final start = DateTime(month.year, month.month, 1);
+    final end = DateTime(month.year, month.month + 1, 1);
+
+    return (select(timelineEvents)
+          ..where((t) => t.isDeleted.equals(false))
+          ..where((t) => t.recordDate.isBiggerOrEqualValue(start))
+          ..where((t) => t.recordDate.isSmallerThanValue(end)))
+        .watch();
+  }
+
+  Stream<List<TimelineEvent>> watchEncounterEvents() {
+    return (select(timelineEvents)
+          ..where((t) => t.isDeleted.equals(false))
+          ..where((t) => t.eventType.equals('encounter'))
+          ..orderBy([(t) => OrderingTerm.desc(t.recordDate)]))
+        .watch();
+  }
+
+  Stream<List<TimelineEvent>> watchEncountersForFriend(String friendId) {
+    final query = select(timelineEvents).join([
+      innerJoin(
+        entityLinks,
+        entityLinks.sourceId.equalsExp(timelineEvents.id) &
+            entityLinks.sourceType.equals('encounter') &
+            entityLinks.targetType.equals('friend') &
+            entityLinks.targetId.equals(friendId),
+      )
+    ]);
+
+    query.where(timelineEvents.isDeleted.equals(false));
+    query.orderBy([OrderingTerm.desc(timelineEvents.recordDate)]);
+
+    return query.map((row) => row.readTable(timelineEvents)).watch();
   }
 }

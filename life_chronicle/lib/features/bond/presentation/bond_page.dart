@@ -1,18 +1,15 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
+import '../../../core/utils/media_storage.dart';
 
 class BondPage extends StatefulWidget {
   const BondPage({super.key});
@@ -55,6 +52,10 @@ class _BondPageState extends State<BondPage> {
   }
 
   void _handleAdd() {
+    if (_tabIndex == 0) {
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FriendCreatePage()));
+      return;
+    }
     if (_tabIndex == 1) {
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EncounterCreatePage()));
     }
@@ -279,132 +280,80 @@ class _SegmentedPill extends StatelessWidget {
   }
 }
 
-class _FriendArchiveList extends StatelessWidget {
+class _FriendArchiveList extends ConsumerWidget {
   const _FriendArchiveList();
 
-  static const _friends = <_FriendArchiveItem>[
-    _FriendArchiveItem(
-      name: '林小鱼',
-      days: '3650天',
-      lastMeet: '上次见面：3天前',
-      tags: ['老同学', '饭搭子'],
-      imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDnx1BVMR2dn9-gpBBTIe286GD2f9d7IG3M2LVpHr5OQjFJ8YLsVB8yjzaoMV7Dr811Vw5m0T_opKoELbOUkPeZb_STLqC35_ENoXDazPq9TTwohuyly8N9jOpaxzpWzP4q2ZrMclyVw9pcUxfIm4EOAZLzcuyNY4TqjN7ri4M9GVuLVvlIndWVHWw12-0TPCbW_KzK61CDR_0fhUFP6jUiZcAi4PL0CKrr_Kyc_gQOqS7fTHK54Ah5-dfm-X8gewzUscxFZQELJCJC',
-      imageHeight: 170,
-    ),
-    _FriendArchiveItem(
-      name: '陈老师',
-      days: '1020天',
-      lastMeet: '上次见面：15天前',
-      tags: ['导师', '智慧'],
-      imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCHu7IjV4cm33RK-pkW6hoonuhAQb-DyLv1iVA2dKyQzhd53lWXWSVa6eJW6rK7TKJnUToCMFXgmbTJ5g-mq297SH27qPKorpNg89CDpkS8jMwru2zk1tk7xfAlvodwWdYB35Yqzc2O4_ySLIqrlWkt5iqPTI-nAg5nSGaTs0EtWfpyvlACMrdqnHi_1OA5skMQLi0f3jkQIudZvkcVmNTpSXhsliEpFVz-yLcLGAFL79i_Q_Wn0FxMY54HVtZa1wHbBGKAo5tDTOSU',
-      imageHeight: 220,
-    ),
-    _FriendArchiveItem(
-      name: 'Jason',
-      days: '45天',
-      lastMeet: '上次见面：昨天',
-      tags: ['球友', '健身'],
-      imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD7a6VGtTuMF5_1dOUkhDvMytXsN_vaVbM1zmWeRy2xsUiPpU4nj0m8bEj9AgIG4HXGDqpXAU22jtovDG11u5qOoRLN-XtLa8JVPps9PXgUtMjgGbLvdk6w9rLQdflNn3ebsmEzJLlnk4Ibu2aw0t0hC-qbpowK8L2ZdAAvoWdSpvpmweSC43SYii0vr3DYbtX2N3KpTt06nN5hQY1y4KKXCqQ107XJOP9MSSy1zNazGNu__RWQYxgkPt4E_cYATP9roWtyz9l-AXk9',
-      imageHeight: 150,
-    ),
-    _FriendArchiveItem(
-      name: '阿花',
-      days: '8500天',
-      lastMeet: '上次见面：1年前',
-      tags: ['发小', '邻居', '搞笑'],
-      imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCPTEFJCEvq3DE8_rarnMy0tRvPerq84lGyzqbcCGjBMMAVPCBpNdC2UiSOKAzOzP6jN7BtlyuM4UVSjzaKNBero_HjI3Oum6NUUwOnpsVLWtmiSnmjnQSxyQPNMZCuUPr-zgyBXTv-quBWZSz_uOTZVnqg8XMrNDVidthYpPO-C7UC8l_rQ65Vvnm2swtHoTVeFpcelpF2eLQPDCu_f68VXQUU_6pAxVQldsQaT-u_r3XpTzK8HrappLNRLKJuwVIrBG5ApFnPfS_Q',
-      imageHeight: 200,
-    ),
-    _FriendArchiveItem(
-      name: 'Sarah',
-      days: '730天',
-      lastMeet: '上次见面：2周前',
-      tags: ['前同事', '设计'],
-      imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBIwIvarteoBM8y0GPR6HHpqwu0yNUd9dNkLND1caedxNoKeLgEj9WAYQbea4GgSibuHyhjyA938K_EmDyI6OVhJ_vNJZ2i5o7kmlcMVv4Q8r2ejwwqn7z6Sq675IYyjQQnKpjRUeLmBPXa-8WGtsJgai_L7J5U_SihU8cSaSp0gHIMWqnyzTidGDslR7geVHGIN2h6AqmlAlpHQQZ711HQ_W6FpZe-5PUHC6innHDBPkAQGjeFrrj7PZJQ3fBb9Ug1vjNS6vcFaZg_',
-      imageHeight: 170,
-    ),
-    _FriendArchiveItem(
-      name: '旺财',
-      days: '2100天',
-      lastMeet: '上次见面：刚刚',
-      tags: ['家人', '可爱'],
-      imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCsCdjZ-FoTFjkLobd1gTqAEFaDqJLutaF8EGbGNBE_NvWKSUhwxsrG5lR1c58Hb0C6hTa4mIg0-dI2uWA2w_wEWaPuuf407WCTZ6I39C0TQfDBY6SaEdrmP4VUXnVK1ekQSEPOtoV4WLB-p8kYjQEr95LINZec5HBjPlwnIL3sVCj2dvUiyYntPetNyKMBV46sNwhdhNMST5-j7ePBPiM1LIccqJ6wSJt2PB6aTVS0V0h9aKLl4zpvViF50D0gcLxQHnYyuQIm2nyB',
-      imageHeight: 170,
-    ),
-  ];
-
   @override
-  Widget build(BuildContext context) {
-    final left = <_FriendArchiveItem>[];
-    final right = <_FriendArchiveItem>[];
-    for (var i = 0; i < _friends.length; i++) {
-      (i.isEven ? left : right).add(_friends[i]);
-    }
-
-    return SingleChildScrollView(
-      key: const ValueKey('friend_archives'),
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 140),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              children: [
-                for (final item in left) ...[
-                  _FriendCard(item: item),
-                  const SizedBox(height: 16),
-                ],
-              ],
-            ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final db = ref.watch(appDatabaseProvider);
+    return StreamBuilder<List<FriendRecord>>(
+      stream: db.friendDao.watchAllActive(),
+      builder: (context, snapshot) {
+        final friends = snapshot.data ?? const <FriendRecord>[];
+        if (friends.isEmpty) {
+          return const Center(
+            child: Text('暂无朋友档案，点击右上角 + 新建', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+          );
+        }
+        final left = <FriendRecord>[];
+        final right = <FriendRecord>[];
+        for (var i = 0; i < friends.length; i++) {
+          (i.isEven ? left : right).add(friends[i]);
+        }
+        return SingleChildScrollView(
+          key: const ValueKey('friend_archives'),
+          padding: const EdgeInsets.fromLTRB(16, 6, 16, 140),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  children: [
+                    for (final item in left) ...[
+                      _FriendCard(friend: item),
+                      const SizedBox(height: 16),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  children: [
+                    for (final item in right) ...[
+                      _FriendCard(friend: item),
+                      const SizedBox(height: 16),
+                    ],
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              children: [
-                for (final item in right) ...[
-                  _FriendCard(item: item),
-                  const SizedBox(height: 16),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
 
-class _FriendArchiveItem {
-  const _FriendArchiveItem({
-    required this.name,
-    required this.days,
-    required this.tags,
-    required this.lastMeet,
-    required this.imageUrl,
-    required this.imageHeight,
-  });
-
-  final String name;
-  final String days;
-  final List<String> tags;
-  final String lastMeet;
-  final String imageUrl;
-  final double imageHeight;
-}
-
 class _FriendCard extends StatelessWidget {
-  const _FriendCard({required this.item});
+  const _FriendCard({required this.friend});
 
-  final _FriendArchiveItem item;
+  final FriendRecord friend;
 
   @override
   Widget build(BuildContext context) {
+    final tags = _parseTags(friend.impressionTags);
+    final displayTags = tags.isEmpty ? const ['未标记'] : tags;
+    final daysText = _formatDays(friend.meetDate);
+    final lastMeetText = _formatLastMeet(friend.lastMeetDate ?? friend.meetDate);
+    final avatarPath = (friend.avatarPath ?? '').trim();
+    final imageHeight = 150 + (friend.id.hashCode % 4) * 20.0;
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(24),
       elevation: 0,
       child: InkWell(
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => _BondFriendDetailPage(friend: item))),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => _BondFriendDetailPage(friend: friend))),
         borderRadius: BorderRadius.circular(24),
         child: Container(
           decoration: BoxDecoration(
@@ -418,11 +367,28 @@ class _FriendCard extends StatelessWidget {
               ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                 child: SizedBox(
-                  height: item.imageHeight,
+                  height: imageHeight,
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      _buildLocalImage(item.imageUrl, fit: BoxFit.cover),
+                      if (avatarPath.isNotEmpty)
+                        _buildLocalImage(avatarPath, fit: BoxFit.cover)
+                      else
+                        Container(
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Color(0xFFE2E8F0), Color(0xFFF8FAFC)],
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              _initialLetter(friend.name),
+                              style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: Color(0xFF64748B)),
+                            ),
+                          ),
+                        ),
                       const DecoratedBox(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
@@ -446,7 +412,7 @@ class _FriendCard extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            item.name,
+                            friend.name,
                             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF1F2937)),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -455,7 +421,7 @@ class _FriendCard extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(color: const Color(0x1A2BCDEE), borderRadius: BorderRadius.circular(999)),
                           child: Text(
-                            item.days,
+                            daysText,
                             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF2BCDEE)),
                           ),
                         ),
@@ -466,7 +432,7 @@ class _FriendCard extends StatelessWidget {
                       spacing: 6,
                       runSpacing: 6,
                       children: [
-                        for (final t in item.tags)
+                        for (final t in displayTags)
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                             decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(999)),
@@ -483,7 +449,7 @@ class _FriendCard extends StatelessWidget {
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            item.lastMeet,
+                            lastMeetText,
                             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFFFB923C)),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -758,7 +724,7 @@ class _Avatar extends StatelessWidget {
 class _BondFriendDetailPage extends StatelessWidget {
   const _BondFriendDetailPage({required this.friend});
 
-  final _FriendArchiveItem friend;
+  final FriendRecord friend;
 
   @override
   Widget build(BuildContext context) {
@@ -780,7 +746,7 @@ class _BondFriendDetailPage extends StatelessWidget {
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 140),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               child: Column(
                 children: [
                   _FriendProfileCard(friend: friend),
@@ -811,11 +777,12 @@ class _BondFriendDetailPage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  _FriendMemoryTimeline(friend: friend),
                 ],
               ),
             ),
           ),
+          _FriendMemorySliver(friend: friend),
+          const SliverPadding(padding: EdgeInsets.only(bottom: 140)),
         ],
       ),
     );
@@ -825,7 +792,7 @@ class _BondFriendDetailPage extends StatelessWidget {
 class _FriendProfileCard extends StatelessWidget {
   const _FriendProfileCard({required this.friend});
 
-  final _FriendArchiveItem friend;
+  final FriendRecord friend;
 
   @override
   Widget build(BuildContext context) {
@@ -848,23 +815,36 @@ class _FriendProfileCard extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: ClipOval(
-              child: _buildLocalImage(friend.imageUrl, fit: BoxFit.cover),
+              child: (friend.avatarPath ?? '').trim().isEmpty
+                  ? Container(
+                      color: const Color(0xFFF1F5F9),
+                      alignment: Alignment.center,
+                      child: Text(
+                        _initialLetter(friend.name),
+                        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF64748B)),
+                      ),
+                    )
+                  : _buildLocalImage(friend.avatarPath!, fit: BoxFit.cover),
             ),
           ),
           const SizedBox(height: 12),
           Text(friend.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
           const SizedBox(height: 4),
-          Text('已认识 ${friend.days}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFFFB923C))),
+          Text('已认识 ${_formatDays(friend.meetDate)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFFFB923C))),
           const SizedBox(height: 16),
           Row(
-            children: const [
-              Expanded(child: _InfoPair(label: '朋友生日', value: '10月26日 (还有12天)')),
-              SizedBox(width: 12),
-              Expanded(child: _InfoPair(label: '认识途径', value: '市一中 高中同学')),
+            children: [
+              Expanded(child: _InfoPair(label: '朋友生日', value: _formatBirthday(friend.birthday))),
+              const SizedBox(width: 12),
+              Expanded(child: _InfoPair(label: '认识途径', value: _formatOrFallback(friend.meetWay, '未记录'))),
             ],
           ),
           const SizedBox(height: 12),
-          const _InfoPair(label: '备注', value: '高中死党，超级火锅爱好者'),
+          _InfoPair(label: '备注', value: _formatOrFallback(friend.contact, '未填写')),
+          if (_formatOrFallback(friend.contactFrequency, '').isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _InfoPair(label: '联络频率', value: _formatOrFallback(friend.contactFrequency, '未设置')),
+          ],
           const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerLeft,
@@ -877,7 +857,7 @@ class _FriendProfileCard extends StatelessWidget {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    for (final t in friend.tags)
+                    for (final t in _tagsOrFallback(friend.impressionTags))
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(color: const Color(0x1A2BCDEE), borderRadius: BorderRadius.circular(999)),
@@ -947,96 +927,130 @@ class _InfoPair extends StatelessWidget {
   }
 }
 
-class _FriendMemoryTimeline extends StatefulWidget {
-  const _FriendMemoryTimeline({required this.friend});
+class _FriendMemorySliver extends ConsumerStatefulWidget {
+  const _FriendMemorySliver({required this.friend});
 
-  final _FriendArchiveItem friend;
+  final FriendRecord friend;
 
   @override
-  State<_FriendMemoryTimeline> createState() => _FriendMemoryTimelineState();
+  ConsumerState<_FriendMemorySliver> createState() => _FriendMemorySliverState();
 }
 
-class _FriendMemoryTimelineState extends State<_FriendMemoryTimeline> {
+class _FriendMemorySliverState extends ConsumerState<_FriendMemorySliver> {
   var _filterIndex = 0;
 
-  static const _items = <_FriendMemoryItem>[
-    _FriendMemoryItem(
-      date: '2023年 10月 14日',
-      typeLabel: '旅行',
-      typeIcon: Icons.flight_takeoff,
-      title: '京都红叶之旅',
-      content: '即使下雨也很美的一天。我们在清水寺求了签，还吃到了超级好吃的抹茶冰淇淋！说好明年还要一起来。',
-      place: '日本 · 京都',
-      imageUrl:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuA0aY7ho5JFR6xd4Dx-Viy_Ln5A4nyN9jjpKfK2OFlY6OrMzrIgYOq4teJOs1HlLjtUBmXlYBvVsvnq456VIIROH-_F7l6jQ2Tq_ncq7SW40NuJxrsIb_TY3IFMuood77iHB0ySyu2oHOhjjxQk0PWidNZ9mC5ZHI7-G6Ansi01UHXY1pnmU2r34RLwK6BTNial925C9cueZlbvw_9S_kQiEnwsveuq4rmYDX7It1U0ZYkwtJ8z2oNqYoJ8EJ1JzY72qElThvRP-ZpH',
-      large: true,
-    ),
-    _FriendMemoryItem(
-      date: '2023年 8月 2日',
-      typeLabel: '美食',
-      typeIcon: Icons.restaurant,
-      title: '火锅局 🔥',
-      content: '老地方见！晓雯终于不迟到了哈哈。',
-      place: '上海 · 静安',
-      imageUrl:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuBYngYbbhn5XYOmWdqL2n_WAXBvW7DNtnZuqlNEVluNk-3sdfN8wxt2C11Zw1Mb2MSMzfnTmiGs3OYlrI6z_T9Uelht6wACNNhbRIuTRtDRp4jgCCCBq6TKdWHMgSs4vuJHRjYdByVEW5xv5ji24H-IVEDaYKLzmwAYSbKiLkKcJZnLV8jeLU2oz9bg1BGpscZ5_hme8a1vmXD0Um4pcFhNb7Qu106iJPWCEz_fEUpnB7YkDKCT8szi9Nz3RLZCVho3qigsX63sXU1k',
-      large: false,
-    ),
-    _FriendMemoryItem(
-      date: '2023年 6月 9日',
-      typeLabel: '小确幸',
-      typeIcon: Icons.auto_awesome,
-      title: '雨天的咖啡馆',
-      content: '窗外下雨，我们聊了很久很久。',
-      place: '上海 · 徐汇',
-      imageUrl:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuB7bB4qRrW8u1lXcY7xv8u2pY1oP9uZ',
-      large: false,
-    ),
-  ];
+  List<_FriendMemoryItem> _parseEvents(List<TimelineEvent> events) {
+    return events.map((e) {
+      String place = '';
+      String content = '';
+      List<String> images = [];
+
+      if (e.note != null) {
+        final lines = e.note!.split('\n');
+        for (final line in lines) {
+          if (line.startsWith('地点：')) {
+            place = line.substring(3).trim();
+          } else if (line.startsWith('心情分享：')) {
+            content = line.substring(5).trim();
+          } else if (line.startsWith('图片：')) {
+            try {
+              final jsonStr = line.substring(3).trim();
+              final list = jsonDecode(jsonStr) as List;
+              images = list.map((e) => e.toString()).toList();
+            } catch (_) {}
+          }
+        }
+      }
+
+      return _FriendMemoryItem(
+        date: '${e.recordDate.year}年 ${e.recordDate.month}月 ${e.recordDate.day}日',
+        typeLabel: '遭遇', // 暂时统一
+        typeIcon: Icons.diversity_3,
+        title: e.title,
+        content: content,
+        place: place,
+        images: images,
+      );
+    }).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('共同回忆轴', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                  SizedBox(height: 4),
-                  Text('共 126 个美好瞬间', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
-                ],
-              ),
-            ),
-            TextButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.filter_list, size: 18),
-              label: const Text('筛选'),
-              style: TextButton.styleFrom(foregroundColor: const Color(0xFF2BCDEE), textStyle: const TextStyle(fontWeight: FontWeight.w900)),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              _PillTab(label: '全部', active: _filterIndex == 0, onTap: () => setState(() => _filterIndex = 0)),
-              const SizedBox(width: 10),
-              _PillTab(label: '🍽️ 美食', active: _filterIndex == 1, onTap: () => setState(() => _filterIndex = 1)),
-              const SizedBox(width: 10),
-              _PillTab(label: '✈️ 旅行', active: _filterIndex == 2, onTap: () => setState(() => _filterIndex = 2)),
-              const SizedBox(width: 10),
-              _PillTab(label: '✨ 小确幸', active: _filterIndex == 3, onTap: () => setState(() => _filterIndex = 3)),
-            ],
+    final db = ref.watch(appDatabaseProvider);
+
+    return StreamBuilder<List<TimelineEvent>>(
+      stream: db.watchEncountersForFriend(widget.friend.id),
+      builder: (context, snapshot) {
+        final events = snapshot.data ?? [];
+        final items = _parseEvents(events);
+
+        return SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              if (index == 0) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('共同回忆轴', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                                const SizedBox(height: 4),
+                                Text('共 ${items.length} 个美好瞬间', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF9CA3AF))),
+                              ],
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: () {},
+                            icon: const Icon(Icons.filter_list, size: 18),
+                            label: const Text('筛选'),
+                            style: TextButton.styleFrom(foregroundColor: const Color(0xFF2BCDEE), textStyle: const TextStyle(fontWeight: FontWeight.w900)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            _PillTab(label: '全部', active: _filterIndex == 0, onTap: () => setState(() => _filterIndex = 0)),
+                            const SizedBox(width: 10),
+                            _PillTab(label: '🍽️ 美食', active: _filterIndex == 1, onTap: () => setState(() => _filterIndex = 1)),
+                            const SizedBox(width: 10),
+                            _PillTab(label: '✈️ 旅行', active: _filterIndex == 2, onTap: () => setState(() => _filterIndex = 2)),
+                            const SizedBox(width: 10),
+                            _PillTab(label: '✨ 小确幸', active: _filterIndex == 3, onTap: () => setState(() => _filterIndex = 3)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
+                  ),
+                );
+              }
+
+              if (items.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 32, horizontal: 16),
+                  child: Center(child: Text('还没有共同回忆哦，快去记录一次遭遇吧！', style: TextStyle(color: Color(0xFF9CA3AF)))),
+                );
+              }
+
+              final itemIndex = index - 1;
+              final item = items[itemIndex];
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                child: _TimelineEntry(item: item, isLast: itemIndex == items.length - 1),
+              );
+            },
+            childCount: items.isEmpty ? 2 : items.length + 1,
           ),
-        ),
-        const SizedBox(height: 14),
-        _Timeline(items: _items),
-      ],
+        );
+      },
     );
   }
 }
@@ -1081,8 +1095,7 @@ class _FriendMemoryItem {
     required this.title,
     required this.content,
     required this.place,
-    required this.imageUrl,
-    required this.large,
+    required this.images,
   });
 
   final String date;
@@ -1091,87 +1104,81 @@ class _FriendMemoryItem {
   final String title;
   final String content;
   final String place;
-  final String imageUrl;
-  final bool large;
+  final List<String> images;
 }
 
-class _Timeline extends StatelessWidget {
-  const _Timeline({required this.items});
+class _TimelineEntry extends StatelessWidget {
+  const _TimelineEntry({
+    required this.item,
+    this.isLast = false,
+  });
 
-  final List<_FriendMemoryItem> items;
+  final _FriendMemoryItem item;
+  final bool isLast;
 
   @override
   Widget build(BuildContext context) {
+    final hasImage = item.images.isNotEmpty;
     return Stack(
       children: [
         Positioned(
           left: 24,
           top: 0,
-          bottom: 0,
+          bottom: isLast ? null : 0,
+          height: isLast ? 24 : null, // Stop at dot center (approx) if last
           child: Container(
             width: 2,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [const Color(0xFFFB923C), const Color(0xFFFB923C).withValues(alpha: 0.18)],
-              ),
-            ),
+            color: const Color(0xFFFB923C).withValues(alpha: 0.3),
           ),
         ),
-        Column(
-          children: [
-            for (final item in items) ...[
-              _TimelineEntry(item: item),
-              const SizedBox(height: 16),
-            ],
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _TimelineEntry extends StatelessWidget {
-  const _TimelineEntry({required this.item});
-
-  final _FriendMemoryItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(width: 10),
-        Container(
-          width: 14,
-          height: 14,
-          margin: const EdgeInsets.only(top: 10),
-          decoration: BoxDecoration(
-            color: item.large ? const Color(0xFF2BCDEE) : const Color(0xFFD1D5DB),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: const Color(0xFFF8FAFC), width: 2),
-            boxShadow: item.large ? [BoxShadow(color: const Color(0xFF2BCDEE).withValues(alpha: 0.20), blurRadius: 14, offset: const Offset(0, 6))] : null,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(item.date, style: TextStyle(fontSize: 12, fontWeight: item.large ? FontWeight.w900 : FontWeight.w700, color: item.large ? const Color(0xFF2BCDEE) : const Color(0xFF9CA3AF))),
-              const SizedBox(height: 8),
-              item.large ? _LargeMemoryCard(item: item) : _SmallMemoryCard(item: item),
+              const SizedBox(width: 10),
+              Container(
+                width: 14,
+                height: 14,
+                margin: const EdgeInsets.only(top: 10),
+                decoration: BoxDecoration(
+                  color: hasImage ? const Color(0xFF2BCDEE) : const Color(0xFFD1D5DB),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: const Color(0xFFF8FAFC), width: 2),
+                  boxShadow: hasImage ? [BoxShadow(color: const Color(0xFF2BCDEE).withValues(alpha: 0.20), blurRadius: 14, offset: const Offset(0, 6))] : null,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(item.date, style: TextStyle(fontSize: 12, fontWeight: hasImage ? FontWeight.w900 : FontWeight.w700, color: hasImage ? const Color(0xFF2BCDEE) : const Color(0xFF9CA3AF))),
+                    const SizedBox(height: 8),
+                    _buildCard(context),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
       ],
     );
   }
+
+  Widget _buildCard(BuildContext context) {
+    if (item.images.isEmpty) {
+      return _NoImageMemoryCard(item: item);
+    } else if (item.images.length == 1) {
+      return _SingleImageMemoryCard(item: item);
+    } else {
+      return _MultiImageMemoryCard(item: item);
+    }
+  }
 }
 
-class _LargeMemoryCard extends StatelessWidget {
-  const _LargeMemoryCard({required this.item});
+class _SingleImageMemoryCard extends StatelessWidget {
+  const _SingleImageMemoryCard({required this.item});
 
   final _FriendMemoryItem item;
 
@@ -1199,7 +1206,7 @@ class _LargeMemoryCard extends StatelessWidget {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      _buildLocalImage(item.imageUrl, fit: BoxFit.cover),
+                      _buildLocalImage(item.images.first, fit: BoxFit.cover),
                       Positioned(
                         top: 12,
                         right: 12,
@@ -1253,8 +1260,109 @@ class _LargeMemoryCard extends StatelessWidget {
   }
 }
 
-class _SmallMemoryCard extends StatelessWidget {
-  const _SmallMemoryCard({required this.item});
+class _MultiImageMemoryCard extends StatelessWidget {
+  const _MultiImageMemoryCard({required this.item});
+
+  final _FriendMemoryItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final displayImages = item.images.take(3).toList();
+    final remaining = item.images.length - 3;
+
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(22),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: () {},
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: const Color(0x1A2BCDEE)),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 16, offset: const Offset(0, 6))],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(item.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                        ),
+                        Icon(item.typeIcon, size: 16, color: const Color(0xFF9CA3AF)),
+                        const SizedBox(width: 4),
+                        Text(item.typeLabel, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(item.content, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B), height: 1.45)),
+                  ],
+                ),
+              ),
+              SizedBox(
+                height: 120,
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: displayImages.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (context, index) {
+                    final isLast = index == 2 && remaining > 0;
+                    return ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: SizedBox(
+                        width: 120,
+                        height: 120,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            _buildLocalImage(displayImages[index], fit: BoxFit.cover),
+                            if (isLast)
+                              Container(
+                                color: Colors.black.withValues(alpha: 0.5),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  '+$remaining',
+                                  style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 14),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                child: Row(
+                  children: [
+                    const Icon(Icons.place, size: 16, color: Color(0xFF9CA3AF)),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(item.place, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+                    ),
+                    IconButton(onPressed: () {}, icon: const Icon(Icons.favorite_border), color: const Color(0xFF9CA3AF)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NoImageMemoryCard extends StatelessWidget {
+  const _NoImageMemoryCard({required this.item});
 
   final _FriendMemoryItem item;
 
@@ -1273,31 +1381,410 @@ class _SmallMemoryCard extends StatelessWidget {
             border: Border.all(color: const Color(0x1A2BCDEE)),
             boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 16, offset: const Offset(0, 6))],
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(14),
-                child: SizedBox(
-                  width: 64,
-                  height: 64,
-                  child: _buildLocalImage(item.imageUrl, fit: BoxFit.cover),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(item.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                    const SizedBox(height: 6),
-                    Text(item.content, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B), height: 1.4)),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(item.title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                  ),
+                  if (item.place.isNotEmpty) ...[
+                    const Icon(Icons.place, size: 14, color: Color(0xFF9CA3AF)),
+                    const SizedBox(width: 4),
+                    Text(item.place, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
                   ],
-                ),
+                ],
               ),
-              const SizedBox(width: 8),
-              const Icon(Icons.more_horiz, color: Color(0xFFD1D5DB)),
+              const SizedBox(height: 8),
+              Text(item.content, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B), height: 1.45)),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class FriendCreatePage extends ConsumerStatefulWidget {
+  const FriendCreatePage({super.key});
+
+  @override
+  ConsumerState<FriendCreatePage> createState() => _FriendCreatePageState();
+}
+
+class _FriendCreatePageState extends ConsumerState<FriendCreatePage> {
+  static const _uuid = Uuid();
+  static const _frequencyOptions = ['无需提醒', '每一个月提醒一次', '每三个月提醒一次', '每年提醒一次'];
+  static const _presetTags = [
+    '家人',
+    '同学',
+    '同事',
+    '闺蜜',
+    '饭搭子',
+    '旅行搭子',
+    '球友',
+    '靠谱',
+    '有趣',
+    '温柔',
+    '爱运动',
+    '爱拍照',
+  ];
+
+  final _nameController = TextEditingController();
+  final _meetWayController = TextEditingController();
+  final _remarkController = TextEditingController();
+
+  String? _avatarPath;
+  DateTime? _birthday;
+  DateTime? _meetDate;
+  String? _contactFrequency = '无需提醒';
+  final List<String> _selectedTags = [];
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _meetWayController.dispose();
+    _remarkController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickAvatar() async {
+    final picker = ImagePicker();
+    final file = await picker.pickImage(source: ImageSource.gallery);
+    if (file == null) return;
+    final stored = await persistImageFile(file, folder: 'friend', prefix: 'friend');
+    if (!mounted) return;
+    setState(() => _avatarPath = stored ?? file.path);
+  }
+
+  Future<DateTime?> _pickDateTime(DateTime? initial) async {
+    final base = initial ?? DateTime.now();
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: base,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+      locale: const Locale('zh', 'CN'),
+    );
+    if (pickedDate == null) return null;
+    if (!mounted) return null;
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(base),
+      builder: (context, child) {
+        return Localizations.override(
+          context: context,
+          locale: const Locale('zh', 'CN'),
+          child: child,
+        );
+      },
+    );
+    if (pickedTime == null) {
+      return DateTime(pickedDate.year, pickedDate.month, pickedDate.day);
+    }
+    return DateTime(pickedDate.year, pickedDate.month, pickedDate.day, pickedTime.hour, pickedTime.minute);
+  }
+
+  String _formatDateTime(DateTime? date) {
+    if (date == null) return '未设置';
+    String two(int v) => v.toString().padLeft(2, '0');
+    return '${date.year}-${two(date.month)}-${two(date.day)} ${two(date.hour)}:${two(date.minute)}';
+  }
+
+  Future<void> _addCustomTag() async {
+    final controller = TextEditingController();
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
+        return Padding(
+          padding: EdgeInsets.only(bottom: bottomPadding),
+          child: _BottomSheetShell(
+            title: '自定义标签',
+            actionText: '添加',
+            onAction: () => Navigator.of(context).pop(controller.text.trim()),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              child: TextField(
+                controller: controller,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: '例如：超级会聊天',
+                  filled: true,
+                  fillColor: const Color(0xFFF3F4F6),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+    controller.dispose();
+    final tag = (result ?? '').replaceAll('#', '').trim();
+    if (tag.isEmpty) return;
+    if (_selectedTags.contains(tag)) return;
+    setState(() => _selectedTags.add(tag));
+  }
+
+  Future<void> _save() async {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请填写朋友名字')));
+      return;
+    }
+    final db = ref.read(appDatabaseProvider);
+    final now = DateTime.now();
+    final friendId = _uuid.v4();
+    final impressionTags = _selectedTags.isEmpty ? null : jsonEncode(_selectedTags);
+    final remark = _remarkController.text.trim();
+    final meetWay = _meetWayController.text.trim();
+    final avatar = (_avatarPath ?? '').trim().isNotEmpty ? _avatarPath!.trim() : null;
+
+    await db.friendDao.upsert(
+      FriendRecordsCompanion.insert(
+        id: friendId,
+        name: name,
+        avatarPath: Value(avatar),
+        birthday: Value(_birthday),
+        contact: Value(remark.isEmpty ? null : remark),
+        meetWay: Value(meetWay.isEmpty ? null : meetWay),
+        meetDate: Value(_meetDate),
+        impressionTags: Value(impressionTags),
+        groupName: const Value(null),
+        lastMeetDate: Value(_meetDate),
+        contactFrequency: Value(_contactFrequency?.trim().isEmpty == true ? null : _contactFrequency),
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+
+    if (!mounted) return;
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final avatarPath = (_avatarPath ?? '').trim();
+    return Scaffold(
+      backgroundColor: const Color(0xFFF6F6F6),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            _CreateTopBar(
+              title: '新建朋友档案',
+              onCancel: () => Navigator.of(context).maybePop(),
+              actionText: '保存',
+              onAction: _save,
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 120),
+                children: [
+                  _SectionCard(
+                    title: '头像',
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 66,
+                          height: 66,
+                          decoration: const BoxDecoration(color: Color(0xFFF1F5F9), shape: BoxShape.circle),
+                          child: ClipOval(
+                            child: avatarPath.isEmpty
+                                ? Center(
+                                    child: Text(
+                                      _initialLetter(_nameController.text),
+                                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF64748B)),
+                                    ),
+                                  )
+                                : _buildLocalImage(avatarPath, fit: BoxFit.cover),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text('点击更换头像', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                        ),
+                        OutlinedButton(
+                          onPressed: _pickAvatar,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF2BCDEE),
+                            side: BorderSide(color: const Color(0xFF2BCDEE).withValues(alpha: 0.25)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                          ),
+                          child: const Text('选择'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _SectionCard(
+                    title: '姓名',
+                    child: TextField(
+                      controller: _nameController,
+                      decoration: const InputDecoration(
+                        hintText: '请输入朋友名字',
+                        border: InputBorder.none,
+                      ),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _SectionCard(
+                    title: '认识日期',
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () async {
+                        final picked = await _pickDateTime(_meetDate);
+                        if (picked == null) return;
+                        setState(() => _meetDate = picked);
+                      },
+                      child: Text(
+                        _formatDateTime(_meetDate),
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: _meetDate == null ? const Color(0xFF94A3B8) : const Color(0xFF111827)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _SectionCard(
+                    title: '朋友生日',
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () async {
+                        final picked = await _pickDateTime(_birthday);
+                        if (picked == null) return;
+                        setState(() => _birthday = picked);
+                      },
+                      child: Text(
+                        _formatDateTime(_birthday),
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: _birthday == null ? const Color(0xFF94A3B8) : const Color(0xFF111827)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _SectionCard(
+                    title: '认识途径',
+                    child: TextField(
+                      controller: _meetWayController,
+                      decoration: const InputDecoration(
+                        hintText: '例如：高中同学 / 同事 / 朋友介绍',
+                        border: InputBorder.none,
+                      ),
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF111827)),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _SectionCard(
+                    title: '联络频率提醒',
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final option in _frequencyOptions)
+                          InkWell(
+                            borderRadius: BorderRadius.circular(999),
+                            onTap: () => setState(() => _contactFrequency = option),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: _contactFrequency == option ? const Color(0x1A2BCDEE) : const Color(0xFFF3F4F6),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                option,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                  color: _contactFrequency == option ? const Color(0xFF2BCDEE) : const Color(0xFF64748B),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _SectionCard(
+                    title: '备注',
+                    child: TextField(
+                      controller: _remarkController,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        hintText: '记录 TA 的特点、喜好或要记住的事',
+                        border: InputBorder.none,
+                      ),
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF334155), height: 1.4),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _SectionCard(
+                    title: '印象标签',
+                    trailing: TextButton(
+                      onPressed: _addCustomTag,
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF2BCDEE),
+                        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
+                      ),
+                      child: const Text('自定义'),
+                    ),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final tag in _presetTags)
+                          InkWell(
+                            borderRadius: BorderRadius.circular(999),
+                            onTap: () {
+                              setState(() {
+                                if (_selectedTags.contains(tag)) {
+                                  _selectedTags.remove(tag);
+                                } else {
+                                  _selectedTags.add(tag);
+                                }
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: _selectedTags.contains(tag) ? const Color(0x1A2BCDEE) : const Color(0xFFF3F4F6),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                tag,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                  color: _selectedTags.contains(tag) ? const Color(0xFF2BCDEE) : const Color(0xFF64748B),
+                                ),
+                              ),
+                            ),
+                          ),
+                        for (final tag in _selectedTags.where((t) => !_presetTags.contains(t)))
+                          InkWell(
+                            borderRadius: BorderRadius.circular(999),
+                            onTap: () => setState(() => _selectedTags.remove(tag)),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: const Color(0x1A2BCDEE),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(tag, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF2BCDEE))),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -1336,18 +1823,32 @@ class _EncounterCreatePageState extends ConsumerState<EncounterCreatePage> {
 
   String _formatDate(DateTime d) {
     String two(int v) => v.toString().padLeft(2, '0');
-    return '${d.year}-${two(d.month)}-${two(d.day)}';
+    return '${d.year}-${two(d.month)}-${two(d.day)} ${two(d.hour)}:${two(d.minute)}';
   }
 
   Future<void> _pickDate() async {
-    final picked = await showDatePicker(
+    final pickedDate = await showDatePicker(
       context: context,
       initialDate: _date,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
+      locale: const Locale('zh', 'CN'),
     );
-    if (picked == null) return;
-    setState(() => _date = picked);
+    if (pickedDate == null) return;
+    if (!mounted) return;
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_date),
+      builder: (context, child) {
+        return Localizations.override(
+          context: context,
+          locale: const Locale('zh', 'CN'),
+          child: child,
+        );
+      },
+    );
+    if (pickedTime == null) return;
+    setState(() => _date = DateTime(pickedDate.year, pickedDate.month, pickedDate.day, pickedTime.hour, pickedTime.minute));
   }
 
   Future<void> _addPlaceholderImage() async {
@@ -1360,35 +1861,7 @@ class _EncounterCreatePageState extends ConsumerState<EncounterCreatePage> {
   }
 
   Future<List<String>> _persistImages(List<XFile> files) async {
-    if (files.isEmpty) return const [];
-    if (kIsWeb) {
-      return files.map((f) => f.path).where((p) => p.trim().isNotEmpty).toList(growable: false);
-    }
-    final dir = await getApplicationDocumentsDirectory();
-    final targetDir = Directory(p.join(dir.path, 'media', 'encounter'));
-    await targetDir.create(recursive: true);
-    final stamp = DateTime.now().millisecondsSinceEpoch;
-    final stored = <String>[];
-    for (var i = 0; i < files.length; i += 1) {
-      final path = files[i].path.trim();
-      if (path.isEmpty) continue;
-      if (path.startsWith('http://') || path.startsWith('https://')) {
-        stored.add(path);
-        continue;
-      }
-      if (p.isWithin(targetDir.path, path)) {
-        stored.add(path);
-        continue;
-      }
-      final ext = p.extension(path);
-      final targetPath = p.join(
-        targetDir.path,
-        'encounter_${stamp}_$i${ext.isEmpty ? '.jpg' : ext}',
-      );
-      final copied = await File(path).copy(targetPath);
-      stored.add(copied.path);
-    }
-    return stored;
+    return persistImageFiles(files, folder: 'encounter', prefix: 'encounter');
   }
 
   void _removeImageAt(int index) {
@@ -1410,7 +1883,7 @@ class _EncounterCreatePageState extends ConsumerState<EncounterCreatePage> {
                   (f) => _SelectItem(
                     id: f.id,
                     title: f.name,
-                    leading: _AvatarCircle(name: f.name),
+                    leading: _AvatarCircle(name: f.name, imagePath: f.avatarPath),
                   ),
                 )
                 .toList(growable: false);
@@ -1485,7 +1958,7 @@ class _EncounterCreatePageState extends ConsumerState<EncounterCreatePage> {
             id: encounterId,
             title: title,
             eventType: 'encounter',
-            startAt: Value(recordDate),
+            startAt: Value(_date),
             endAt: const Value(null),
             note: Value(note),
             recordDate: recordDate,
@@ -1915,6 +2388,62 @@ Widget _buildLocalImage(String path, {BoxFit fit = BoxFit.cover}) {
   );
 }
 
+String _initialLetter(String name) {
+  final trimmed = name.trim();
+  return trimmed.isEmpty ? '?' : trimmed.characters.first;
+}
+
+List<String> _parseTags(String? raw) {
+  final value = (raw ?? '').trim();
+  if (value.isEmpty) return [];
+  try {
+    final decoded = jsonDecode(value);
+    if (decoded is List) {
+      return decoded.map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList(growable: false);
+    }
+  } catch (_) {}
+  return value
+      .split(RegExp(r'[，,;；/|]'))
+      .map((e) => e.trim())
+      .where((e) => e.isNotEmpty)
+      .toList(growable: false);
+}
+
+List<String> _tagsOrFallback(String? raw) {
+  final tags = _parseTags(raw);
+  return tags.isEmpty ? const ['未标记'] : tags;
+}
+
+String _formatDays(DateTime? meetDate) {
+  if (meetDate == null) return '未知';
+  final now = DateTime.now();
+  final start = DateTime(meetDate.year, meetDate.month, meetDate.day);
+  final end = DateTime(now.year, now.month, now.day);
+  final days = end.difference(start).inDays;
+  return '${days <= 0 ? 1 : days}天';
+}
+
+String _formatLastMeet(DateTime? lastMeet) {
+  if (lastMeet == null) return '上次见面：未记录';
+  final now = DateTime.now();
+  final date = DateTime(lastMeet.year, lastMeet.month, lastMeet.day);
+  final today = DateTime(now.year, now.month, now.day);
+  final diff = today.difference(date).inDays;
+  if (diff <= 0) return '上次见面：今天';
+  return '上次见面：$diff天前';
+}
+
+String _formatBirthday(DateTime? date) {
+  if (date == null) return '未设置';
+  String two(int v) => v.toString().padLeft(2, '0');
+  return '${two(date.month)}月${two(date.day)}日';
+}
+
+String _formatOrFallback(String? value, String fallback) {
+  final trimmed = (value ?? '').trim();
+  return trimmed.isEmpty ? fallback : trimmed;
+}
+
 class _LinkToggleRow extends StatelessWidget {
   const _LinkToggleRow({
     required this.title,
@@ -2038,6 +2567,7 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
       initialDateRange: initial,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
+      locale: const Locale('zh', 'CN'),
     );
     if (picked == null) return;
     setState(() {
@@ -2158,6 +2688,7 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
                               final checked = _selectedFriendIds.contains(friend.id);
                               return _FilterFriendTile(
                                 name: friend.name,
+                                imagePath: friend.avatarPath,
                                 checked: checked,
                                 onTap: () {
                                   setState(() {
@@ -2214,9 +2745,10 @@ class _FilterOptionChip extends StatelessWidget {
 }
 
 class _FilterFriendTile extends StatelessWidget {
-  const _FilterFriendTile({required this.name, required this.checked, required this.onTap});
+  const _FilterFriendTile({required this.name, required this.imagePath, required this.checked, required this.onTap});
 
   final String name;
+  final String? imagePath;
   final bool checked;
   final VoidCallback onTap;
 
@@ -2224,6 +2756,7 @@ class _FilterFriendTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final trimmed = name.trim();
     final letter = trimmed.isEmpty ? '?' : trimmed.characters.first;
+    final path = imagePath?.trim() ?? '';
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: onTap,
@@ -2239,7 +2772,7 @@ class _FilterFriendTile extends StatelessWidget {
             CircleAvatar(
               radius: 16,
               backgroundColor: const Color(0xFFE5E7EB),
-              child: Text(letter, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF64748B))),
+              child: path.isEmpty ? Text(letter, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF64748B))) : ClipOval(child: _buildLocalImage(path, fit: BoxFit.cover)),
             ),
             const SizedBox(width: 10),
             Expanded(child: Text(name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF111827)))),
@@ -2350,21 +2883,78 @@ class _MultiSelectBottomSheetState extends State<_MultiSelectBottomSheet> {
   }
 }
 
+class _BottomSheetShell extends StatelessWidget {
+  const _BottomSheetShell({
+    required this.title,
+    required this.actionText,
+    required this.onAction,
+    required this.child,
+  });
+
+  final String title;
+  final String actionText;
+  final VoidCallback onAction;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+      child: Material(
+        color: Colors.white,
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+                child: Row(
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: TextButton.styleFrom(foregroundColor: const Color(0xFF6B7280), textStyle: const TextStyle(fontWeight: FontWeight.w800)),
+                      child: const Text('取消'),
+                    ),
+                    Expanded(
+                      child: Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                    ),
+                    TextButton(
+                      onPressed: onAction,
+                      style: TextButton.styleFrom(foregroundColor: const Color(0xFF2BCDEE), textStyle: const TextStyle(fontWeight: FontWeight.w900)),
+                      child: Text(actionText),
+                    ),
+                  ],
+                ),
+              ),
+              child,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _AvatarCircle extends StatelessWidget {
-  const _AvatarCircle({required this.name});
+  const _AvatarCircle({required this.name, this.imagePath});
 
   final String name;
+  final String? imagePath;
 
   @override
   Widget build(BuildContext context) {
     final trimmed = name.trim();
-    final letter = trimmed.isEmpty ? '?' : trimmed.substring(0, 1);
+    final letter = trimmed.isEmpty ? '?' : trimmed.characters.first;
+    final path = imagePath?.trim() ?? '';
     return Container(
       width: 34,
       height: 34,
       decoration: const BoxDecoration(color: Color(0xFFF1F5F9), shape: BoxShape.circle),
       alignment: Alignment.center,
-      child: Text(letter, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF334155))),
+      child: path.isEmpty
+          ? Text(letter, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF334155)))
+          : ClipOval(child: _buildLocalImage(path, fit: BoxFit.cover)),
     );
   }
 }
@@ -2421,7 +3011,7 @@ class _SelectedAvatarsRow extends ConsumerWidget {
                     child: Row(
                       children: [
                         for (final f in selected.take(4)) ...[
-                          _AvatarCircle(name: f.name),
+                          _AvatarCircle(name: f.name, imagePath: f.avatarPath),
                           const SizedBox(width: 8),
                         ],
                         if (selected.length > 4)

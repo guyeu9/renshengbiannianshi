@@ -1,18 +1,15 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:drift/drift.dart' show OrderingMode, OrderingTerm, Value;
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
+import '../../../core/utils/media_storage.dart';
 
 class MomentPage extends StatefulWidget {
   const MomentPage({super.key});
@@ -724,10 +721,21 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
       initialDate: _recordAt,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
+      locale: const Locale('zh', 'CN'),
     );
     if (date == null) return;
     if (!mounted) return;
-    final time = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(_recordAt));
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_recordAt),
+      builder: (context, child) {
+        return Localizations.override(
+          context: context,
+          locale: const Locale('zh', 'CN'),
+          child: child,
+        );
+      },
+    );
     if (time == null) return;
     setState(() {
       _recordAt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
@@ -1049,35 +1057,7 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
   }
 
   Future<List<String>> _persistImages(List<XFile> files) async {
-    if (files.isEmpty) return const [];
-    if (kIsWeb) {
-      return files.map((f) => f.path).where((p) => p.trim().isNotEmpty).toList(growable: false);
-    }
-    final dir = await getApplicationDocumentsDirectory();
-    final targetDir = Directory(p.join(dir.path, 'media', 'moment'));
-    await targetDir.create(recursive: true);
-    final stamp = DateTime.now().millisecondsSinceEpoch;
-    final stored = <String>[];
-    for (var i = 0; i < files.length; i += 1) {
-      final path = files[i].path.trim();
-      if (path.isEmpty) continue;
-      if (path.startsWith('http://') || path.startsWith('https://')) {
-        stored.add(path);
-        continue;
-      }
-      if (p.isWithin(targetDir.path, path)) {
-        stored.add(path);
-        continue;
-      }
-      final ext = p.extension(path);
-      final targetPath = p.join(
-        targetDir.path,
-        'moment_${stamp}_$i${ext.isEmpty ? '.jpg' : ext}',
-      );
-      final copied = await File(path).copy(targetPath);
-      stored.add(copied.path);
-    }
-    return stored;
+    return persistImageFiles(files, folder: 'moment', prefix: 'moment');
   }
 
   void _removeImageAt(int index) {
@@ -1690,6 +1670,7 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
       initialDateRange: initial,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
+      locale: const Locale('zh', 'CN'),
     );
     if (picked == null) return;
     setState(() {

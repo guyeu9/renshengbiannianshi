@@ -1,19 +1,16 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:drift/drift.dart' show Value;
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
+import '../../../core/utils/media_storage.dart';
 
 class TravelPage extends StatefulWidget {
   const TravelPage({super.key});
@@ -2816,41 +2813,11 @@ Widget _buildLocalImage(String path, {BoxFit fit = BoxFit.cover}) {
 }
 
 Future<List<String>> _persistPickedImages(List<XFile> files, String folder) async {
-  if (files.isEmpty) return const [];
-  if (kIsWeb) {
-    return files.map((f) => f.path).where((p) => p.trim().isNotEmpty).toList(growable: false);
-  }
-  final dir = await getApplicationDocumentsDirectory();
-  final targetDir = Directory(p.join(dir.path, 'media', folder));
-  await targetDir.create(recursive: true);
-  final stamp = DateTime.now().millisecondsSinceEpoch;
-  final stored = <String>[];
-  for (var i = 0; i < files.length; i += 1) {
-    final path = files[i].path.trim();
-    if (path.isEmpty) continue;
-    if (path.startsWith('http://') || path.startsWith('https://')) {
-      stored.add(path);
-      continue;
-    }
-    if (p.isWithin(targetDir.path, path)) {
-      stored.add(path);
-      continue;
-    }
-    final ext = p.extension(path);
-    final targetPath = p.join(
-      targetDir.path,
-      '${folder}_${stamp}_$i${ext.isEmpty ? '.jpg' : ext}',
-    );
-    final copied = await File(path).copy(targetPath);
-    stored.add(copied.path);
-  }
-  return stored;
+  return persistImageFiles(files, folder: folder, prefix: folder);
 }
 
 Future<String?> _persistSingleImage(XFile file, String folder) async {
-  final stored = await _persistPickedImages([file], folder);
-  if (stored.isEmpty) return null;
-  return stored.first;
+  return persistImageFile(file, folder: folder, prefix: folder);
 }
 
 class _AssociationRow extends StatelessWidget {
@@ -2965,6 +2932,7 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
       initialDateRange: initial,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
+      locale: const Locale('zh', 'CN'),
     );
     if (picked == null) return;
     setState(() {
