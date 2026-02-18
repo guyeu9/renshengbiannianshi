@@ -1,5 +1,9 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:drift/drift.dart' show OrderingMode, OrderingTerm;
 
@@ -204,8 +208,107 @@ class ProfilePage extends StatelessWidget {
   }
 }
 
-class _Header extends StatelessWidget {
+class _Header extends StatefulWidget {
   const _Header();
+
+  @override
+  State<_Header> createState() => _HeaderState();
+}
+
+class _HeaderState extends State<_Header> {
+  static const _defaultAvatarUrl =
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuBbKe_aCd46pUms7LLAFzD6OXtQ8lCfAXJOsCrBecRIq0Rsb6hG4jY_titPPL6OX4UEolhRaXIm5q1CN8mgX1sDnDEpjIu6VsAPEPXD_TgVO70SfpWy3Ip2I0CsCyMuTYopG68o1H3zfeCTGnhMwcli29GRkYeNRSh_bne4ffgw7Lym8TRcy9xvfIRJ7re4r_AZ6HYWFXuNljbmovvrN8K3yGjv8iiZ5MCKo2rG0vQcYlScRiJTep-ftfRgTq7kF_pycqvsKRxWyfNh';
+
+  Uint8List? _avatarBytes;
+
+  ImageProvider _avatarProvider() {
+    final bytes = _avatarBytes;
+    if (bytes == null) {
+      return const NetworkImage(_defaultAvatarUrl);
+    }
+    return MemoryImage(bytes);
+  }
+
+  Future<void> _pickAvatar() async {
+    final picker = ImagePicker();
+    final file = await picker.pickImage(source: ImageSource.gallery);
+    if (file == null) return;
+    final bytes = await file.readAsBytes();
+    if (!mounted) return;
+    setState(() => _avatarBytes = bytes);
+  }
+
+  void _openAvatarPreview() {
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.9),
+      builder: (dialogContext) {
+        return Dialog(
+          insetPadding: EdgeInsets.zero,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            color: Colors.black,
+            child: SafeArea(
+              child: Column(
+                children: [
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: InteractiveViewer(
+                      minScale: 0.8,
+                      maxScale: 4,
+                      child: Center(
+                        child: Image(
+                          image: _avatarProvider(),
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: const BorderSide(color: Colors.white24),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            ),
+                            onPressed: () => Navigator.of(dialogContext).pop(),
+                            child: const Text('关闭', style: TextStyle(fontWeight: FontWeight.w700)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: ProfilePage._primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              textStyle: const TextStyle(fontWeight: FontWeight.w800),
+                            ),
+                            onPressed: () async {
+                              await _pickAvatar();
+                              if (!dialogContext.mounted) return;
+                              Navigator.of(dialogContext).pop();
+                            },
+                            child: const Text('更换头像'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -221,16 +324,46 @@ class _Header extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: 8),
-          const SizedBox(
+          SizedBox(
             width: 96,
             height: 96,
-            child: ClipOval(
-              child: Image(
-                image: NetworkImage(
-                  'https://lh3.googleusercontent.com/aida-public/AB6AXuBbKe_aCd46pUms7LLAFzD6OXtQ8lCfAXJOsCrBecRIq0Rsb6hG4jY_titPPL6OX4UEolhRaXIm5q1CN8mgX1sDnDEpjIu6VsAPEPXD_TgVO70SfpWy3Ip2I0CsCyMuTYopG68o1H3zfeCTGnhMwcli29GRkYeNRSh_bne4ffgw7Lym8TRcy9xvfIRJ7re4r_AZ6HYWFXuNljbmovvrN8K3yGjv8iiZ5MCKo2rG0vQcYlScRiJTep-ftfRgTq7kF_pycqvsKRxWyfNh',
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(999),
+                      onTap: _openAvatarPreview,
+                      child: ClipOval(
+                        child: Image(
+                          image: _avatarProvider(),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-                fit: BoxFit.cover,
-              ),
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: InkWell(
+                    onTap: _pickAvatar,
+                    borderRadius: BorderRadius.circular(999),
+                    child: Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: const Color(0xFFE5E7EB)),
+                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 10, offset: const Offset(0, 2))],
+                      ),
+                      child: const Icon(Icons.edit, size: 14, color: Color(0xFF2563EB)),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 12),
@@ -651,105 +784,422 @@ class ChronicleGenerateConfigPage extends StatelessWidget {
   }
 }
 
-class FavoritesCenterPage extends StatelessWidget {
+class _FavoriteItem {
+  const _FavoriteItem({
+    required this.id,
+    required this.title,
+    required this.category,
+    required this.date,
+    required this.tag,
+    required this.tagColor,
+    required this.tagTextColor,
+    required this.imageUrl,
+  });
+
+  final String id;
+  final String title;
+  final String category;
+  final DateTime date;
+  final String tag;
+  final Color tagColor;
+  final Color tagTextColor;
+  final String imageUrl;
+}
+
+class FavoritesCenterPage extends ConsumerStatefulWidget {
   const FavoritesCenterPage({super.key});
+
+  @override
+  ConsumerState<FavoritesCenterPage> createState() => _FavoritesCenterPageState();
+}
+
+class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
+  static const _categories = ['全部', '美食', '旅行', '小确幸', '羁绊'];
+  static const _fallbackImageUrl =
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuAKyf0mNiZ0TAc0cDBuDh729VN8zm8R-lF-JlOBczemlVSfDxlTXyG9D-4CqGvj4VGLsjyH_nyxHz36t5YCWIUdFilyoKvFftQ0lxzt6pmOkOgpBI_gvBZAInqTnxhG3lNNaOqRyxJCT-lzLS3lmLEkNBMXJ6LnIbYkBwU51lRvY0DqIG10oPqPfaoC12BgWZPmW74AWxyipq5A_nuiETA3saO846Avvh5KoAF7C0KINcR5Dmp2orHJWlVQTu97pn9w2S1O1IDzigGp';
+
+  int _selectedCategoryIndex = 0;
+  bool _selectionMode = false;
+  final Set<String> _selectedIds = {};
+
+  List<_FavoriteItem> _filterItems(List<_FavoriteItem> allItems) {
+    final category = _categories[_selectedCategoryIndex];
+    if (category == '全部') {
+      return allItems;
+    }
+    return allItems.where((item) => item.category == category).toList(growable: false);
+  }
+
+  void _toggleSelectionMode() {
+    setState(() {
+      _selectionMode = !_selectionMode;
+      if (!_selectionMode) {
+        _selectedIds.clear();
+      }
+    });
+  }
+
+  void _toggleSelectAll(List<_FavoriteItem> items) {
+    setState(() {
+      if (_selectedIds.length == items.length && items.isNotEmpty) {
+        _selectedIds.clear();
+      } else {
+        _selectedIds
+          ..clear()
+          ..addAll(items.map((item) => item.id));
+      }
+    });
+  }
+
+  List<String> _parseStringList(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return const [];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is List) {
+        return decoded.whereType<String>().toList(growable: false);
+      }
+    } catch (_) {}
+    return const [];
+  }
+
+  String _formatDate(DateTime date) {
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    return '${date.year}.$month.$day';
+  }
+
+  String _momentTitle(String? content) {
+    final text = (content ?? '').trim();
+    if (text.isEmpty) return '小确幸记录';
+    if (text.length <= 12) return text;
+    return '${text.substring(0, 12)}…';
+  }
+
+  List<_FavoriteItem> _buildItems({
+    required List<FoodRecord> foods,
+    required List<MomentRecord> moments,
+    required List<TravelRecord> travels,
+    required List<FriendRecord> friends,
+  }) {
+    final items = <_FavoriteItem>[];
+    for (final record in foods) {
+      final images = _parseStringList(record.images);
+      final tags = _parseStringList(record.tags);
+      items.add(
+        _FavoriteItem(
+          id: 'food-${record.id}',
+          title: record.title,
+          category: '美食',
+          date: record.recordDate,
+          tag: tags.isNotEmpty ? tags.first : '美食',
+          tagColor: const Color(0xFFFFEDD5),
+          tagTextColor: const Color(0xFFFB923C),
+          imageUrl: images.isNotEmpty ? images.first : _fallbackImageUrl,
+        ),
+      );
+    }
+    for (final record in travels) {
+      final images = _parseStringList(record.images);
+      final title = (record.title ?? '').trim();
+      final destination = (record.destination ?? '').trim();
+      final mood = (record.mood ?? '').trim();
+      items.add(
+        _FavoriteItem(
+          id: 'travel-${record.id}',
+          title: title.isNotEmpty ? title : (destination.isNotEmpty ? destination : '旅行记录'),
+          category: '旅行',
+          date: record.recordDate,
+          tag: mood.isNotEmpty ? mood : (destination.isNotEmpty ? destination : '旅行'),
+          tagColor: const Color(0xFFDBEAFE),
+          tagTextColor: const Color(0xFF3B82F6),
+          imageUrl: images.isNotEmpty ? images.first : _fallbackImageUrl,
+        ),
+      );
+    }
+    for (final record in moments) {
+      final images = _parseStringList(record.images);
+      final mood = record.mood.trim();
+      final scene = (record.sceneTag ?? '').trim();
+      items.add(
+        _FavoriteItem(
+          id: 'moment-${record.id}',
+          title: _momentTitle(record.content),
+          category: '小确幸',
+          date: record.recordDate,
+          tag: mood.isNotEmpty ? mood : (scene.isNotEmpty ? scene : '小确幸'),
+          tagColor: const Color(0xFFFCE7F3),
+          tagTextColor: const Color(0xFFEC4899),
+          imageUrl: images.isNotEmpty ? images.first : _fallbackImageUrl,
+        ),
+      );
+    }
+    for (final record in friends) {
+      final group = (record.groupName ?? '').trim();
+      items.add(
+        _FavoriteItem(
+          id: 'bond-${record.id}',
+          title: record.name,
+          category: '羁绊',
+          date: record.updatedAt,
+          tag: group.isNotEmpty ? group : '朋友',
+          tagColor: const Color(0xFFEDE9FE),
+          tagTextColor: const Color(0xFF7C3AED),
+          imageUrl: (record.avatarPath ?? '').trim().isNotEmpty ? record.avatarPath!.trim() : _fallbackImageUrl,
+        ),
+      );
+    }
+    items.sort((a, b) => b.date.compareTo(a.date));
+    return items;
+  }
 
   @override
   Widget build(BuildContext context) {
     const background = Color(0xFFF2F4F6);
     const primary = Color(0xFF8AB4F8);
-    return Scaffold(
-      backgroundColor: background,
-      appBar: AppBar(
-        backgroundColor: Colors.white.withValues(alpha: 0.7),
-        title: const Text('收藏中心', style: TextStyle(fontWeight: FontWeight.w800)),
-      ),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFF3F4F6)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('收藏概览', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      _FavoriteSummaryChip(
-                        label: '美食',
-                        count: '128',
-                        color: const Color(0xFFFFEDD5),
-                        textColor: const Color(0xFFFB923C),
-                      ),
-                      const SizedBox(width: 10),
-                      _FavoriteSummaryChip(
-                        label: '旅行',
-                        count: '45',
-                        color: const Color(0xFFDBEAFE),
-                        textColor: const Color(0xFF3B82F6),
-                      ),
-                      const SizedBox(width: 10),
-                      _FavoriteSummaryChip(
-                        label: '小确幸',
-                        count: '53',
-                        color: const Color(0xFFFCE7F3),
-                        textColor: const Color(0xFFEC4899),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                const Text('最近收藏', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                const Spacer(),
-                TextButton(
-                  onPressed: () {},
-                  style: TextButton.styleFrom(foregroundColor: primary, textStyle: const TextStyle(fontWeight: FontWeight.w900)),
-                  child: const Text('查看全部'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            _FavoriteItemCard(
-              title: '京都乌冬面专门店',
-              subtitle: '美食 · 2024.12.15',
-              tag: '晚餐',
-              tagColor: const Color(0xFFFFEDD5),
-              tagTextColor: const Color(0xFFFB923C),
-              imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAKyf0mNiZ0TAc0cDBuDh729VN8zm8R-lF-JlOBczemlVSfDxlTXyG9D-4CqGvj4VGLsjyH_nyxHz36t5YCWIUdFilyoKvFftQ0lxzt6pmOkOgpBI_gvBZAInqTnxhG3lNNaOqRyxJCT-lzLS3lmLEkNBMXJ6LnIbYkBwU51lRvY0DqIG10oPqPfaoC12BgWZPmW74AWxyipq5A_nuiETA3saO846Avvh5KoAF7C0KINcR5Dmp2orHJWlVQTu97pn9w2S1O1IDzigGp',
-            ),
-            const SizedBox(height: 12),
-            _FavoriteItemCard(
-              title: '圣托里尼之旅',
-              subtitle: '旅行 · 2024.10.12',
-              tag: '在路上',
-              tagColor: const Color(0xFFDBEAFE),
-              tagTextColor: const Color(0xFF3B82F6),
-              imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAiYeR0YcCn1tfLzR2C2qW7pWwiTIIzX5y9HcELMdQlsNCZvTqnJ41-B1ywijjoYzk_kaGbsMNndOTvAGoPUk9OIdsfsainDuqObiaIAJ1ggBT2W_sadXiE3WlCdjh5JHOSptSe6uIHLP9jUHWc1LU6_TIwZcj6Qz14mI7QoVIrSDXJUMfVfMU0rGHzPTzcMJRaZBBLmmGcbMzlO2zr5R5SveBseZ7IY2suW8zTiFnU1s_9_fH1swq0ZImopSmXI3-V_iTjIqb-uT3m',
-            ),
-            const SizedBox(height: 12),
-            _FavoriteItemCard(
-              title: '雨后河堤散步',
-              subtitle: '小确幸 · 2024.09.01',
-              tag: '心情',
-              tagColor: const Color(0xFFFCE7F3),
-              tagTextColor: const Color(0xFFEC4899),
-              imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAJXbnLKvlLG_61cAfkgftdbG_VeN-Yd9sRyc_avp_eCsvTCh21uahLpTGC3iI_KDsW2C0C2cjsuhmB5GVqLdN9l5ve6Fzr8QKkE1_-OA5InnsZeKPDhM42i0rzGdClRzvbmqPtTr0VtxyZMXQj6yEkd31OHKG8dPCGea2pMS41BQKPF4Yv2HuvEVgJ83pTUSKVFkHTtmViPfZbWoKYv__IMLWuBD0XSC5s2-UQqiv-PtaOA2zn5wOKrAt4IHLAPkjrP1_S_Fu-YKIv',
-            ),
-          ],
-        ),
-      ),
-    );
+    final db = ref.watch(appDatabaseProvider);
+    return StreamBuilder<List<FoodRecord>>(
+        stream: db.foodDao.watchAllActive(),
+        builder: (context, foodSnapshot) {
+          final foods = foodSnapshot.data ?? const <FoodRecord>[];
+          return StreamBuilder<List<TravelRecord>>(
+            stream: db.watchAllActiveTravelRecords(),
+            builder: (context, travelSnapshot) {
+              final travels = travelSnapshot.data ?? const <TravelRecord>[];
+              return StreamBuilder<List<MomentRecord>>(
+                stream: db.momentDao.watchAllActive(),
+                builder: (context, momentSnapshot) {
+                  final moments = momentSnapshot.data ?? const <MomentRecord>[];
+                  return StreamBuilder<List<FriendRecord>>(
+                    stream: db.friendDao.watchAllActive(),
+                    builder: (context, friendSnapshot) {
+                      final friends = friendSnapshot.data ?? const <FriendRecord>[];
+                      final allItems = _buildItems(
+                        foods: foods,
+                        moments: moments,
+                        travels: travels,
+                        friends: friends,
+                      );
+                      final items = _filterItems(allItems);
+                      final foodCount = allItems.where((item) => item.category == '美食').length;
+                      final travelCount = allItems.where((item) => item.category == '旅行').length;
+                      final momentCount = allItems.where((item) => item.category == '小确幸').length;
+                      final visibleIds = items.map((item) => item.id).toSet();
+                      final selectedCount = _selectedIds.where(visibleIds.contains).length;
+                      final allSelected = selectedCount == items.length && items.isNotEmpty;
+                      return Scaffold(
+                        backgroundColor: background,
+                        appBar: AppBar(
+                          backgroundColor: Colors.white.withValues(alpha: 0.7),
+                          title: const Text('收藏中心', style: TextStyle(fontWeight: FontWeight.w800)),
+                          actions: [
+                            TextButton(
+                              onPressed: _toggleSelectionMode,
+                              style: TextButton.styleFrom(foregroundColor: primary, textStyle: const TextStyle(fontWeight: FontWeight.w900)),
+                              child: Text(_selectionMode ? '取消' : '选择'),
+                            ),
+                          ],
+                        ),
+                        bottomNavigationBar: _selectionMode
+                            ? SafeArea(
+                                top: false,
+                                child: Container(
+                                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    border: Border(top: BorderSide(color: Colors.black.withValues(alpha: 0.06))),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      InkWell(
+                                        onTap: () => _toggleSelectAll(items),
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                                          child: Row(
+                                            children: [
+                                              Container(
+                                                width: 18,
+                                                height: 18,
+                                                decoration: BoxDecoration(
+                                                  color: allSelected ? primary : Colors.transparent,
+                                                  borderRadius: BorderRadius.circular(6),
+                                                  border: Border.all(color: const Color(0xFFCBD5F5)),
+                                                ),
+                                                child: allSelected ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                allSelected ? '取消全选' : '全选',
+                                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF475569)),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      TextButton.icon(
+                                        onPressed: selectedCount == 0 ? null : () {},
+                                        style: TextButton.styleFrom(foregroundColor: const Color(0xFF64748B), textStyle: const TextStyle(fontWeight: FontWeight.w800)),
+                                        icon: const Icon(Icons.ios_share, size: 18),
+                                        label: Text('批量导出${selectedCount == 0 ? '' : ' ($selectedCount)'}'),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      TextButton.icon(
+                                        onPressed: selectedCount == 0 ? null : () {},
+                                        style: TextButton.styleFrom(foregroundColor: const Color(0xFFF43F5E), textStyle: const TextStyle(fontWeight: FontWeight.w800)),
+                                        icon: const Icon(Icons.delete, size: 18),
+                                        label: const Text('删除'),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              )
+                            : null,
+                        body: SafeArea(
+                          child: ListView(
+                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(18),
+                                  border: Border.all(color: const Color(0xFFF3F4F6)),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('收藏概览', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                                    const SizedBox(height: 10),
+                                    Row(
+                                      children: [
+                                        _FavoriteSummaryChip(
+                                          label: '美食',
+                                          count: foodCount.toString(),
+                                          color: const Color(0xFFFFEDD5),
+                                          textColor: const Color(0xFFFB923C),
+                                          onTap: () => setState(() {
+                                            _selectedCategoryIndex = 1;
+                                            _selectedIds.clear();
+                                          }),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        _FavoriteSummaryChip(
+                                          label: '旅行',
+                                          count: travelCount.toString(),
+                                          color: const Color(0xFFDBEAFE),
+                                          textColor: const Color(0xFF3B82F6),
+                                          onTap: () => setState(() {
+                                            _selectedCategoryIndex = 2;
+                                            _selectedIds.clear();
+                                          }),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        _FavoriteSummaryChip(
+                                          label: '小确幸',
+                                          count: momentCount.toString(),
+                                          color: const Color(0xFFFCE7F3),
+                                          textColor: const Color(0xFFEC4899),
+                                          onTap: () => setState(() {
+                                            _selectedCategoryIndex = 3;
+                                            _selectedIds.clear();
+                                          }),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    SizedBox(
+                                      height: 36,
+                                      child: ListView.separated(
+                                        scrollDirection: Axis.horizontal,
+                                        itemBuilder: (context, index) {
+                                          final label = _categories[index];
+                                          final selected = index == _selectedCategoryIndex;
+                                          return _CategoryChip(
+                                            label: label,
+                                            selected: selected,
+                                            onTap: () => setState(() {
+                                              _selectedCategoryIndex = index;
+                                              _selectedIds.clear();
+                                            }),
+                                          );
+                                        },
+                                        separatorBuilder: (_, __) => const SizedBox(width: 8),
+                                        itemCount: _categories.length,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              Row(
+                                children: [
+                                  Text('最近收藏', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                                  const Spacer(),
+                                  TextButton(
+                                    onPressed: () => setState(() {
+                                      _selectedCategoryIndex = 0;
+                                      _selectedIds.clear();
+                                    }),
+                                    style: TextButton.styleFrom(foregroundColor: primary, textStyle: const TextStyle(fontWeight: FontWeight.w900)),
+                                    child: const Text('查看全部'),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              if (items.isEmpty)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 40),
+                                  alignment: Alignment.center,
+                                  child: const Text('暂无收藏记录', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                                )
+                              else
+                                for (final item in items) ...[
+                                  _FavoriteItemCard(
+                                    title: item.title,
+                                    subtitle: '${item.category} · ${_formatDate(item.date)}',
+                                    tag: item.tag,
+                                    tagColor: item.tagColor,
+                                    tagTextColor: item.tagTextColor,
+                                    imageUrl: item.imageUrl,
+                                    selectable: _selectionMode,
+                                    selected: _selectedIds.contains(item.id),
+                                    onSelect: () {
+                                      if (!_selectionMode) return;
+                                      setState(() {
+                                        if (_selectedIds.contains(item.id)) {
+                                          _selectedIds.remove(item.id);
+                                        } else {
+                                          _selectedIds.add(item.id);
+                                        }
+                                      });
+                                    },
+                                    onTap: () {
+                                      if (_selectionMode) {
+                                        setState(() {
+                                          if (_selectedIds.contains(item.id)) {
+                                            _selectedIds.remove(item.id);
+                                          } else {
+                                            _selectedIds.add(item.id);
+                                          }
+                                        });
+                                      }
+                                    },
+                                  ),
+                                  const SizedBox(height: 12),
+                                ],
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              );
+            },
+          );
+        },
+      );
   }
 }
 
@@ -830,26 +1280,59 @@ class _FavoriteSummaryChip extends StatelessWidget {
     required this.count,
     required this.color,
     required this.textColor,
+    this.onTap,
   });
 
   final String label;
   final String count;
   final Color color;
   final Color textColor;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(14)),
-        child: Column(
-          children: [
-            Text(count, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: textColor)),
-            const SizedBox(height: 4),
-            Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: textColor)),
-          ],
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(14)),
+          child: Column(
+            children: [
+              Text(count, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: textColor)),
+              const SizedBox(height: 4),
+              Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: textColor)),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+}
+
+class _CategoryChip extends StatelessWidget {
+  const _CategoryChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final background = selected ? const Color(0xFF8AB4F8) : const Color(0xFFF1F5F9);
+    final textColor = selected ? Colors.white : const Color(0xFF64748B);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(999)),
+        child: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: textColor)),
       ),
     );
   }
@@ -863,6 +1346,10 @@ class _FavoriteItemCard extends StatelessWidget {
     required this.tagColor,
     required this.tagTextColor,
     required this.imageUrl,
+    this.selectable = false,
+    this.selected = false,
+    this.onSelect,
+    this.onTap,
   });
 
   final String title;
@@ -871,45 +1358,70 @@ class _FavoriteItemCard extends StatelessWidget {
   final Color tagColor;
   final Color tagTextColor;
   final String imageUrl;
+  final bool selectable;
+  final bool selected;
+  final VoidCallback? onSelect;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFF3F4F6)),
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(14),
-            child: SizedBox(
-              width: 72,
-              height: 72,
-              child: Image.network(imageUrl, fit: BoxFit.cover),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFF3F4F6)),
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: SizedBox(
+                width: 72,
+                height: 72,
+                child: _buildLocalImage(imageUrl, fit: BoxFit.cover),
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                const SizedBox(height: 6),
-                Text(subtitle, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(color: tagColor, borderRadius: BorderRadius.circular(999)),
-                  child: Text(tag, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: tagTextColor)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                  const SizedBox(height: 6),
+                  Text(subtitle, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(color: tagColor, borderRadius: BorderRadius.circular(999)),
+                    child: Text(tag, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: tagTextColor)),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            if (selectable)
+              InkWell(
+                onTap: onSelect,
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    color: selected ? const Color(0xFF8AB4F8) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(7),
+                    border: Border.all(color: selected ? const Color(0xFF8AB4F8) : const Color(0xFFCBD5E1)),
+                  ),
+                  child: selected ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
                 ),
-              ],
-            ),
-          ),
-          const Icon(Icons.chevron_right, color: Color(0xFFCBD5E1)),
-        ],
+              )
+            else
+              const Icon(Icons.chevron_right, color: Color(0xFFCBD5E1)),
+          ],
+        ),
       ),
     );
   }
@@ -1286,4 +1798,24 @@ class _PlaceholderPage extends StatelessWidget {
       ),
     );
   }
+}
+
+Widget _buildLocalImage(String path, {BoxFit fit = BoxFit.cover}) {
+  final trimmed = path.trim();
+  if (trimmed.isEmpty) {
+    return const SizedBox.shrink();
+  }
+  final isNetwork = trimmed.startsWith('http://') || trimmed.startsWith('https://');
+  if (isNetwork) {
+    return Image.network(trimmed, fit: fit);
+  }
+  return FutureBuilder<Uint8List>(
+    future: XFile(trimmed).readAsBytes(),
+    builder: (context, snapshot) {
+      if (snapshot.hasData) {
+        return Image.memory(snapshot.data!, fit: fit);
+      }
+      return Container(color: const Color(0xFFF1F5F9));
+    },
+  );
 }
