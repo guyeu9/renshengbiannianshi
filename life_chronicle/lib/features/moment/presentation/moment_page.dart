@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart' show OrderingMode, OrderingTerm, Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
@@ -166,6 +166,21 @@ class _MoodChip extends StatelessWidget {
           color: active ? Colors.white : const Color(0xFF6B7280),
         ),
       ),
+    );
+  }
+}
+
+class _LinkChip extends StatelessWidget {
+  const _LinkChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(999)),
+      child: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
     );
   }
 }
@@ -355,13 +370,128 @@ class _MomentCard extends StatelessWidget {
   }
 }
 
-class MomentDetailPage extends StatelessWidget {
-  const MomentDetailPage({super.key, required this.item});
+class MomentDetailPage extends ConsumerWidget {
+  const MomentDetailPage({super.key, this.item, this.recordId});
 
-  final MomentCardData item;
+  final MomentCardData? item;
+  final String? recordId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final db = ref.watch(appDatabaseProvider);
+    if (recordId == null) {
+      return _buildScaffold(
+        context,
+        imageUrl: item?.imageUrl ?? '',
+        moodName: item?.moodName ?? '心情',
+        moodColor: item?.moodColor ?? const Color(0xFFF3F4F6),
+        moodAccent: item?.moodAccent ?? const Color(0xFF475569),
+        title: item?.title ?? '小确幸',
+        content: item?.content ?? '',
+        linkChips: const [],
+      );
+    }
+    return StreamBuilder<MomentRecord?>(
+      stream: db.momentDao.watchById(recordId!),
+      builder: (context, snapshot) {
+        final record = snapshot.data;
+        if (record == null) {
+          return _buildScaffold(
+            context,
+            imageUrl: '',
+            moodName: '心情',
+            moodColor: const Color(0xFFF3F4F6),
+            moodAccent: const Color(0xFF475569),
+            title: '记录不存在或已删除',
+            content: '',
+            linkChips: const [],
+          );
+        }
+        final images = _parseImages(record.images);
+        final imageUrl = images.isEmpty ? '' : images.first;
+        final moodAccent = _parseMoodColor(record.moodColor, const Color(0xFF2BCDEE));
+        final moodColor = moodAccent.withValues(alpha: 0.12);
+        final title = _momentTitle(record);
+        final content = _momentContent(record);
+        return StreamBuilder<List<EntityLink>>(
+          stream: db.linkDao.watchLinksForEntity(entityType: 'moment', entityId: record.id),
+          builder: (context, linkSnapshot) {
+            final linkIds = _groupLinkIds(linkSnapshot.data ?? const <EntityLink>[], 'moment', record.id);
+            return StreamBuilder<List<FriendRecord>>(
+              stream: db.friendDao.watchAllActive(),
+              builder: (context, friendSnapshot) {
+                final friends = friendSnapshot.data ?? const <FriendRecord>[];
+                final friendLabels = _buildLinkLabels(
+                  '关联羁绊',
+                  _mapNames(linkIds['friend'] ?? const <String>[], {for (final f in friends) f.id: f.name}),
+                );
+                return StreamBuilder<List<FoodRecord>>(
+                  stream: db.foodDao.watchAllActive(),
+                  builder: (context, foodSnapshot) {
+                    final foods = foodSnapshot.data ?? const <FoodRecord>[];
+                    final foodLabels = _buildLinkLabels(
+                      '关联美食',
+                      _mapNames(linkIds['food'] ?? const <String>[], {for (final f in foods) f.id: f.title}),
+                    );
+                    return StreamBuilder<List<TravelRecord>>(
+                      stream: db.watchAllActiveTravelRecords(),
+                      builder: (context, travelSnapshot) {
+                        final travels = travelSnapshot.data ?? const <TravelRecord>[];
+                        final travelLabels = _buildLinkLabels(
+                          '关联旅行',
+                          _mapNames(linkIds['travel'] ?? const <String>[], {for (final t in travels) t.id: _travelTitle(t)}),
+                        );
+                        return StreamBuilder<List<TimelineEvent>>(
+                          stream: (db.select(db.timelineEvents)
+                                ..where((t) => t.isDeleted.equals(false))
+                                ..where((t) => t.eventType.equals('goal')))
+                              .watch(),
+                          builder: (context, goalSnapshot) {
+                            final goals = goalSnapshot.data ?? const <TimelineEvent>[];
+                            final goalLabels = _buildLinkLabels(
+                              '人生目标',
+                              _mapNames(linkIds['goal'] ?? const <String>[], {for (final g in goals) g.id: g.title}),
+                            );
+                            final linkChips = [
+                              ...goalLabels,
+                              ...travelLabels,
+                              ...friendLabels,
+                              ...foodLabels,
+                            ];
+                            return _buildScaffold(
+                              context,
+                              imageUrl: imageUrl,
+                              moodName: record.mood,
+                              moodColor: moodColor,
+                              moodAccent: moodAccent,
+                              title: title,
+                              content: content,
+                              linkChips: linkChips,
+                            );
+                          },
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildScaffold(
+    BuildContext context, {
+    required String imageUrl,
+    required String moodName,
+    required Color moodColor,
+    required Color moodAccent,
+    required String title,
+    required String content,
+    required List<String> linkChips,
+  }) {
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8F8),
       appBar: AppBar(
@@ -377,27 +507,35 @@ class MomentDetailPage extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(20),
-            child: AspectRatio(aspectRatio: 4 / 3, child: Image.network(item.imageUrl, fit: BoxFit.cover)),
+            child: AspectRatio(
+              aspectRatio: 4 / 3,
+              child: imageUrl.isEmpty
+                  ? Container(color: const Color(0xFFF3F4F6))
+                  : Image.network(imageUrl, fit: BoxFit.cover),
+            ),
           ),
           const SizedBox(height: 14),
           Row(
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(color: item.moodColor, borderRadius: BorderRadius.circular(999)),
-                child: Text(item.moodName, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: item.moodAccent)),
+                decoration: BoxDecoration(color: moodColor, borderRadius: BorderRadius.circular(999)),
+                child: Text(moodName, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: moodAccent)),
               ),
               const Spacer(),
               const Icon(Icons.favorite, color: Color(0xFFF43F5E)),
             ],
           ),
           const SizedBox(height: 12),
-          Text(item.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
           const SizedBox(height: 10),
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFF3F4F6))),
-            child: Text(item.content, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF475569), height: 1.5)),
+            child: Text(
+              content.isEmpty ? '暂无内容' : content,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF475569), height: 1.5),
+            ),
           ),
           const SizedBox(height: 14),
           Container(
@@ -405,16 +543,87 @@ class MomentDetailPage extends StatelessWidget {
             decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFF3F4F6))),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text('万物互联', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                SizedBox(height: 10),
-                Text('该详情页当前为样例数据，关联展示将在列表切换为数据库数据后接入。', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8), height: 1.5)),
+              children: [
+                const Text('万物互联', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                const SizedBox(height: 10),
+                if (linkChips.isEmpty)
+                  const Text('暂无关联内容', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)))
+                else
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [for (final label in linkChips) _LinkChip(label: label)],
+                  ),
               ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  List<String> _parseImages(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return const [];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is List) {
+        return decoded.whereType<String>().toList(growable: false);
+      }
+    } catch (_) {}
+    return const [];
+  }
+
+  Color _parseMoodColor(String? raw, Color fallback) {
+    if (raw == null || raw.trim().isEmpty) return fallback;
+    final hex = raw.replaceAll('#', '');
+    final value = int.tryParse(hex, radix: 16);
+    if (value == null) return fallback;
+    if (hex.length <= 6) {
+      return Color(0xFF000000 | value);
+    }
+    return Color(value);
+  }
+
+  String _momentTitle(MomentRecord record) {
+    final content = (record.content ?? '').trim();
+    if (content.isEmpty) return '小确幸';
+    final lines = content.split('\n').where((line) => line.trim().isNotEmpty).toList();
+    return lines.isEmpty ? '小确幸' : lines.first.trim();
+  }
+
+  String _momentContent(MomentRecord record) {
+    final content = (record.content ?? '').trim();
+    if (content.isEmpty) return '';
+    return content;
+  }
+
+  Map<String, List<String>> _groupLinkIds(List<EntityLink> links, String entityType, String entityId) {
+    final grouped = <String, List<String>>{};
+    for (final link in links) {
+      final isSource = link.sourceType == entityType && link.sourceId == entityId;
+      final otherType = isSource ? link.targetType : link.sourceType;
+      final otherId = isSource ? link.targetId : link.sourceId;
+      final list = grouped.putIfAbsent(otherType, () => <String>[]);
+      if (!list.contains(otherId)) {
+        list.add(otherId);
+      }
+    }
+    return grouped;
+  }
+
+  List<String> _mapNames(List<String> ids, Map<String, String> nameById) {
+    return [for (final id in ids) if (nameById.containsKey(id)) nameById[id]!];
+  }
+
+  List<String> _buildLinkLabels(String prefix, List<String> names) {
+    return [for (final name in names) '$prefix · $name'];
+  }
+
+  String _travelTitle(TravelRecord record) {
+    final title = record.title?.trim() ?? '';
+    if (title.isNotEmpty) return title;
+    final destination = record.destination?.trim() ?? '';
+    return destination.isEmpty ? '旅行记录' : destination;
   }
 }
 
@@ -444,6 +653,8 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
 
   final Set<String> _linkedFriendIds = {};
   final Set<String> _linkedFoodIds = {};
+  final Set<String> _linkedTravelIds = {};
+  final Set<String> _linkedGoalIds = {};
 
   static const _moods = <_MoodOption>[
     _MoodOption(label: '开心', emoji: '😊', color: Color(0xFF2BCDEE)),
@@ -633,6 +844,83 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
     });
   }
 
+  Future<void> _selectLinkedTravels() async {
+    final db = ref.read(appDatabaseProvider);
+    final selected = await showModalBottomSheet<Set<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StreamBuilder<List<TravelRecord>>(
+          stream: db.watchAllActiveTravelRecords(),
+          builder: (context, snapshot) {
+            final travels = snapshot.data ?? const <TravelRecord>[];
+            return _MultiSelectBottomSheet(
+              title: '关联旅行',
+              items: travels
+                  .map(
+                    (t) => _SelectItem(
+                      id: t.id,
+                      title: t.title?.isNotEmpty == true ? t.title! : '旅行记录',
+                      leading: const _IconSquare(color: Color(0xFFF0FDF4), icon: Icons.flight_takeoff, iconColor: Color(0xFF22C55E)),
+                    ),
+                  )
+                  .toList(growable: false),
+              initialSelected: _linkedTravelIds,
+            );
+          },
+        );
+      },
+    );
+    if (selected == null) return;
+    setState(() {
+      _linkedTravelIds
+        ..clear()
+        ..addAll(selected);
+    });
+  }
+
+  Future<void> _selectLinkedGoals() async {
+    final db = ref.read(appDatabaseProvider);
+    final goalsStream = (db.select(db.timelineEvents)
+          ..where((t) => t.eventType.equals('goal'))
+          ..where((t) => t.isDeleted.equals(false))
+          ..orderBy([(t) => OrderingTerm(expression: t.recordDate, mode: OrderingMode.desc)]))
+        .watch();
+    final selected = await showModalBottomSheet<Set<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StreamBuilder<List<TimelineEvent>>(
+          stream: goalsStream,
+          builder: (context, snapshot) {
+            final goals = snapshot.data ?? const <TimelineEvent>[];
+            return _MultiSelectBottomSheet(
+              title: '关联人生目标',
+              items: goals
+                  .map(
+                    (g) => _SelectItem(
+                      id: g.id,
+                      title: g.title,
+                      leading: const _IconSquare(color: Color(0xFFE0F2FE), icon: Icons.flag, iconColor: Color(0xFF0284C7)),
+                    ),
+                  )
+                  .toList(growable: false),
+              initialSelected: _linkedGoalIds,
+            );
+          },
+        );
+      },
+    );
+    if (selected == null) return;
+    setState(() {
+      _linkedGoalIds
+        ..clear()
+        ..addAll(selected);
+    });
+  }
+
   Future<void> _publish() async {
     final title = _titleController.text.trim();
     if (title.isEmpty) {
@@ -683,6 +971,24 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
         sourceType: 'moment',
         sourceId: momentId,
         targetType: 'food',
+        targetId: id,
+        now: now,
+      );
+    }
+    for (final id in _linkedTravelIds) {
+      await db.linkDao.createLink(
+        sourceType: 'moment',
+        sourceId: momentId,
+        targetType: 'travel',
+        targetId: id,
+        now: now,
+      );
+    }
+    for (final id in _linkedGoalIds) {
+      await db.linkDao.createLink(
+        sourceType: 'moment',
+        sourceId: momentId,
+        targetType: 'goal',
         targetId: id,
         now: now,
       );
@@ -898,22 +1204,22 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
                   const SizedBox(height: 10),
                   _UniversalLinkCard(
                     title: '关联人生目标',
-                    subtitle: '让小确幸充满意义',
+                    subtitle: _linkedGoalIds.isEmpty ? '让小确幸充满意义' : '已选 ${_linkedGoalIds.length} 条',
                     icon: Icons.flag,
                     gradientStart: const Color(0xFF2BCDEE),
                     gradientEnd: const Color(0xFF22D3EE),
-                    trailingText: '待接入',
-                    onTap: null,
+                    trailingIcon: _linkedGoalIds.isEmpty ? Icons.add_circle : Icons.check_circle,
+                    onTap: _selectLinkedGoals,
                   ),
                   const SizedBox(height: 10),
                   _UniversalLinkCard(
                     title: '关联旅行',
-                    subtitle: '记录旅途中的点滴',
+                    subtitle: _linkedTravelIds.isEmpty ? '记录旅途中的点滴' : '已选 ${_linkedTravelIds.length} 条',
                     icon: Icons.flight_takeoff,
                     gradientStart: const Color(0xFF34D399),
                     gradientEnd: const Color(0xFF14B8A6),
-                    trailingText: '待接入',
-                    onTap: null,
+                    trailingIcon: _linkedTravelIds.isEmpty ? Icons.add_circle : Icons.check_circle,
+                    onTap: _selectLinkedTravels,
                   ),
                   const SizedBox(height: 10),
                   _UniversalLinkCard(
@@ -1122,7 +1428,6 @@ class _UniversalLinkCard extends StatelessWidget {
     required this.icon,
     required this.gradientStart,
     required this.gradientEnd,
-    this.trailingText,
     this.trailingIcon,
     required this.onTap,
   });
@@ -1132,7 +1437,6 @@ class _UniversalLinkCard extends StatelessWidget {
   final IconData icon;
   final Color gradientStart;
   final Color gradientEnd;
-  final String? trailingText;
   final IconData? trailingIcon;
   final VoidCallback? onTap;
 
@@ -1174,10 +1478,7 @@ class _UniversalLinkCard extends StatelessWidget {
                 ],
               ),
             ),
-            if (trailingText != null)
-              Text(trailingText!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF9CA3AF)))
-            else
-              Icon(trailingIcon ?? Icons.chevron_right, color: trailingColor),
+            Icon(trailingIcon ?? Icons.chevron_right, color: trailingColor),
           ],
         ),
       ),

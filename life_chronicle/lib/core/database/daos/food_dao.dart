@@ -24,6 +24,14 @@ class FoodDao extends DatabaseAccessor<AppDatabase> with _$FoodDaoMixin {
         .getSingleOrNull();
   }
 
+  Stream<FoodRecord?> watchById(String id) {
+    return (select(db.foodRecords)
+          ..where((t) => t.id.equals(id))
+          ..where((t) => t.isDeleted.equals(false))
+          ..limit(1))
+        .watchSingleOrNull();
+  }
+
   Stream<List<FoodRecord>> watchAllActive() {
     return (select(db.foodRecords)
           ..where((t) => t.isDeleted.equals(false))
@@ -40,4 +48,3 @@ class FoodDao extends DatabaseAccessor<AppDatabase> with _$FoodDaoMixin {
         .watch();
   }
 }
-

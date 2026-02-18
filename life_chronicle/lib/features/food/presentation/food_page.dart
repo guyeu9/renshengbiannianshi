@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart' show OrderingMode, OrderingTerm, Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
@@ -679,6 +679,10 @@ class FoodWishlistDetailPage extends StatelessWidget {
                   const Text('万物互联', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
                   const SizedBox(height: 10),
                   _LinkBlock(icon: Icons.group, title: '计划同伴', chips: const ['小明', 'Sarah']),
+                  const SizedBox(height: 10),
+                  _LinkBlock(icon: Icons.flight_takeoff, title: '关联旅行', chips: const ['京都慢旅行']),
+                  const SizedBox(height: 10),
+                  _LinkBlock(icon: Icons.flag, title: '关联目标', chips: const ['每月探索一家新餐厅']),
                 ],
               ),
             ),
@@ -826,13 +830,86 @@ class _FoodCard extends StatelessWidget {
   }
 }
 
-class FoodDetailPage extends StatelessWidget {
-  const FoodDetailPage({super.key, required this.item});
+class FoodDetailPage extends ConsumerWidget {
+  const FoodDetailPage({super.key, this.item, this.recordId});
 
-  final FoodCardData item;
+  final FoodCardData? item;
+  final String? recordId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final db = ref.watch(appDatabaseProvider);
+    if (recordId == null) {
+      return _buildScaffold(
+        context,
+        title: item?.title ?? '美食详情',
+        imageUrl: item?.imageUrl ?? '',
+        subtitle: item?.subtitle ?? '',
+        location: item?.location ?? '',
+        rating: item?.rating,
+        note: item?.subtitle ?? '',
+        linkSection: _buildLinkSection(
+          db,
+          entityId: '',
+          entityType: 'food',
+          showContent: false,
+        ),
+      );
+    }
+    return StreamBuilder<FoodRecord?>(
+      stream: db.foodDao.watchById(recordId!),
+      builder: (context, snapshot) {
+        final record = snapshot.data;
+        if (record == null) {
+          return _buildScaffold(
+            context,
+            title: '美食详情',
+            imageUrl: '',
+            subtitle: '记录不存在或已删除',
+            location: '',
+            rating: null,
+            note: '',
+            linkSection: _buildLinkSection(
+              db,
+              entityId: recordId!,
+              entityType: 'food',
+              showContent: false,
+            ),
+          );
+        }
+        final images = _parseImages(record.images);
+        final imageUrl = images.isEmpty ? '' : images.first;
+        final subtitle = (record.content ?? '').trim();
+        final location = _buildFoodLocation(record);
+        return _buildScaffold(
+          context,
+          title: record.title,
+          imageUrl: imageUrl,
+          subtitle: subtitle.isEmpty ? record.title : subtitle,
+          location: location,
+          rating: record.rating,
+          note: subtitle,
+          linkSection: _buildLinkSection(
+            db,
+            entityId: record.id,
+            entityType: 'food',
+            showContent: true,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildScaffold(
+    BuildContext context, {
+    required String title,
+    required String imageUrl,
+    required String subtitle,
+    required String location,
+    required double? rating,
+    required String note,
+    required Widget linkSection,
+  }) {
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8F8),
       body: CustomScrollView(
@@ -840,7 +917,7 @@ class FoodDetailPage extends StatelessWidget {
           SliverAppBar(
             pinned: true,
             backgroundColor: Colors.white.withValues(alpha: 0.8),
-            title: Text(item.title, style: const TextStyle(fontWeight: FontWeight.w900)),
+            title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
             actions: [
               IconButton(onPressed: () {}, icon: const Icon(Icons.share)),
               IconButton(onPressed: () {}, icon: const Icon(Icons.more_horiz)),
@@ -856,11 +933,16 @@ class FoodDetailPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                     child: AspectRatio(
                       aspectRatio: 4 / 3,
-                      child: Image.network(item.imageUrl, fit: BoxFit.cover),
+                      child: imageUrl.isEmpty
+                          ? Container(color: const Color(0xFFF3F4F6))
+                          : Image.network(imageUrl, fit: BoxFit.cover),
                     ),
                   ),
                   const SizedBox(height: 14),
-                  Text(item.subtitle, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                  Text(
+                    subtitle.isEmpty ? '未填写说明' : subtitle,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
+                  ),
                   const SizedBox(height: 10),
                   Row(
                     children: [
@@ -868,7 +950,7 @@ class FoodDetailPage extends StatelessWidget {
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          item.location,
+                          location.isEmpty ? '未填写地点' : location,
                           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
                         ),
                       ),
@@ -876,7 +958,7 @@ class FoodDetailPage extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(color: const Color(0x1AFB923C), borderRadius: BorderRadius.circular(999)),
                         child: Text(
-                          '评分 ${item.rating.toStringAsFixed(1)}',
+                          rating == null ? '评分 --' : '评分 ${rating.toStringAsFixed(1)}',
                           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFFFB923C)),
                         ),
                       ),
@@ -885,17 +967,7 @@ class FoodDetailPage extends StatelessWidget {
                   const SizedBox(height: 16),
                   const Text('万物互联', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
                   const SizedBox(height: 10),
-                  _LinkBlock(
-                    icon: Icons.people,
-                    title: '关联人物',
-                    chips: const ['张三', '小明'],
-                  ),
-                  const SizedBox(height: 10),
-                  _LinkBlock(
-                    icon: Icons.auto_awesome,
-                    title: '关联小确幸',
-                    chips: const ['海胆很新鲜', '聊天很开心'],
-                  ),
+                  linkSection,
                   const SizedBox(height: 18),
                   const Text('记录', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
                   const SizedBox(height: 10),
@@ -906,9 +978,9 @@ class FoodDetailPage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(color: const Color(0xFFF3F4F6)),
                     ),
-                    child: const Text(
-                      '那天的海胆很新鲜，醋饭的温度刚刚好。我们聊到了明年的旅行计划。',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF475569), height: 1.5),
+                    child: Text(
+                      note.isEmpty ? '暂无记录' : note,
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF475569), height: 1.5),
                     ),
                   ),
                 ],
@@ -955,6 +1027,139 @@ class FoodDetailPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildLinkSection(
+    AppDatabase db, {
+    required String entityId,
+    required String entityType,
+    required bool showContent,
+  }) {
+    if (!showContent) {
+      return Column(
+        children: [
+          _LinkBlock(icon: Icons.people, title: '关联人物', chips: const []),
+          const SizedBox(height: 10),
+          _LinkBlock(icon: Icons.auto_awesome, title: '关联小确幸', chips: const []),
+          const SizedBox(height: 10),
+          _LinkBlock(icon: Icons.flight_takeoff, title: '关联旅行', chips: const []),
+          const SizedBox(height: 10),
+          _LinkBlock(icon: Icons.flag, title: '关联目标', chips: const []),
+        ],
+      );
+    }
+    return StreamBuilder<List<EntityLink>>(
+      stream: db.linkDao.watchLinksForEntity(entityType: entityType, entityId: entityId),
+      builder: (context, linkSnapshot) {
+        final linkIds = _groupLinkIds(linkSnapshot.data ?? const <EntityLink>[], entityType, entityId);
+        return StreamBuilder<List<FriendRecord>>(
+          stream: db.friendDao.watchAllActive(),
+          builder: (context, friendSnapshot) {
+            final friends = friendSnapshot.data ?? const <FriendRecord>[];
+            final friendNames = _mapNames(
+              linkIds['friend'] ?? const <String>[],
+              {for (final f in friends) f.id: f.name},
+            );
+            return StreamBuilder<List<MomentRecord>>(
+              stream: db.momentDao.watchAllActive(),
+              builder: (context, momentSnapshot) {
+                final moments = momentSnapshot.data ?? const <MomentRecord>[];
+                final momentTitles = _mapNames(
+                  linkIds['moment'] ?? const <String>[],
+                  {for (final m in moments) m.id: _momentTitle(m)},
+                );
+                return StreamBuilder<List<TravelRecord>>(
+                  stream: db.watchAllActiveTravelRecords(),
+                  builder: (context, travelSnapshot) {
+                    final travels = travelSnapshot.data ?? const <TravelRecord>[];
+                    final travelTitles = _mapNames(
+                      linkIds['travel'] ?? const <String>[],
+                      {for (final t in travels) t.id: _travelTitle(t)},
+                    );
+                    return StreamBuilder<List<TimelineEvent>>(
+                      stream: (db.select(db.timelineEvents)
+                            ..where((t) => t.isDeleted.equals(false))
+                            ..where((t) => t.eventType.equals('goal')))
+                          .watch(),
+                      builder: (context, goalSnapshot) {
+                        final goals = goalSnapshot.data ?? const <TimelineEvent>[];
+                        final goalTitles = _mapNames(
+                          linkIds['goal'] ?? const <String>[],
+                          {for (final g in goals) g.id: g.title},
+                        );
+                        return Column(
+                          children: [
+                            _LinkBlock(icon: Icons.people, title: '关联人物', chips: friendNames),
+                            const SizedBox(height: 10),
+                            _LinkBlock(icon: Icons.auto_awesome, title: '关联小确幸', chips: momentTitles),
+                            const SizedBox(height: 10),
+                            _LinkBlock(icon: Icons.flight_takeoff, title: '关联旅行', chips: travelTitles),
+                            const SizedBox(height: 10),
+                            _LinkBlock(icon: Icons.flag, title: '关联目标', chips: goalTitles),
+                          ],
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  List<String> _parseImages(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return const [];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is List) {
+        return decoded.whereType<String>().toList(growable: false);
+      }
+    } catch (_) {}
+    return const [];
+  }
+
+  String _buildFoodLocation(FoodRecord record) {
+    final parts = <String>[];
+    final poi = record.poiName?.trim() ?? '';
+    final city = record.city?.trim() ?? '';
+    if (poi.isNotEmpty) parts.add(poi);
+    if (city.isNotEmpty) parts.add(city);
+    return parts.join(' · ');
+  }
+
+  Map<String, List<String>> _groupLinkIds(List<EntityLink> links, String entityType, String entityId) {
+    final grouped = <String, List<String>>{};
+    for (final link in links) {
+      final isSource = link.sourceType == entityType && link.sourceId == entityId;
+      final otherType = isSource ? link.targetType : link.sourceType;
+      final otherId = isSource ? link.targetId : link.sourceId;
+      final list = grouped.putIfAbsent(otherType, () => <String>[]);
+      if (!list.contains(otherId)) {
+        list.add(otherId);
+      }
+    }
+    return grouped;
+  }
+
+  List<String> _mapNames(List<String> ids, Map<String, String> nameById) {
+    return [for (final id in ids) if (nameById.containsKey(id)) nameById[id]!];
+  }
+
+  String _momentTitle(MomentRecord record) {
+    final content = (record.content ?? '').trim();
+    if (content.isEmpty) return '小确幸';
+    final lines = content.split('\n').where((l) => l.trim().isNotEmpty).toList();
+    return lines.isEmpty ? '小确幸' : lines.first.trim();
+  }
+
+  String _travelTitle(TravelRecord record) {
+    final title = record.title?.trim() ?? '';
+    if (title.isNotEmpty) return title;
+    final destination = record.destination?.trim() ?? '';
+    return destination.isEmpty ? '旅行记录' : destination;
   }
 }
 
@@ -1039,6 +1244,8 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
   final _tags = <String>['必吃榜', '周末探店', '辣'];
 
   final _linkedFriends = <FriendRecord>[];
+  final Set<String> _linkedTravelIds = {};
+  final Set<String> _linkedGoalIds = {};
 
   @override
   void dispose() {
@@ -1489,10 +1696,17 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
                   iconBg: const Color(0xFFFFEDD5),
                   iconColor: const Color(0xFFEA580C),
                   title: '关联旅行',
-                  trailing: const Text('选择旅行记录', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('旅行模块待接入')));
-                  },
+                  trailing: _buildTravelTrailing(),
+                  onTap: () => _showLinkTravelsSheet(context),
+                ),
+                const Divider(height: 1, color: Color(0xFFF3F4F6)),
+                _UniversalLinkRow(
+                  icon: Icons.flag,
+                  iconBg: const Color(0xFFE0F2FE),
+                  iconColor: const Color(0xFF0284C7),
+                  title: '关联目标',
+                  trailing: _buildGoalTrailing(),
+                  onTap: () => _showLinkGoalsSheet(context),
                 ),
                 const Divider(height: 1, color: Color(0xFFF3F4F6)),
                 _UniversalLinkRow(
@@ -1554,6 +1768,56 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
           ),
         ),
         const SizedBox(width: 12),
+        const Icon(Icons.chevron_right, size: 18, color: Color(0xFFD1D5DB)),
+      ],
+    );
+  }
+
+  Widget _buildTravelTrailing() {
+    if (_linkedTravelIds.isEmpty) {
+      return const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('选择旅行记录', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+          SizedBox(width: 6),
+          Icon(Icons.chevron_right, size: 18, color: Color(0xFFD1D5DB)),
+        ],
+      );
+    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(color: const Color(0xFFFFF7ED), borderRadius: BorderRadius.circular(999)),
+          child: Text('已选 ${_linkedTravelIds.length} 条', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFFEA580C))),
+        ),
+        const SizedBox(width: 6),
+        const Icon(Icons.chevron_right, size: 18, color: Color(0xFFD1D5DB)),
+      ],
+    );
+  }
+
+  Widget _buildGoalTrailing() {
+    if (_linkedGoalIds.isEmpty) {
+      return const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('选择人生目标', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+          SizedBox(width: 6),
+          Icon(Icons.chevron_right, size: 18, color: Color(0xFFD1D5DB)),
+        ],
+      );
+    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(color: const Color(0xFFE0F2FE), borderRadius: BorderRadius.circular(999)),
+          child: Text('已选 ${_linkedGoalIds.length} 条', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF0284C7))),
+        ),
+        const SizedBox(width: 6),
         const Icon(Icons.chevron_right, size: 18, color: Color(0xFFD1D5DB)),
       ],
     );
@@ -1882,6 +2146,221 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
     });
   }
 
+  Stream<List<TravelRecord>> _watchTravelRecords() {
+    return ref.read(appDatabaseProvider).watchAllActiveTravelRecords();
+  }
+
+  Stream<List<TimelineEvent>> _watchGoalEvents() {
+    final db = ref.read(appDatabaseProvider);
+    return (db.select(db.timelineEvents)
+          ..where((t) => t.eventType.equals('goal'))
+          ..where((t) => t.isDeleted.equals(false))
+          ..orderBy([(t) => OrderingTerm(expression: t.recordDate, mode: OrderingMode.desc)]))
+        .watch();
+  }
+
+  Future<void> _showLinkTravelsSheet(BuildContext context) async {
+    final initial = {..._linkedTravelIds};
+    final result = await showModalBottomSheet<Set<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        var selected = initial;
+        return _BottomSheetShell(
+          title: '关联旅行',
+          child: StatefulBuilder(
+            builder: (context, setInnerState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 420),
+                    child: StreamBuilder<List<TravelRecord>>(
+                      stream: _watchTravelRecords(),
+                      builder: (context, snapshot) {
+                        final items = snapshot.data ?? const <TravelRecord>[];
+                        if (items.isEmpty) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 18),
+                            child: Text('暂无旅行记录', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+                          );
+                        }
+                        return ListView.separated(
+                          shrinkWrap: true,
+                          itemCount: items.length,
+                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          itemBuilder: (context, index) {
+                            final t = items[index];
+                            final checked = selected.contains(t.id);
+                            return ListTile(
+                              leading: Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(color: const Color(0xFFF0FDF4), borderRadius: BorderRadius.circular(12)),
+                                child: const Icon(Icons.flight_takeoff, color: Color(0xFF22C55E)),
+                              ),
+                              title: Text(t.title?.isNotEmpty == true ? t.title! : '旅行记录', style: const TextStyle(fontWeight: FontWeight.w800)),
+                              trailing: Checkbox(
+                                value: checked,
+                                onChanged: (v) {
+                                  final next = {...selected};
+                                  if (v == true) {
+                                    next.add(t.id);
+                                  } else {
+                                    next.remove(t.id);
+                                  }
+                                  selected = next;
+                                  setInnerState(() {});
+                                },
+                              ),
+                              onTap: () {
+                                final next = {...selected};
+                                if (checked) {
+                                  next.remove(t.id);
+                                } else {
+                                  next.add(t.id);
+                                }
+                                selected = next;
+                                setInnerState(() {});
+                              },
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _primary,
+                        foregroundColor: _backgroundDark,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        textStyle: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                      onPressed: () => Navigator.of(context).pop(selected),
+                      child: const Text('完成'),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        );
+      },
+    );
+
+    if (result == null) return;
+    setState(() {
+      _linkedTravelIds
+        ..clear()
+        ..addAll(result);
+    });
+  }
+
+  Future<void> _showLinkGoalsSheet(BuildContext context) async {
+    final initial = {..._linkedGoalIds};
+    final result = await showModalBottomSheet<Set<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        var selected = initial;
+        return _BottomSheetShell(
+          title: '关联人生目标',
+          child: StatefulBuilder(
+            builder: (context, setInnerState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 420),
+                    child: StreamBuilder<List<TimelineEvent>>(
+                      stream: _watchGoalEvents(),
+                      builder: (context, snapshot) {
+                        final items = snapshot.data ?? const <TimelineEvent>[];
+                        if (items.isEmpty) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 18),
+                            child: Text('暂无人生目标', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+                          );
+                        }
+                        return ListView.separated(
+                          shrinkWrap: true,
+                          itemCount: items.length,
+                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          itemBuilder: (context, index) {
+                            final g = items[index];
+                            final checked = selected.contains(g.id);
+                            return ListTile(
+                              leading: Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(color: const Color(0xFFE0F2FE), borderRadius: BorderRadius.circular(12)),
+                                child: const Icon(Icons.flag, color: Color(0xFF0284C7)),
+                              ),
+                              title: Text(g.title, style: const TextStyle(fontWeight: FontWeight.w800)),
+                              trailing: Checkbox(
+                                value: checked,
+                                onChanged: (v) {
+                                  final next = {...selected};
+                                  if (v == true) {
+                                    next.add(g.id);
+                                  } else {
+                                    next.remove(g.id);
+                                  }
+                                  selected = next;
+                                  setInnerState(() {});
+                                },
+                              ),
+                              onTap: () {
+                                final next = {...selected};
+                                if (checked) {
+                                  next.remove(g.id);
+                                } else {
+                                  next.add(g.id);
+                                }
+                                selected = next;
+                                setInnerState(() {});
+                              },
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _primary,
+                        foregroundColor: _backgroundDark,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        textStyle: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                      onPressed: () => Navigator.of(context).pop(selected),
+                      child: const Text('完成'),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        );
+      },
+    );
+
+    if (result == null) return;
+    setState(() {
+      _linkedGoalIds
+        ..clear()
+        ..addAll(result);
+    });
+  }
+
   Future<void> _publish() async {
     final title = _titleController.text.trim();
     if (title.isEmpty) {
@@ -1928,6 +2407,24 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
         sourceId: foodId,
         targetType: 'friend',
         targetId: f.id,
+        now: now,
+      );
+    }
+    for (final id in _linkedTravelIds) {
+      await db.linkDao.createLink(
+        sourceType: 'food',
+        sourceId: foodId,
+        targetType: 'travel',
+        targetId: id,
+        now: now,
+      );
+    }
+    for (final id in _linkedGoalIds) {
+      await db.linkDao.createLink(
+        sourceType: 'food',
+        sourceId: foodId,
+        targetType: 'goal',
+        targetId: id,
         now: now,
       );
     }

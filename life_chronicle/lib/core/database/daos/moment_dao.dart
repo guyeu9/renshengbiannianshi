@@ -24,6 +24,14 @@ class MomentDao extends DatabaseAccessor<AppDatabase> with _$MomentDaoMixin {
         .getSingleOrNull();
   }
 
+  Stream<MomentRecord?> watchById(String id) {
+    return (select(db.momentRecords)
+          ..where((t) => t.id.equals(id))
+          ..where((t) => t.isDeleted.equals(false))
+          ..limit(1))
+        .watchSingleOrNull();
+  }
+
   Stream<List<MomentRecord>> watchAllActive() {
     return (select(db.momentRecords)
           ..where((t) => t.isDeleted.equals(false))
@@ -40,4 +48,3 @@ class MomentDao extends DatabaseAccessor<AppDatabase> with _$MomentDaoMixin {
         .watch();
   }
 }
-

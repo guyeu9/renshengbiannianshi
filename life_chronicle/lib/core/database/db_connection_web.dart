@@ -1,8 +1,6 @@
 import 'package:drift/drift.dart';
-import 'package:drift/web.dart';
+import 'package:drift_flutter/drift_flutter.dart';
 
-LazyDatabase openConnection() {
-  return LazyDatabase(() async {
-    return WebDatabase('life_chronicle');
-  });
+QueryExecutor openConnection() {
+  return driftDatabase(name: 'life_chronicle');
 }

@@ -23,201 +23,194 @@ class ProfilePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _background,
-      body: Stack(
-        children: [
-          ListView(
-            padding: EdgeInsets.only(bottom: 40 + MediaQuery.paddingOf(context).bottom),
-            children: [
-              _Header(
-                onBack: () => Navigator.of(context).maybePop(),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _ChronicleCard(
-                      onGenerate: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const ChronicleGenerateConfigPage()),
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    const _SectionTitle(title: '功能管理'),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _LargeTile(
-                            icon: Icons.collections_bookmark,
-                            iconBg: _softPurple,
-                            iconColor: _iconPurple,
-                            title: '收藏中心',
-                            subtitle: '美食 · 旅行 · 小确幸',
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(builder: (_) => const FavoritesCenterPage()),
-                            ),
-                            trailingIcon: Icons.ios_share,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _SmallTile(
-                            icon: Icons.history_toggle_off,
-                            iconBg: _accent,
-                            iconColor: const Color(0xFF5D8CC0),
-                            title: '编年史管理',
-                            subtitle: '查看历史版本',
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(builder: (_) => const ChronicleManagePage()),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _SmallTile(
-                            icon: Icons.analytics,
-                            iconBg: _softRed,
-                            iconColor: _iconRed,
-                            title: '年度报告',
-                            subtitle: '回顾过往精彩',
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(builder: (_) => const YearReportPage()),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _SmallTile(
-                            icon: Icons.cloud_upload,
-                            iconBg: _softBlue,
-                            iconColor: _iconBlue,
-                            title: '数据备份',
-                            subtitle: '云端安全存储',
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(builder: (_) => const DataManagementPage()),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _SmallTile(
-                            icon: Icons.dashboard_customize,
-                            iconBg: _accent,
-                            iconColor: const Color(0xFF5D8CC0),
-                            title: '模块管理',
-                            subtitle: '个性化主页',
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(builder: (_) => const ModuleManagementPage()),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    _ListGroup(
-                      items: [
-                        _ListItem(
-                          icon: Icons.hub,
-                          iconColor: const Color(0xFF4CAF50),
-                          title: '万物互联',
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const UniversalLinkPage()),
-                          ),
-                        ),
-                        _ListItem(
-                          icon: Icons.notifications_active,
-                          iconColor: Colors.black,
-                          title: '提醒设置',
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const ReminderSettingsPage()),
-                          ),
-                        ),
-                        _ListItem(
-                          icon: Icons.lock,
-                          iconColor: Colors.black,
-                          title: '隐私与安全',
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const PrivacySecurityPage()),
-                          ),
-                        ),
-                        _ListItem(
-                          icon: Icons.help,
-                          iconColor: Colors.black,
-                          title: '帮助与反馈',
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const HelpFeedbackPage()),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFFE5E7EB)),
-                        foregroundColor: const Color(0xFF9CA3AF),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ).copyWith(
-                        backgroundColor: const WidgetStatePropertyAll(Colors.transparent),
-                      ),
-                      onPressed: () {},
-                      child: const Text('退出登录', style: TextStyle(fontWeight: FontWeight.w600)),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _FrostedCircleButton(
-                      icon: Icons.arrow_back_ios_new,
-                      onTap: () => Navigator.of(context).maybePop(),
-                    ),
-                    Row(
-                      children: [
-                        _FrostedCircleButton(icon: Icons.share, onTap: () {}),
-                        const SizedBox(width: 12),
-                        _FrostedCircleButton(icon: Icons.notifications, onTap: () {}),
-                      ],
-                    ),
-                  ],
-                ),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _FrostedCircleButton(
+                    icon: Icons.arrow_back_ios_new,
+                    onTap: () => Navigator.of(context).maybePop(),
+                  ),
+                  Row(
+                    children: [
+                      _FrostedCircleButton(icon: Icons.share, onTap: () {}),
+                      const SizedBox(width: 12),
+                      _FrostedCircleButton(icon: Icons.notifications, onTap: () {}),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.only(bottom: 40 + MediaQuery.paddingOf(context).bottom),
+                children: [
+                  const _Header(),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _ChronicleCard(
+                          onGenerate: () => Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => const ChronicleGenerateConfigPage()),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        const _SectionTitle(title: '功能管理'),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _LargeTile(
+                                icon: Icons.collections_bookmark,
+                                iconBg: _softPurple,
+                                iconColor: _iconPurple,
+                                title: '收藏中心',
+                                subtitle: '美食 · 旅行 · 小确幸',
+                                onTap: () => Navigator.of(context).push(
+                                  MaterialPageRoute(builder: (_) => const FavoritesCenterPage()),
+                                ),
+                                trailingIcon: Icons.ios_share,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _SmallTile(
+                                icon: Icons.history_toggle_off,
+                                iconBg: _accent,
+                                iconColor: const Color(0xFF5D8CC0),
+                                title: '编年史管理',
+                                subtitle: '查看历史版本',
+                                onTap: () => Navigator.of(context).push(
+                                  MaterialPageRoute(builder: (_) => const ChronicleManagePage()),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _SmallTile(
+                                icon: Icons.analytics,
+                                iconBg: _softRed,
+                                iconColor: _iconRed,
+                                title: '年度报告',
+                                subtitle: '回顾过往精彩',
+                                onTap: () => Navigator.of(context).push(
+                                  MaterialPageRoute(builder: (_) => const YearReportPage()),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _SmallTile(
+                                icon: Icons.cloud_upload,
+                                iconBg: _softBlue,
+                                iconColor: _iconBlue,
+                                title: '数据备份',
+                                subtitle: '云端安全存储',
+                                onTap: () => Navigator.of(context).push(
+                                  MaterialPageRoute(builder: (_) => const DataManagementPage()),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _SmallTile(
+                                icon: Icons.dashboard_customize,
+                                iconBg: _accent,
+                                iconColor: const Color(0xFF5D8CC0),
+                                title: '模块管理',
+                                subtitle: '个性化主页',
+                                onTap: () => Navigator.of(context).push(
+                                  MaterialPageRoute(builder: (_) => const ModuleManagementPage()),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        _ListGroup(
+                          items: [
+                            _ListItem(
+                              icon: Icons.hub,
+                              iconColor: const Color(0xFF4CAF50),
+                              title: '万物互联',
+                              onTap: () => Navigator.of(context).push(
+                                MaterialPageRoute(builder: (_) => const UniversalLinkPage()),
+                              ),
+                            ),
+                            _ListItem(
+                              icon: Icons.notifications_active,
+                              iconColor: Colors.black,
+                              title: '提醒设置',
+                              onTap: () => Navigator.of(context).push(
+                                MaterialPageRoute(builder: (_) => const ReminderSettingsPage()),
+                              ),
+                            ),
+                            _ListItem(
+                              icon: Icons.lock,
+                              iconColor: Colors.black,
+                              title: '隐私与安全',
+                              onTap: () => Navigator.of(context).push(
+                                MaterialPageRoute(builder: (_) => const PrivacySecurityPage()),
+                              ),
+                            ),
+                            _ListItem(
+                              icon: Icons.help,
+                              iconColor: Colors.black,
+                              title: '帮助与反馈',
+                              onTap: () => Navigator.of(context).push(
+                                MaterialPageRoute(builder: (_) => const HelpFeedbackPage()),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFFE5E7EB)),
+                            foregroundColor: const Color(0xFF9CA3AF),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          ).copyWith(
+                            backgroundColor: const WidgetStatePropertyAll(Colors.transparent),
+                          ),
+                          onPressed: () {},
+                          child: const Text('退出登录', style: TextStyle(fontWeight: FontWeight.w600)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.onBack});
-
-  final VoidCallback onBack;
+  const _Header();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top + 64, bottom: 24),
+      padding: const EdgeInsets.only(top: 8, bottom: 24),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
