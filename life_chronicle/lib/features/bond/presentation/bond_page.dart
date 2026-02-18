@@ -1267,8 +1267,9 @@ class _MultiImageMemoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayImages = item.images.take(3).toList();
-    final remaining = item.images.length - 3;
+    final displayCount = item.images.length > 9 ? 9 : item.images.length;
+    final displayImages = item.images.take(displayCount).toList();
+    final remaining = item.images.length - 9;
 
     return Material(
       color: Colors.white,
@@ -1305,35 +1306,37 @@ class _MultiImageMemoryCard extends StatelessWidget {
                   ],
                 ),
               ),
-              SizedBox(
-                height: 120,
-                child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  scrollDirection: Axis.horizontal,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                child: GridView.builder(
+                  padding: EdgeInsets.zero,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    mainAxisSpacing: 8,
+                    crossAxisSpacing: 8,
+                    childAspectRatio: 1.0,
+                  ),
                   itemCount: displayImages.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
                   itemBuilder: (context, index) {
-                    final isLast = index == 2 && remaining > 0;
+                    final isLast = index == 8 && remaining > 0;
                     return ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: SizedBox(
-                        width: 120,
-                        height: 120,
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            _buildLocalImage(displayImages[index], fit: BoxFit.cover),
-                            if (isLast)
-                              Container(
-                                color: Colors.black.withValues(alpha: 0.5),
-                                alignment: Alignment.center,
-                                child: Text(
-                                  '+$remaining',
-                                  style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-                                ),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          _buildLocalImage(displayImages[index], fit: BoxFit.cover),
+                          if (isLast)
+                            Container(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              alignment: Alignment.center,
+                              child: Text(
+                                '+$remaining',
+                                style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
                               ),
-                          ],
-                        ),
+                            ),
+                        ],
                       ),
                     );
                   },
