@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:drift/drift.dart' show OrderingMode, OrderingTerm, Value;
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -12,8 +12,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:amap_flutter_base/amap_flutter_base.dart';
-import 'package:amap_flutter_map/amap_flutter_map.dart';
+import 'package:amap_flutter/amap_flutter.dart' as amap;
 
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
@@ -2036,7 +2035,21 @@ class _FoodMapPageState extends State<_FoodMapPage> {
   double? _pickedLatitude;
   double? _pickedLongitude;
 
-  bool get _hasMapKey => _amapAndroidKey.trim().isNotEmpty || _amapIosKey.trim().isNotEmpty;
+  amap.AMapController? _mapController;
+  var _sdkReady = false;
+  var _sdkErrorText = '';
+
+  bool get _hasMapKey {
+    if (kIsWeb) return _amapWebKey.trim().isNotEmpty;
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return _amapAndroidKey.trim().isNotEmpty;
+      case TargetPlatform.iOS:
+        return _amapIosKey.trim().isNotEmpty;
+      default:
+        return _amapAndroidKey.trim().isNotEmpty || _amapIosKey.trim().isNotEmpty;
+    }
+  }
   bool get _hasWebKey => _amapWebKey.trim().isNotEmpty;
 
   @override
@@ -2055,6 +2068,8 @@ class _FoodMapPageState extends State<_FoodMapPage> {
       _pickedLongitude = widget.initialLongitude;
       _searchController.text = widget.initialPoiName.trim().isNotEmpty ? widget.initialPoiName.trim() : widget.initialAddress.trim();
     }
+
+    _initAmapSdk();
   }
 
   @override
@@ -2063,6 +2078,53 @@ class _FoodMapPageState extends State<_FoodMapPage> {
     _poiNameController.dispose();
     _addressController.dispose();
     super.dispose();
+  }
+
+  Future<void> _initAmapSdk() async {
+    if (!_hasMapKey) return;
+    try {
+      await amap.AMapFlutter.init(
+        apiKey: amap.ApiKey(
+          iosKey: _amapIosKey,
+          androidKey: _amapAndroidKey,
+          webKey: _amapWebKey,
+        ),
+        agreePrivacy: true,
+      );
+      if (!mounted) return;
+      setState(() {
+        _sdkReady = true;
+        _sdkErrorText = '';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _sdkReady = false;
+        _sdkErrorText = '$e';
+      });
+    }
+  }
+
+  void _syncMarkerAndCamera() {
+    final controller = _mapController;
+    if (controller == null) return;
+    controller.removeMarker('picked');
+    final lat = _pickedLatitude;
+    final lng = _pickedLongitude;
+    if (lat == null || lng == null) return;
+    controller.addMarker(
+      amap.Marker(
+        id: 'picked',
+        position: amap.Position(latitude: lat, longitude: lng),
+      ),
+    );
+    controller.moveCamera(
+      amap.CameraPosition(
+        position: amap.Position(latitude: lat, longitude: lng),
+        zoom: 15,
+      ),
+      const Duration(milliseconds: 220),
+    );
   }
 
   Future<void> _searchPoi() async {
@@ -2287,15 +2349,6 @@ class _FoodMapPageState extends State<_FoodMapPage> {
     final mapTargetLat = _pickedLatitude ?? 39.908722;
     final mapTargetLng = _pickedLongitude ?? 116.397499;
 
-    final markers = <Marker>{};
-    if (_pickedLatitude != null && _pickedLongitude != null) {
-      markers.add(
-        Marker(
-          position: LatLng(_pickedLatitude!, _pickedLongitude!),
-        ),
-      );
-    }
-
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8F8),
       appBar: AppBar(
@@ -2328,12 +2381,45 @@ class _FoodMapPageState extends State<_FoodMapPage> {
                   ? const Center(
                       child: Text('未配置高德 Key', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
                     )
-                  : AMapWidget(
-                      apiKey: const AMapApiKey(androidKey: _amapAndroidKey, iosKey: _amapIosKey),
-                      privacyStatement: const AMapPrivacyStatement(hasContains: true, hasShow: true, hasAgree: true),
-                      initialCameraPosition: CameraPosition(target: LatLng(mapTargetLat, mapTargetLng), zoom: 15),
-                      markers: markers,
-                    ),
+                  : (_sdkErrorText.isNotEmpty
+                      ? Center(
+                          child: Text(
+                            _sdkErrorText,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFFEF4444)),
+                          ),
+                        )
+                      : (!_sdkReady
+                          ? const Center(child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)))
+                          : amap.AMapFlutter(
+                              initCameraPosition: amap.CameraPosition(
+                                position: amap.Position(latitude: mapTargetLat, longitude: mapTargetLng),
+                                zoom: 15,
+                              ),
+                              onMapCreated: (controller) {
+                                _mapController = controller;
+                                _syncMarkerAndCamera();
+                              },
+                              onPoiClick: isPreview
+                                  ? null
+                                  : (poi) {
+                                      setState(() {
+                                        _poiNameController.text = poi.name;
+                                        _pickedLatitude = poi.position.latitude;
+                                        _pickedLongitude = poi.position.longitude;
+                                      });
+                                      _syncMarkerAndCamera();
+                                    },
+                              onMapLongPress: isPreview
+                                  ? null
+                                  : (position) {
+                                      setState(() {
+                                        _pickedLatitude = position.latitude;
+                                        _pickedLongitude = position.longitude;
+                                      });
+                                      _syncMarkerAndCamera();
+                                    },
+                            ))),
             ),
           ),
           const SizedBox(height: 12),
@@ -2429,6 +2515,7 @@ class _FoodMapPageState extends State<_FoodMapPage> {
                         _pickedLatitude = p.latitude;
                         _pickedLongitude = p.longitude;
                       });
+                      _syncMarkerAndCamera();
                     },
                     child: Container(
                       padding: const EdgeInsets.all(14),
