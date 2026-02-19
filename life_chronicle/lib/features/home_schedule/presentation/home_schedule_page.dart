@@ -10,8 +10,9 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 
+import '../../../app/app_theme.dart';
 import '../../../core/database/app_database.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/database/database_providers.dart';
 import '../../ai_historian/presentation/ai_historian_chat_page.dart';
 import '../../profile/presentation/profile_page.dart';
 
