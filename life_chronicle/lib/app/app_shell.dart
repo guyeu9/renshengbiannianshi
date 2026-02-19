@@ -178,6 +178,10 @@ void _showQuickCreateSheet(BuildContext context, WidgetRef ref) {
                         onTap: () {
                           Navigator.of(sheetContext).pop();
                           ref.read(appTabIndexProvider.notifier).state = 5;
+                          final navigator = Navigator.of(context);
+                          Future.microtask(() {
+                            navigator.push(MaterialPageRoute(builder: (_) => const FriendCreatePage()));
+                          });
                         },
                       ),
                       _QuickCreateEntry(

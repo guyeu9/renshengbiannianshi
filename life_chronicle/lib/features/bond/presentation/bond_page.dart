@@ -23,6 +23,8 @@ class _BondPageState extends State<BondPage> {
   var _filterDateIndex = 0;
   DateTimeRange? _filterCustomRange;
   Set<String> _filterFriendIds = {};
+  final _searchController = TextEditingController();
+  var _searchText = '';
 
   Future<void> _openFilterSheet() async {
     final result = await showModalBottomSheet<_FilterResult>(
@@ -62,6 +64,12 @@ class _BondPageState extends State<BondPage> {
   }
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF6F6F6),
@@ -71,6 +79,13 @@ class _BondPageState extends State<BondPage> {
           children: [
             _BondHeader(
               tabIndex: _tabIndex,
+              searchController: _searchController,
+              hasSearchText: _searchText.isNotEmpty,
+              onSearchChanged: (value) => setState(() => _searchText = value),
+              onClearSearch: () {
+                _searchController.clear();
+                setState(() => _searchText = '');
+              },
               onTabChanged: (next) => setState(() => _tabIndex = next),
               onAddTap: _handleAdd,
               onFilterTap: _openFilterSheet,
@@ -78,7 +93,14 @@ class _BondPageState extends State<BondPage> {
             Expanded(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 220),
-                child: _tabIndex == 0 ? const _FriendArchiveList() : const _EncounterTimeline(),
+                child: _tabIndex == 0
+                    ? _FriendArchiveList(
+                        searchQuery: _searchText,
+                        filterDateIndex: _filterDateIndex,
+                        filterCustomRange: _filterCustomRange,
+                        filterFriendIds: _filterFriendIds,
+                      )
+                    : const _EncounterTimeline(),
               ),
             ),
           ],
@@ -91,12 +113,20 @@ class _BondPageState extends State<BondPage> {
 class _BondHeader extends StatelessWidget {
   const _BondHeader({
     required this.tabIndex,
+    required this.searchController,
+    required this.hasSearchText,
+    required this.onSearchChanged,
+    required this.onClearSearch,
     required this.onTabChanged,
     required this.onAddTap,
     required this.onFilterTap,
   });
 
   final int tabIndex;
+  final TextEditingController searchController;
+  final bool hasSearchText;
+  final ValueChanged<String> onSearchChanged;
+  final VoidCallback onClearSearch;
   final ValueChanged<int> onTabChanged;
   final VoidCallback onAddTap;
   final VoidCallback onFilterTap;
@@ -104,7 +134,7 @@ class _BondHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
       child: Column(
         children: [
           Row(
@@ -147,12 +177,28 @@ class _BondHeader extends StatelessWidget {
                       const Icon(Icons.search, color: Color(0xFF9CA3AF), size: 22),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: Text(
-                          tabIndex == 1 ? '搜索相遇回忆...' : '搜索朋友档案...',
-                          style: const TextStyle(fontSize: 15, color: Color(0xFF9CA3AF), fontWeight: FontWeight.w500),
-                          overflow: TextOverflow.ellipsis,
+                        child: TextField(
+                          controller: searchController,
+                          onChanged: onSearchChanged,
+                          decoration: InputDecoration(
+                            hintText: tabIndex == 1 ? '搜索相遇回忆...' : '搜索朋友档案...',
+                            hintStyle: const TextStyle(fontSize: 15, color: Color(0xFF9CA3AF), fontWeight: FontWeight.w500),
+                            border: InputBorder.none,
+                            isDense: true,
+                          ),
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
+                          textInputAction: TextInputAction.search,
                         ),
                       ),
+                      if (hasSearchText)
+                        InkWell(
+                          borderRadius: BorderRadius.circular(999),
+                          onTap: onClearSearch,
+                          child: const Padding(
+                            padding: EdgeInsets.all(6),
+                            child: Icon(Icons.close, size: 18, color: Color(0xFF9CA3AF)),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -281,7 +327,34 @@ class _SegmentedPill extends StatelessWidget {
 }
 
 class _FriendArchiveList extends ConsumerWidget {
-  const _FriendArchiveList();
+  const _FriendArchiveList({
+    required this.searchQuery,
+    required this.filterDateIndex,
+    required this.filterCustomRange,
+    required this.filterFriendIds,
+  });
+
+  final String searchQuery;
+  final int filterDateIndex;
+  final DateTimeRange? filterCustomRange;
+  final Set<String> filterFriendIds;
+
+  DateTimeRange? _resolveMeetDateRange() {
+    if (filterDateIndex == 0) return null;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    switch (filterDateIndex) {
+      case 1:
+        return DateTimeRange(start: today, end: today);
+      case 2:
+        return DateTimeRange(start: today.subtract(const Duration(days: 6)), end: today);
+      case 3:
+        return DateTimeRange(start: today.subtract(const Duration(days: 29)), end: today);
+      case 4:
+        return filterCustomRange;
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -295,14 +368,54 @@ class _FriendArchiveList extends ConsumerWidget {
             child: Text('暂无朋友档案，点击右上角 + 新建', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
           );
         }
+
+        final query = searchQuery.trim().toLowerCase();
+        final range = _resolveMeetDateRange();
+        final start = range == null ? null : DateTime(range.start.year, range.start.month, range.start.day);
+        final endExclusive = range == null ? null : DateTime(range.end.year, range.end.month, range.end.day).add(const Duration(days: 1));
+
+        final filtered = friends.where((f) {
+          if (filterFriendIds.isNotEmpty && !filterFriendIds.contains(f.id)) {
+            return false;
+          }
+
+          if (start != null && endExclusive != null) {
+            final meet = f.meetDate;
+            if (meet == null) return false;
+            final date = DateTime(meet.year, meet.month, meet.day);
+            if (date.isBefore(start) || !date.isBefore(endExclusive)) {
+              return false;
+            }
+          }
+
+          if (query.isEmpty) return true;
+          final name = f.name.toLowerCase();
+          final meetWay = (f.meetWay ?? '').toLowerCase();
+          final contact = (f.contact ?? '').toLowerCase();
+          final tags = (f.impressionTags ?? '').toLowerCase();
+          return name.contains(query) || meetWay.contains(query) || contact.contains(query) || tags.contains(query);
+        }).toList(growable: false);
+
+        filtered.sort((a, b) {
+          final fav = (b.isFavorite ? 1 : 0) - (a.isFavorite ? 1 : 0);
+          if (fav != 0) return fav;
+          return b.updatedAt.compareTo(a.updatedAt);
+        });
+
+        if (filtered.isEmpty) {
+          return const Center(
+            child: Text('未找到匹配的朋友档案', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+          );
+        }
+
         final left = <FriendRecord>[];
         final right = <FriendRecord>[];
-        for (var i = 0; i < friends.length; i++) {
-          (i.isEven ? left : right).add(friends[i]);
+        for (var i = 0; i < filtered.length; i++) {
+          (i.isEven ? left : right).add(filtered[i]);
         }
         return SingleChildScrollView(
           key: const ValueKey('friend_archives'),
-          padding: const EdgeInsets.fromLTRB(16, 6, 16, 140),
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 140),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -353,7 +466,7 @@ class _FriendCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(24),
       elevation: 0,
       child: InkWell(
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => _BondFriendDetailPage(friend: friend))),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => _BondFriendDetailPage(friendId: friend.id))),
         borderRadius: BorderRadius.circular(24),
         child: Container(
           decoration: BoxDecoration(
@@ -721,78 +834,192 @@ class _Avatar extends StatelessWidget {
   }
 }
 
-class _BondFriendDetailPage extends StatelessWidget {
-  const _BondFriendDetailPage({required this.friend});
+class _BondFriendDetailPage extends ConsumerWidget {
+  const _BondFriendDetailPage({required this.friendId});
 
-  final FriendRecord friend;
+  final String friendId;
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            pinned: true,
-            backgroundColor: Colors.white.withValues(alpha: 0.9),
-            leading: IconButton(
-              onPressed: () => Navigator.of(context).pop(),
-              icon: const Icon(Icons.arrow_back),
-            ),
-            title: const Text('档案详情', style: TextStyle(fontWeight: FontWeight.w900)),
-            actions: [
-              IconButton(onPressed: () {}, icon: const Icon(Icons.more_vert)),
-            ],
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: Column(
-                children: [
-                  _FriendProfileCard(friend: friend),
-                  const SizedBox(height: 14),
-                  Center(
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(999),
-                      onTap: () {},
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(color: const Color(0x332BCDEE)),
-                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 14, offset: const Offset(0, 6))],
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.auto_awesome, color: Color(0xFF2BCDEE), size: 18),
-                            SizedBox(width: 8),
-                            Text('AI 洞察报告', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF2BCDEE))),
-                            SizedBox(width: 6),
-                            Icon(Icons.chevron_right, color: Color(0xFF2BCDEE), size: 20),
-                          ],
-                        ),
-                      ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final db = ref.watch(appDatabaseProvider);
+    return StreamBuilder<FriendRecord?>(
+      stream: db.friendDao.watchById(friendId),
+      builder: (context, snapshot) {
+        final friend = snapshot.data;
+
+        Future<void> deleteFriend() async {
+          final confirmed = await showDialog<bool>(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                title: const Text('删除档案'),
+                content: const Text('删除后将解除已关联的万物互联关系，且无法在列表中恢复显示。'),
+                actions: [
+                  TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('取消')),
+                  TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('删除')),
+                ],
+              );
+            },
+          );
+          if (confirmed != true) return;
+
+          final now = DateTime.now();
+          await db.transaction(() async {
+            final links = await db.linkDao.listLinksForEntity(entityType: 'friend', entityId: friendId);
+            for (final link in links) {
+              await db.linkDao.deleteLink(
+                sourceType: link.sourceType,
+                sourceId: link.sourceId,
+                targetType: link.targetType,
+                targetId: link.targetId,
+                linkType: link.linkType,
+                now: now,
+              );
+            }
+            await db.friendDao.softDeleteById(friendId, now: now);
+          });
+
+          if (!context.mounted) return;
+          Navigator.of(context).pop();
+        }
+
+        return Scaffold(
+          backgroundColor: const Color(0xFFF8FAFC),
+          body: CustomScrollView(
+            slivers: [
+              SliverAppBar(
+                pinned: true,
+                backgroundColor: Colors.white.withValues(alpha: 0.9),
+                leading: IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.arrow_back),
+                ),
+                title: const Text('档案详情', style: TextStyle(fontWeight: FontWeight.w900)),
+                actions: [
+                  if (friend != null)
+                    IconButton(
+                      onPressed: () async {
+                        await showModalBottomSheet<void>(
+                          context: context,
+                          backgroundColor: Colors.transparent,
+                          builder: (sheetContext) {
+                            return SafeArea(
+                              top: false,
+                              child: Container(
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+                                ),
+                                padding: EdgeInsets.fromLTRB(16, 10, 16, 12 + MediaQuery.paddingOf(sheetContext).bottom),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 44,
+                                      height: 5,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFE5E7EB),
+                                        borderRadius: BorderRadius.circular(999),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    ListTile(
+                                      contentPadding: EdgeInsets.zero,
+                                      leading: const Icon(Icons.delete, color: Color(0xFFEF4444)),
+                                      title: const Text('删除档案', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFFEF4444))),
+                                      onTap: () async {
+                                        Navigator.of(sheetContext).pop();
+                                        await deleteFriend();
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                      icon: const Icon(Icons.more_vert),
                     ),
-                  ),
-                  const SizedBox(height: 18),
                 ],
               ),
-            ),
+              if (friend == null)
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(16, 40, 16, 0),
+                    child: Center(
+                      child: Text('档案已删除或不存在', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                    ),
+                  ),
+                )
+              else ...[
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    child: Column(
+                      children: [
+                        _FriendProfileCard(
+                          friend: friend,
+                          onToggleFavorite: () async {
+                            final now = DateTime.now();
+                            await db.friendDao.updateFavorite(friend.id, isFavorite: !friend.isFavorite, now: now);
+                          },
+                          onEdit: () {
+                            Navigator.of(context).push(MaterialPageRoute(builder: (_) => FriendCreatePage(initialFriend: friend)));
+                          },
+                        ),
+                        const SizedBox(height: 14),
+                        Center(
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(999),
+                            onTap: () {},
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(999),
+                                border: Border.all(color: const Color(0x332BCDEE)),
+                                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 14, offset: const Offset(0, 6))],
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.auto_awesome, color: Color(0xFF2BCDEE), size: 18),
+                                  SizedBox(width: 8),
+                                  Text('AI 洞察报告', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF2BCDEE))),
+                                  SizedBox(width: 6),
+                                  Icon(Icons.chevron_right, color: Color(0xFF2BCDEE), size: 20),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                      ],
+                    ),
+                  ),
+                ),
+                _FriendMemorySliver(friend: friend),
+                const SliverPadding(padding: EdgeInsets.only(bottom: 140)),
+              ],
+            ],
           ),
-          _FriendMemorySliver(friend: friend),
-          const SliverPadding(padding: EdgeInsets.only(bottom: 140)),
-        ],
-      ),
+        );
+      },
     );
   }
 }
 
 class _FriendProfileCard extends StatelessWidget {
-  const _FriendProfileCard({required this.friend});
+  const _FriendProfileCard({
+    required this.friend,
+    required this.onToggleFavorite,
+    required this.onEdit,
+  });
 
   final FriendRecord friend;
+  final VoidCallback onToggleFavorite;
+  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -883,7 +1110,7 @@ class _FriendProfileCard extends StatelessWidget {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () {},
+                  onPressed: onToggleFavorite,
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: Color(0xFF2BCDEE)),
                     foregroundColor: const Color(0xFF2BCDEE),
@@ -891,14 +1118,14 @@ class _FriendProfileCard extends StatelessWidget {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     backgroundColor: Colors.transparent,
                   ),
-                  icon: const Icon(Icons.bookmark_border, size: 18),
-                  label: const Text('收藏', style: TextStyle(fontWeight: FontWeight.w900)),
+                  icon: Icon(friend.isFavorite ? Icons.bookmark : Icons.bookmark_border, size: 18),
+                  label: Text(friend.isFavorite ? '已收藏' : '收藏', style: const TextStyle(fontWeight: FontWeight.w900)),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () {},
+                  onPressed: onEdit,
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: Color(0xFFE5E7EB)),
                     foregroundColor: const Color(0xFF111827),
@@ -1423,7 +1650,9 @@ class _NoImageMemoryCard extends StatelessWidget {
 }
 
 class FriendCreatePage extends ConsumerStatefulWidget {
-  const FriendCreatePage({super.key});
+  const FriendCreatePage({super.key, this.initialFriend});
+
+  final FriendRecord? initialFriend;
 
   @override
   ConsumerState<FriendCreatePage> createState() => _FriendCreatePageState();
@@ -1451,6 +1680,9 @@ class _FriendCreatePageState extends ConsumerState<FriendCreatePage> {
   final _meetWayController = TextEditingController();
   final _remarkController = TextEditingController();
 
+  String? _friendId;
+  DateTime? _createdAt;
+  bool _isFavorite = false;
   String? _avatarPath;
   DateTime? _birthday;
   DateTime? _meetDate;
@@ -1460,6 +1692,24 @@ class _FriendCreatePageState extends ConsumerState<FriendCreatePage> {
   @override
   void initState() {
     super.initState();
+    final initial = widget.initialFriend;
+    if (initial != null) {
+      _friendId = initial.id;
+      _createdAt = initial.createdAt;
+      _isFavorite = initial.isFavorite;
+      _avatarPath = (initial.avatarPath ?? '').trim().isEmpty ? null : initial.avatarPath!.trim();
+      _birthday = initial.birthday;
+      _meetDate = initial.meetDate == null ? null : DateTime(initial.meetDate!.year, initial.meetDate!.month, initial.meetDate!.day);
+      _contactFrequency = (initial.contactFrequency ?? '').trim().isEmpty ? '无需提醒' : initial.contactFrequency!.trim();
+      _nameController.text = initial.name;
+      _meetWayController.text = initial.meetWay ?? '';
+      _remarkController.text = initial.contact ?? '';
+      _selectedTags
+        ..clear()
+        ..addAll(_parseTags(initial.impressionTags));
+      return;
+    }
+
     final now = DateTime.now();
     _meetDate = DateTime(now.year, now.month, now.day);
     _contactFrequency = '每三个月提醒一次';
@@ -1682,7 +1932,8 @@ class _FriendCreatePageState extends ConsumerState<FriendCreatePage> {
     }
     final db = ref.read(appDatabaseProvider);
     final now = DateTime.now();
-    final friendId = _uuid.v4();
+    final friendId = _friendId ?? _uuid.v4();
+    final createdAt = _createdAt ?? now;
     final impressionTags = _selectedTags.isEmpty ? null : jsonEncode(_selectedTags);
     final remark = _remarkController.text.trim();
     final meetWay = _meetWayController.text.trim();
@@ -1701,7 +1952,8 @@ class _FriendCreatePageState extends ConsumerState<FriendCreatePage> {
         groupName: const Value(null),
         lastMeetDate: Value(_meetDate),
         contactFrequency: Value(_contactFrequency?.trim().isEmpty == true ? null : _contactFrequency),
-        createdAt: now,
+        isFavorite: Value(_isFavorite),
+        createdAt: createdAt,
         updatedAt: now,
       ),
     );
@@ -1713,6 +1965,7 @@ class _FriendCreatePageState extends ConsumerState<FriendCreatePage> {
   @override
   Widget build(BuildContext context) {
     final avatarPath = (_avatarPath ?? '').trim();
+    final isEdit = widget.initialFriend != null;
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: Stack(
@@ -2034,9 +2287,9 @@ class _FriendCreatePageState extends ConsumerState<FriendCreatePage> {
                         onPressed: () => Navigator.of(context).maybePop(),
                         icon: const Icon(Icons.arrow_back, color: Color(0xFF475569)),
                       ),
-                      const Expanded(
+                      Expanded(
                         child: Center(
-                          child: Text('新建档案', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+                          child: Text(isEdit ? '编辑档案' : '新建档案', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
                         ),
                       ),
                       TextButton(

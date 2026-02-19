@@ -24,6 +24,23 @@ class FriendDao extends DatabaseAccessor<AppDatabase> with _$FriendDaoMixin {
         .getSingleOrNull();
   }
 
+  Stream<FriendRecord?> watchById(String id) {
+    return (select(db.friendRecords)
+          ..where((t) => t.id.equals(id))
+          ..where((t) => t.isDeleted.equals(false))
+          ..limit(1))
+        .watchSingleOrNull();
+  }
+
+  Future<void> updateFavorite(String id, {required bool isFavorite, required DateTime now}) async {
+    await (update(db.friendRecords)..where((t) => t.id.equals(id))).write(
+      FriendRecordsCompanion(
+        isFavorite: Value(isFavorite),
+        updatedAt: Value(now),
+      ),
+    );
+  }
+
   Stream<List<FriendRecord>> watchAllActive() {
     return (select(db.friendRecords)
           ..where((t) => t.isDeleted.equals(false))
@@ -31,4 +48,3 @@ class FriendDao extends DatabaseAccessor<AppDatabase> with _$FriendDaoMixin {
         .watch();
   }
 }
-
