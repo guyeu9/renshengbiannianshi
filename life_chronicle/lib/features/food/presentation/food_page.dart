@@ -2015,9 +2015,15 @@ class _FoodMapPage extends StatefulWidget {
 }
 
 class _FoodMapPageState extends State<_FoodMapPage> {
-  static const String _amapAndroidKey = String.fromEnvironment('AMAP_ANDROID_KEY');
-  static const String _amapIosKey = String.fromEnvironment('AMAP_IOS_KEY');
-  static const String _amapWebKey = String.fromEnvironment('AMAP_WEB_KEY');
+  // Android 平台 Key：用于地图显示 (需在高德控制台创建 Android 应用，绑定包名和 SHA1)
+  // 包名: com.example.life_chronicle
+  static const String _amapAndroidKey = String.fromEnvironment('AMAP_ANDROID_KEY', defaultValue: '');
+  
+  // iOS 平台 Key：用于地图显示 (需在高德控制台创建 iOS 应用，绑定 Bundle ID)
+  static const String _amapIosKey = String.fromEnvironment('AMAP_IOS_KEY', defaultValue: '');
+  
+  // Web 服务 Key：用于地点搜索、逆地理编码等 REST API (用户已提供)
+  static const String _amapWebKey = String.fromEnvironment('AMAP_WEB_KEY', defaultValue: '76e66f23c7045fbe296f9aa9b7e7f12c');
 
   static const _primary = Color(0xFF2BCDEE);
 
