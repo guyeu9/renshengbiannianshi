@@ -805,32 +805,42 @@ class _FriendProfileCard extends StatelessWidget {
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 16, offset: const Offset(0, 6))],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            width: 88,
-            height: 88,
-            padding: const EdgeInsets.all(4),
-            decoration: const BoxDecoration(
-              color: Color(0x332BCDEE),
-              shape: BoxShape.circle,
-            ),
-            child: ClipOval(
-              child: (friend.avatarPath ?? '').trim().isEmpty
-                  ? Container(
-                      color: const Color(0xFFF1F5F9),
-                      alignment: Alignment.center,
-                      child: Text(
-                        _initialLetter(friend.name),
-                        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF64748B)),
-                      ),
-                    )
-                  : _buildLocalImage(friend.avatarPath!, fit: BoxFit.cover),
+          Align(
+            alignment: Alignment.center,
+            child: Container(
+              width: 88,
+              height: 88,
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                color: Color(0x332BCDEE),
+                shape: BoxShape.circle,
+              ),
+              child: ClipOval(
+                child: (friend.avatarPath ?? '').trim().isEmpty
+                    ? Container(
+                        color: const Color(0xFFF1F5F9),
+                        alignment: Alignment.center,
+                        child: Text(
+                          _initialLetter(friend.name),
+                          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF64748B)),
+                        ),
+                      )
+                    : _buildLocalImage(friend.avatarPath!, fit: BoxFit.cover),
+              ),
             ),
           ),
           const SizedBox(height: 12),
-          Text(friend.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+          Align(
+            alignment: Alignment.center,
+            child: Text(friend.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+          ),
           const SizedBox(height: 4),
-          Text('已认识 ${_formatDays(friend.meetDate)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFFFB923C))),
+          Align(
+            alignment: Alignment.center,
+            child: Text('已认识 ${_formatDays(friend.meetDate)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFFFB923C))),
+          ),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -916,13 +926,16 @@ class _InfoPair extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
-        const SizedBox(height: 6),
-        Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF334155))),
-      ],
+    return SizedBox(
+      width: double.infinity,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+          const SizedBox(height: 6),
+          Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF334155))),
+        ],
+      ),
     );
   }
 }
@@ -1445,6 +1458,14 @@ class _FriendCreatePageState extends ConsumerState<FriendCreatePage> {
   final List<String> _selectedTags = [];
 
   @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _meetDate = DateTime(now.year, now.month, now.day);
+    _contactFrequency = '每三个月提醒一次';
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
     _meetWayController.dispose();
@@ -1461,38 +1482,32 @@ class _FriendCreatePageState extends ConsumerState<FriendCreatePage> {
     setState(() => _avatarPath = stored ?? file.path);
   }
 
-  Future<DateTime?> _pickDateTime(DateTime? initial) async {
+  Future<DateTime?> _pickDateOnly(DateTime? initial) async {
     final base = initial ?? DateTime.now();
     final pickedDate = await showDatePicker(
       context: context,
       initialDate: base,
-      firstDate: DateTime(2000),
+      firstDate: DateTime(1900),
       lastDate: DateTime(2100),
       locale: const Locale('zh', 'CN'),
     );
     if (pickedDate == null) return null;
-    if (!mounted) return null;
-    final pickedTime = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(base),
-      builder: (context, child) {
-        return Localizations.override(
-          context: context,
-          locale: const Locale('zh', 'CN'),
-          child: child,
-        );
-      },
-    );
-    if (pickedTime == null) {
-      return DateTime(pickedDate.year, pickedDate.month, pickedDate.day);
-    }
-    return DateTime(pickedDate.year, pickedDate.month, pickedDate.day, pickedTime.hour, pickedTime.minute);
+    return DateTime(pickedDate.year, pickedDate.month, pickedDate.day);
   }
 
-  String _formatDateTime(DateTime? date) {
+  String _formatDateOnly(DateTime? date) {
     if (date == null) return '未设置';
     String two(int v) => v.toString().padLeft(2, '0');
-    return '${date.year}-${two(date.month)}-${two(date.day)} ${two(date.hour)}:${two(date.minute)}';
+    return '${date.year}-${two(date.month)}-${two(date.day)}';
+  }
+
+  String _formatMeetDate(DateTime? date) {
+    if (date == null) return '今天';
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final d = DateTime(date.year, date.month, date.day);
+    if (d == today) return '今天';
+    return _formatDateOnly(d);
   }
 
   Future<void> _addCustomTag() async {
@@ -1532,6 +1547,130 @@ class _FriendCreatePageState extends ConsumerState<FriendCreatePage> {
     if (tag.isEmpty) return;
     if (_selectedTags.contains(tag)) return;
     setState(() => _selectedTags.add(tag));
+  }
+
+  Future<void> _openFrequencySheet() async {
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return _BottomSheetShell(
+          title: '联络频率提醒',
+          actionText: '完成',
+          onAction: () => Navigator.of(context).pop(_contactFrequency),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: Column(
+              children: [
+                for (final option in _frequencyOptions)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(option, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                    trailing: Radio<String>(
+                      value: option,
+                      groupValue: _contactFrequency,
+                      onChanged: (v) => Navigator.of(context).pop(v),
+                      activeColor: const Color(0xFF0EA5E9),
+                    ),
+                    onTap: () => Navigator.of(context).pop(option),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    final next = (result ?? '').trim();
+    if (next.isEmpty) return;
+    if (!mounted) return;
+    setState(() => _contactFrequency = next);
+  }
+
+  Future<void> _openTagPickerSheet() async {
+    final result = await showModalBottomSheet<List<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        var selected = <String>{..._selectedTags};
+        return StatefulBuilder(
+          builder: (context, setInner) {
+            return _BottomSheetShell(
+              title: '印象标签',
+              actionText: '完成',
+              onAction: () => Navigator.of(context).pop(selected.toList()),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        for (final tag in _presetTags)
+                          InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: () {
+                              if (selected.contains(tag)) {
+                                selected.remove(tag);
+                              } else {
+                                selected.add(tag);
+                              }
+                              setInner(() {});
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: selected.contains(tag) ? const Color(0x1A0EA5E9) : const Color(0xFFF3F4F6),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                tag,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w900,
+                                  color: selected.contains(tag) ? const Color(0xFF0EA5E9) : const Color(0xFF64748B),
+                                ),
+                              ),
+                            ),
+                          ),
+                        InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () async {
+                            await Navigator.of(context).maybePop();
+                            if (!mounted) return;
+                            await _addCustomTag();
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: const Color(0xFFE2E8F0), style: BorderStyle.solid),
+                              borderRadius: BorderRadius.circular(12),
+                              color: Colors.transparent,
+                            ),
+                            child: const Text(
+                              '添加标签',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF64748B)),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+    if (result == null) return;
+    setState(() {
+      _selectedTags
+        ..clear()
+        ..addAll(result.map((e) => e.replaceAll('#', '').trim()).where((e) => e.isNotEmpty));
+    });
   }
 
   Future<void> _save() async {
@@ -1575,220 +1714,347 @@ class _FriendCreatePageState extends ConsumerState<FriendCreatePage> {
   Widget build(BuildContext context) {
     final avatarPath = (_avatarPath ?? '').trim();
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F6F6),
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            _CreateTopBar(
-              title: '新建朋友档案',
-              onCancel: () => Navigator.of(context).maybePop(),
-              actionText: '保存',
-              onAction: _save,
-            ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 120),
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: Stack(
+        children: [
+          ListView(
+            padding: const EdgeInsets.fromLTRB(16, 88, 16, 120),
+            children: [
+              Column(
                 children: [
-                  _SectionCard(
-                    title: '头像',
-                    child: Row(
+                  GestureDetector(
+                    onTap: _pickAvatar,
+                    child: Stack(
+                      clipBehavior: Clip.none,
                       children: [
                         Container(
-                          width: 66,
-                          height: 66,
-                          decoration: const BoxDecoration(color: Color(0xFFF1F5F9), shape: BoxShape.circle),
+                          width: 96,
+                          height: 96,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE2E8F0),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 4),
+                            boxShadow: const [BoxShadow(color: Color(0x11000000), blurRadius: 10, offset: Offset(0, 2))],
+                          ),
                           child: ClipOval(
                             child: avatarPath.isEmpty
                                 ? Center(
                                     child: Text(
                                       _initialLetter(_nameController.text),
-                                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF64748B)),
+                                      style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: Color(0xFF94A3B8)),
                                     ),
                                   )
                                 : _buildLocalImage(avatarPath, fit: BoxFit.cover),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text('点击更换头像', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                        Positioned(
+                          right: -2,
+                          bottom: -2,
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                              boxShadow: const [BoxShadow(color: Color(0x11000000), blurRadius: 8, offset: Offset(0, 2))],
+                            ),
+                            child: const Icon(Icons.camera_alt, size: 14, color: Color(0xFF0EA5E9)),
+                          ),
                         ),
-                        OutlinedButton(
-                          onPressed: _pickAvatar,
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFF2BCDEE),
-                            side: BorderSide(color: const Color(0xFF2BCDEE).withValues(alpha: 0.25)),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextButton(
+                    onPressed: _pickAvatar,
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF0EA5E9),
+                      textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+                    ),
+                    child: const Text('修改头像'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFF1F5F9)),
+                  boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 14, offset: Offset(0, 3))],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('朋友姓名', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF999999))),
+                    TextField(
+                      controller: _nameController,
+                      decoration: const InputDecoration(
+                        hintText: 'Sarah',
+                        border: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFFE2E8F0))),
+                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFFE2E8F0))),
+                        focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF0EA5E9))),
+                        isDense: true,
+                      ),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('朋友生日', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF999999))),
+                              InkWell(
+                                onTap: () async {
+                                  final picked = await _pickDateOnly(_birthday);
+                                  if (picked == null) return;
+                                  setState(() => _birthday = picked);
+                                },
+                                child: Container(
+                                  height: 40,
+                                  alignment: Alignment.centerLeft,
+                                  decoration: const BoxDecoration(
+                                    border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+                                  ),
+                                  child: Text(
+                                    _formatDateOnly(_birthday),
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      color: _birthday == null ? const Color(0xFF94A3B8) : const Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 18),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('认识日期', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF999999))),
+                              InkWell(
+                                onTap: () async {
+                                  final picked = await _pickDateOnly(_meetDate);
+                                  if (picked == null) return;
+                                  setState(() => _meetDate = picked);
+                                },
+                                child: Container(
+                                  height: 40,
+                                  decoration: const BoxDecoration(
+                                    border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          _formatMeetDate(_meetDate),
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w700,
+                                            color: _meetDate == null ? const Color(0xFF94A3B8) : const Color(0xFF0F172A),
+                                          ),
+                                        ),
+                                      ),
+                                      const Icon(Icons.calendar_today, size: 16, color: Color(0xFF94A3B8)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    const Text('认识途径', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF999999))),
+                    TextField(
+                      controller: _meetWayController,
+                      decoration: const InputDecoration(
+                        hintText: '市一中 高中同学',
+                        border: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFFE2E8F0))),
+                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFFE2E8F0))),
+                        focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF0EA5E9))),
+                        isDense: true,
+                      ),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+              Material(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: _openFrequencySheet,
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFF1F5F9)),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('联络频率提醒', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF999999))),
+                              const SizedBox(height: 6),
+                              Text(
+                                (_contactFrequency ?? '').trim().isEmpty ? '无需提醒' : _contactFrequency!,
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right, size: 26, color: Color(0xFF94A3B8)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFF1F5F9)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('备注', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF999999))),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _remarkController,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        hintText: '高中死党，超级火锅爱好者...',
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: const Color(0xFFE2E8F0).withValues(alpha: 0.8))),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: const Color(0xFFE2E8F0).withValues(alpha: 0.8))),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF0EA5E9))),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      ),
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF334155), height: 1.35),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text('印象标签', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF999999))),
+                        ),
+                        TextButton(
+                          onPressed: _openTagPickerSheet,
+                          style: TextButton.styleFrom(
+                            foregroundColor: const Color(0xFF0EA5E9),
+                            textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
                           ),
                           child: const Text('选择'),
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 14),
-                  _SectionCard(
-                    title: '姓名',
-                    child: TextField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(
-                        hintText: '请输入朋友名字',
-                        border: InputBorder.none,
-                      ),
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
-                      onChanged: (_) => setState(() {}),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  _SectionCard(
-                    title: '认识日期',
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () async {
-                        final picked = await _pickDateTime(_meetDate);
-                        if (picked == null) return;
-                        setState(() => _meetDate = picked);
-                      },
-                      child: Text(
-                        _formatDateTime(_meetDate),
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: _meetDate == null ? const Color(0xFF94A3B8) : const Color(0xFF111827)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  _SectionCard(
-                    title: '朋友生日',
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () async {
-                        final picked = await _pickDateTime(_birthday);
-                        if (picked == null) return;
-                        setState(() => _birthday = picked);
-                      },
-                      child: Text(
-                        _formatDateTime(_birthday),
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: _birthday == null ? const Color(0xFF94A3B8) : const Color(0xFF111827)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  _SectionCard(
-                    title: '认识途径',
-                    child: TextField(
-                      controller: _meetWayController,
-                      decoration: const InputDecoration(
-                        hintText: '例如：高中同学 / 同事 / 朋友介绍',
-                        border: InputBorder.none,
-                      ),
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF111827)),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  _SectionCard(
-                    title: '联络频率提醒',
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
                       children: [
-                        for (final option in _frequencyOptions)
-                          InkWell(
-                            borderRadius: BorderRadius.circular(999),
-                            onTap: () => setState(() => _contactFrequency = option),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: _contactFrequency == option ? const Color(0x1A2BCDEE) : const Color(0xFFF3F4F6),
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: Text(
-                                option,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w800,
-                                  color: _contactFrequency == option ? const Color(0xFF2BCDEE) : const Color(0xFF64748B),
+                        for (final t in _selectedTags)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: const Color(0x1A0EA5E9),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(t, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF0EA5E9))),
+                                const SizedBox(width: 6),
+                                InkWell(
+                                  borderRadius: BorderRadius.circular(999),
+                                  onTap: () => setState(() => _selectedTags.remove(t)),
+                                  child: const Icon(Icons.close, size: 16, color: Color(0xFF0EA5E9)),
                                 ),
-                              ),
+                              ],
                             ),
                           ),
+                        InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: _addCustomTag,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: const Color(0xFFE2E8F0), style: BorderStyle.solid),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.add, size: 16, color: Color(0xFF64748B)),
+                                SizedBox(width: 6),
+                                Text('添加标签', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF64748B))),
+                              ],
+                            ),
+                          ),
+                        ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 14),
-                  _SectionCard(
-                    title: '备注',
-                    child: TextField(
-                      controller: _remarkController,
-                      maxLines: 3,
-                      decoration: const InputDecoration(
-                        hintText: '记录 TA 的特点、喜好或要记住的事',
-                        border: InputBorder.none,
+                  ],
+                ),
+              ),
+            ],
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 0,
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Color(0xF2F8FAFC),
+                border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+              ),
+              child: SafeArea(
+                bottom: false,
+                child: SizedBox(
+                  height: 56,
+                  child: Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.of(context).maybePop(),
+                        icon: const Icon(Icons.arrow_back, color: Color(0xFF475569)),
                       ),
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF334155), height: 1.4),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  _SectionCard(
-                    title: '印象标签',
-                    trailing: TextButton(
-                      onPressed: _addCustomTag,
-                      style: TextButton.styleFrom(
-                        foregroundColor: const Color(0xFF2BCDEE),
-                        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
+                      const Expanded(
+                        child: Center(
+                          child: Text('新建档案', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+                        ),
                       ),
-                      child: const Text('自定义'),
-                    ),
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final tag in _presetTags)
-                          InkWell(
-                            borderRadius: BorderRadius.circular(999),
-                            onTap: () {
-                              setState(() {
-                                if (_selectedTags.contains(tag)) {
-                                  _selectedTags.remove(tag);
-                                } else {
-                                  _selectedTags.add(tag);
-                                }
-                              });
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: _selectedTags.contains(tag) ? const Color(0x1A2BCDEE) : const Color(0xFFF3F4F6),
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: Text(
-                                tag,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w800,
-                                  color: _selectedTags.contains(tag) ? const Color(0xFF2BCDEE) : const Color(0xFF64748B),
-                                ),
-                              ),
-                            ),
-                          ),
-                        for (final tag in _selectedTags.where((t) => !_presetTags.contains(t)))
-                          InkWell(
-                            borderRadius: BorderRadius.circular(999),
-                            onTap: () => setState(() => _selectedTags.remove(tag)),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: const Color(0x1A2BCDEE),
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: Text(tag, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF2BCDEE))),
-                            ),
-                          ),
-                      ],
-                    ),
+                      TextButton(
+                        onPressed: _save,
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF0EA5E9),
+                          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+                        ),
+                        child: const Text('保存'),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

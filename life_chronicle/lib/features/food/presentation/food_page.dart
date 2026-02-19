@@ -28,6 +28,8 @@ class _FoodPageState extends State<FoodPage> {
   var _filterDateIndex = 0;
   DateTimeRange? _filterCustomRange;
   Set<String> _filterFriendIds = {};
+  final _searchController = TextEditingController();
+  var _searchQuery = '';
 
   Future<void> _openFilterSheet() async {
     final result = await showModalBottomSheet<_FilterResult>(
@@ -57,6 +59,12 @@ class _FoodPageState extends State<FoodPage> {
   }
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8F8),
@@ -68,11 +76,27 @@ class _FoodPageState extends State<FoodPage> {
               modeIndex: _modeIndex,
               onModeChanged: (next) => setState(() => _modeIndex = next),
               onFilterTap: _openFilterSheet,
+              searchController: _searchController,
+              onSearchChanged: (v) => setState(() => _searchQuery = v),
             ),
             Expanded(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 220),
-                child: _modeIndex == 0 ? const _FoodRecordBody() : const _FoodWishlistBody(),
+                child: _modeIndex == 0
+                    ? _FoodRecordBody(
+                        key: const ValueKey('food_records'),
+                        searchQuery: _searchQuery,
+                        filterDateIndex: _filterDateIndex,
+                        filterCustomRange: _filterCustomRange,
+                        filterFriendIds: _filterFriendIds,
+                      )
+                    : _FoodWishlistBody(
+                        key: const ValueKey('food_wishlist'),
+                        searchQuery: _searchQuery,
+                        filterDateIndex: _filterDateIndex,
+                        filterCustomRange: _filterCustomRange,
+                        filterFriendIds: _filterFriendIds,
+                      ),
               ),
             ),
           ],
@@ -87,11 +111,15 @@ class _FoodHeader extends StatelessWidget {
     required this.modeIndex,
     required this.onModeChanged,
     required this.onFilterTap,
+    required this.searchController,
+    required this.onSearchChanged,
   });
 
   final int modeIndex;
   final ValueChanged<int> onModeChanged;
   final VoidCallback onFilterTap;
+  final TextEditingController searchController;
+  final ValueChanged<String> onSearchChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -129,15 +157,20 @@ class _FoodHeader extends StatelessWidget {
                     borderRadius: BorderRadius.circular(999),
                     boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 2))],
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.search, color: Color(0xFF9CA3AF), size: 22),
-                      SizedBox(width: 10),
+                      const Icon(Icons.search, color: Color(0xFF9CA3AF), size: 22),
+                      const SizedBox(width: 10),
                       Expanded(
-                        child: Text(
-                          '搜索店名、标签、地理位置...',
-                          style: TextStyle(fontSize: 15, color: Color(0xFF9CA3AF), fontWeight: FontWeight.w500),
-                          overflow: TextOverflow.ellipsis,
+                        child: TextField(
+                          controller: searchController,
+                          onChanged: onSearchChanged,
+                          decoration: const InputDecoration(
+                            hintText: '搜索店名、标签、地理位置...',
+                            border: InputBorder.none,
+                            isDense: true,
+                          ),
+                          style: const TextStyle(fontSize: 15, color: Color(0xFF111827), fontWeight: FontWeight.w600),
                         ),
                       ),
                     ],
@@ -154,14 +187,14 @@ class _FoodHeader extends StatelessWidget {
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
-              children: const [
-                _FilterChip(label: '日期范围', icon: Icons.calendar_month),
-                SizedBox(width: 10),
-                _FilterChip(label: '评分', icon: Icons.star),
-                SizedBox(width: 10),
-                _FilterChip(label: '位置', icon: Icons.location_on),
-                SizedBox(width: 10),
-                _FilterChip(label: '同伴', icon: Icons.group),
+              children: [
+                _FilterChip(label: '日期范围', icon: Icons.calendar_month, onTap: onFilterTap),
+                const SizedBox(width: 10),
+                _FilterChip(label: '评分', icon: Icons.star, onTap: onFilterTap),
+                const SizedBox(width: 10),
+                _FilterChip(label: '位置', icon: Icons.location_on, onTap: onFilterTap),
+                const SizedBox(width: 10),
+                _FilterChip(label: '同伴', icon: Icons.group, onTap: onFilterTap),
               ],
             ),
           ),
@@ -274,180 +307,288 @@ class _SegmentedPill extends StatelessWidget {
 }
 
 class _FilterChip extends StatelessWidget {
-  const _FilterChip({required this.label, required this.icon});
+  const _FilterChip({required this.label, required this.icon, required this.onTap});
 
   final String label;
   final IconData icon;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFF3F4F6)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF6B7280))),
-          const SizedBox(width: 8),
-          Icon(icon, size: 16, color: const Color(0xFF6B7280)),
-        ],
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: const Color(0xFFF3F4F6)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF6B7280))),
+              const SizedBox(width: 8),
+              Icon(icon, size: 16, color: const Color(0xFF6B7280)),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
-class _FoodRecordBody extends StatelessWidget {
-  const _FoodRecordBody();
+class _FoodRecordBody extends ConsumerWidget {
+  const _FoodRecordBody({
+    super.key,
+    required this.searchQuery,
+    required this.filterDateIndex,
+    required this.filterCustomRange,
+    required this.filterFriendIds,
+  });
 
-  static const _items = <FoodCardData>[
-    FoodCardData(
-      title: 'Oishii Sushi',
-      subtitle: '海胆寿司拼盘',
-      location: '东京 · 银座, 0.5km',
-      rating: 4.9,
-      price: '¥800/人',
-      tags: ['纪念日', '深夜食堂'],
-      imageUrl:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuDRCDE3dEirG3NFTxj_GHz5mv150NMHVxHOPTnevwqUm63H4YkrlLYgKfVD6Bt5d5nly8aSYgeyLu5wNHbgGonM0Z6Zeta98qgwwbzQ3SFfv_UE9hXyod-8hcLTWJkM_olUmStUWYga92_b0UphcFiY7mijCPD4cvbD2n4HWuA7Br4r9c2RBVCD5xqUcT0sp0VJFY9mBdnx_wI36YPjtay4-bMZqy5kWC67_5y96m32ntOnz4ENIB0bFdfJsy_D-br_9XN2PDG-9Z9i',
-      imageHeight: 230,
-    ),
-    FoodCardData(
-      title: '沸腾火锅',
-      subtitle: '番茄鸳鸯锅',
-      location: '上海 · 徐汇, 1.2km',
-      rating: 4.6,
-      price: '¥120/人',
-      tags: ['朋友聚会', '热辣'],
-      imageUrl:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuCmqyAqYhW5t3t1jwU-wNFCtLqg2fJIQP2X8EczN-EPQArXyVjbd2m-1i4u3uYX8fD8FkbYvF3eiq_r8jZQ-EMkRj5Kdn_jzZ2L2DpD_7hQZ7tlm48l3n4oSx3hPBVtQXbXG7U9m4qYX9x3H9gUp2uLAVMzu5rG-2rY4g7tqRZrK9Eus8qXbGf7s2dcx0y5inYbCDmEgdJorv7ZXf0e4A8j3Xj8oOwhH2b2jYQ',
-      imageHeight: 180,
-    ),
-    FoodCardData(
-      title: '甜点研究所',
-      subtitle: '草莓千层',
-      location: '上海 · 黄浦, 0.9km',
-      rating: 4.7,
-      price: '¥68/人',
-      tags: ['下午茶', '甜品'],
-      imageUrl:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuD5TgDkvmm3E53ryouFQmxE7gXlNOh5xJfIU6I6Vn0pZHZxRnyb7OtYxPl9zY8yqWQqQH4gWluDgP6P0tdq8L1qVQNNBVKTEt7e9bV9jK3D7TLH0lR6n6Cw6oC7lZr9Heg',
-      imageHeight: 210,
-    ),
-    FoodCardData(
-      title: '家常小馆',
-      subtitle: '红烧肉',
-      location: '上海 · 长宁, 2.1km',
-      rating: 4.5,
-      price: '¥55/人',
-      tags: ['家常', '下饭'],
-      imageUrl:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuA3fZtqfFjIYzP1Yw2X8v8lQBWm0yU6l7w1lH3cKqvSmZb0lQ8oZ3oWc7sM0h-3uVKx9y2Y3tWQ7vJjEoQe4mYdV1Y8f2W6Y3zjE',
-      imageHeight: 160,
-    ),
-  ];
+  final String searchQuery;
+  final int filterDateIndex;
+  final DateTimeRange? filterCustomRange;
+  final Set<String> filterFriendIds;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final db = ref.watch(appDatabaseProvider);
+    final range = _resolveDateRange(filterDateIndex, filterCustomRange);
+    final stream = range == null ? db.foodDao.watchAllActive() : db.foodDao.watchByRecordDateRange(range.$1, range.$2);
+    return StreamBuilder<List<FoodRecord>>(
+      stream: stream,
+      builder: (context, snapshot) {
+        final all = snapshot.data ?? const <FoodRecord>[];
+        final records = all.where((e) => e.isWishlist == false).toList(growable: false);
+        if (filterFriendIds.isEmpty) {
+          final filtered = _applySearch(records, searchQuery);
+          return _FoodRecordListView(records: filtered);
+        }
+
+        final friendIds = filterFriendIds.toList(growable: false);
+        final linksStream = (db.select(db.entityLinks)
+              ..where((t) => t.sourceType.equals('food'))
+              ..where((t) => t.targetType.equals('friend'))
+              ..where((t) => t.targetId.isIn(friendIds)))
+            .watch();
+
+        return StreamBuilder<List<EntityLink>>(
+          stream: linksStream,
+          builder: (context, linkSnapshot) {
+            final links = linkSnapshot.data ?? const <EntityLink>[];
+            final allowed = <String>{for (final l in links) l.sourceId};
+            final byFriend = records.where((e) => allowed.contains(e.id)).toList(growable: false);
+            final filtered = _applySearch(byFriend, searchQuery);
+            return _FoodRecordListView(records: filtered);
+          },
+        );
+      },
+    );
+  }
+
+  (DateTime, DateTime)? _resolveDateRange(int index, DateTimeRange? customRange) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    switch (index) {
+      case 1:
+        return (today, today.add(const Duration(days: 1)));
+      case 2:
+        return (today.subtract(const Duration(days: 6)), today.add(const Duration(days: 1)));
+      case 3:
+        return (today.subtract(const Duration(days: 29)), today.add(const Duration(days: 1)));
+      case 4:
+        if (customRange == null) return null;
+        final start = DateTime(customRange.start.year, customRange.start.month, customRange.start.day);
+        final end = DateTime(customRange.end.year, customRange.end.month, customRange.end.day).add(const Duration(days: 1));
+        return (start, end);
+      default:
+        return null;
+    }
+  }
+
+  List<FoodRecord> _applySearch(List<FoodRecord> input, String query) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return input;
+    return input.where((r) {
+      final tags = _decodeStringList(r.tags).join(' ');
+      final fields = [
+        r.title,
+        r.content ?? '',
+        r.poiName ?? '',
+        r.city ?? '',
+        tags,
+      ].join(' ').toLowerCase();
+      return fields.contains(q);
+    }).toList(growable: false);
+  }
+
+  List<String> _decodeStringList(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return const [];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is List) return decoded.whereType<String>().toList(growable: false);
+    } catch (_) {}
+    return const [];
+  }
+}
+
+class _FoodRecordListView extends StatelessWidget {
+  const _FoodRecordListView({required this.records});
+
+  final List<FoodRecord> records;
 
   @override
   Widget build(BuildContext context) {
-    final left = <FoodCardData>[];
-    final right = <FoodCardData>[];
-    for (var i = 0; i < _items.length; i++) {
-      (i.isEven ? left : right).add(_items[i]);
+    if (records.isEmpty) {
+      return const Center(
+        child: Text('暂无美食记录', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+      );
     }
-
-    return SingleChildScrollView(
+    return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 140),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: const [
-              Expanded(
-                child: Text('味觉地图', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-              ),
-              Text('查看全部', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF2BCDEE))),
-            ],
+      itemBuilder: (context, index) => _FoodRecordCard(record: records[index]),
+      separatorBuilder: (_, __) => const SizedBox(height: 14),
+      itemCount: records.length,
+    );
+  }
+}
+
+class _FoodRecordCard extends StatelessWidget {
+  const _FoodRecordCard({required this.record});
+
+  final FoodRecord record;
+
+  @override
+  Widget build(BuildContext context) {
+    final images = _decodeStringList(record.images);
+    final tags = _decodeStringList(record.tags);
+    final cover = images.isEmpty ? '' : images.first;
+    final subtitle = (record.content ?? '').trim();
+    final location = [
+      (record.poiName ?? '').trim(),
+      (record.city ?? '').trim(),
+    ].where((e) => e.isNotEmpty).join(' · ');
+
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(22),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => FoodDetailPage(recordId: record.id))),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: const Color(0xFFF3F4F6)),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 2))],
           ),
-          const SizedBox(height: 12),
-          Container(
-            height: 160,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFF3F4F6)),
-              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 2))],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  _buildLocalImage(
-                    'https://lh3.googleusercontent.com/aida-public/AB6AXuB3hTQwT6Gv-7jXrUoWgLCHuO6k4CwWkT0m4g8o5m9Y4Y8tVwZ5zNqXHcSxJrE7i4bLQ2Wn7W2n9dWw2',
-                    fit: BoxFit.cover,
-                  ),
-                  Container(color: Colors.black.withValues(alpha: 0.10)),
-                  Align(
-                    alignment: Alignment.bottomLeft,
-                    child: Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.92),
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 18, offset: const Offset(0, 6))],
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.place, color: Color(0xFF2BCDEE), size: 18),
-                            SizedBox(width: 8),
-                            Text('最近打卡：静安 · 徐汇 · 黄浦', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF1F2937))),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 18),
-          const Text('今日推荐', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-          const SizedBox(height: 12),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                child: Column(
-                  children: [
-                    for (final item in left) ...[
-                      _FoodCard(item: item),
-                      const SizedBox(height: 16),
-                    ],
-                  ],
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+                child: SizedBox(
+                  height: 180,
+                  child: cover.isEmpty
+                      ? Container(
+                          color: const Color(0xFFF1F5F9),
+                          alignment: Alignment.center,
+                          child: const Icon(Icons.restaurant, color: Color(0xFF94A3B8), size: 40),
+                        )
+                      : _buildLocalImage(cover, fit: BoxFit.cover),
                 ),
               ),
-              const SizedBox(width: 16),
-              Expanded(
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    for (final item in right) ...[
-                      _FoodCard(item: item),
-                      const SizedBox(height: 16),
+                    Text(record.title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                    if (subtitle.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF6B7280)),
+                      ),
+                    ],
+                    if (location.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(Icons.place, size: 14, color: Color(0xFF2BCDEE)),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              location,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        const Icon(Icons.star, size: 14, color: Color(0xFFFB923C)),
+                        const SizedBox(width: 4),
+                        Text(
+                          record.rating == null ? '--' : record.rating!.toStringAsFixed(1),
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
+                        ),
+                        const SizedBox(width: 10),
+                        const Icon(Icons.payments_outlined, size: 14, color: Color(0xFF10B981)),
+                        const SizedBox(width: 4),
+                        Text(
+                          record.pricePerPerson == null ? '--' : '¥${record.pricePerPerson!.toStringAsFixed(0)}/人',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
+                        ),
+                        const Spacer(),
+                        Text(
+                          '${record.recordDate.month}月${record.recordDate.day}日',
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF94A3B8)),
+                        ),
+                      ],
+                    ),
+                    if (tags.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final t in tags.take(6))
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(color: const Color(0x1A2BCDEE), borderRadius: BorderRadius.circular(999)),
+                              child: Text(t, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF2BCDEE))),
+                            ),
+                        ],
+                      ),
                     ],
                   ],
                 ),
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
+  }
+
+  List<String> _decodeStringList(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return const [];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is List) return decoded.whereType<String>().toList(growable: false);
+    } catch (_) {}
+    return const [];
   }
 }
 
@@ -493,66 +634,145 @@ class FoodWishlistItem {
   final String imageUrl;
 }
 
-class _FoodWishlistBody extends StatelessWidget {
-  const _FoodWishlistBody();
+class _FoodWishlistBody extends ConsumerWidget {
+  const _FoodWishlistBody({
+    super.key,
+    required this.searchQuery,
+    required this.filterDateIndex,
+    required this.filterCustomRange,
+    required this.filterFriendIds,
+  });
 
-  static const _items = <FoodWishlistItem>[
-    FoodWishlistItem(
-      title: 'SORA Brunch',
-      subtitle: '牛油果吐司与拿铁',
-      location: '上海 · 静安, 0.7km',
-      rating: 4.7,
-      price: '¥98/人',
-      tags: ['周末', '拍照', '早午餐'],
-      imageUrl:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuA2S7m0HKz3e7v1AURfWbYp0jSxJr0X_m9x5p7k0M2xHf9Jx0R8d1xw6aV9V8r2x1yP5A',
-    ),
-    FoodWishlistItem(
-      title: 'Blue Note',
-      subtitle: '爵士夜与特调',
-      location: '上海 · 黄浦, 1.6km',
-      rating: 4.8,
-      price: '¥168/人',
-      tags: ['氛围', '音乐', '夜晚'],
-      imageUrl:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuB8cS5m2s0W7mR8b8d0y8bL3aA0XvQ2x9oR2fQm',
-    ),
-    FoodWishlistItem(
-      title: 'Noma Pop-up',
-      subtitle: '创意料理体验',
-      location: '东京 · 涩谷, 0.9km',
-      rating: 4.9,
-      price: '¥1200/人',
-      tags: ['特别', '预约', '纪念'],
-      imageUrl:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuB7kR1m8n0m2Qf6Y0y2v7r2',
-    ),
-  ];
+  final String searchQuery;
+  final int filterDateIndex;
+  final DateTimeRange? filterCustomRange;
+  final Set<String> filterFriendIds;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final db = ref.watch(appDatabaseProvider);
+    final range = _resolveDateRange(filterDateIndex, filterCustomRange);
+    final stream = range == null ? db.foodDao.watchAllActive() : db.foodDao.watchByRecordDateRange(range.$1, range.$2);
+    return StreamBuilder<List<FoodRecord>>(
+      stream: stream,
+      builder: (context, snapshot) {
+        final all = snapshot.data ?? const <FoodRecord>[];
+        final records = all.where((e) => e.isWishlist == true).toList(growable: false);
+        if (filterFriendIds.isEmpty) {
+          final filtered = _applySearch(records, searchQuery);
+          return _FoodWishlistListView(records: filtered);
+        }
+
+        final friendIds = filterFriendIds.toList(growable: false);
+        final linksStream = (db.select(db.entityLinks)
+              ..where((t) => t.sourceType.equals('food'))
+              ..where((t) => t.targetType.equals('friend'))
+              ..where((t) => t.targetId.isIn(friendIds)))
+            .watch();
+
+        return StreamBuilder<List<EntityLink>>(
+          stream: linksStream,
+          builder: (context, linkSnapshot) {
+            final links = linkSnapshot.data ?? const <EntityLink>[];
+            final allowed = <String>{for (final l in links) l.sourceId};
+            final byFriend = records.where((e) => allowed.contains(e.id)).toList(growable: false);
+            final filtered = _applySearch(byFriend, searchQuery);
+            return _FoodWishlistListView(records: filtered);
+          },
+        );
+      },
+    );
+  }
+
+  (DateTime, DateTime)? _resolveDateRange(int index, DateTimeRange? customRange) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    switch (index) {
+      case 1:
+        return (today, today.add(const Duration(days: 1)));
+      case 2:
+        return (today.subtract(const Duration(days: 6)), today.add(const Duration(days: 1)));
+      case 3:
+        return (today.subtract(const Duration(days: 29)), today.add(const Duration(days: 1)));
+      case 4:
+        if (customRange == null) return null;
+        final start = DateTime(customRange.start.year, customRange.start.month, customRange.start.day);
+        final end = DateTime(customRange.end.year, customRange.end.month, customRange.end.day).add(const Duration(days: 1));
+        return (start, end);
+      default:
+        return null;
+    }
+  }
+
+  List<FoodRecord> _applySearch(List<FoodRecord> input, String query) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return input;
+    return input.where((r) {
+      final tags = _decodeStringList(r.tags).join(' ');
+      final fields = [
+        r.title,
+        r.content ?? '',
+        r.poiName ?? '',
+        r.city ?? '',
+        tags,
+      ].join(' ').toLowerCase();
+      return fields.contains(q);
+    }).toList(growable: false);
+  }
+
+  List<String> _decodeStringList(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return const [];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is List) return decoded.whereType<String>().toList(growable: false);
+    } catch (_) {}
+    return const [];
+  }
+}
+
+class _FoodWishlistListView extends StatelessWidget {
+  const _FoodWishlistListView({required this.records});
+
+  final List<FoodRecord> records;
 
   @override
   Widget build(BuildContext context) {
+    if (records.isEmpty) {
+      return const Center(
+        child: Text('暂无心愿清单', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+      );
+    }
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 140),
-      itemBuilder: (context, index) => _WishlistCard(item: _items[index]),
+      itemBuilder: (context, index) => _FoodWishlistRecordCard(record: records[index]),
       separatorBuilder: (_, __) => const SizedBox(height: 14),
-      itemCount: _items.length,
+      itemCount: records.length,
     );
   }
 }
 
-class _WishlistCard extends StatelessWidget {
-  const _WishlistCard({required this.item});
+class _FoodWishlistRecordCard extends StatelessWidget {
+  const _FoodWishlistRecordCard({required this.record});
 
-  final FoodWishlistItem item;
+  final FoodRecord record;
 
   @override
   Widget build(BuildContext context) {
+    final images = _decodeStringList(record.images);
+    final tags = _decodeStringList(record.tags);
+    final cover = images.isEmpty ? '' : images.first;
+    final subtitle = (record.content ?? '').trim();
+    final location = [
+      (record.poiName ?? '').trim(),
+      (record.city ?? '').trim(),
+    ].where((e) => e.isNotEmpty).join(' · ');
+
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(22),
       child: InkWell(
         borderRadius: BorderRadius.circular(22),
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => FoodWishlistDetailPage(item: item))),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => FoodDetailPage(recordId: record.id))),
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(22),
@@ -566,57 +786,69 @@ class _WishlistCard extends StatelessWidget {
                 child: SizedBox(
                   width: 108,
                   height: 108,
-                  child: _buildLocalImage(item.imageUrl, fit: BoxFit.cover),
+                  child: cover.isEmpty
+                      ? Container(
+                          color: const Color(0xFFF1F5F9),
+                          alignment: Alignment.center,
+                          child: const Icon(Icons.bookmark_border, color: Color(0xFF94A3B8), size: 28),
+                        )
+                      : _buildLocalImage(cover, fit: BoxFit.cover),
                 ),
               ),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
+                  padding: const EdgeInsets.fromLTRB(12, 12, 10, 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Text(record.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                      if (subtitle.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF6B7280)),
+                        ),
+                      ],
+                      if (location.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          location,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+                        ),
+                      ],
+                      const Spacer(),
                       Row(
                         children: [
-                          Expanded(
-                            child: Text(item.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                          ),
-                          IconButton(
-                            onPressed: () {},
-                            icon: const Icon(Icons.bookmark_border),
-                            color: const Color(0xFF2BCDEE),
-                            iconSize: 22,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                      Text(item.subtitle, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF6B7280))),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          const Icon(Icons.star, size: 14, color: Color(0xFFFB923C)),
-                          const SizedBox(width: 4),
-                          Text(item.rating.toStringAsFixed(1), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFFFB923C))),
-                          const SizedBox(width: 10),
-                          const Icon(Icons.place, size: 14, color: Color(0xFF2BCDEE)),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(item.location, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: [
-                          for (final t in item.tags.take(2))
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(999)),
-                              child: Text(t, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF6B7280))),
+                          if (tags.isNotEmpty)
+                            Expanded(
+                              child: Wrap(
+                                spacing: 6,
+                                runSpacing: 6,
+                                children: [
+                                  for (final t in tags.take(2))
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(color: const Color(0x1A2BCDEE), borderRadius: BorderRadius.circular(999)),
+                                      child: Text(t, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF2BCDEE))),
+                                    ),
+                                ],
+                              ),
+                            )
+                          else
+                            const Spacer(),
+                          const SizedBox(width: 8),
+                          Text(
+                            record.wishlistDone ? '已打卡' : '想去',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                              color: record.wishlistDone ? const Color(0xFF10B981) : const Color(0xFF2BCDEE),
                             ),
+                          ),
                         ],
                       ),
                     ],
@@ -628,6 +860,15 @@ class _WishlistCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  List<String> _decodeStringList(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return const [];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is List) return decoded.whereType<String>().toList(growable: false);
+    } catch (_) {}
+    return const [];
   }
 }
 
@@ -761,106 +1002,6 @@ class FoodWishlistDetailPage extends StatelessWidget {
                   ),
                   onPressed: () {},
                   child: const Text('标记已吃', style: TextStyle(fontWeight: FontWeight.w900)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FoodCard extends StatelessWidget {
-  const _FoodCard({required this.item});
-
-  final FoodCardData item;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => FoodDetailPage(item: item))),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFF3F4F6)),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 2))],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                child: SizedBox(
-                  height: item.imageHeight,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      _buildLocalImage(item.imageUrl, fit: BoxFit.cover),
-                      Positioned(
-                        top: 12,
-                        right: 12,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.85),
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.9)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.star, size: 14, color: Color(0xFFFB923C)),
-                              const SizedBox(width: 4),
-                              Text(
-                                item.rating.toStringAsFixed(1),
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(item.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                    const SizedBox(height: 4),
-                    Text(item.subtitle, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF6B7280))),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        for (final t in item.tags)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(999)),
-                            child: Text(t, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF6B7280))),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        const Icon(Icons.place, size: 14, color: Color(0xFF2BCDEE)),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(item.location, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
-                        ),
-                        Text(item.price, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFFFB923C))),
-                      ],
-                    ),
-                  ],
                 ),
               ),
             ],

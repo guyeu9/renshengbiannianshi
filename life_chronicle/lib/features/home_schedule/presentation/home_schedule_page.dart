@@ -12,6 +12,7 @@ import '../../../app/app_theme.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../ai_historian/presentation/ai_historian_chat_page.dart';
+import '../../food/presentation/food_page.dart';
 import '../../profile/presentation/profile_page.dart';
 
 class HomeSchedulePage extends StatefulWidget {
@@ -55,7 +56,7 @@ class _HomeSchedulePageState extends State<HomeSchedulePage> {
   }
 }
 
-class _GlassHeader extends StatelessWidget implements PreferredSizeWidget {
+class _GlassHeader extends StatefulWidget implements PreferredSizeWidget {
   const _GlassHeader();
 
   static const _defaultAvatarUrl =
@@ -63,6 +64,19 @@ class _GlassHeader extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Size get preferredSize => const Size.fromHeight(72);
+
+  @override
+  State<_GlassHeader> createState() => _GlassHeaderState();
+}
+
+class _GlassHeaderState extends State<_GlassHeader> {
+  Future<String?>? _avatarFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _avatarFuture = _loadAvatarPath();
+  }
 
   Future<String?> _loadAvatarPath() async {
     if (kIsWeb) return null;
@@ -85,12 +99,18 @@ class _GlassHeader extends StatelessWidget implements PreferredSizeWidget {
   ImageProvider _avatarProvider(String? path) {
     final value = path?.trim() ?? '';
     if (value.isEmpty) {
-      return const NetworkImage(_defaultAvatarUrl);
+      return const NetworkImage(_GlassHeader._defaultAvatarUrl);
     }
     if (value.startsWith('http://') || value.startsWith('https://')) {
       return NetworkImage(value);
     }
     return FileImage(File(value));
+  }
+
+  void _refreshAvatar() {
+    setState(() {
+      _avatarFuture = _loadAvatarPath();
+    });
   }
 
   @override
@@ -105,15 +125,17 @@ class _GlassHeader extends StatelessWidget implements PreferredSizeWidget {
             children: [
               InkWell(
                 borderRadius: BorderRadius.circular(999),
-                onTap: () {
-                  Navigator.of(context, rootNavigator: true).push(
+                onTap: () async {
+                  await Navigator.of(context, rootNavigator: true).push(
                     MaterialPageRoute(builder: (_) => const ProfilePage()),
                   );
+                  if (!mounted) return;
+                  _refreshAvatar();
                 },
                 child: Stack(
                   children: [
                     FutureBuilder<String?>(
-                      future: _loadAvatarPath(),
+                      future: _avatarFuture,
                       builder: (context, snapshot) {
                         return CircleAvatar(
                           radius: 22,
@@ -198,10 +220,12 @@ class _GlassHeader extends StatelessWidget implements PreferredSizeWidget {
                   _HeaderIconButton(
                     icon: Icons.settings,
                     showDot: false,
-                    onTap: () {
-                      Navigator.of(context, rootNavigator: true).push(
+                    onTap: () async {
+                      await Navigator.of(context, rootNavigator: true).push(
                         MaterialPageRoute(builder: (_) => const ProfilePage()),
                       );
+                      if (!mounted) return;
+                      _refreshAvatar();
                     },
                   ),
                 ],
@@ -961,51 +985,92 @@ class _EventStream extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final db = ref.watch(appDatabaseProvider);
+    final dayStart = DateTime(selectedDay.year, selectedDay.month, selectedDay.day);
+    final dayEnd = dayStart.add(const Duration(days: 1));
     return StreamBuilder<List<TimelineEvent>>(
       stream: db.watchEventsForDate(selectedDay),
       builder: (context, snapshot) {
         final events = snapshot.data ?? [];
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: RichText(
-                text: TextSpan(
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.textMain),
-                  children: [
-                    const TextSpan(text: '日程记录'),
-                    TextSpan(
-                      text: '  ${events.length}个记录',
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF9CA3AF)),
-                    ),
-                  ],
+        return StreamBuilder<List<FoodRecord>>(
+          stream: db.foodDao.watchByRecordDateRange(dayStart, dayEnd),
+          builder: (context, foodSnapshot) {
+            final foods = (foodSnapshot.data ?? const <FoodRecord>[]).where((e) => e.isWishlist == false).toList(growable: false);
+            final items = <({DateTime? time, String title, String? subtitle, String type, VoidCallback? onTap})>[
+              for (final e in events)
+                (
+                  time: e.startAt,
+                  title: e.title,
+                  subtitle: e.note,
+                  type: e.eventType,
+                  onTap: null,
                 ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            if (events.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                child: Center(
-                  child: Text(
-                    '${selectedDay.month}月${selectedDay.day}日 暂无日程',
-                    style: const TextStyle(color: AppTheme.textMuted),
+              for (final f in foods)
+                (
+                  time: f.createdAt,
+                  title: f.title,
+                  subtitle: (f.poiName ?? '').trim().isNotEmpty
+                      ? (f.poiName ?? '').trim()
+                      : ((f.content ?? '').trim().isNotEmpty ? (f.content ?? '').trim() : null),
+                  type: 'food',
+                  onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => FoodDetailPage(recordId: f.id)));
+                  },
+                ),
+            ];
+
+            items.sort((a, b) {
+              final at = a.time;
+              final bt = b.time;
+              if (at == null && bt == null) return 0;
+              if (at == null) return 1;
+              if (bt == null) return -1;
+              return at.compareTo(bt);
+            });
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: RichText(
+                    text: TextSpan(
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.textMain),
+                      children: [
+                        const TextSpan(text: '日程记录'),
+                        TextSpan(
+                          text: '  ${items.length}个记录',
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF9CA3AF)),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              )
-            else
-              for (final event in events)
-                _TimelineItem(
-                  time: _formatTime(event.startAt),
-                  title: event.title,
-                  subtitle: event.note,
-                  leadingIcon: _getIconForType(event.eventType),
-                  leadingBg: _getColorForType(event.eventType).withValues(alpha: 0.1),
-                  leadingFg: _getColorForType(event.eventType),
-                  showLine: event != events.last,
-                ),
-          ],
+                const SizedBox(height: 12),
+                if (items.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    child: Center(
+                      child: Text(
+                        '${selectedDay.month}月${selectedDay.day}日 暂无日程',
+                        style: const TextStyle(color: AppTheme.textMuted),
+                      ),
+                    ),
+                  )
+                else
+                  for (var i = 0; i < items.length; i++)
+                    _TimelineItem(
+                      time: _formatTime(items[i].time),
+                      title: items[i].title,
+                      subtitle: items[i].subtitle,
+                      leadingIcon: _getIconForType(items[i].type),
+                      leadingBg: _getColorForType(items[i].type).withValues(alpha: 0.1),
+                      leadingFg: _getColorForType(items[i].type),
+                      showLine: i != items.length - 1,
+                      onTap: items[i].onTap,
+                    ),
+              ],
+            );
+          },
         );
       },
     );
@@ -1060,6 +1125,7 @@ class _TimelineItem extends StatelessWidget {
     this.leadingBg = const Color(0xFFF3F4F6),
     this.leadingFg = const Color(0xFF6B7280),
     this.showLine = true,
+    this.onTap,
   });
 
   final String time;
@@ -1069,6 +1135,7 @@ class _TimelineItem extends StatelessWidget {
   final Color leadingBg;
   final Color leadingFg;
   final bool showLine;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -1101,54 +1168,61 @@ class _TimelineItem extends StatelessWidget {
               ),
             ),
             Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.white,
+              child: Material(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                child: InkWell(
                   borderRadius: BorderRadius.circular(14),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x1A2BCDEE),
-                      blurRadius: 20,
-                      offset: Offset(0, 4),
+                  onTap: onTap,
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x1A2BCDEE),
+                          blurRadius: 20,
+                          offset: Offset(0, 4),
+                        ),
+                        BoxShadow(
+                          color: Color(0x0A000000),
+                          blurRadius: 10,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
                     ),
-                    BoxShadow(
-                      color: Color(0x0A000000),
-                      blurRadius: 10,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _LeadingBox(
-                      icon: leadingIcon,
-                      bg: leadingBg,
-                      fg: leadingFg,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: AppTheme.textMain),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _LeadingBox(
+                          icon: leadingIcon,
+                          bg: leadingBg,
+                          fg: leadingFg,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title,
+                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: AppTheme.textMain),
+                              ),
+                              if (subtitle != null) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  subtitle!,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF6B7280)),
+                                ),
+                              ],
+                            ],
                           ),
-                          if (subtitle != null) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              subtitle!,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF6B7280)),
-                            ),
-                          ],
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),

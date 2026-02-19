@@ -910,7 +910,7 @@ class FavoritesCenterPage extends ConsumerStatefulWidget {
 }
 
 class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
-  static const _categories = ['全部', '美食', '旅行', '小确幸', '羁绊'];
+  static const _categories = ['全部', '美食', '旅行', '小确幸', '羁绊', '相遇'];
   static const _fallbackImageUrl =
       'https://lh3.googleusercontent.com/aida-public/AB6AXuAKyf0mNiZ0TAc0cDBuDh729VN8zm8R-lF-JlOBczemlVSfDxlTXyG9D-4CqGvj4VGLsjyH_nyxHz36t5YCWIUdFilyoKvFftQ0lxzt6pmOkOgpBI_gvBZAInqTnxhG3lNNaOqRyxJCT-lzLS3lmLEkNBMXJ6LnIbYkBwU51lRvY0DqIG10oPqPfaoC12BgWZPmW74AWxyipq5A_nuiETA3saO846Avvh5KoAF7C0KINcR5Dmp2orHJWlVQTu97pn9w2S1O1IDzigGp';
 
@@ -1083,6 +1083,7 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
                       final foodCount = allItems.where((item) => item.category == '美食').length;
                       final travelCount = allItems.where((item) => item.category == '旅行').length;
                       final momentCount = allItems.where((item) => item.category == '小确幸').length;
+                      final encounterCount = allItems.where((item) => item.category == '相遇').length;
                       final visibleIds = items.map((item) => item.id).toSet();
                       final selectedCount = _selectedIds.where(visibleIds.contains).length;
                       final allSelected = selectedCount == items.length && items.isNotEmpty;
@@ -1202,6 +1203,17 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
                                           textColor: const Color(0xFFEC4899),
                                           onTap: () => setState(() {
                                             _selectedCategoryIndex = 3;
+                                            _selectedIds.clear();
+                                          }),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        _FavoriteSummaryChip(
+                                          label: '相遇',
+                                          count: encounterCount.toString(),
+                                          color: const Color(0xFFE0F2FE),
+                                          textColor: const Color(0xFF0284C7),
+                                          onTap: () => setState(() {
+                                            _selectedCategoryIndex = 5;
                                             _selectedIds.clear();
                                           }),
                                         ),
