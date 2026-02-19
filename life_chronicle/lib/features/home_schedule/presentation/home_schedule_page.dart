@@ -5,10 +5,8 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import 'package:table_calendar/table_calendar.dart';
 
 import '../../../app/app_theme.dart';
 import '../../../core/database/app_database.dart';
@@ -642,7 +640,7 @@ class _CalendarGrid extends StatelessWidget {
     final prevMonthDays = DateTime(year, month, 0).day;
 
     const dotBlue = Color(0xFF60A5FA);
-    // const dotOrange = Color(0xFFFB923C);
+    const dotOrange = Color(0xFFFB923C);
 
     return List.generate(42, (index) {
       final dayOffset = index - leadingDays + 1;
@@ -669,15 +667,11 @@ class _CalendarGrid extends StatelessWidget {
       }).toList();
 
       final dots = <Color>[];
-      bool hasNote = false;
 
       if (dayEvents.isNotEmpty) {
         dots.add(dotBlue);
-        if (dayEvents.any((e) => e.note != null && e.note!.isNotEmpty)) {
-          hasNote = true;
-          // Optionally add another dot for note
-          // dots.add(dotOrange); 
-        }
+        final hasNote = dayEvents.any((e) => e.note != null && e.note!.isNotEmpty);
+        if (hasNote) dots.add(dotOrange);
       }
 
       // Keep hardcoded examples for demonstration if no real events, 
@@ -695,7 +689,6 @@ class _CalendarGrid extends StatelessWidget {
         date: date, 
         selected: selected, 
         dots: dots,
-        hasNote: hasNote,
       );
     });
   }
@@ -728,29 +721,14 @@ class _CalendarCellData {
     this.date,
     this.muted = false,
     this.selected = false,
-    this.icon,
-    this.iconColor,
     this.dots = const [],
-    this.multiIcons = const [],
-    this.hasNote = false,
   });
 
   final String day;
   final DateTime? date;
   final bool muted;
   final bool selected;
-  final IconData? icon;
-  final Color? iconColor;
   final List<Color> dots;
-  final List<_MiniIcon> multiIcons;
-  final bool hasNote;
-}
-
-class _MiniIcon {
-  const _MiniIcon(this.icon, this.color);
-
-  final IconData icon;
-  final Color color;
 }
 
 class _CalendarCell extends StatelessWidget {
@@ -809,19 +787,6 @@ class _CalendarCell extends StatelessWidget {
                 ),
             ],
           )
-        else if (data.multiIcons.isNotEmpty)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              for (final m in data.multiIcons)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 1),
-                  child: Icon(m.icon, size: 12, color: m.color),
-                ),
-            ],
-          )
-        else if (data.icon != null)
-          Icon(data.icon, size: 12, color: data.iconColor ?? AppTheme.textMuted)
         else
           const SizedBox(height: 12),
       ],
@@ -1086,43 +1051,23 @@ class _EventStream extends ConsumerWidget {
   }
 }
 
-class _TagData {
-  const _TagData({
-    required this.icon,
-    required this.label,
-    required this.bg,
-    required this.fg,
-    required this.border,
-  });
-
-  final IconData icon;
-  final String label;
-  final Color bg;
-  final Color fg;
-  final Color border;
-}
-
 class _TimelineItem extends StatelessWidget {
   const _TimelineItem({
     required this.time,
     required this.title,
     this.subtitle,
-    this.leadingImageUrl,
     this.leadingIcon,
     this.leadingBg = const Color(0xFFF3F4F6),
     this.leadingFg = const Color(0xFF6B7280),
-    this.tags = const [],
     this.showLine = true,
   });
 
   final String time;
   final String title;
   final String? subtitle;
-  final String? leadingImageUrl;
   final IconData? leadingIcon;
   final Color leadingBg;
   final Color leadingFg;
-  final List<_TagData> tags;
   final bool showLine;
 
   @override
@@ -1178,7 +1123,6 @@ class _TimelineItem extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _LeadingBox(
-                      imageUrl: leadingImageUrl,
                       icon: leadingIcon,
                       bg: leadingBg,
                       fg: leadingFg,
@@ -1201,35 +1145,6 @@ class _TimelineItem extends StatelessWidget {
                               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF6B7280)),
                             ),
                           ],
-                          if (tags.isNotEmpty) ...[
-                            const SizedBox(height: 10),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                for (final t in tags)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: t.bg,
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(color: t.border),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(t.icon, size: 12, color: t.fg),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          t.label,
-                                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: t.fg),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ],
                         ],
                       ),
                     ),
@@ -1246,13 +1161,11 @@ class _TimelineItem extends StatelessWidget {
 
 class _LeadingBox extends StatelessWidget {
   const _LeadingBox({
-    required this.imageUrl,
     required this.icon,
     required this.bg,
     required this.fg,
   });
 
-  final String? imageUrl;
   final IconData? icon;
   final Color bg;
   final Color fg;
@@ -1265,9 +1178,7 @@ class _LeadingBox extends StatelessWidget {
         width: 64,
         height: 64,
         color: bg,
-        child: imageUrl != null
-            ? Image.network(imageUrl!, fit: BoxFit.cover)
-            : Icon(icon ?? Icons.event, size: 32, color: fg),
+        child: Icon(icon ?? Icons.event, size: 32, color: fg),
       ),
     );
   }
