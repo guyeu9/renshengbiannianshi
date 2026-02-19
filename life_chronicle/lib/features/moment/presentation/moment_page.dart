@@ -1,15 +1,52 @@
 import 'dart:convert';
-import 'dart:typed_data';
-
+import 'dart:io';
 import 'package:drift/drift.dart' show OrderingMode, OrderingTerm, Value;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
+import 'package:amap_flutter/amap_flutter.dart' as amap;
 
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/utils/media_storage.dart';
+
+List<String> _parseMomentImages(String? raw) {
+  if (raw == null || raw.trim().isEmpty) return const [];
+  try {
+    final decoded = jsonDecode(raw);
+    if (decoded is List) {
+      return decoded.whereType<String>().toList(growable: false);
+    }
+  } catch (_) {}
+  return const [];
+}
+
+Color _parseMomentMoodColor(String? raw, Color fallback) {
+  if (raw == null || raw.trim().isEmpty) return fallback;
+  final hex = raw.replaceAll('#', '');
+  final value = int.tryParse(hex, radix: 16);
+  if (value == null) return fallback;
+  if (hex.length <= 6) {
+    return Color(0xFF000000 | value);
+  }
+  return Color(value);
+}
+
+String _momentTitleFromRecord(MomentRecord record) {
+  final content = (record.content ?? '').trim();
+  if (content.isEmpty) return '小确幸';
+  final lines = content.split('\n').where((line) => line.trim().isNotEmpty).toList();
+  return lines.isEmpty ? '小确幸' : lines.first.trim();
+}
+
+String _momentContentFromRecord(MomentRecord record) {
+  final content = (record.content ?? '').trim();
+  if (content.isEmpty) return '';
+  return content;
+}
 
 class MomentPage extends StatefulWidget {
   const MomentPage({super.key});
@@ -226,108 +263,101 @@ class _LinkChip extends StatelessWidget {
   }
 }
 
-class _MomentHomeBody extends StatelessWidget {
+class _MomentHomeBody extends ConsumerWidget {
   const _MomentHomeBody();
 
-  static const _items = <MomentCardData>[
-    MomentCardData(
-      moodName: '开心',
-      moodColor: Color(0xFFFFF7ED),
-      moodAccent: Color(0xFFF59E0B),
-      title: '晨光里的草地',
-      content: '今天的日出很温柔，风也刚刚好。',
-      imageUrl:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuC0XjMatVfzgqn6Mpbz0GjbXVFJh_BuXBjgoaaRdhaP07RNZUJ_3fEI65LH8A22EE3IjRHl4B_9XujGACKX6R6fc2qzukwUlytbLRXU_pwgkekBe8Xjn8mquxugtO9DmdXVVsc4zUeHRatJK0a_9kLbCP-q5xRHwtB0eYC9RDzu_faLxD55eacqGgC3KGi2dcJt3Yy6eZLS73eaWldZ4fSCosPvYzrPLV8OKvuQ5R53XzZ1ySIn5l-sgn5VV1CousmvXt7phBXtqbyg',
-      imageHeight: 190,
-    ),
-    MomentCardData(
-      moodName: '治愈',
-      moodColor: Color(0xFFEFF6FF),
-      moodAccent: Color(0xFF60A5FA),
-      title: '咖啡香',
-      content: '和自己相处的下午。',
-      imageUrl:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuA6r6i1N1DqXwB7cVdS0wWw5b5Y8m0k4s5x3e2n1k6',
-      imageHeight: 230,
-    ),
-    MomentCardData(
-      moodName: '感动',
-      moodColor: Color(0xFFF5F3FF),
-      moodAccent: Color(0xFFA855F7),
-      title: '被理解的一刻',
-      content: '一句话就足够。',
-      imageUrl:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuA2G8hEwJ2Zp1xKxT3m2p4Q3zG3D',
-      imageHeight: 170,
-    ),
-    MomentCardData(
-      moodName: '平静',
-      moodColor: Color(0xFFECFDF5),
-      moodAccent: Color(0xFF22C55E),
-      title: '散步',
-      content: '生活慢慢来。',
-      imageUrl:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuA3rV4K0w0lW6a4p8Z0w0',
-      imageHeight: 210,
-    ),
-  ];
-
   @override
-  Widget build(BuildContext context) {
-    final left = <MomentCardData>[];
-    final right = <MomentCardData>[];
-    for (var i = 0; i < _items.length; i++) {
-      (i.isEven ? left : right).add(_items[i]);
-    }
+  Widget build(BuildContext context, WidgetRef ref) {
+    final db = ref.watch(appDatabaseProvider);
+    return StreamBuilder<List<MomentRecord>>(
+      stream: db.momentDao.watchAllActive(),
+      builder: (context, snapshot) {
+        final records = snapshot.data ?? const <MomentRecord>[];
+        final items = <MomentCardData>[];
+        for (var i = 0; i < records.length; i++) {
+          final record = records[i];
+          final images = _parseMomentImages(record.images);
+          final accent = _parseMomentMoodColor(record.moodColor, const Color(0xFF2BCDEE));
+          final title = _momentTitleFromRecord(record);
+          final content = _momentContentFromRecord(record);
+          items.add(
+            MomentCardData(
+              recordId: record.id,
+              moodName: record.mood,
+              moodColor: accent.withValues(alpha: 0.12),
+              moodAccent: accent,
+              title: title,
+              content: content,
+              imageUrl: images.isEmpty ? '' : images.first,
+              imageHeight: 180 + (i % 3) * 20,
+            ),
+          );
+        }
+        final left = <MomentCardData>[];
+        final right = <MomentCardData>[];
+        for (var i = 0; i < items.length; i++) {
+          (i.isEven ? left : right).add(items[i]);
+        }
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 140),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: const [
-              Expanded(
-                child: Text('今日心情', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-              ),
-              Text('年度心情', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF2BCDEE))),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
+        return SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 6, 16, 140),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
+              Row(
+                children: const [
+                  Expanded(
+                    child: Text('今日心情', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                  ),
+                  Text('年度心情', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF2BCDEE))),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (items.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 30),
+                  child: Center(
+                    child: Text('暂无小确幸记录', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                  ),
+                )
+              else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    for (final item in left) ...[
-                      _MomentCard(item: item),
-                      const SizedBox(height: 16),
-                    ],
+                    Expanded(
+                      child: Column(
+                        children: [
+                          for (final item in left) ...[
+                            _MomentCard(item: item),
+                            const SizedBox(height: 16),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          for (final item in right) ...[
+                            _MomentCard(item: item),
+                            const SizedBox(height: 16),
+                          ],
+                        ],
+                      ),
+                    ),
                   ],
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  children: [
-                    for (final item in right) ...[
-                      _MomentCard(item: item),
-                      const SizedBox(height: 16),
-                    ],
-                  ],
-                ),
-              ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
 
 class MomentCardData {
   const MomentCardData({
+    this.recordId,
     required this.moodName,
     required this.moodColor,
     required this.moodAccent,
@@ -337,6 +367,7 @@ class MomentCardData {
     required this.imageHeight,
   });
 
+  final String? recordId;
   final String moodName;
   final Color moodColor;
   final Color moodAccent;
@@ -358,7 +389,11 @@ class _MomentCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => MomentDetailPage(item: item))),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => MomentDetailPage(item: item, recordId: item.recordId),
+          ),
+        ),
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
@@ -430,6 +465,10 @@ class MomentDetailPage extends ConsumerWidget {
         title: item?.title ?? '小确幸',
         content: item?.content ?? '',
         linkChips: const [],
+        onEdit: null,
+        locationText: '',
+        latitude: null,
+        longitude: null,
       );
     }
     return StreamBuilder<MomentRecord?>(
@@ -446,6 +485,10 @@ class MomentDetailPage extends ConsumerWidget {
             title: '记录不存在或已删除',
             content: '',
             linkChips: const [],
+            onEdit: null,
+            locationText: '',
+            latitude: null,
+            longitude: null,
           );
         }
         final images = _parseImages(record.images);
@@ -454,6 +497,9 @@ class MomentDetailPage extends ConsumerWidget {
         final moodColor = moodAccent.withValues(alpha: 0.12);
         final title = _momentTitle(record);
         final content = _momentContent(record);
+        final locationText = (record.city ?? '').trim();
+        final latitude = record.latitude;
+        final longitude = record.longitude;
         return StreamBuilder<List<EntityLink>>(
           stream: db.linkDao.watchLinksForEntity(entityType: 'moment', entityId: record.id),
           builder: (context, linkSnapshot) {
@@ -508,6 +554,14 @@ class MomentDetailPage extends ConsumerWidget {
                               title: title,
                               content: content,
                               linkChips: linkChips,
+                              onEdit: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(builder: (_) => MomentCreatePage(initialRecord: record)),
+                                );
+                              },
+                              locationText: locationText,
+                              latitude: latitude,
+                              longitude: longitude,
                             );
                           },
                         );
@@ -532,6 +586,10 @@ class MomentDetailPage extends ConsumerWidget {
     required String title,
     required String content,
     required List<String> linkChips,
+    required VoidCallback? onEdit,
+    required String locationText,
+    required double? latitude,
+    required double? longitude,
   }) {
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8F8),
@@ -539,6 +597,7 @@ class MomentDetailPage extends ConsumerWidget {
         backgroundColor: Colors.white.withValues(alpha: 0.8),
         title: const Text('小确幸详情', style: TextStyle(fontWeight: FontWeight.w900)),
         actions: [
+          if (onEdit != null) IconButton(onPressed: onEdit, icon: const Icon(Icons.edit)),
           IconButton(onPressed: () {}, icon: const Icon(Icons.share)),
           IconButton(onPressed: () {}, icon: const Icon(Icons.more_horiz)),
         ],
@@ -578,6 +637,30 @@ class MomentDetailPage extends ConsumerWidget {
               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF475569), height: 1.5),
             ),
           ),
+          if (locationText.trim().isNotEmpty) ...[
+            const SizedBox(height: 14),
+            _InfoRow(
+              iconBackground: const Color(0xFFFFEDD5),
+              icon: Icons.location_on,
+              iconColor: const Color(0xFFFB923C),
+              label: '地理位置',
+              value: locationText.trim(),
+              trailingIcon: Icons.chevron_right,
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => _MomentMapPage.preview(
+                      title: title,
+                      poiName: locationText.trim(),
+                      address: '',
+                      latitude: latitude,
+                      longitude: longitude,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
           const SizedBox(height: 14),
           Container(
             padding: const EdgeInsets.all(14),
@@ -669,7 +752,9 @@ class MomentDetailPage extends ConsumerWidget {
 }
 
 class MomentCreatePage extends ConsumerStatefulWidget {
-  const MomentCreatePage({super.key});
+  const MomentCreatePage({super.key, this.initialRecord});
+
+  final MomentRecord? initialRecord;
 
   @override
   ConsumerState<MomentCreatePage> createState() => _MomentCreatePageState();
@@ -682,7 +767,10 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
   final _contentController = TextEditingController();
 
   DateTime _recordAt = DateTime.now();
-  String _locationText = '';
+  String _locationName = '';
+  String _locationAddress = '';
+  double? _latitude;
+  double? _longitude;
 
   final List<String> _tags = ['读书', '搬家', '桌面布置', '电影'];
   int _selectedTagIndex = 0;
@@ -704,10 +792,103 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
   int _selectedMoodIndex = 0;
 
   @override
+  void initState() {
+    super.initState();
+    final record = widget.initialRecord;
+    if (record != null) {
+      final split = _splitContent(record.content);
+      _titleController.text = split.title;
+      _contentController.text = split.content;
+      _recordAt = record.recordDate;
+      _locationName = (record.city ?? '').trim();
+      _latitude = record.latitude;
+      _longitude = record.longitude;
+      _imageUrls
+        ..clear()
+        ..addAll(_parseMomentImages(record.images));
+      final tag = (record.sceneTag ?? '').trim();
+      if (tag.isNotEmpty) {
+        if (!_tags.contains(tag)) {
+          _tags.insert(0, tag);
+        }
+        _selectedTagIndex = _tags.indexOf(tag).clamp(0, _tags.length - 1);
+      }
+      final moodIndex = _moods.indexWhere((m) => m.label == record.mood);
+      if (moodIndex >= 0) {
+        _selectedMoodIndex = moodIndex;
+      }
+      _loadInitialLinks(record.id);
+    }
+  }
+
+  @override
   void dispose() {
     _titleController.dispose();
     _contentController.dispose();
     super.dispose();
+  }
+
+  String get _locationDisplay {
+    final name = _locationName.trim();
+    final address = _locationAddress.trim();
+    if (name.isEmpty && address.isEmpty) return '';
+    if (name.isEmpty) return address;
+    if (address.isEmpty) return name;
+    return '$name · $address';
+  }
+
+  ({String title, String content}) _splitContent(String? raw) {
+    final text = (raw ?? '').trim();
+    if (text.isEmpty) {
+      return (title: '', content: '');
+    }
+    final splitIndex = text.indexOf('\n\n');
+    if (splitIndex >= 0) {
+      final title = text.substring(0, splitIndex).trim();
+      final content = text.substring(splitIndex + 2).trim();
+      return (title: title, content: content);
+    }
+    final lines = text.split('\n');
+    final title = lines.first.trim();
+    final content = lines.skip(1).join('\n').trim();
+    return (title: title, content: content);
+  }
+
+  Future<void> _loadInitialLinks(String momentId) async {
+    final db = ref.read(appDatabaseProvider);
+    final links = await db.linkDao.listLinksForEntity(entityType: 'moment', entityId: momentId);
+    if (!mounted) return;
+    setState(() {
+      _linkedFriendIds
+        ..clear()
+        ..addAll(_collectLinkIds(links, 'moment', momentId, 'friend'));
+      _linkedFoodIds
+        ..clear()
+        ..addAll(_collectLinkIds(links, 'moment', momentId, 'food'));
+      _linkedTravelIds
+        ..clear()
+        ..addAll(_collectLinkIds(links, 'moment', momentId, 'travel'));
+      _linkedGoalIds
+        ..clear()
+        ..addAll(_collectLinkIds(links, 'moment', momentId, 'goal'));
+    });
+  }
+
+  Set<String> _collectLinkIds(
+    List<EntityLink> links,
+    String entityType,
+    String entityId,
+    String targetType,
+  ) {
+    final result = <String>{};
+    for (final link in links) {
+      final isSource = link.sourceType == entityType && link.sourceId == entityId;
+      final otherType = isSource ? link.targetType : link.sourceType;
+      if (otherType != targetType) continue;
+      final otherId = isSource ? link.targetId : link.sourceId;
+      result.add(otherId);
+    }
+    return result;
   }
 
   String _formatRecordAt(DateTime t) {
@@ -743,40 +924,23 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
   }
 
   Future<void> _editLocation() async {
-    final controller = TextEditingController(text: _locationText);
-    final result = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
-        return Padding(
-          padding: EdgeInsets.only(bottom: bottomPadding),
-          child: _BottomSheetShell(
-            title: '地理位置',
-            actionText: '确定',
-            onAction: () => Navigator.of(context).pop(controller.text.trim()),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-              child: TextField(
-                controller: controller,
-                autofocus: true,
-                decoration: InputDecoration(
-                  hintText: '添加位置信息',
-                  filled: true,
-                  fillColor: const Color(0xFFF3F4F6),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
+    final result = await Navigator.of(context).push<_MomentMapPickResult>(
+      MaterialPageRoute(
+        builder: (_) => _MomentMapPage.pick(
+          initialPoiName: _locationName,
+          initialAddress: _locationAddress,
+          initialLatitude: _latitude,
+          initialLongitude: _longitude,
+        ),
+      ),
     );
-    controller.dispose();
     if (result == null) return;
-    setState(() => _locationText = result);
+    setState(() {
+      _locationName = result.poiName;
+      _locationAddress = result.address;
+      _latitude = result.latitude;
+      _longitude = result.longitude;
+    });
   }
 
   Future<void> _addCustomTag() async {
@@ -980,14 +1144,20 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
 
     final db = ref.read(appDatabaseProvider);
     final now = DateTime.now();
-    final momentId = _uuid.v4();
+    final existing = widget.initialRecord;
+    final momentId = existing?.id ?? _uuid.v4();
+    final createdAt = existing?.createdAt ?? now;
 
     final content = _contentController.text.trim();
     final mergedContent = content.isEmpty ? title : '$title\n\n$content';
 
     final mood = _moods[_selectedMoodIndex];
     final tag = _tags.isEmpty ? null : _tags[_selectedTagIndex.clamp(0, _tags.length - 1)];
-    final location = _locationText.trim();
+    final locationName = _locationName.trim();
+    final locationAddress = _locationAddress.trim();
+    final location = locationName.isNotEmpty ? locationName : locationAddress;
+    final recordDate = _recordAt;
+    final eventRecordDate = DateTime(recordDate.year, recordDate.month, recordDate.day);
 
     await db.momentDao.upsert(
       MomentRecordsCompanion.insert(
@@ -998,13 +1168,40 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
         moodColor: Value('#${mood.color.toARGB32().toRadixString(16).padLeft(8, '0')}'),
         sceneTag: Value(tag?.trim().isEmpty == true ? null : tag),
         city: Value(location.isEmpty ? null : location),
-        latitude: const Value(null),
-        longitude: const Value(null),
-        recordDate: _recordAt,
-        createdAt: now,
+        latitude: Value(_latitude),
+        longitude: Value(_longitude),
+        recordDate: recordDate,
+        createdAt: createdAt,
         updatedAt: now,
       ),
     );
+
+    await db.into(db.timelineEvents).insertOnConflictUpdate(
+          TimelineEventsCompanion.insert(
+            id: momentId,
+            title: title,
+            eventType: 'moment',
+            startAt: Value(recordDate),
+            endAt: const Value(null),
+            note: Value(content.isEmpty ? null : content),
+            recordDate: eventRecordDate,
+            createdAt: createdAt,
+            updatedAt: now,
+          ),
+        );
+
+    if (existing != null) {
+      final links = await db.linkDao.listLinksForEntity(entityType: 'moment', entityId: momentId);
+      for (final link in links) {
+        await db.linkDao.deleteLink(
+          sourceType: link.sourceType,
+          sourceId: link.sourceId,
+          targetType: link.targetType,
+          targetId: link.targetId,
+          now: now,
+        );
+      }
+    }
 
     for (final id in _linkedFriendIds) {
       await db.linkDao.createLink(
@@ -1066,6 +1263,7 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
 
   @override
   Widget build(BuildContext context) {
+    final isEditing = widget.initialRecord != null;
     final mood = _moods[_selectedMoodIndex];
 
     return Scaffold(
@@ -1075,9 +1273,9 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
         child: Column(
           children: [
             _CreateTopBar(
-              title: '记录小确幸',
+              title: isEditing ? '编辑小确幸' : '记录小确幸',
               onCancel: () => Navigator.of(context).maybePop(),
-              actionText: '发布',
+              actionText: isEditing ? '保存' : '发布',
               onAction: _publish,
             ),
             Expanded(
@@ -1249,7 +1447,7 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
                     icon: Icons.location_on,
                     iconColor: const Color(0xFFFB923C),
                     label: '地理位置',
-                    value: _locationText.trim().isEmpty ? '添加位置信息' : _locationText.trim(),
+                    value: _locationDisplay.isEmpty ? '添加位置信息' : _locationDisplay,
                     trailingIcon: Icons.chevron_right,
                     onTap: _editLocation,
                   ),
@@ -1301,6 +1499,638 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _MomentMapPickResult {
+  const _MomentMapPickResult({
+    required this.poiName,
+    required this.address,
+    required this.latitude,
+    required this.longitude,
+  });
+
+  final String poiName;
+  final String address;
+  final double? latitude;
+  final double? longitude;
+}
+
+enum _MomentMapPageMode { pick, preview }
+
+class _MomentMapPoi {
+  const _MomentMapPoi({
+    required this.name,
+    required this.address,
+    required this.latitude,
+    required this.longitude,
+  });
+
+  final String name;
+  final String address;
+  final double? latitude;
+  final double? longitude;
+}
+
+class _MomentMapPage extends StatefulWidget {
+  const _MomentMapPage.pick({
+    required this.initialPoiName,
+    required this.initialAddress,
+    required this.initialLatitude,
+    required this.initialLongitude,
+  })  : mode = _MomentMapPageMode.pick,
+        title = null,
+        poiName = '',
+        address = '',
+        latitude = null,
+        longitude = null;
+
+  const _MomentMapPage.preview({
+    required this.title,
+    required this.poiName,
+    required this.address,
+    required this.latitude,
+    required this.longitude,
+  })  : mode = _MomentMapPageMode.preview,
+        initialPoiName = '',
+        initialAddress = '',
+        initialLatitude = null,
+        initialLongitude = null;
+
+  final _MomentMapPageMode mode;
+
+  final String? title;
+  final String poiName;
+  final String address;
+  final double? latitude;
+  final double? longitude;
+
+  final String initialPoiName;
+  final String initialAddress;
+  final double? initialLatitude;
+  final double? initialLongitude;
+
+  @override
+  State<_MomentMapPage> createState() => _MomentMapPageState();
+}
+
+class _MomentMapPageState extends State<_MomentMapPage> {
+  static const String _amapAndroidKey = String.fromEnvironment('AMAP_ANDROID_KEY', defaultValue: '');
+  static const String _amapIosKey = String.fromEnvironment('AMAP_IOS_KEY', defaultValue: '');
+  static const String _amapWebKey = String.fromEnvironment('AMAP_WEB_KEY', defaultValue: '76e66f23c7045fbe296f9aa9b7e7f12c');
+
+  static const _primary = Color(0xFF2BCDEE);
+
+  final _searchController = TextEditingController();
+  final _poiNameController = TextEditingController();
+  final _addressController = TextEditingController();
+
+  var _loading = false;
+  var _errorText = '';
+  var _pois = <_MomentMapPoi>[];
+
+  String get _pickedPoiName => _poiNameController.text.trim();
+  String get _pickedAddress => _addressController.text.trim();
+
+  double? _pickedLatitude;
+  double? _pickedLongitude;
+
+  amap.AMapController? _mapController;
+  var _sdkReady = false;
+  var _sdkErrorText = '';
+
+  bool get _hasMapKey {
+    if (kIsWeb) return _amapWebKey.trim().isNotEmpty;
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return _amapAndroidKey.trim().isNotEmpty;
+      case TargetPlatform.iOS:
+        return _amapIosKey.trim().isNotEmpty;
+      default:
+        return _amapAndroidKey.trim().isNotEmpty || _amapIosKey.trim().isNotEmpty;
+    }
+  }
+
+  bool get _hasWebKey => _amapWebKey.trim().isNotEmpty;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.mode == _MomentMapPageMode.preview) {
+      _poiNameController.text = widget.poiName;
+      _addressController.text = widget.address;
+      _pickedLatitude = widget.latitude;
+      _pickedLongitude = widget.longitude;
+      _searchController.text = widget.poiName.trim().isNotEmpty ? widget.poiName.trim() : widget.address.trim();
+    } else {
+      _poiNameController.text = widget.initialPoiName;
+      _addressController.text = widget.initialAddress;
+      _pickedLatitude = widget.initialLatitude;
+      _pickedLongitude = widget.initialLongitude;
+      _searchController.text = widget.initialPoiName.trim().isNotEmpty ? widget.initialPoiName.trim() : widget.initialAddress.trim();
+    }
+
+    _initAmapSdk();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _poiNameController.dispose();
+    _addressController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _initAmapSdk() async {
+    if (!_hasMapKey) return;
+    try {
+      await amap.AMapFlutter.init(
+        apiKey: amap.ApiKey(
+          iosKey: _amapIosKey,
+          androidKey: _amapAndroidKey,
+          webKey: _amapWebKey,
+        ),
+        agreePrivacy: true,
+      );
+      if (!mounted) return;
+      setState(() {
+        _sdkReady = true;
+        _sdkErrorText = '';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _sdkReady = false;
+        _sdkErrorText = '$e';
+      });
+    }
+  }
+
+  void _syncMarkerAndCamera() {
+    final controller = _mapController;
+    if (controller == null) return;
+    controller.removeMarker('picked');
+    final lat = _pickedLatitude;
+    final lng = _pickedLongitude;
+    if (lat == null || lng == null) return;
+    controller.addMarker(
+      amap.Marker(
+        id: 'picked',
+        position: amap.Position(latitude: lat, longitude: lng),
+      ),
+    );
+    controller.moveCamera(
+      amap.CameraPosition(
+        position: amap.Position(latitude: lat, longitude: lng),
+        zoom: 15,
+      ),
+      const Duration(milliseconds: 220),
+    );
+  }
+
+  Future<void> _searchPoi() async {
+    if (!_hasWebKey) {
+      setState(() {
+        _errorText = '未配置高德 Web Key（AMAP_WEB_KEY）';
+        _pois = [];
+      });
+      return;
+    }
+    final keyword = _searchController.text.trim();
+    if (keyword.isEmpty) {
+      setState(() {
+        _errorText = '请输入地点关键词';
+        _pois = [];
+      });
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _errorText = '';
+      _pois = [];
+    });
+
+    try {
+      final uri = Uri.https('restapi.amap.com', '/v3/place/text', {
+        'keywords': keyword,
+        'offset': '20',
+        'page': '1',
+        'extensions': 'base',
+        'key': _amapWebKey,
+      });
+      final client = HttpClient();
+      final request = await client.getUrl(uri);
+      final response = await request.close();
+      final body = await response.transform(utf8.decoder).join();
+      client.close(force: true);
+
+      final decoded = jsonDecode(body);
+      if (decoded is! Map) {
+        throw const FormatException('invalid json');
+      }
+      final status = '${decoded['status'] ?? ''}'.trim();
+      if (status != '1') {
+        final info = '${decoded['info'] ?? '搜索失败'}';
+        throw Exception(info);
+      }
+      final poisRaw = decoded['pois'];
+      final next = <_MomentMapPoi>[];
+      if (poisRaw is List) {
+        for (final p in poisRaw) {
+          if (p is! Map) continue;
+          final name = '${p['name'] ?? ''}'.trim();
+          final address = '${p['address'] ?? ''}'.trim();
+          final location = '${p['location'] ?? ''}'.trim();
+          double? lng;
+          double? lat;
+          if (location.contains(',')) {
+            final parts = location.split(',');
+            if (parts.length >= 2) {
+              lng = double.tryParse(parts[0].trim());
+              lat = double.tryParse(parts[1].trim());
+            }
+          }
+          if (name.isEmpty && address.isEmpty) continue;
+          next.add(_MomentMapPoi(name: name, address: address, latitude: lat, longitude: lng));
+        }
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _pois = next;
+        if (next.isEmpty) _errorText = '未找到结果';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorText = '搜索失败：$e';
+        _pois = [];
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
+  }
+
+  Future<void> _showManualEditSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return _BottomSheetShell(
+          title: '手动填写地点',
+          actionText: '完成',
+          onAction: () {
+            Navigator.of(sheetContext).pop();
+          },
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              top: 12,
+              bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 12,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: _poiNameController,
+                  decoration: InputDecoration(
+                    labelText: '地点名称',
+                    hintText: '例如：海底捞（中关村店）',
+                    filled: true,
+                    fillColor: const Color(0xFFF3F4F6),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _addressController,
+                  decoration: InputDecoration(
+                    labelText: '地址',
+                    hintText: '例如：北京市海淀区…',
+                    filled: true,
+                    fillColor: const Color(0xFFF3F4F6),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                OutlinedButton(
+                  onPressed: () {
+                    setState(() {
+                      _pickedLatitude = null;
+                      _pickedLongitude = null;
+                    });
+                    Navigator.of(sheetContext).pop();
+                  },
+                  child: const Text('清除坐标'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _openExternalNavigation() async {
+    final lat = _pickedLatitude;
+    final lng = _pickedLongitude;
+    final name = Uri.encodeComponent(_pickedPoiName.isEmpty ? '目的地' : _pickedPoiName);
+    final addr = Uri.encodeComponent(_pickedAddress);
+    if (lat == null || lng == null) {
+      final q = Uri.encodeComponent((_pickedPoiName.isNotEmpty ? _pickedPoiName : _pickedAddress).trim());
+      final url = Uri.parse('https://uri.amap.com/search?keyword=$q');
+      await _launchExternal(url);
+      return;
+    }
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return _BottomSheetShell(
+          title: '选择导航方式',
+          actionText: '关闭',
+          onAction: () => Navigator.of(sheetContext).pop(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.map, color: Color(0xFF22BEBE)),
+                title: const Text('高德地图', style: TextStyle(fontWeight: FontWeight.w800)),
+                onTap: () async {
+                  Navigator.of(sheetContext).pop();
+                  final url = Uri.parse('https://uri.amap.com/marker?position=$lng,$lat&name=$name&src=life_chronicle');
+                  await _launchExternal(url);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.public, color: Color(0xFF3B82F6)),
+                title: const Text('百度地图', style: TextStyle(fontWeight: FontWeight.w800)),
+                onTap: () async {
+                  Navigator.of(sheetContext).pop();
+                  final url = Uri.parse('https://api.map.baidu.com/marker?location=$lat,$lng&title=$name&content=$addr&output=html');
+                  await _launchExternal(url);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.navigation, color: Color(0xFF10B981)),
+                title: const Text('腾讯地图', style: TextStyle(fontWeight: FontWeight.w800)),
+                onTap: () async {
+                  Navigator.of(sheetContext).pop();
+                  final url = Uri.parse('https://apis.map.qq.com/uri/v1/marker?marker=coord:$lat,$lng;title:$name;addr:$addr&referer=life_chronicle');
+                  await _launchExternal(url);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _launchExternal(Uri uri) async {
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('无法打开外部地图应用')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isPreview = widget.mode == _MomentMapPageMode.preview;
+    final title = isPreview ? (widget.title ?? '地图预览') : '选择地点';
+
+    final mapTargetLat = _pickedLatitude ?? 39.908722;
+    final mapTargetLng = _pickedLongitude ?? 116.397499;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF6F8F8),
+      appBar: AppBar(
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
+        backgroundColor: Colors.white.withValues(alpha: 0.85),
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        actions: [
+          if (isPreview)
+            IconButton(
+              onPressed: _openExternalNavigation,
+              icon: const Icon(Icons.near_me),
+            ),
+          if (!isPreview)
+            TextButton(
+              onPressed: _showManualEditSheet,
+              child: const Text('手动填写', style: TextStyle(fontWeight: FontWeight.w900)),
+            ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              height: 220,
+              color: Colors.white,
+              child: !_hasMapKey
+                  ? const Center(
+                      child: Text('未配置高德 Key', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
+                    )
+                  : (_sdkErrorText.isNotEmpty
+                      ? Center(
+                          child: Text(
+                            _sdkErrorText,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFFEF4444)),
+                          ),
+                        )
+                      : (!_sdkReady
+                          ? const Center(child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)))
+                          : amap.AMapFlutter(
+                              initCameraPosition: amap.CameraPosition(
+                                position: amap.Position(latitude: mapTargetLat, longitude: mapTargetLng),
+                                zoom: 15,
+                              ),
+                              onMapCreated: (controller) {
+                                _mapController = controller;
+                                _syncMarkerAndCamera();
+                              },
+                              onPoiClick: isPreview
+                                  ? null
+                                  : (poi) {
+                                      setState(() {
+                                        _poiNameController.text = poi.name;
+                                        _pickedLatitude = poi.position.latitude;
+                                        _pickedLongitude = poi.position.longitude;
+                                      });
+                                      _syncMarkerAndCamera();
+                                    },
+                              onMapLongPress: isPreview
+                                  ? null
+                                  : (position) {
+                                      setState(() {
+                                        _pickedLatitude = position.latitude;
+                                        _pickedLongitude = position.longitude;
+                                      });
+                                      _syncMarkerAndCamera();
+                                    },
+                            ))),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFF3F4F6)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(_pickedPoiName.isEmpty ? '未选择地点' : _pickedPoiName, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900)),
+                const SizedBox(height: 6),
+                Text(_pickedAddress.isEmpty ? '未填写地址' : _pickedAddress, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(999), border: Border.all(color: const Color(0xFFF1F5F9))),
+                      child: Text(
+                        (_pickedLatitude == null || _pickedLongitude == null) ? '无坐标' : '$_pickedLatitude, $_pickedLongitude',
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF94A3B8)),
+                      ),
+                    ),
+                    const Spacer(),
+                    if (isPreview)
+                      TextButton(
+                        onPressed: _openExternalNavigation,
+                        child: const Text('外部导航', style: TextStyle(fontWeight: FontWeight.w900)),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          if (!isPreview) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    textInputAction: TextInputAction.search,
+                    onSubmitted: (_) => _searchPoi(),
+                    decoration: InputDecoration(
+                      hintText: '搜索地点名称/地址',
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _primary,
+                    foregroundColor: const Color(0xFF102222),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    elevation: 0,
+                    textStyle: const TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                  onPressed: _loading ? null : _searchPoi,
+                  child: _loading ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('搜索'),
+                ),
+              ],
+            ),
+            if (_errorText.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Text(_errorText, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFFEF4444))),
+            ],
+            const SizedBox(height: 12),
+            if (!_hasWebKey)
+              const Text('可通过 AMAP_WEB_KEY 启用地点搜索', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
+            if (_hasWebKey && _pois.isNotEmpty)
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _pois.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                itemBuilder: (context, index) {
+                  final p = _pois[index];
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () {
+                      setState(() {
+                        _poiNameController.text = p.name;
+                        _addressController.text = p.address;
+                        _pickedLatitude = p.latitude;
+                        _pickedLongitude = p.longitude;
+                      });
+                      _syncMarkerAndCamera();
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFF3F4F6)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(p.name.isEmpty ? '未命名地点' : p.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900)),
+                          const SizedBox(height: 4),
+                          Text(p.address.isEmpty ? '无地址' : p.address, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+          ],
+        ],
+      ),
+      bottomNavigationBar: widget.mode == _MomentMapPageMode.pick
+          ? SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _primary,
+                    foregroundColor: const Color(0xFF102222),
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).pop(
+                      _MomentMapPickResult(
+                        poiName: _pickedPoiName,
+                        address: _pickedAddress,
+                        latitude: _pickedLatitude,
+                        longitude: _pickedLongitude,
+                      ),
+                    );
+                  },
+                  child: const Text('使用此地点'),
+                ),
+              ),
+            )
+          : null,
     );
   }
 }
