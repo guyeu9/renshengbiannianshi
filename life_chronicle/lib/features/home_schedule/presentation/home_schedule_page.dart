@@ -4,10 +4,14 @@ import 'dart:ui';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:table_calendar/table_calendar.dart';
 
-import '../../../app/app_theme.dart';
+import '../../../core/database/app_database.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../ai_historian/presentation/ai_historian_chat_page.dart';
 import '../../profile/presentation/profile_page.dart';
 
@@ -637,7 +641,7 @@ class _CalendarGrid extends StatelessWidget {
     final prevMonthDays = DateTime(year, month, 0).day;
 
     const dotBlue = Color(0xFF60A5FA);
-    const dotOrange = Color(0xFFFB923C);
+    // const dotOrange = Color(0xFFFB923C);
 
     return List.generate(42, (index) {
       final dayOffset = index - leadingDays + 1;
