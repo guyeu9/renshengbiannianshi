@@ -9,6 +9,18 @@ class FriendDao extends DatabaseAccessor<AppDatabase> with _$FriendDaoMixin {
   }
 
   Future<void> softDeleteById(String id, {required DateTime now}) async {
+    final linkDao = LinkDao(db);
+    final links = await linkDao.listLinksForEntity(entityType: 'friend', entityId: id);
+    for (final link in links) {
+      await linkDao.deleteLink(
+        sourceType: link.sourceType,
+        sourceId: link.sourceId,
+        targetType: link.targetType,
+        targetId: link.targetId,
+        linkType: link.linkType,
+        now: now,
+      );
+    }
     await (update(db.friendRecords)..where((t) => t.id.equals(id))).write(
       FriendRecordsCompanion(
         isDeleted: const Value(true),
@@ -44,7 +56,10 @@ class FriendDao extends DatabaseAccessor<AppDatabase> with _$FriendDaoMixin {
   Stream<List<FriendRecord>> watchAllActive() {
     return (select(db.friendRecords)
           ..where((t) => t.isDeleted.equals(false))
-          ..orderBy([(t) => OrderingTerm(expression: t.updatedAt, mode: OrderingMode.desc)]))
+          ..orderBy([
+            (t) => OrderingTerm(expression: t.isFavorite, mode: OrderingMode.desc),
+            (t) => OrderingTerm(expression: t.updatedAt, mode: OrderingMode.desc),
+          ]))
         .watch();
   }
 }

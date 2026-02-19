@@ -11,6 +11,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:amap_flutter_base/amap_flutter_base.dart';
+import 'package:amap_flutter_map/amap_flutter_map.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
@@ -1031,6 +1034,8 @@ class FoodDetailPage extends ConsumerWidget {
         images: (item?.imageUrl ?? '').isEmpty ? const [] : [item!.imageUrl],
         locationTitle: item?.location ?? '',
         locationSubtitle: '',
+        latitude: null,
+        longitude: null,
         note: item?.subtitle ?? '',
         recordDate: DateTime.now(),
         isFavorite: false,
@@ -1043,6 +1048,7 @@ class FoodDetailPage extends ConsumerWidget {
         onEdit: null,
         onToggleFavorite: null,
         onShare: null,
+        onDelete: null,
         onCheckInAgain: null,
       );
     }
@@ -1059,6 +1065,8 @@ class FoodDetailPage extends ConsumerWidget {
             images: const [],
             locationTitle: '',
             locationSubtitle: '',
+            latitude: null,
+            longitude: null,
             rating: null,
             note: '记录不存在或已删除',
             recordDate: DateTime.now(),
@@ -1072,6 +1080,7 @@ class FoodDetailPage extends ConsumerWidget {
             onEdit: null,
             onToggleFavorite: null,
             onShare: null,
+            onDelete: null,
             onCheckInAgain: null,
           );
         }
@@ -1087,6 +1096,8 @@ class FoodDetailPage extends ConsumerWidget {
           images: images,
           locationTitle: (record.poiName ?? '').trim(),
           locationSubtitle: (record.city ?? '').trim(),
+          latitude: record.latitude,
+          longitude: record.longitude,
           note: note,
           recordDate: record.recordDate,
           isFavorite: record.isFavorite,
@@ -1109,6 +1120,24 @@ class FoodDetailPage extends ConsumerWidget {
             );
           },
           onShare: () {},
+          onDelete: () async {
+            final now = DateTime.now();
+            final linkDao = LinkDao(db);
+            final links = await linkDao.listLinksForEntity(entityType: 'food', entityId: record.id);
+            for (final link in links) {
+              await linkDao.deleteLink(
+                sourceType: link.sourceType,
+                sourceId: link.sourceId,
+                targetType: link.targetType,
+                targetId: link.targetId,
+                linkType: link.linkType,
+                now: now,
+              );
+            }
+            await db.foodDao.softDeleteById(record.id, now: now);
+            if (!context.mounted) return;
+            Navigator.of(context).pop();
+          },
           onCheckInAgain: () {
             Navigator.of(context).push(
               MaterialPageRoute(
@@ -1135,6 +1164,8 @@ class FoodDetailPage extends ConsumerWidget {
     required List<String> images,
     required String locationTitle,
     required String locationSubtitle,
+    required double? latitude,
+    required double? longitude,
     required String note,
     required DateTime recordDate,
     required bool isFavorite,
@@ -1142,9 +1173,23 @@ class FoodDetailPage extends ConsumerWidget {
     required VoidCallback? onEdit,
     required VoidCallback? onToggleFavorite,
     required VoidCallback? onShare,
+    required VoidCallback? onDelete,
     required VoidCallback? onCheckInAgain,
   }) {
     final shareKey = GlobalKey();
+    void openMapPreview() {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => _FoodMapPage.preview(
+            title: title,
+            poiName: locationTitle,
+            address: locationSubtitle,
+            latitude: latitude,
+            longitude: longitude,
+          ),
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8F8),
       body: CustomScrollView(
@@ -1157,7 +1202,50 @@ class FoodDetailPage extends ConsumerWidget {
             title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
             actions: [
               IconButton(onPressed: onShare == null ? null : () => _shareLongImage(context, shareKey), icon: const Icon(Icons.ios_share)),
-              IconButton(onPressed: () {}, icon: const Icon(Icons.more_horiz)),
+              IconButton(
+                onPressed: onDelete == null
+                    ? null
+                    : () {
+                        showModalBottomSheet<void>(
+                          context: context,
+                          backgroundColor: Colors.transparent,
+                          builder: (sheetContext) {
+                            return _BottomSheetShell(
+                              title: '更多操作',
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  ListTile(
+                                    leading: const Icon(Icons.delete, color: Color(0xFFEF4444)),
+                                    title: const Text('删除此条美食', style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF111827))),
+                                    subtitle: const Text('删除后将不可恢复', style: TextStyle(fontSize: 12, color: Color(0xFF9CA3AF))),
+                                    onTap: () async {
+                                      Navigator.of(sheetContext).pop();
+                                      final confirmed = await showDialog<bool>(
+                                        context: context,
+                                        builder: (dialogContext) {
+                                          return AlertDialog(
+                                            title: const Text('确认删除'),
+                                            content: const Text('确定要删除这条美食记录吗？'),
+                                            actions: [
+                                              TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('取消')),
+                                              TextButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('删除')),
+                                            ],
+                                          );
+                                        },
+                                      );
+                                      if (confirmed != true) return;
+                                      onDelete();
+                                    },
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        );
+                      },
+                icon: const Icon(Icons.more_horiz),
+              ),
             ],
             flexibleSpace: ClipRect(
               child: BackdropFilter(
@@ -1215,52 +1303,56 @@ class FoodDetailPage extends ConsumerWidget {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFF3F4F6)),
-                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 12, offset: const Offset(0, 4))],
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 32,
-                            height: 32,
-                            decoration: BoxDecoration(color: const Color(0x1A2BCDEE), borderRadius: BorderRadius.circular(999)),
-                            child: const Icon(Icons.location_on, size: 16, color: Color(0xFF22BEBE)),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  locationTitle.isEmpty ? '未填写地点' : locationTitle,
-                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF111827)),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  locationSubtitle.isEmpty ? '未填写地址' : locationSubtitle,
-                                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF94A3B8)),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
+                    InkWell(
+                      onTap: openMapPreview,
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFF3F4F6)),
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 12, offset: const Offset(0, 4))],
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(color: const Color(0x1A2BCDEE), borderRadius: BorderRadius.circular(999)),
+                              child: const Icon(Icons.location_on, size: 16, color: Color(0xFF22BEBE)),
                             ),
-                          ),
-                          Container(
-                            width: 28,
-                            height: 28,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(color: const Color(0xFFF3F4F6)),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    locationTitle.isEmpty ? '未填写地点' : locationTitle,
+                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF111827)),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    locationSubtitle.isEmpty ? '未填写地址' : locationSubtitle,
+                                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF94A3B8)),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
                             ),
-                            child: const Icon(Icons.near_me, size: 14, color: Color(0xFF9CA3AF)),
-                          ),
-                        ],
+                            Container(
+                              width: 28,
+                              height: 28,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(999),
+                                border: Border.all(color: const Color(0xFFF3F4F6)),
+                              ),
+                              child: const Icon(Icons.near_me, size: 14, color: Color(0xFF9CA3AF)),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     if (tags.isNotEmpty) ...[
@@ -1292,7 +1384,7 @@ class FoodDetailPage extends ConsumerWidget {
                     const SizedBox(height: 14),
                     Text(
                       note.isEmpty ? '暂无记录' : note,
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B), height: 1.6),
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF000000), height: 1.7),
                     ),
                     const SizedBox(height: 10),
                     Row(
@@ -1326,33 +1418,37 @@ class FoodDetailPage extends ConsumerWidget {
                     const SizedBox(height: 10),
                     linkSection,
                     const SizedBox(height: 12),
-                    Container(
-                      height: 96,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFEFF6FF), Color(0xFFF8FAFC)],
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                        ),
-                        border: Border.all(color: const Color(0xFFF3F4F6)),
-                      ),
-                      child: Row(
-                        children: [
-                          const SizedBox(width: 16),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Text('查看地图详情', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF111827))),
-                              SizedBox(height: 4),
-                              Text('Navigation', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
-                            ],
+                    InkWell(
+                      onTap: openMapPreview,
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        height: 96,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFEFF6FF), Color(0xFFF8FAFC)],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
                           ),
-                          const Spacer(),
-                          const Icon(Icons.arrow_forward, size: 16, color: Color(0xFF94A3B8)),
-                          const SizedBox(width: 16),
-                        ],
+                          border: Border.all(color: const Color(0xFFF3F4F6)),
+                        ),
+                        child: Row(
+                          children: [
+                            const SizedBox(width: 16),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                Text('查看地图详情', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF111827))),
+                                SizedBox(height: 4),
+                                Text('Navigation', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                              ],
+                            ),
+                            const Spacer(),
+                            const Icon(Icons.arrow_forward, size: 16, color: Color(0xFF94A3B8)),
+                            const SizedBox(width: 16),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -1847,6 +1943,548 @@ class _LinkBlock extends StatelessWidget {
   }
 }
 
+class _FoodMapPickResult {
+  const _FoodMapPickResult({
+    required this.poiName,
+    required this.address,
+    required this.latitude,
+    required this.longitude,
+  });
+
+  final String poiName;
+  final String address;
+  final double? latitude;
+  final double? longitude;
+}
+
+enum _FoodMapPageMode { pick, preview }
+
+class _FoodMapPoi {
+  const _FoodMapPoi({
+    required this.name,
+    required this.address,
+    required this.latitude,
+    required this.longitude,
+  });
+
+  final String name;
+  final String address;
+  final double? latitude;
+  final double? longitude;
+}
+
+class _FoodMapPage extends StatefulWidget {
+  const _FoodMapPage.pick({
+    required this.initialPoiName,
+    required this.initialAddress,
+    required this.initialLatitude,
+    required this.initialLongitude,
+  })  : mode = _FoodMapPageMode.pick,
+        title = null,
+        poiName = '',
+        address = '',
+        latitude = null,
+        longitude = null;
+
+  const _FoodMapPage.preview({
+    required this.title,
+    required this.poiName,
+    required this.address,
+    required this.latitude,
+    required this.longitude,
+  })  : mode = _FoodMapPageMode.preview,
+        initialPoiName = '',
+        initialAddress = '',
+        initialLatitude = null,
+        initialLongitude = null;
+
+  final _FoodMapPageMode mode;
+
+  final String? title;
+  final String poiName;
+  final String address;
+  final double? latitude;
+  final double? longitude;
+
+  final String initialPoiName;
+  final String initialAddress;
+  final double? initialLatitude;
+  final double? initialLongitude;
+
+  @override
+  State<_FoodMapPage> createState() => _FoodMapPageState();
+}
+
+class _FoodMapPageState extends State<_FoodMapPage> {
+  static const String _amapAndroidKey = String.fromEnvironment('AMAP_ANDROID_KEY');
+  static const String _amapIosKey = String.fromEnvironment('AMAP_IOS_KEY');
+  static const String _amapWebKey = String.fromEnvironment('AMAP_WEB_KEY');
+
+  static const _primary = Color(0xFF2BCDEE);
+
+  final _searchController = TextEditingController();
+  final _poiNameController = TextEditingController();
+  final _addressController = TextEditingController();
+
+  var _loading = false;
+  var _errorText = '';
+  var _pois = <_FoodMapPoi>[];
+
+  String get _pickedPoiName => _poiNameController.text.trim();
+  String get _pickedAddress => _addressController.text.trim();
+
+  double? _pickedLatitude;
+  double? _pickedLongitude;
+
+  bool get _hasMapKey => _amapAndroidKey.trim().isNotEmpty || _amapIosKey.trim().isNotEmpty;
+  bool get _hasWebKey => _amapWebKey.trim().isNotEmpty;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.mode == _FoodMapPageMode.preview) {
+      _poiNameController.text = widget.poiName;
+      _addressController.text = widget.address;
+      _pickedLatitude = widget.latitude;
+      _pickedLongitude = widget.longitude;
+      _searchController.text = widget.poiName.trim().isNotEmpty ? widget.poiName.trim() : widget.address.trim();
+    } else {
+      _poiNameController.text = widget.initialPoiName;
+      _addressController.text = widget.initialAddress;
+      _pickedLatitude = widget.initialLatitude;
+      _pickedLongitude = widget.initialLongitude;
+      _searchController.text = widget.initialPoiName.trim().isNotEmpty ? widget.initialPoiName.trim() : widget.initialAddress.trim();
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _poiNameController.dispose();
+    _addressController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _searchPoi() async {
+    if (!_hasWebKey) {
+      setState(() {
+        _errorText = '未配置高德 Web Key（AMAP_WEB_KEY）';
+        _pois = [];
+      });
+      return;
+    }
+    final keyword = _searchController.text.trim();
+    if (keyword.isEmpty) {
+      setState(() {
+        _errorText = '请输入地点关键词';
+        _pois = [];
+      });
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _errorText = '';
+      _pois = [];
+    });
+
+    try {
+      final uri = Uri.https('restapi.amap.com', '/v3/place/text', {
+        'keywords': keyword,
+        'offset': '20',
+        'page': '1',
+        'extensions': 'base',
+        'key': _amapWebKey,
+      });
+      final client = HttpClient();
+      final request = await client.getUrl(uri);
+      final response = await request.close();
+      final body = await response.transform(utf8.decoder).join();
+      client.close(force: true);
+
+      final decoded = jsonDecode(body);
+      if (decoded is! Map) {
+        throw const FormatException('invalid json');
+      }
+      final status = '${decoded['status'] ?? ''}'.trim();
+      if (status != '1') {
+        final info = '${decoded['info'] ?? '搜索失败'}';
+        throw Exception(info);
+      }
+      final poisRaw = decoded['pois'];
+      final next = <_FoodMapPoi>[];
+      if (poisRaw is List) {
+        for (final p in poisRaw) {
+          if (p is! Map) continue;
+          final name = '${p['name'] ?? ''}'.trim();
+          final address = '${p['address'] ?? ''}'.trim();
+          final location = '${p['location'] ?? ''}'.trim();
+          double? lng;
+          double? lat;
+          if (location.contains(',')) {
+            final parts = location.split(',');
+            if (parts.length >= 2) {
+              lng = double.tryParse(parts[0].trim());
+              lat = double.tryParse(parts[1].trim());
+            }
+          }
+          if (name.isEmpty && address.isEmpty) continue;
+          next.add(_FoodMapPoi(name: name, address: address, latitude: lat, longitude: lng));
+        }
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _pois = next;
+        if (next.isEmpty) _errorText = '未找到结果';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorText = '搜索失败：$e';
+        _pois = [];
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
+  }
+
+  Future<void> _showManualEditSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return _BottomSheetShell(
+          title: '手动填写地点',
+          child: Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(sheetContext).viewInsets.bottom),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: _poiNameController,
+                  decoration: const InputDecoration(
+                    labelText: '地点名称',
+                    hintText: '例如：海底捞（中关村店）',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _addressController,
+                  decoration: const InputDecoration(
+                    labelText: '地址',
+                    hintText: '例如：北京市海淀区…',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.of(sheetContext).pop();
+                        },
+                        child: const Text('完成'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: const Color(0xFF102222)),
+                        onPressed: () {
+                          setState(() {
+                            _pickedLatitude = null;
+                            _pickedLongitude = null;
+                          });
+                          Navigator.of(sheetContext).pop();
+                        },
+                        child: const Text('清除坐标'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _openExternalNavigation() async {
+    final lat = _pickedLatitude;
+    final lng = _pickedLongitude;
+    final name = Uri.encodeComponent(_pickedPoiName.isEmpty ? '目的地' : _pickedPoiName);
+    final addr = Uri.encodeComponent(_pickedAddress);
+    if (lat == null || lng == null) {
+      final q = Uri.encodeComponent((_pickedPoiName.isNotEmpty ? _pickedPoiName : _pickedAddress).trim());
+      final url = Uri.parse('https://uri.amap.com/search?keyword=$q');
+      await _launchExternal(url);
+      return;
+    }
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return _BottomSheetShell(
+          title: '选择导航方式',
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.map, color: Color(0xFF22BEBE)),
+                title: const Text('高德地图', style: TextStyle(fontWeight: FontWeight.w800)),
+                onTap: () async {
+                  Navigator.of(sheetContext).pop();
+                  final url = Uri.parse('https://uri.amap.com/marker?position=$lng,$lat&name=$name&src=life_chronicle');
+                  await _launchExternal(url);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.public, color: Color(0xFF3B82F6)),
+                title: const Text('百度地图', style: TextStyle(fontWeight: FontWeight.w800)),
+                onTap: () async {
+                  Navigator.of(sheetContext).pop();
+                  final url = Uri.parse('https://api.map.baidu.com/marker?location=$lat,$lng&title=$name&content=$addr&output=html');
+                  await _launchExternal(url);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.navigation, color: Color(0xFF10B981)),
+                title: const Text('腾讯地图', style: TextStyle(fontWeight: FontWeight.w800)),
+                onTap: () async {
+                  Navigator.of(sheetContext).pop();
+                  final url = Uri.parse('https://apis.map.qq.com/uri/v1/marker?marker=coord:$lat,$lng;title:$name;addr:$addr&referer=life_chronicle');
+                  await _launchExternal(url);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _launchExternal(Uri uri) async {
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('无法打开外部地图应用')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isPreview = widget.mode == _FoodMapPageMode.preview;
+    final title = isPreview ? (widget.title ?? '地图预览') : '选择地点';
+
+    final mapTargetLat = _pickedLatitude ?? 39.908722;
+    final mapTargetLng = _pickedLongitude ?? 116.397499;
+
+    final markers = <Marker>{};
+    if (_pickedLatitude != null && _pickedLongitude != null) {
+      markers.add(
+        Marker(
+          position: LatLng(_pickedLatitude!, _pickedLongitude!),
+        ),
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF6F8F8),
+      appBar: AppBar(
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
+        backgroundColor: Colors.white.withValues(alpha: 0.85),
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        actions: [
+          if (isPreview)
+            IconButton(
+              onPressed: _openExternalNavigation,
+              icon: const Icon(Icons.near_me),
+            ),
+          if (!isPreview)
+            TextButton(
+              onPressed: _showManualEditSheet,
+              child: const Text('手动填写', style: TextStyle(fontWeight: FontWeight.w900)),
+            ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              height: 220,
+              color: Colors.white,
+              child: !_hasMapKey
+                  ? const Center(
+                      child: Text('未配置高德 Key', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
+                    )
+                  : AMapWidget(
+                      apiKey: const AMapApiKey(androidKey: _amapAndroidKey, iosKey: _amapIosKey),
+                      privacyStatement: const AMapPrivacyStatement(hasContains: true, hasShow: true, hasAgree: true),
+                      initialCameraPosition: CameraPosition(target: LatLng(mapTargetLat, mapTargetLng), zoom: 15),
+                      markers: markers,
+                    ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFF3F4F6)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(_pickedPoiName.isEmpty ? '未选择地点' : _pickedPoiName, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900)),
+                const SizedBox(height: 6),
+                Text(_pickedAddress.isEmpty ? '未填写地址' : _pickedAddress, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(999), border: Border.all(color: const Color(0xFFF1F5F9))),
+                      child: Text(
+                        (_pickedLatitude == null || _pickedLongitude == null) ? '无坐标' : '$_pickedLatitude, $_pickedLongitude',
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF94A3B8)),
+                      ),
+                    ),
+                    const Spacer(),
+                    if (isPreview)
+                      TextButton(
+                        onPressed: _openExternalNavigation,
+                        child: const Text('外部导航', style: TextStyle(fontWeight: FontWeight.w900)),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          if (!isPreview) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    textInputAction: TextInputAction.search,
+                    onSubmitted: (_) => _searchPoi(),
+                    decoration: InputDecoration(
+                      hintText: '搜索地点名称/地址',
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _primary,
+                    foregroundColor: const Color(0xFF102222),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    elevation: 0,
+                    textStyle: const TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                  onPressed: _loading ? null : _searchPoi,
+                  child: _loading ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('搜索'),
+                ),
+              ],
+            ),
+            if (_errorText.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Text(_errorText, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFFEF4444))),
+            ],
+            const SizedBox(height: 12),
+            if (!_hasWebKey)
+              const Text('可通过 AMAP_WEB_KEY 启用地点搜索', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
+            if (_hasWebKey && _pois.isNotEmpty)
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _pois.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                itemBuilder: (context, index) {
+                  final p = _pois[index];
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () {
+                      setState(() {
+                        _poiNameController.text = p.name;
+                        _addressController.text = p.address;
+                        _pickedLatitude = p.latitude;
+                        _pickedLongitude = p.longitude;
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFF3F4F6)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(p.name.isEmpty ? '未命名地点' : p.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900)),
+                          const SizedBox(height: 4),
+                          Text(p.address.isEmpty ? '无地址' : p.address, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+          ],
+        ],
+      ),
+      bottomNavigationBar: widget.mode == _FoodMapPageMode.pick
+          ? SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _primary,
+                    foregroundColor: const Color(0xFF102222),
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).pop(
+                      _FoodMapPickResult(
+                        poiName: _pickedPoiName,
+                        address: _pickedAddress,
+                        latitude: _pickedLatitude,
+                        longitude: _pickedLongitude,
+                      ),
+                    );
+                  },
+                  child: const Text('使用此地点'),
+                ),
+              ),
+            )
+          : null,
+    );
+  }
+}
+
 class FoodCreatePage extends ConsumerStatefulWidget {
   const FoodCreatePage({
     super.key,
@@ -1870,6 +2508,16 @@ class FoodCreatePage extends ConsumerStatefulWidget {
 class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
   static const _primary = Color(0xFF2BCDEE);
   static const _backgroundDark = Color(0xFF102222);
+  static const List<String> _systemTags = [
+    '必吃榜',
+    '周末探店',
+    '辣',
+    '火锅',
+    '烤肉',
+    '日料',
+    '甜品',
+    '咖啡',
+  ];
 
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
@@ -1880,11 +2528,14 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
   var _isWishlist = false;
   var _selectedMood = '开心';
 
-  var _poiName = '三里屯太古里 (Sanlitun Taikoo Li)';
-  var _poiAddress = '北京市朝阳区三里屯路19号';
+  var _poiName = '';
+  var _poiAddress = '';
+  double? _latitude;
+  double? _longitude;
 
   final _imageUrls = <String>[];
-  final _tags = <String>['必吃榜', '周末探店', '辣'];
+  final _availableTags = <String>[..._systemTags];
+  final Set<String> _selectedTags = {};
 
   final _linkedFriends = <FriendRecord>[];
   final Set<String> _linkedTravelIds = {};
@@ -1906,14 +2557,19 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
       _selectedMood = (record.mood ?? '').trim().isEmpty ? _selectedMood : record.mood!.trim();
       _poiName = (record.poiName ?? '').trim().isEmpty ? _poiName : record.poiName!.trim();
       _poiAddress = (record.city ?? '').trim().isEmpty ? _poiAddress : record.city!.trim();
+      _latitude = record.latitude;
+      _longitude = record.longitude;
       _imageUrls
         ..clear()
         ..addAll(_decodeStringList(record.images));
       final tags = _decodeStringList(record.tags);
       if (tags.isNotEmpty) {
-        _tags
+        _selectedTags
           ..clear()
           ..addAll(tags);
+        for (final t in tags) {
+          if (!_availableTags.contains(t)) _availableTags.add(t);
+        }
       }
       _loadInitialLinks(record.id);
     } else {
@@ -2213,14 +2869,34 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
               spacing: 10,
               runSpacing: 10,
               children: [
-                for (final t in _tags)
+                for (final t in _availableTags)
                   InkWell(
                     borderRadius: BorderRadius.circular(12),
-                    onTap: () {},
+                    onTap: () {
+                      final selected = _selectedTags.contains(t);
+                      setState(() {
+                        if (selected) {
+                          _selectedTags.remove(t);
+                        } else {
+                          _selectedTags.add(t);
+                        }
+                      });
+                    },
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(color: _primary, borderRadius: BorderRadius.circular(12)),
-                      child: Text('# $t', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: _backgroundDark)),
+                      decoration: BoxDecoration(
+                        color: _selectedTags.contains(t) ? const Color(0x1A2BCDEE) : const Color(0xFFF3F4F6),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: _selectedTags.contains(t) ? const Color(0x332BCDEE) : const Color(0xFFF3F4F6)),
+                      ),
+                      child: Text(
+                        '# $t',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: _selectedTags.contains(t) ? const Color(0xFF22BEBE) : const Color(0xFF6B7280),
+                        ),
+                      ),
                     ),
                   ),
                 InkWell(
@@ -2299,7 +2975,27 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
   Widget _buildLocationCard(BuildContext context) {
     return InkWell(
       borderRadius: BorderRadius.circular(24),
-      onTap: () => _showEditLocationSheet(context),
+      onTap: () async {
+        final result = await Navigator.of(context).push<_FoodMapPickResult>(
+          MaterialPageRoute(
+            builder: (_) => _FoodMapPage.pick(
+              initialPoiName: _poiName,
+              initialAddress: _poiAddress,
+              initialLatitude: _latitude,
+              initialLongitude: _longitude,
+            ),
+          ),
+        );
+        if (!mounted) return;
+        if (result == null) return;
+        setState(() {
+          _poiName = result.poiName;
+          _poiAddress = result.address;
+          _latitude = result.latitude;
+          _longitude = result.longitude;
+        });
+      },
+      onLongPress: () => _showEditLocationSheet(context),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -2332,13 +3028,13 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    _poiName,
+                    _poiName.trim().isEmpty ? '请选择地点' : _poiName,
                     style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _poiAddress,
+                    _poiAddress.trim().isEmpty ? '点击选择地址' : _poiAddress,
                     style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF)),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -2438,10 +3134,12 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
     }
 
     final avatars = _linkedFriends.take(3).toList();
+    final stackWidth = 26.0 + (avatars.length - 1) * 16.0;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
+          width: stackWidth,
           height: 26,
           child: Stack(
             children: [
@@ -2558,8 +3256,8 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
                         onPressed: () {
                           final v = controller.text.trim();
                           if (v.isEmpty) return;
-                          if (_tags.contains(v)) return;
-                          setState(() => _tags.add(v));
+                          if (_availableTags.contains(v)) return;
+                          setState(() => _availableTags.add(v));
                           setInnerState(() {});
                           controller.clear();
                         },
@@ -2574,11 +3272,14 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
                       spacing: 10,
                       runSpacing: 10,
                       children: [
-                        for (final t in _tags)
+                        for (final t in _availableTags)
                           InkWell(
                             borderRadius: BorderRadius.circular(999),
                             onTap: () {
-                              setState(() => _tags.remove(t));
+                              setState(() {
+                                _availableTags.remove(t);
+                                _selectedTags.remove(t);
+                              });
                               setInnerState(() {});
                             },
                             child: Container(
@@ -3035,6 +3736,7 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
     final content = _contentController.text.trim();
     final link = _linkController.text.trim();
     final price = double.tryParse(_priceController.text.trim());
+    final selectedTags = _availableTags.where(_selectedTags.contains).toList();
 
     await db.foodDao.upsert(
       FoodRecordsCompanion.insert(
@@ -3042,14 +3744,14 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
         title: title,
         content: Value(content.isEmpty ? null : content),
         images: Value(_imageUrls.isEmpty ? null : jsonEncode(_imageUrls)),
-        tags: Value(_tags.isEmpty ? null : jsonEncode(_tags)),
+        tags: Value(selectedTags.isEmpty ? null : jsonEncode(selectedTags)),
         rating: Value(_rating <= 0 ? null : _rating.toDouble()),
         pricePerPerson: Value(price),
         link: Value(link.isEmpty ? null : link),
         poiName: Value(_poiName.trim().isEmpty ? null : _poiName.trim()),
         city: Value(_poiAddress.trim().isEmpty ? null : _poiAddress.trim()),
-        latitude: const Value(null),
-        longitude: const Value(null),
+        latitude: Value(_latitude),
+        longitude: Value(_longitude),
         mood: Value(_selectedMood.trim().isEmpty ? null : _selectedMood.trim()),
         isWishlist: Value(_isWishlist),
         isFavorite: Value(isFavorite),
@@ -3204,7 +3906,14 @@ class _UniversalLinkRow extends StatelessWidget {
                 child: Icon(icon, color: iconColor, size: 20),
               ),
               const SizedBox(width: 12),
-              Expanded(child: Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900))),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
+                ),
+              ),
               trailing,
             ],
           ),
