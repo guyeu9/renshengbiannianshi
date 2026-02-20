@@ -164,6 +164,7 @@ class _FoodPageState extends State<FoodPage> {
                         filterCities: _filterCities,
                         filterFriendIds: _filterFriendIds,
                         filterSolo: _filterSolo,
+                        onSwitchToRecords: () => setState(() => _modeIndex = 0),
                       ),
               ),
             ),
@@ -781,6 +782,7 @@ class _FoodWishlistBody extends ConsumerWidget {
     required this.filterCities,
     required this.filterFriendIds,
     required this.filterSolo,
+    required this.onSwitchToRecords,
   });
 
   final String searchQuery;
@@ -790,6 +792,7 @@ class _FoodWishlistBody extends ConsumerWidget {
   final Set<String> filterCities;
   final Set<String> filterFriendIds;
   final bool filterSolo;
+  final VoidCallback onSwitchToRecords;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -805,7 +808,7 @@ class _FoodWishlistBody extends ConsumerWidget {
 
         if (filterFriendIds.isEmpty && !filterSolo) {
           final filtered = _applySearch(byRatingAndCity, searchQuery);
-          return _FoodWishlistListView(records: filtered);
+          return _FoodWishlistListView(records: filtered, onSwitchToRecords: onSwitchToRecords);
         }
 
         final selectedFriendIds = filterFriendIds.toList(growable: false);
@@ -830,7 +833,7 @@ class _FoodWishlistBody extends ConsumerWidget {
             if (!filterSolo) {
               final byFriend = byRatingAndCity.where((e) => bySelectedFriends.contains(e.id)).toList(growable: false);
               final filtered = _applySearch(byFriend, searchQuery);
-              return _FoodWishlistListView(records: filtered);
+              return _FoodWishlistListView(records: filtered, onSwitchToRecords: onSwitchToRecords);
             }
 
             return StreamBuilder<List<EntityLink>>(
@@ -845,7 +848,7 @@ class _FoodWishlistBody extends ConsumerWidget {
                   return bySelectedFriends.contains(e.id);
                 }).toList(growable: false);
                 final filtered = _applySearch(byCompanion, searchQuery);
-                return _FoodWishlistListView(records: filtered);
+                return _FoodWishlistListView(records: filtered, onSwitchToRecords: onSwitchToRecords);
               },
             );
           },
@@ -919,9 +922,10 @@ class _FoodWishlistBody extends ConsumerWidget {
 }
 
 class _FoodWishlistListView extends StatelessWidget {
-  const _FoodWishlistListView({required this.records});
+  const _FoodWishlistListView({required this.records, required this.onSwitchToRecords});
 
   final List<FoodRecord> records;
+  final VoidCallback onSwitchToRecords;
 
   @override
   Widget build(BuildContext context) {
@@ -932,7 +936,7 @@ class _FoodWishlistListView extends StatelessWidget {
     }
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 140),
-      itemBuilder: (context, index) => _FoodWishlistRecordCard(record: records[index]),
+      itemBuilder: (context, index) => _FoodWishlistRecordCard(record: records[index], onSwitchToRecords: onSwitchToRecords),
       separatorBuilder: (_, __) => const SizedBox(height: 14),
       itemCount: records.length,
     );
@@ -940,9 +944,10 @@ class _FoodWishlistListView extends StatelessWidget {
 }
 
 class _FoodWishlistRecordCard extends StatelessWidget {
-  const _FoodWishlistRecordCard({required this.record});
+  const _FoodWishlistRecordCard({required this.record, required this.onSwitchToRecords});
 
   final FoodRecord record;
+  final VoidCallback onSwitchToRecords;
 
   @override
   Widget build(BuildContext context) {
@@ -960,7 +965,12 @@ class _FoodWishlistRecordCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(22),
       child: InkWell(
         borderRadius: BorderRadius.circular(22),
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => FoodDetailPage(recordId: record.id))),
+        onTap: () async {
+          final converted = await Navigator.of(context).push<bool>(
+            MaterialPageRoute(builder: (_) => FoodDetailPage(recordId: record.id)),
+          );
+          if (converted == true) onSwitchToRecords();
+        },
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(22),
@@ -1212,6 +1222,7 @@ class FoodDetailPage extends ConsumerWidget {
     if (recordId == null) {
       return _buildScaffold(
         context,
+        isWishlist: false,
         title: item?.title ?? '美食详情',
         pricePerPerson: null,
         rating: item?.rating,
@@ -1235,6 +1246,7 @@ class FoodDetailPage extends ConsumerWidget {
         onShare: null,
         onDelete: null,
         onCheckInAgain: null,
+        onMarkAsTasted: null,
       );
     }
     return StreamBuilder<FoodRecord?>(
@@ -1244,6 +1256,7 @@ class FoodDetailPage extends ConsumerWidget {
         if (record == null) {
           return _buildScaffold(
             context,
+            isWishlist: false,
             title: '美食详情',
             pricePerPerson: null,
             tags: const [],
@@ -1267,13 +1280,16 @@ class FoodDetailPage extends ConsumerWidget {
             onShare: null,
             onDelete: null,
             onCheckInAgain: null,
+            onMarkAsTasted: null,
           );
         }
         final images = _parseImages(record.images);
         final tags = _parseStringList(record.tags);
         final note = (record.content ?? '').trim();
+        final isWishlist = record.isWishlist;
         return _buildScaffold(
           context,
+          isWishlist: isWishlist,
           title: record.title,
           pricePerPerson: record.pricePerPerson,
           rating: record.rating,
@@ -1335,6 +1351,22 @@ class FoodDetailPage extends ConsumerWidget {
               ),
             );
           },
+          onMarkAsTasted: !isWishlist
+              ? null
+              : () async {
+                  final converted = await Navigator.of(context).push<bool>(
+                    MaterialPageRoute(
+                      builder: (_) => FoodCreatePage(
+                        initialRecord: record,
+                        overrideIsWishlist: false,
+                        overrideWishlistDone: true,
+                        popWithResultOnPublish: true,
+                      ),
+                    ),
+                  );
+                  if (!context.mounted) return;
+                  if (converted == true) Navigator.of(context).pop(true);
+                },
         );
       },
     );
@@ -1342,6 +1374,7 @@ class FoodDetailPage extends ConsumerWidget {
 
   Widget _buildScaffold(
     BuildContext context, {
+    required bool isWishlist,
     required String title,
     required double? pricePerPerson,
     required double? rating,
@@ -1360,6 +1393,7 @@ class FoodDetailPage extends ConsumerWidget {
     required VoidCallback? onShare,
     required VoidCallback? onDelete,
     required VoidCallback? onCheckInAgain,
+    required Future<void> Function()? onMarkAsTasted,
   }) {
     final shareKey = GlobalKey();
     void openMapPreview() {
@@ -1384,7 +1418,7 @@ class FoodDetailPage extends ConsumerWidget {
             backgroundColor: Colors.white.withValues(alpha: 0.85),
             elevation: 0,
             scrolledUnderElevation: 0,
-            title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
+            title: isWishlist ? const SizedBox.shrink() : Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
             actions: [
               IconButton(onPressed: onShare == null ? null : () => _shareLongImage(context, shareKey), icon: const Icon(Icons.ios_share)),
               IconButton(
@@ -1470,24 +1504,28 @@ class FoodDetailPage extends ConsumerWidget {
                       ],
                     ),
                     const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        _RatingStars(rating: rating),
-                        const SizedBox(width: 6),
-                        Text(
-                          rating == null ? '--' : rating.toStringAsFixed(1),
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF6B7280)),
-                        ),
-                        const SizedBox(width: 6),
-                        const Text('|', style: TextStyle(fontSize: 10, color: Color(0xFFD1D5DB))),
-                        const SizedBox(width: 6),
-                        Text(
-                          tags.isEmpty ? '美食' : tags.first,
-                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF)),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
+                    if (!isWishlist) ...[
+                      Row(
+                        children: [
+                          _RatingStars(rating: rating),
+                          const SizedBox(width: 6),
+                          Text(
+                            rating == null ? '--' : rating.toStringAsFixed(1),
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF6B7280)),
+                          ),
+                          const SizedBox(width: 6),
+                          const Text('|', style: TextStyle(fontSize: 10, color: Color(0xFFD1D5DB))),
+                          const SizedBox(width: 6),
+                          Text(
+                            tags.isEmpty ? '美食' : tags.first,
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                    ] else ...[
+                      const SizedBox(height: 4),
+                    ],
                     InkWell(
                       onTap: openMapPreview,
                       borderRadius: BorderRadius.circular(16),
@@ -1540,102 +1578,254 @@ class FoodDetailPage extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    if (tags.isNotEmpty) ...[
-                      const SizedBox(height: 14),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          for (var i = 0; i < tags.length; i++)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: i == 0 ? const Color(0x1A2BCDEE) : const Color(0xFFF3F4F6),
-                                borderRadius: BorderRadius.circular(999),
-                                border: Border.all(color: i == 0 ? const Color(0x332BCDEE) : const Color(0xFFF3F4F6)),
-                              ),
-                              child: Text(
-                                '#${tags[i]}',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: i == 0 ? const Color(0xFF22BEBE) : const Color(0xFF6B7280),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ],
-                    const SizedBox(height: 14),
-                    Text(
-                      note.isEmpty ? '暂无记录' : note,
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF000000), height: 1.7),
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        const Icon(Icons.schedule, size: 14, color: Color(0xFF9CA3AF)),
-                        const SizedBox(width: 6),
-                        Text(
-                          '记录于 ${_formatRecordDate(recordDate)}',
-                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF)),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    if (images.isNotEmpty) _ImageGrid(images: images),
-                    const SizedBox(height: 16),
-                    Container(height: 1, color: const Color(0xFFF1F5F9)),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Container(width: 4, height: 16, decoration: BoxDecoration(color: const Color(0xFF2BCDEE), borderRadius: BorderRadius.circular(999))),
-                        const SizedBox(width: 8),
-                        const Text('万物互联', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                        const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: const Color(0x1A2BCDEE), borderRadius: BorderRadius.circular(999)),
-                          child: const Text('关联', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF22BEBE))),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    linkSection,
-                    const SizedBox(height: 12),
-                    InkWell(
-                      onTap: openMapPreview,
-                      borderRadius: BorderRadius.circular(16),
-                      child: Container(
-                        height: 96,
+                    if (isWishlist) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFFEFF6FF), Color(0xFFF8FAFC)],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                          ),
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
                           border: Border.all(color: const Color(0xFFF3F4F6)),
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 12, offset: const Offset(0, 4))],
                         ),
-                        child: Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const SizedBox(width: 16),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
-                                Text('查看地图详情', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF111827))),
-                                SizedBox(height: 4),
-                                Text('Navigation', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                            Row(
+                              children: [
+                                Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(color: const Color(0x1A2BCDEE), borderRadius: BorderRadius.circular(999)),
+                                  child: const Icon(Icons.bookmark_border, size: 16, color: Color(0xFF22BEBE)),
+                                ),
+                                const SizedBox(width: 10),
+                                const Text('心愿备注', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
                               ],
                             ),
-                            const Spacer(),
-                            const Icon(Icons.arrow_forward, size: 16, color: Color(0xFF94A3B8)),
-                            const SizedBox(width: 16),
+                            const SizedBox(height: 10),
+                            Text(
+                              note.isEmpty ? '暂无心愿备注' : note,
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF111827), height: 1.6),
+                            ),
                           ],
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: const Color(0xFFF3F4F6)),
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 12, offset: const Offset(0, 4))],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(999)),
+                                  child: const Icon(Icons.local_offer_outlined, size: 16, color: Color(0xFF64748B)),
+                                ),
+                                const SizedBox(width: 10),
+                                const Text('美食标签', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            if (tags.isEmpty)
+                              const Text('暂无标签', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)))
+                            else
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  for (var i = 0; i < tags.length; i++)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: i == 0 ? const Color(0x1A2BCDEE) : const Color(0xFFF3F4F6),
+                                        borderRadius: BorderRadius.circular(999),
+                                        border: Border.all(color: i == 0 ? const Color(0x332BCDEE) : const Color(0xFFF3F4F6)),
+                                      ),
+                                      child: Text(
+                                        '#${tags[i]}',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color: i == 0 ? const Color(0xFF22BEBE) : const Color(0xFF6B7280),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: const Color(0xFFF3F4F6)),
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 12, offset: const Offset(0, 4))],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(999)),
+                                  child: const Icon(Icons.photo_library_outlined, size: 16, color: Color(0xFF64748B)),
+                                ),
+                                const SizedBox(width: 10),
+                                const Text('打卡相册', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                                const Spacer(),
+                                Text(
+                                  images.isEmpty ? '0' : '${images.length}',
+                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF94A3B8)),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            if (images.isEmpty)
+                              const Text('暂无图片', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)))
+                            else
+                              _ImageGrid(images: images),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Container(height: 1, color: const Color(0xFFF1F5F9)),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Container(
+                            width: 4,
+                            height: 16,
+                            decoration: BoxDecoration(color: const Color(0xFF2BCDEE), borderRadius: BorderRadius.circular(999)),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text('万物关联', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(color: const Color(0x1A2BCDEE), borderRadius: BorderRadius.circular(999)),
+                            child: const Text('计划关联', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF22BEBE))),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      linkSection,
+                    ] else ...[
+                      if (tags.isNotEmpty) ...[
+                        const SizedBox(height: 14),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (var i = 0; i < tags.length; i++)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: i == 0 ? const Color(0x1A2BCDEE) : const Color(0xFFF3F4F6),
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(color: i == 0 ? const Color(0x332BCDEE) : const Color(0xFFF3F4F6)),
+                                ),
+                                child: Text(
+                                  '#${tags[i]}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: i == 0 ? const Color(0xFF22BEBE) : const Color(0xFF6B7280),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                      const SizedBox(height: 14),
+                      Text(
+                        note.isEmpty ? '暂无记录' : note,
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF000000), height: 1.7),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          const Icon(Icons.schedule, size: 14, color: Color(0xFF9CA3AF)),
+                          const SizedBox(width: 6),
+                          Text(
+                            '记录于 ${_formatRecordDate(recordDate)}',
+                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      if (images.isNotEmpty) _ImageGrid(images: images),
+                      const SizedBox(height: 16),
+                      Container(height: 1, color: const Color(0xFFF1F5F9)),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Container(
+                            width: 4,
+                            height: 16,
+                            decoration: BoxDecoration(color: const Color(0xFF2BCDEE), borderRadius: BorderRadius.circular(999)),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text('万物互联', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(color: const Color(0x1A2BCDEE), borderRadius: BorderRadius.circular(999)),
+                            child: const Text('关联', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF22BEBE))),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      linkSection,
+                      const SizedBox(height: 12),
+                      InkWell(
+                        onTap: openMapPreview,
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          height: 96,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFFEFF6FF), Color(0xFFF8FAFC)],
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                            ),
+                            border: Border.all(color: const Color(0xFFF3F4F6)),
+                          ),
+                          child: Row(
+                            children: [
+                              const SizedBox(width: 16),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: const [
+                                  Text('查看地图详情', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF111827))),
+                                  SizedBox(height: 4),
+                                  Text('Navigation', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                                ],
+                              ),
+                              const Spacer(),
+                              const Icon(Icons.arrow_forward, size: 16, color: Color(0xFF94A3B8)),
+                              const SizedBox(width: 16),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -1660,42 +1850,72 @@ class FoodDetailPage extends ConsumerWidget {
                   boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 18, offset: const Offset(0, 6))],
                 ),
                 child: Row(
-                  children: [
-                    _BottomAction(
-                      icon: Icons.edit,
-                      label: '编辑',
-                      onTap: onEdit,
-                    ),
-                    _BottomDivider(),
-                    _BottomAction(
-                      icon: isFavorite ? Icons.favorite : Icons.favorite_border,
-                      label: '收藏',
-                      active: isFavorite,
-                      onTap: onToggleFavorite,
-                    ),
-                    _BottomDivider(),
-                    _BottomAction(
-                      icon: Icons.share,
-                      label: '分享',
-                      onTap: onShare == null ? null : () => _shareLongImage(context, shareKey),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF2BCDEE),
-                          foregroundColor: const Color(0xFF102222),
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-                          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
-                        ),
-                        onPressed: onCheckInAgain,
-                        icon: const Icon(Icons.restaurant, size: 16),
-                        label: const Text('再次打卡'),
-                      ),
-                    ),
-                  ],
+                  children: isWishlist
+                      ? [
+                          _BottomAction(
+                            icon: Icons.edit,
+                            label: '编辑',
+                            onTap: onEdit,
+                          ),
+                          _BottomDivider(),
+                          _BottomAction(
+                            icon: Icons.share,
+                            label: '分享',
+                            onTap: onShare == null ? null : () => _shareLongImage(context, shareKey),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF2BCDEE),
+                                foregroundColor: const Color(0xFF102222),
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                                textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
+                              ),
+                              onPressed: onMarkAsTasted == null ? null : () => onMarkAsTasted(),
+                              icon: const Icon(Icons.check_circle_outline, size: 16),
+                              label: const Text('标记为已品尝'),
+                            ),
+                          ),
+                        ]
+                      : [
+                          _BottomAction(
+                            icon: Icons.edit,
+                            label: '编辑',
+                            onTap: onEdit,
+                          ),
+                          _BottomDivider(),
+                          _BottomAction(
+                            icon: isFavorite ? Icons.favorite : Icons.favorite_border,
+                            label: '收藏',
+                            active: isFavorite,
+                            onTap: onToggleFavorite,
+                          ),
+                          _BottomDivider(),
+                          _BottomAction(
+                            icon: Icons.share,
+                            label: '分享',
+                            onTap: onShare == null ? null : () => _shareLongImage(context, shareKey),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF2BCDEE),
+                                foregroundColor: const Color(0xFF102222),
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                                textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
+                              ),
+                              onPressed: onCheckInAgain,
+                              icon: const Icon(Icons.restaurant, size: 16),
+                              label: const Text('再次打卡'),
+                            ),
+                          ),
+                        ],
                 ),
               ),
             ),
@@ -2136,6 +2356,9 @@ class FoodCreatePage extends ConsumerStatefulWidget {
     this.prefillPoiName,
     this.prefillPoiAddress,
     this.prefillPricePerPerson,
+    this.overrideIsWishlist,
+    this.overrideWishlistDone,
+    this.popWithResultOnPublish = false,
   });
 
   final FoodRecord? initialRecord;
@@ -2143,6 +2366,9 @@ class FoodCreatePage extends ConsumerStatefulWidget {
   final String? prefillPoiName;
   final String? prefillPoiAddress;
   final double? prefillPricePerPerson;
+  final bool? overrideIsWishlist;
+  final bool? overrideWishlistDone;
+  final bool popWithResultOnPublish;
 
   @override
   ConsumerState<FoodCreatePage> createState() => _FoodCreatePageState();
@@ -2169,6 +2395,7 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
 
   var _rating = 4;
   var _isWishlist = false;
+  var _wishlistDone = false;
   var _selectedMood = '开心';
 
   var _poiName = '';
@@ -2197,6 +2424,7 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
       }
       _rating = record.rating?.round() ?? _rating;
       _isWishlist = record.isWishlist;
+      _wishlistDone = record.wishlistDone;
       _selectedMood = (record.mood ?? '').trim().isEmpty ? _selectedMood : record.mood!.trim();
       _poiName = (record.poiName ?? '').trim().isEmpty ? _poiName : record.poiName!.trim();
       _poiAddress = (record.city ?? '').trim().isEmpty ? _poiAddress : record.city!.trim();
@@ -2228,6 +2456,13 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
       if (widget.prefillPricePerPerson != null) {
         _priceController.text = widget.prefillPricePerPerson!.toString();
       }
+    }
+
+    if (widget.overrideIsWishlist != null) {
+      _isWishlist = widget.overrideIsWishlist!;
+    }
+    if (widget.overrideWishlistDone != null) {
+      _wishlistDone = widget.overrideWishlistDone!;
     }
   }
 
@@ -3330,6 +3565,7 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
     final link = _linkController.text.trim();
     final price = double.tryParse(_priceController.text.trim());
     final selectedTags = _availableTags.where(_selectedTags.contains).toList();
+    final wishlistDone = _isWishlist ? false : _wishlistDone;
 
     await db.foodDao.upsert(
       FoodRecordsCompanion.insert(
@@ -3349,6 +3585,7 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
         mood: Value(_selectedMood.trim().isEmpty ? null : _selectedMood.trim()),
         isWishlist: Value(_isWishlist),
         isFavorite: Value(isFavorite),
+        wishlistDone: Value(wishlistDone),
         recordDate: recordDate,
         createdAt: createdAt,
         updatedAt: now,
@@ -3397,7 +3634,11 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
     }
 
     if (!mounted) return;
-    Navigator.of(context).pop();
+    if (widget.popWithResultOnPublish) {
+      Navigator.of(context).pop(true);
+    } else {
+      Navigator.of(context).pop();
+    }
   }
 
   List<String> _decodeStringList(String? raw) {
