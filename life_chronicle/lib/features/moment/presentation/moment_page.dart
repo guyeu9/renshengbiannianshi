@@ -1105,7 +1105,12 @@ class _BottomMenuButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: onTap,
+      onTap: onTap == null
+          ? null
+          : () {
+              FocusManager.instance.primaryFocus?.unfocus();
+              onTap!();
+            },
       borderRadius: BorderRadius.circular(12),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -2006,18 +2011,10 @@ Widget _buildLocalImage(String path, {BoxFit fit = BoxFit.cover}) {
     return const SizedBox.shrink();
   }
   final isNetwork = trimmed.startsWith('http://') || trimmed.startsWith('https://');
-  if (isNetwork) {
-    return Image.network(trimmed, fit: fit);
+  if (isNetwork || kIsWeb) {
+    return Image.network(trimmed, fit: fit, gaplessPlayback: true);
   }
-  return FutureBuilder<Uint8List>(
-    future: XFile(trimmed).readAsBytes(),
-    builder: (context, snapshot) {
-      if (snapshot.hasData) {
-        return Image.memory(snapshot.data!, fit: fit);
-      }
-      return Container(color: const Color(0xFFF1F5F9));
-    },
-  );
+  return Image.file(File(trimmed), fit: fit, gaplessPlayback: true);
 }
 
 class _InfoRow extends StatelessWidget {
@@ -2412,7 +2409,10 @@ class _FilterOptionChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       borderRadius: BorderRadius.circular(999),
-      onTap: onTap,
+      onTap: () {
+        FocusManager.instance.primaryFocus?.unfocus();
+        onTap();
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(

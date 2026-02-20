@@ -126,6 +126,7 @@ class _GlassHeaderState extends State<_GlassHeader> {
               InkWell(
                 borderRadius: BorderRadius.circular(999),
                 onTap: () async {
+                  FocusManager.instance.primaryFocus?.unfocus();
                   await Navigator.of(context, rootNavigator: true).push(
                     MaterialPageRoute(builder: (_) => const ProfilePage()),
                   );
@@ -281,7 +282,10 @@ class _HeaderIconButton extends StatelessWidget {
     return Stack(
       children: [
         IconButton(
-          onPressed: onTap,
+          onPressed: () {
+            FocusManager.instance.primaryFocus?.unfocus();
+            onTap();
+          },
           icon: Icon(icon, color: const Color(0xFF4B5563)),
           splashRadius: 22,
         ),
@@ -847,7 +851,10 @@ class _CalendarCell extends StatelessWidget {
     }
     return InkWell(
       borderRadius: BorderRadius.circular(14),
-      onTap: onTap,
+      onTap: () {
+        FocusManager.instance.primaryFocus?.unfocus();
+        onTap!();
+      },
       child: content,
     );
   }
@@ -863,7 +870,10 @@ class _CalendarIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       borderRadius: BorderRadius.circular(999),
-      onTap: onTap,
+      onTap: () {
+        FocusManager.instance.primaryFocus?.unfocus();
+        onTap();
+      },
       child: Container(
         width: 32,
         height: 32,
@@ -994,7 +1004,10 @@ class _SelectChip extends StatelessWidget {
     final fg = selected ? Colors.white : AppTheme.textMain;
     return InkWell(
       borderRadius: BorderRadius.circular(999),
-      onTap: onTap,
+      onTap: () {
+        FocusManager.instance.primaryFocus?.unfocus();
+        onTap();
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),

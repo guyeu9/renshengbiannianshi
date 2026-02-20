@@ -1,6 +1,7 @@
 import 'dart:convert';
-import 'dart:typed_data';
+import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -3186,18 +3187,10 @@ Widget _buildLocalImage(String path, {BoxFit fit = BoxFit.cover}) {
     return const SizedBox.shrink();
   }
   final isNetwork = trimmed.startsWith('http://') || trimmed.startsWith('https://');
-  if (isNetwork) {
-    return Image.network(trimmed, fit: fit);
+  if (isNetwork || kIsWeb) {
+    return Image.network(trimmed, fit: fit, gaplessPlayback: true);
   }
-  return FutureBuilder<Uint8List>(
-    future: XFile(trimmed).readAsBytes(),
-    builder: (context, snapshot) {
-      if (snapshot.hasData) {
-        return Image.memory(snapshot.data!, fit: fit);
-      }
-      return Container(color: const Color(0xFFF1F5F9));
-    },
-  );
+  return Image.file(File(trimmed), fit: fit, gaplessPlayback: true);
 }
 
 String _initialLetter(String name) {

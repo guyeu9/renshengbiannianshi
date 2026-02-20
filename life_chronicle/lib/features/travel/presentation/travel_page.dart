@@ -1,7 +1,8 @@
 import 'dart:convert';
-import 'dart:typed_data';
+import 'dart:io';
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -2119,7 +2120,10 @@ class _FrostedCircleIconButton extends StatelessWidget {
         child: Material(
           color: Colors.white.withValues(alpha: 0.12),
           child: InkWell(
-            onTap: onTap,
+            onTap: () {
+              FocusManager.instance.primaryFocus?.unfocus();
+              onTap();
+            },
             child: SizedBox(
               width: 40,
               height: 40,
@@ -2923,18 +2927,10 @@ Widget _buildLocalImage(String path, {BoxFit fit = BoxFit.cover}) {
     return const SizedBox.shrink();
   }
   final isNetwork = trimmed.startsWith('http://') || trimmed.startsWith('https://');
-  if (isNetwork) {
-    return Image.network(trimmed, fit: fit);
+  if (isNetwork || kIsWeb) {
+    return Image.network(trimmed, fit: fit, gaplessPlayback: true);
   }
-  return FutureBuilder<Uint8List>(
-    future: XFile(trimmed).readAsBytes(),
-    builder: (context, snapshot) {
-      if (snapshot.hasData) {
-        return Image.memory(snapshot.data!, fit: fit);
-      }
-      return Container(color: const Color(0xFFF1F5F9));
-    },
-  );
+  return Image.file(File(trimmed), fit: fit, gaplessPlayback: true);
 }
 
 Future<List<String>> _persistPickedImages(List<XFile> files, String folder) async {
@@ -3216,7 +3212,10 @@ class _FilterOptionChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       borderRadius: BorderRadius.circular(999),
-      onTap: onTap,
+      onTap: () {
+        FocusManager.instance.primaryFocus?.unfocus();
+        onTap();
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(

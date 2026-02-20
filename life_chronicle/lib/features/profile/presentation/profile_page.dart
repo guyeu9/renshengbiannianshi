@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -727,7 +726,10 @@ class _LargeTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: onTap,
+        onTap: () {
+          FocusManager.instance.primaryFocus?.unfocus();
+          onTap();
+        },
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFF3F4F6))),
@@ -787,7 +789,10 @@ class _SmallTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: onTap,
+        onTap: () {
+          FocusManager.instance.primaryFocus?.unfocus();
+          onTap();
+        },
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFF3F4F6))),
@@ -855,7 +860,10 @@ class _ListRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: item.onTap,
+      onTap: () {
+        FocusManager.instance.primaryFocus?.unfocus();
+        item.onTap();
+      },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         child: Row(
@@ -882,7 +890,10 @@ class _FrostedCircleButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: onTap,
+      onTap: () {
+        FocusManager.instance.primaryFocus?.unfocus();
+        onTap();
+      },
       borderRadius: BorderRadius.circular(999),
       child: Container(
         width: 40,
@@ -1432,7 +1443,10 @@ class _FavoriteSummaryChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: InkWell(
-        onTap: onTap,
+        onTap: () {
+          FocusManager.instance.primaryFocus?.unfocus();
+          onTap?.call();
+        },
         borderRadius: BorderRadius.circular(14),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -1466,7 +1480,10 @@ class _CategoryChip extends StatelessWidget {
     final background = selected ? const Color(0xFF8AB4F8) : const Color(0xFFF1F5F9);
     final textColor = selected ? Colors.white : const Color(0xFF64748B);
     return InkWell(
-      onTap: onTap,
+      onTap: () {
+        FocusManager.instance.primaryFocus?.unfocus();
+        onTap();
+      },
       borderRadius: BorderRadius.circular(999),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -1505,7 +1522,10 @@ class _FavoriteItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: onTap,
+      onTap: () {
+        FocusManager.instance.primaryFocus?.unfocus();
+        onTap?.call();
+      },
       borderRadius: BorderRadius.circular(18),
       child: Container(
         padding: const EdgeInsets.all(12),
@@ -1544,7 +1564,10 @@ class _FavoriteItemCard extends StatelessWidget {
             const SizedBox(width: 8),
             if (selectable)
               InkWell(
-                onTap: onSelect,
+                onTap: () {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                  onSelect?.call();
+                },
                 borderRadius: BorderRadius.circular(8),
                 child: Container(
                   width: 22,
@@ -2227,16 +2250,8 @@ Widget _buildLocalImage(String path, {BoxFit fit = BoxFit.cover}) {
     return const SizedBox.shrink();
   }
   final isNetwork = trimmed.startsWith('http://') || trimmed.startsWith('https://');
-  if (isNetwork) {
-    return Image.network(trimmed, fit: fit);
+  if (isNetwork || kIsWeb) {
+    return Image.network(trimmed, fit: fit, gaplessPlayback: true);
   }
-  return FutureBuilder<Uint8List>(
-    future: XFile(trimmed).readAsBytes(),
-    builder: (context, snapshot) {
-      if (snapshot.hasData) {
-        return Image.memory(snapshot.data!, fit: fit);
-      }
-      return Container(color: const Color(0xFFF1F5F9));
-    },
-  );
+  return Image.file(File(trimmed), fit: fit, gaplessPlayback: true);
 }

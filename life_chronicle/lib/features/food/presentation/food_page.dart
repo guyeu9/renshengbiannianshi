@@ -352,7 +352,10 @@ class _SegmentedPill extends StatelessWidget {
               Expanded(
                 child: InkWell(
                   borderRadius: BorderRadius.circular(999),
-                  onTap: () => onChanged(0),
+                  onTap: () {
+                    FocusManager.instance.primaryFocus?.unfocus();
+                    onChanged(0);
+                  },
                   child: Center(
                     child: Text(
                       '美食记录',
@@ -368,7 +371,10 @@ class _SegmentedPill extends StatelessWidget {
               Expanded(
                 child: InkWell(
                   borderRadius: BorderRadius.circular(999),
-                  onTap: () => onChanged(1),
+                  onTap: () {
+                    FocusManager.instance.primaryFocus?.unfocus();
+                    onChanged(1);
+                  },
                   child: Center(
                     child: Text(
                       '心愿清单',
@@ -407,7 +413,10 @@ class _FilterChip extends StatelessWidget {
       borderRadius: BorderRadius.circular(999),
       child: InkWell(
         borderRadius: BorderRadius.circular(999),
-        onTap: onTap,
+        onTap: () {
+          FocusManager.instance.primaryFocus?.unfocus();
+          onTap();
+        },
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
@@ -1874,7 +1883,12 @@ class FoodDetailPage extends ConsumerWidget {
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
                                 textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
                               ),
-                              onPressed: onMarkAsTasted == null ? null : () => onMarkAsTasted(),
+                              onPressed: onMarkAsTasted == null
+                                  ? null
+                                  : () {
+                                      FocusManager.instance.primaryFocus?.unfocus();
+                                      onMarkAsTasted();
+                                    },
                               icon: const Icon(Icons.check_circle_outline, size: 16),
                               label: const Text('标记为已品尝'),
                             ),
@@ -1910,7 +1924,12 @@ class FoodDetailPage extends ConsumerWidget {
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
                                 textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
                               ),
-                              onPressed: onCheckInAgain,
+                              onPressed: onCheckInAgain == null
+                                  ? null
+                                  : () {
+                                      FocusManager.instance.primaryFocus?.unfocus();
+                                      onCheckInAgain();
+                                    },
                               icon: const Icon(Icons.restaurant, size: 16),
                               label: const Text('再次打卡'),
                             ),
@@ -2266,7 +2285,12 @@ class _BottomAction extends StatelessWidget {
     final color = active ? const Color(0xFF2BCDEE) : const Color(0xFF6B7280);
     return InkWell(
       borderRadius: BorderRadius.circular(12),
-      onTap: onTap,
+      onTap: onTap == null
+          ? null
+          : () {
+              FocusManager.instance.primaryFocus?.unfocus();
+              onTap!();
+            },
       child: SizedBox(
         width: 56,
         child: Column(
@@ -4246,6 +4270,7 @@ class _CityFilterSheetState extends State<_CityFilterSheet> {
                         return InkWell(
                           borderRadius: BorderRadius.circular(16),
                           onTap: () {
+                            FocusManager.instance.primaryFocus?.unfocus();
                             setState(() {
                               if (checked) {
                                 _selected.remove(city);
@@ -4293,7 +4318,10 @@ class _FilterOptionChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       borderRadius: BorderRadius.circular(999),
-      onTap: onTap,
+      onTap: () {
+        FocusManager.instance.primaryFocus?.unfocus();
+        onTap();
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
@@ -4323,7 +4351,10 @@ class _FilterFriendTile extends StatelessWidget {
     final letter = trimmed.isEmpty ? '?' : trimmed.characters.first;
     return InkWell(
       borderRadius: BorderRadius.circular(16),
-      onTap: onTap,
+      onTap: () {
+        FocusManager.instance.primaryFocus?.unfocus();
+        onTap();
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
@@ -4381,18 +4412,10 @@ Widget _buildLocalImage(String path, {BoxFit fit = BoxFit.cover}) {
     return const SizedBox.shrink();
   }
   final isNetwork = trimmed.startsWith('http://') || trimmed.startsWith('https://');
-  if (isNetwork) {
-    return Image.network(trimmed, fit: fit);
+  if (isNetwork || kIsWeb) {
+    return Image.network(trimmed, fit: fit, gaplessPlayback: true);
   }
-  return FutureBuilder<Uint8List>(
-    future: XFile(trimmed).readAsBytes(),
-    builder: (context, snapshot) {
-      if (snapshot.hasData) {
-        return Image.memory(snapshot.data!, fit: fit);
-      }
-      return Container(color: const Color(0xFFF1F5F9));
-    },
-  );
+  return Image.file(File(trimmed), fit: fit, gaplessPlayback: true);
 }
 
 class _SmallAvatar extends StatelessWidget {
