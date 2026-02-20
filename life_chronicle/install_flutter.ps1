@@ -1,6 +1,8 @@
-$url = "https://storage.googleapis.com/flutter_infra_release/releases/stable/windows/flutter_windows_3.27.1-stable.zip"
-$toolchainDir = "D:\trae\人生编年国际\life_chronicle\_toolchain"
-$zipFile = "$toolchainDir\flutter.zip"
+$url = "https://storage.flutter-io.cn/flutter_infra_release/releases/stable/windows/flutter_windows_3.27.1-stable.zip"
+$currentDir = Get-Location
+$toolchainDir = Join-Path $currentDir "_toolchain"
+$zipFile = Join-Path $toolchainDir "flutter.zip"
+$flutterDir = Join-Path $toolchainDir "flutter"
 
 # Create toolchain directory if it doesn't exist
 if (!(Test-Path $toolchainDir)) {
@@ -9,15 +11,16 @@ if (!(Test-Path $toolchainDir)) {
 }
 
 # Check if flutter directory already exists
-if (Test-Path "$toolchainDir\flutter\bin\flutter.bat") {
-    Write-Host "Flutter SDK seems to be already installed at $toolchainDir\flutter"
+if (Test-Path (Join-Path $flutterDir "bin\flutter.bat")) {
+    Write-Host "Flutter SDK seems to be already installed at $flutterDir"
     exit 0
 }
 
-# Download Flutter SDK
+# Download Flutter SDK using BITS
 Write-Host "Downloading Flutter SDK from $url..."
 try {
-    Invoke-WebRequest -Uri $url -OutFile $zipFile -UseBasicParsing
+    Import-Module BitsTransfer
+    Start-BitsTransfer -Source $url -Destination $zipFile -Priority Foreground
     Write-Host "Download complete."
 } catch {
     Write-Error "Failed to download Flutter SDK: $_"

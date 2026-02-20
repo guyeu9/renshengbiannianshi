@@ -45,4 +45,5 @@ flutter {
 
 dependencies {
     implementation("com.amap.api:3dmap:latest.integration")
+    implementation("com.amap.api:location:latest.integration")
 }
