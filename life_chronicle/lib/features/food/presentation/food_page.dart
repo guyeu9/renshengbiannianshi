@@ -28,12 +28,47 @@ class _FoodPageState extends State<FoodPage> {
   var _modeIndex = 0;
   var _filterDateIndex = 0;
   DateTimeRange? _filterCustomRange;
+  Set<int> _filterRatings = {};
+  Set<String> _filterCities = {};
   Set<String> _filterFriendIds = {};
+  var _filterSolo = false;
   final _searchController = TextEditingController();
   var _searchQuery = '';
 
-  Future<void> _openFilterSheet() async {
-    final result = await showModalBottomSheet<_FilterResult>(
+  Future<void> _openDateFilter() async {
+    final result = await showModalBottomSheet<_DateFilterResult>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return _DateFilterSheet(
+          initialDateIndex: _filterDateIndex,
+          initialCustomRange: _filterCustomRange,
+        );
+      },
+    );
+    if (result == null) return;
+    setState(() {
+      _filterDateIndex = result.dateIndex;
+      _filterCustomRange = result.customRange;
+    });
+  }
+
+  Future<void> _openRatingFilter() async {
+    final result = await showModalBottomSheet<Set<int>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return _RatingFilterSheet(initialRatings: _filterRatings);
+      },
+    );
+    if (result == null) return;
+    setState(() => _filterRatings = result);
+  }
+
+  Future<void> _openCityFilter() async {
+    final result = await showModalBottomSheet<Set<String>>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -41,10 +76,30 @@ class _FoodPageState extends State<FoodPage> {
         return Consumer(
           builder: (context, ref, _) {
             final db = ref.read(appDatabaseProvider);
-            return _FilterBottomSheet(
-              initialDateIndex: _filterDateIndex,
-              initialCustomRange: _filterCustomRange,
+            return _CityFilterSheet(
+              initialCities: _filterCities,
+              recordsStream: db.foodDao.watchAllActive(),
+            );
+          },
+        );
+      },
+    );
+    if (result == null) return;
+    setState(() => _filterCities = result);
+  }
+
+  Future<void> _openCompanionFilter() async {
+    final result = await showModalBottomSheet<_CompanionFilterResult>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Consumer(
+          builder: (context, ref, _) {
+            final db = ref.read(appDatabaseProvider);
+            return _CompanionFilterSheet(
               initialFriendIds: _filterFriendIds,
+              initialSolo: _filterSolo,
               friendsStream: db.friendDao.watchAllActive(),
             );
           },
@@ -53,9 +108,8 @@ class _FoodPageState extends State<FoodPage> {
     );
     if (result == null) return;
     setState(() {
-      _filterDateIndex = result.dateIndex;
-      _filterCustomRange = result.customRange;
       _filterFriendIds = result.friendIds;
+      _filterSolo = result.solo;
     });
   }
 
@@ -76,7 +130,14 @@ class _FoodPageState extends State<FoodPage> {
             _FoodHeader(
               modeIndex: _modeIndex,
               onModeChanged: (next) => setState(() => _modeIndex = next),
-              onFilterTap: _openFilterSheet,
+              onDateFilterTap: _openDateFilter,
+              onRatingFilterTap: _openRatingFilter,
+              onCityFilterTap: _openCityFilter,
+              onCompanionFilterTap: _openCompanionFilter,
+              isDateFilterActive: _filterDateIndex != 0,
+              isRatingFilterActive: _filterRatings.isNotEmpty,
+              isCityFilterActive: _filterCities.isNotEmpty,
+              isCompanionFilterActive: _filterSolo || _filterFriendIds.isNotEmpty,
               searchController: _searchController,
               onSearchChanged: (v) => setState(() => _searchQuery = v),
             ),
@@ -89,14 +150,20 @@ class _FoodPageState extends State<FoodPage> {
                         searchQuery: _searchQuery,
                         filterDateIndex: _filterDateIndex,
                         filterCustomRange: _filterCustomRange,
+                        filterRatings: _filterRatings,
+                        filterCities: _filterCities,
                         filterFriendIds: _filterFriendIds,
+                        filterSolo: _filterSolo,
                       )
                     : _FoodWishlistBody(
                         key: const ValueKey('food_wishlist'),
                         searchQuery: _searchQuery,
                         filterDateIndex: _filterDateIndex,
                         filterCustomRange: _filterCustomRange,
+                        filterRatings: _filterRatings,
+                        filterCities: _filterCities,
                         filterFriendIds: _filterFriendIds,
+                        filterSolo: _filterSolo,
                       ),
               ),
             ),
@@ -111,14 +178,28 @@ class _FoodHeader extends StatelessWidget {
   const _FoodHeader({
     required this.modeIndex,
     required this.onModeChanged,
-    required this.onFilterTap,
+    required this.onDateFilterTap,
+    required this.onRatingFilterTap,
+    required this.onCityFilterTap,
+    required this.onCompanionFilterTap,
+    required this.isDateFilterActive,
+    required this.isRatingFilterActive,
+    required this.isCityFilterActive,
+    required this.isCompanionFilterActive,
     required this.searchController,
     required this.onSearchChanged,
   });
 
   final int modeIndex;
   final ValueChanged<int> onModeChanged;
-  final VoidCallback onFilterTap;
+  final VoidCallback onDateFilterTap;
+  final VoidCallback onRatingFilterTap;
+  final VoidCallback onCityFilterTap;
+  final VoidCallback onCompanionFilterTap;
+  final bool isDateFilterActive;
+  final bool isRatingFilterActive;
+  final bool isCityFilterActive;
+  final bool isCompanionFilterActive;
   final TextEditingController searchController;
   final ValueChanged<String> onSearchChanged;
 
@@ -179,7 +260,7 @@ class _FoodHeader extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              _HeaderCircle(icon: Icons.tune, onTap: onFilterTap),
+              _HeaderCircle(icon: Icons.tune, onTap: onDateFilterTap),
             ],
           ),
           const SizedBox(height: 12),
@@ -189,13 +270,13 @@ class _FoodHeader extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _FilterChip(label: '日期范围', icon: Icons.calendar_month, onTap: onFilterTap),
+                _FilterChip(label: '日期范围', icon: Icons.calendar_month, selected: isDateFilterActive, onTap: onDateFilterTap),
                 const SizedBox(width: 10),
-                _FilterChip(label: '评分', icon: Icons.star, onTap: onFilterTap),
+                _FilterChip(label: '评分', icon: Icons.star, selected: isRatingFilterActive, onTap: onRatingFilterTap),
                 const SizedBox(width: 10),
-                _FilterChip(label: '位置', icon: Icons.location_on, onTap: onFilterTap),
+                _FilterChip(label: '位置', icon: Icons.location_on, selected: isCityFilterActive, onTap: onCityFilterTap),
                 const SizedBox(width: 10),
-                _FilterChip(label: '同伴', icon: Icons.group, onTap: onFilterTap),
+                _FilterChip(label: '同伴', icon: Icons.group, selected: isCompanionFilterActive, onTap: onCompanionFilterTap),
               ],
             ),
           ),
@@ -308,16 +389,20 @@ class _SegmentedPill extends StatelessWidget {
 }
 
 class _FilterChip extends StatelessWidget {
-  const _FilterChip({required this.label, required this.icon, required this.onTap});
+  const _FilterChip({required this.label, required this.icon, required this.selected, required this.onTap});
 
   final String label;
   final IconData icon;
+  final bool selected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final bg = selected ? const Color(0xFF2BCDEE).withValues(alpha: 0.12) : Colors.white;
+    final border = selected ? const Color(0xFF2BCDEE).withValues(alpha: 0.35) : const Color(0xFFF3F4F6);
+    final fg = selected ? const Color(0xFF2BCDEE) : const Color(0xFF6B7280);
     return Material(
-      color: Colors.white,
+      color: bg,
       borderRadius: BorderRadius.circular(999),
       child: InkWell(
         borderRadius: BorderRadius.circular(999),
@@ -326,14 +411,14 @@ class _FilterChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: const Color(0xFFF3F4F6)),
+            border: Border.all(color: border),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF6B7280))),
+              Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: fg)),
               const SizedBox(width: 8),
-              Icon(icon, size: 16, color: const Color(0xFF6B7280)),
+              Icon(icon, size: 16, color: fg),
             ],
           ),
         ),
@@ -348,13 +433,19 @@ class _FoodRecordBody extends ConsumerWidget {
     required this.searchQuery,
     required this.filterDateIndex,
     required this.filterCustomRange,
+    required this.filterRatings,
+    required this.filterCities,
     required this.filterFriendIds,
+    required this.filterSolo,
   });
 
   final String searchQuery;
   final int filterDateIndex;
   final DateTimeRange? filterCustomRange;
+  final Set<int> filterRatings;
+  final Set<String> filterCities;
   final Set<String> filterFriendIds;
+  final bool filterSolo;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -365,27 +456,54 @@ class _FoodRecordBody extends ConsumerWidget {
       stream: stream,
       builder: (context, snapshot) {
         final all = snapshot.data ?? const <FoodRecord>[];
-        final records = all.where((e) => e.isWishlist == false).toList(growable: false);
-        if (filterFriendIds.isEmpty) {
-          final filtered = _applySearch(records, searchQuery);
+        final base = all.where((e) => e.isWishlist == false).toList(growable: false);
+        final byRatingAndCity = _applyRatingAndCity(base);
+
+        if (filterFriendIds.isEmpty && !filterSolo) {
+          final filtered = _applySearch(byRatingAndCity, searchQuery);
           return _FoodRecordListView(records: filtered);
         }
 
-        final friendIds = filterFriendIds.toList(growable: false);
-        final linksStream = (db.select(db.entityLinks)
+        final selectedFriendIds = filterFriendIds.toList(growable: false);
+        final friendLinksStream = selectedFriendIds.isEmpty
+            ? const Stream<List<EntityLink>>.empty()
+            : (db.select(db.entityLinks)
+                  ..where((t) => t.sourceType.equals('food'))
+                  ..where((t) => t.targetType.equals('friend'))
+                  ..where((t) => t.targetId.isIn(selectedFriendIds)))
+                .watch();
+
+        final anyFriendLinksStream = (db.select(db.entityLinks)
               ..where((t) => t.sourceType.equals('food'))
-              ..where((t) => t.targetType.equals('friend'))
-              ..where((t) => t.targetId.isIn(friendIds)))
+              ..where((t) => t.targetType.equals('friend')))
             .watch();
 
         return StreamBuilder<List<EntityLink>>(
-          stream: linksStream,
-          builder: (context, linkSnapshot) {
-            final links = linkSnapshot.data ?? const <EntityLink>[];
-            final allowed = <String>{for (final l in links) l.sourceId};
-            final byFriend = records.where((e) => allowed.contains(e.id)).toList(growable: false);
-            final filtered = _applySearch(byFriend, searchQuery);
-            return _FoodRecordListView(records: filtered);
+          stream: friendLinksStream,
+          builder: (context, friendLinkSnapshot) {
+            final friendLinks = friendLinkSnapshot.data ?? const <EntityLink>[];
+            final bySelectedFriends = <String>{for (final l in friendLinks) l.sourceId};
+            if (!filterSolo) {
+              final byFriend = byRatingAndCity.where((e) => bySelectedFriends.contains(e.id)).toList(growable: false);
+              final filtered = _applySearch(byFriend, searchQuery);
+              return _FoodRecordListView(records: filtered);
+            }
+
+            return StreamBuilder<List<EntityLink>>(
+              stream: anyFriendLinksStream,
+              builder: (context, anyLinkSnapshot) {
+                final anyLinks = anyLinkSnapshot.data ?? const <EntityLink>[];
+                final hasAnyFriend = <String>{for (final l in anyLinks) l.sourceId};
+                final byCompanion = byRatingAndCity.where((e) {
+                  final isSolo = !hasAnyFriend.contains(e.id);
+                  if (isSolo) return true;
+                  if (selectedFriendIds.isEmpty) return false;
+                  return bySelectedFriends.contains(e.id);
+                }).toList(growable: false);
+                final filtered = _applySearch(byCompanion, searchQuery);
+                return _FoodRecordListView(records: filtered);
+              },
+            );
           },
         );
       },
@@ -435,6 +553,24 @@ class _FoodRecordBody extends ConsumerWidget {
       if (decoded is List) return decoded.whereType<String>().toList(growable: false);
     } catch (_) {}
     return const [];
+  }
+
+  List<FoodRecord> _applyRatingAndCity(List<FoodRecord> input) {
+    var out = input;
+    if (filterRatings.isNotEmpty) {
+      out = out.where((r) {
+        final v = r.rating;
+        if (v == null) return false;
+        return filterRatings.contains(v.round().clamp(1, 5));
+      }).toList(growable: false);
+    }
+    if (filterCities.isNotEmpty) {
+      out = out.where((r) {
+        final city = _resolveFoodCity(r);
+        return city.isNotEmpty && filterCities.contains(city);
+      }).toList(growable: false);
+    }
+    return out;
   }
 }
 
@@ -641,13 +777,19 @@ class _FoodWishlistBody extends ConsumerWidget {
     required this.searchQuery,
     required this.filterDateIndex,
     required this.filterCustomRange,
+    required this.filterRatings,
+    required this.filterCities,
     required this.filterFriendIds,
+    required this.filterSolo,
   });
 
   final String searchQuery;
   final int filterDateIndex;
   final DateTimeRange? filterCustomRange;
+  final Set<int> filterRatings;
+  final Set<String> filterCities;
   final Set<String> filterFriendIds;
+  final bool filterSolo;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -658,27 +800,54 @@ class _FoodWishlistBody extends ConsumerWidget {
       stream: stream,
       builder: (context, snapshot) {
         final all = snapshot.data ?? const <FoodRecord>[];
-        final records = all.where((e) => e.isWishlist == true).toList(growable: false);
-        if (filterFriendIds.isEmpty) {
-          final filtered = _applySearch(records, searchQuery);
+        final base = all.where((e) => e.isWishlist == true).toList(growable: false);
+        final byRatingAndCity = _applyRatingAndCity(base);
+
+        if (filterFriendIds.isEmpty && !filterSolo) {
+          final filtered = _applySearch(byRatingAndCity, searchQuery);
           return _FoodWishlistListView(records: filtered);
         }
 
-        final friendIds = filterFriendIds.toList(growable: false);
-        final linksStream = (db.select(db.entityLinks)
+        final selectedFriendIds = filterFriendIds.toList(growable: false);
+        final friendLinksStream = selectedFriendIds.isEmpty
+            ? const Stream<List<EntityLink>>.empty()
+            : (db.select(db.entityLinks)
+                  ..where((t) => t.sourceType.equals('food'))
+                  ..where((t) => t.targetType.equals('friend'))
+                  ..where((t) => t.targetId.isIn(selectedFriendIds)))
+                .watch();
+
+        final anyFriendLinksStream = (db.select(db.entityLinks)
               ..where((t) => t.sourceType.equals('food'))
-              ..where((t) => t.targetType.equals('friend'))
-              ..where((t) => t.targetId.isIn(friendIds)))
+              ..where((t) => t.targetType.equals('friend')))
             .watch();
 
         return StreamBuilder<List<EntityLink>>(
-          stream: linksStream,
-          builder: (context, linkSnapshot) {
-            final links = linkSnapshot.data ?? const <EntityLink>[];
-            final allowed = <String>{for (final l in links) l.sourceId};
-            final byFriend = records.where((e) => allowed.contains(e.id)).toList(growable: false);
-            final filtered = _applySearch(byFriend, searchQuery);
-            return _FoodWishlistListView(records: filtered);
+          stream: friendLinksStream,
+          builder: (context, friendLinkSnapshot) {
+            final friendLinks = friendLinkSnapshot.data ?? const <EntityLink>[];
+            final bySelectedFriends = <String>{for (final l in friendLinks) l.sourceId};
+            if (!filterSolo) {
+              final byFriend = byRatingAndCity.where((e) => bySelectedFriends.contains(e.id)).toList(growable: false);
+              final filtered = _applySearch(byFriend, searchQuery);
+              return _FoodWishlistListView(records: filtered);
+            }
+
+            return StreamBuilder<List<EntityLink>>(
+              stream: anyFriendLinksStream,
+              builder: (context, anyLinkSnapshot) {
+                final anyLinks = anyLinkSnapshot.data ?? const <EntityLink>[];
+                final hasAnyFriend = <String>{for (final l in anyLinks) l.sourceId};
+                final byCompanion = byRatingAndCity.where((e) {
+                  final isSolo = !hasAnyFriend.contains(e.id);
+                  if (isSolo) return true;
+                  if (selectedFriendIds.isEmpty) return false;
+                  return bySelectedFriends.contains(e.id);
+                }).toList(growable: false);
+                final filtered = _applySearch(byCompanion, searchQuery);
+                return _FoodWishlistListView(records: filtered);
+              },
+            );
           },
         );
       },
@@ -728,6 +897,24 @@ class _FoodWishlistBody extends ConsumerWidget {
       if (decoded is List) return decoded.whereType<String>().toList(growable: false);
     } catch (_) {}
     return const [];
+  }
+
+  List<FoodRecord> _applyRatingAndCity(List<FoodRecord> input) {
+    var out = input;
+    if (filterRatings.isNotEmpty) {
+      out = out.where((r) {
+        final v = r.rating;
+        if (v == null) return false;
+        return filterRatings.contains(v.round().clamp(1, 5));
+      }).toList(growable: false);
+    }
+    if (filterCities.isNotEmpty) {
+      out = out.where((r) {
+        final city = _resolveFoodCity(r);
+        return city.isNotEmpty && filterCities.contains(city);
+      }).toList(growable: false);
+    }
+    return out;
   }
 }
 
@@ -3363,48 +3550,40 @@ class _BottomSheetShell extends StatelessWidget {
   }
 }
 
-class _FilterResult {
-  const _FilterResult({
+class _DateFilterResult {
+  const _DateFilterResult({
     required this.dateIndex,
     required this.customRange,
-    required this.friendIds,
   });
 
   final int dateIndex;
   final DateTimeRange? customRange;
-  final Set<String> friendIds;
 }
 
-class _FilterBottomSheet extends StatefulWidget {
-  const _FilterBottomSheet({
+class _DateFilterSheet extends StatefulWidget {
+  const _DateFilterSheet({
     required this.initialDateIndex,
     required this.initialCustomRange,
-    required this.initialFriendIds,
-    required this.friendsStream,
   });
 
   final int initialDateIndex;
   final DateTimeRange? initialCustomRange;
-  final Set<String> initialFriendIds;
-  final Stream<List<FriendRecord>> friendsStream;
 
   @override
-  State<_FilterBottomSheet> createState() => _FilterBottomSheetState();
+  State<_DateFilterSheet> createState() => _DateFilterSheetState();
 }
 
-class _FilterBottomSheetState extends State<_FilterBottomSheet> {
+class _DateFilterSheetState extends State<_DateFilterSheet> {
   static const _dateOptions = ['不限', '今日', '近7天', '近30天', '自定义'];
 
   late int _dateIndex;
   DateTimeRange? _customRange;
-  late Set<String> _selectedFriendIds;
 
   @override
   void initState() {
     super.initState();
     _dateIndex = widget.initialDateIndex;
     _customRange = widget.initialCustomRange;
-    _selectedFriendIds = {...widget.initialFriendIds};
   }
 
   String _formatDate(DateTime date) {
@@ -3449,17 +3628,9 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
                       style: TextButton.styleFrom(foregroundColor: const Color(0xFF6B7280), textStyle: const TextStyle(fontWeight: FontWeight.w800)),
                       child: const Text('取消'),
                     ),
-                    const Expanded(
-                      child: Text('筛选', textAlign: TextAlign.center, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                    ),
+                    const Expanded(child: Text('日期范围', textAlign: TextAlign.center, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF111827)))),
                     TextButton(
-                      onPressed: () => Navigator.of(context).pop(
-                        _FilterResult(
-                          dateIndex: _dateIndex,
-                          customRange: _customRange,
-                          friendIds: _selectedFriendIds,
-                        ),
-                      ),
+                      onPressed: () => Navigator.of(context).pop(_DateFilterResult(dateIndex: _dateIndex, customRange: _customRange)),
                       style: TextButton.styleFrom(foregroundColor: const Color(0xFF2BCDEE), textStyle: const TextStyle(fontWeight: FontWeight.w900)),
                       child: const Text('完成'),
                     ),
@@ -3473,8 +3644,6 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('日期', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                      const SizedBox(height: 10),
                       Wrap(
                         spacing: 10,
                         runSpacing: 10,
@@ -3518,9 +3687,96 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
                             ),
                           ),
                         ),
-                      const SizedBox(height: 16),
-                      const Text('羁绊', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                      const SizedBox(height: 10),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CompanionFilterResult {
+  const _CompanionFilterResult({
+    required this.friendIds,
+    required this.solo,
+  });
+
+  final Set<String> friendIds;
+  final bool solo;
+}
+
+class _CompanionFilterSheet extends StatefulWidget {
+  const _CompanionFilterSheet({
+    required this.initialFriendIds,
+    required this.initialSolo,
+    required this.friendsStream,
+  });
+
+  final Set<String> initialFriendIds;
+  final bool initialSolo;
+  final Stream<List<FriendRecord>> friendsStream;
+
+  @override
+  State<_CompanionFilterSheet> createState() => _CompanionFilterSheetState();
+}
+
+class _CompanionFilterSheetState extends State<_CompanionFilterSheet> {
+  late Set<String> _selectedFriendIds;
+  late bool _solo;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedFriendIds = {...widget.initialFriendIds};
+    _solo = widget.initialSolo;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+      child: Material(
+        color: Colors.white,
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+                child: Row(
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: TextButton.styleFrom(foregroundColor: const Color(0xFF6B7280), textStyle: const TextStyle(fontWeight: FontWeight.w800)),
+                      child: const Text('取消'),
+                    ),
+                    const Expanded(child: Text('同伴', textAlign: TextAlign.center, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF111827)))),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(_CompanionFilterResult(friendIds: _selectedFriendIds, solo: _solo)),
+                      style: TextButton.styleFrom(foregroundColor: const Color(0xFF2BCDEE), textStyle: const TextStyle(fontWeight: FontWeight.w900)),
+                      child: const Text('完成'),
+                    ),
+                  ],
+                ),
+              ),
+              ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.75),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _FilterFriendTile(
+                        name: '独享',
+                        checked: _solo,
+                        onTap: () => setState(() => _solo = !_solo),
+                      ),
+                      const SizedBox(height: 12),
                       StreamBuilder<List<FriendRecord>>(
                         stream: widget.friendsStream,
                         builder: (context, snapshot) {
@@ -3558,6 +3814,223 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
                       ),
                     ],
                   ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RatingFilterSheet extends StatefulWidget {
+  const _RatingFilterSheet({required this.initialRatings});
+
+  final Set<int> initialRatings;
+
+  @override
+  State<_RatingFilterSheet> createState() => _RatingFilterSheetState();
+}
+
+class _RatingFilterSheetState extends State<_RatingFilterSheet> {
+  late Set<int> _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = {...widget.initialRatings};
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+      child: Material(
+        color: Colors.white,
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+                child: Row(
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: TextButton.styleFrom(foregroundColor: const Color(0xFF6B7280), textStyle: const TextStyle(fontWeight: FontWeight.w800)),
+                      child: const Text('取消'),
+                    ),
+                    const Expanded(child: Text('评分', textAlign: TextAlign.center, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF111827)))),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(_selected),
+                      style: TextButton.styleFrom(foregroundColor: const Color(0xFF2BCDEE), textStyle: const TextStyle(fontWeight: FontWeight.w900)),
+                      child: const Text('完成'),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
+                child: Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    for (var i = 1; i <= 5; i++)
+                      InkWell(
+                        borderRadius: BorderRadius.circular(999),
+                        onTap: () {
+                          setState(() {
+                            if (_selected.contains(i)) {
+                              _selected.remove(i);
+                            } else {
+                              _selected.add(i);
+                            }
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: _selected.contains(i) ? const Color(0xFF2BCDEE).withValues(alpha: 0.12) : const Color(0xFFF3F4F6),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                              color: _selected.contains(i) ? const Color(0xFF2BCDEE).withValues(alpha: 0.3) : const Color(0xFFF3F4F6),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.star, size: 16, color: Color(0xFFFB923C)),
+                              const SizedBox(width: 6),
+                              Text(
+                                '$i 星',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                  color: _selected.contains(i) ? const Color(0xFF2BCDEE) : const Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CityFilterSheet extends StatefulWidget {
+  const _CityFilterSheet({
+    required this.initialCities,
+    required this.recordsStream,
+  });
+
+  final Set<String> initialCities;
+  final Stream<List<FoodRecord>> recordsStream;
+
+  @override
+  State<_CityFilterSheet> createState() => _CityFilterSheetState();
+}
+
+class _CityFilterSheetState extends State<_CityFilterSheet> {
+  late Set<String> _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = {...widget.initialCities};
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+      child: Material(
+        color: Colors.white,
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+                child: Row(
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: TextButton.styleFrom(foregroundColor: const Color(0xFF6B7280), textStyle: const TextStyle(fontWeight: FontWeight.w800)),
+                      child: const Text('取消'),
+                    ),
+                    const Expanded(child: Text('城市', textAlign: TextAlign.center, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF111827)))),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(_selected),
+                      style: TextButton.styleFrom(foregroundColor: const Color(0xFF2BCDEE), textStyle: const TextStyle(fontWeight: FontWeight.w900)),
+                      child: const Text('完成'),
+                    ),
+                  ],
+                ),
+              ),
+              ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.75),
+                child: StreamBuilder<List<FoodRecord>>(
+                  stream: widget.recordsStream,
+                  builder: (context, snapshot) {
+                    final items = snapshot.data ?? const <FoodRecord>[];
+                    final cities = <String>{};
+                    for (final r in items) {
+                      final city = _resolveFoodCity(r);
+                      if (city.isNotEmpty) cities.add(city);
+                    }
+                    final list = cities.toList(growable: false)..sort();
+                    if (list.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 18),
+                        child: Center(child: Text('暂无已落库城市', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF)))),
+                      );
+                    }
+                    return ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
+                      itemCount: list.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final city = list[index];
+                        final checked = _selected.contains(city);
+                        return InkWell(
+                          borderRadius: BorderRadius.circular(16),
+                          onTap: () {
+                            setState(() {
+                              if (checked) {
+                                _selected.remove(city);
+                              } else {
+                                _selected.add(city);
+                              }
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: checked ? const Color(0xFF2BCDEE).withValues(alpha: 0.08) : const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: checked ? const Color(0xFF2BCDEE).withValues(alpha: 0.22) : const Color(0xFFF1F5F9)),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(child: Text(city, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF111827)))),
+                                Icon(checked ? Icons.check_circle : Icons.radio_button_unchecked, color: checked ? const Color(0xFF2BCDEE) : const Color(0xFFCBD5E1)),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
                 ),
               ),
             ],
@@ -3632,6 +4105,33 @@ class _FilterFriendTile extends StatelessWidget {
       ),
     );
   }
+}
+
+String _resolveFoodCity(FoodRecord record) {
+  final poiAddress = (record.poiAddress ?? '').trim();
+  final cityRaw = (record.city ?? '').trim();
+  if (poiAddress.isEmpty && cityRaw.isEmpty) return '';
+
+  final fromPoi = _extractCityToken(poiAddress);
+  if (fromPoi.isNotEmpty) return fromPoi;
+
+  final fromCity = _extractCityToken(cityRaw);
+  if (fromCity.isNotEmpty) return fromCity;
+
+  return '未知';
+}
+
+String _extractCityToken(String input) {
+  final s = input.trim();
+  if (s.isEmpty) return '';
+  final m1 = RegExp(r'([\u4e00-\u9fa5]{2,10}市)').firstMatch(s);
+  if (m1 != null) return m1.group(1) ?? '';
+  final m2 = RegExp(r'([\u4e00-\u9fa5]{2,10}州)').firstMatch(s);
+  if (m2 != null) return m2.group(1) ?? '';
+  final m3 = RegExp(r'([\u4e00-\u9fa5]{2,10}地区)').firstMatch(s);
+  if (m3 != null) return m3.group(1) ?? '';
+  final first = s.split(RegExp(r'[\s,，/]+')).first.trim();
+  return first.length > 12 ? '' : first;
 }
 
 Widget _buildLocalImage(String path, {BoxFit fit = BoxFit.cover}) {
