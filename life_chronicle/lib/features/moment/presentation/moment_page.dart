@@ -1,9 +1,14 @@
 import 'dart:convert';
+import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:drift/drift.dart' show OrderingMode, OrderingTerm, Value;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/database/app_database.dart';
@@ -444,34 +449,75 @@ class _MomentCard extends StatelessWidget {
   }
 }
 
-class MomentDetailPage extends ConsumerWidget {
+class MomentDetailPage extends ConsumerStatefulWidget {
   const MomentDetailPage({super.key, this.item, this.recordId});
 
   final MomentCardData? item;
   final String? recordId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MomentDetailPage> createState() => _MomentDetailPageState();
+}
+
+class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
+  final GlobalKey _shareKey = GlobalKey();
+
+  Future<void> _shareLongImage() async {
+    try {
+      final boundary = _shareKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) return;
+
+      // 稍微延迟以确保渲染完成
+      await Future.delayed(const Duration(milliseconds: 20));
+
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) return;
+
+      final pngBytes = byteData.buffer.asUint8List();
+      final tempDir = await getTemporaryDirectory();
+      final file = await File('${tempDir.path}/moment_share_${DateTime.now().millisecondsSinceEpoch}.png').create();
+      await file.writeAsBytes(pngBytes);
+
+      final xFile = XFile(file.path);
+      await Share.shareXFiles([xFile], text: '分享我的小确幸');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('分享失败: $e')));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final db = ref.watch(appDatabaseProvider);
+    final recordId = widget.recordId;
+
     if (recordId == null) {
       return _buildScaffold(
         context,
-        imageUrl: item?.imageUrl ?? '',
-        moodName: item?.moodName ?? '心情',
-        moodColor: item?.moodColor ?? const Color(0xFFF3F4F6),
-        moodAccent: item?.moodAccent ?? const Color(0xFF475569),
-        title: item?.title ?? '小确幸',
-        content: item?.content ?? '',
+        imageUrl: widget.item?.imageUrl ?? '',
+        moodName: widget.item?.moodName ?? '心情',
+        moodColor: widget.item?.moodColor ?? const Color(0xFFF3F4F6),
+        moodAccent: widget.item?.moodAccent ?? const Color(0xFF475569),
+        title: widget.item?.title ?? '小确幸',
+        content: widget.item?.content ?? '',
         linkChips: const [],
         onEdit: null,
         poiName: '',
         poiAddress: '',
         latitude: null,
         longitude: null,
+        recordDate: DateTime.now(),
+        images: [],
+        isFavorite: false,
+        onToggleFavorite: null,
+        onDelete: null,
       );
     }
+
     return StreamBuilder<MomentRecord?>(
-      stream: db.momentDao.watchById(recordId!),
+      stream: db.momentDao.watchById(recordId),
       builder: (context, snapshot) {
         final record = snapshot.data;
         if (record == null) {
@@ -489,6 +535,11 @@ class MomentDetailPage extends ConsumerWidget {
             poiAddress: '',
             latitude: null,
             longitude: null,
+            recordDate: DateTime.now(),
+            images: [],
+            isFavorite: false,
+            onToggleFavorite: null,
+            onDelete: null,
           );
         }
         final images = _parseImages(record.images);
@@ -501,6 +552,7 @@ class MomentDetailPage extends ConsumerWidget {
         final poiAddress = (record.poiAddress ?? '').trim();
         final latitude = record.latitude;
         final longitude = record.longitude;
+
         return StreamBuilder<List<EntityLink>>(
           stream: db.linkDao.watchLinksForEntity(entityType: 'moment', entityId: record.id),
           builder: (context, linkSnapshot) {
@@ -564,6 +616,34 @@ class MomentDetailPage extends ConsumerWidget {
                               poiAddress: poiAddress,
                               latitude: latitude,
                               longitude: longitude,
+                              recordDate: record.recordDate,
+                              images: images,
+                              isFavorite: record.isFavorite,
+                              onToggleFavorite: () async {
+                                await db.momentDao.updateFavorite(
+                                  record.id,
+                                  isFavorite: !record.isFavorite,
+                                  now: DateTime.now(),
+                                );
+                              },
+                              onDelete: () async {
+                                final now = DateTime.now();
+                                final linkDao = LinkDao(db);
+                                final links = await linkDao.listLinksForEntity(entityType: 'moment', entityId: record.id);
+                                for (final link in links) {
+                                  await linkDao.deleteLink(
+                                    sourceType: link.sourceType,
+                                    sourceId: link.sourceId,
+                                    targetType: link.targetType,
+                                    targetId: link.targetId,
+                                    linkType: link.linkType,
+                                    now: now,
+                                  );
+                                }
+                                await db.momentDao.deleteById(record.id);
+                                if (!context.mounted) return;
+                                Navigator.of(context).pop();
+                              },
                             );
                           },
                         );
@@ -593,100 +673,355 @@ class MomentDetailPage extends ConsumerWidget {
     required String poiAddress,
     required double? latitude,
     required double? longitude,
+    required DateTime recordDate,
+    required List<String> images,
+    required bool isFavorite,
+    required VoidCallback? onToggleFavorite,
+    required VoidCallback? onDelete,
   }) {
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8F8),
       appBar: AppBar(
         backgroundColor: Colors.white.withValues(alpha: 0.8),
-        title: const Text('小确幸详情', style: TextStyle(fontWeight: FontWeight.w900)),
+        title: const SizedBox.shrink(), // 顶部标题留空
         actions: [
-          if (onEdit != null) IconButton(onPressed: onEdit, icon: const Icon(Icons.edit)),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.share)),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.more_horiz)),
+          IconButton(
+            onPressed: onDelete == null
+                ? null
+                : () {
+                    showModalBottomSheet<void>(
+                      context: context,
+                      backgroundColor: Colors.transparent,
+                      builder: (sheetContext) {
+                        return _BottomSheetShell(
+                          title: '更多操作',
+                          actionText: '完成',
+                          onAction: () => Navigator.of(sheetContext).pop(),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ListTile(
+                                leading: const Icon(Icons.delete, color: Color(0xFFEF4444)),
+                                title: const Text('删除此条小确幸', style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF111827))),
+                                subtitle: const Text('删除后将不可恢复，并同步删除万物互联关系', style: TextStyle(fontSize: 12, color: Color(0xFF9CA3AF))),
+                                onTap: () async {
+                                  Navigator.of(sheetContext).pop();
+                                  final confirmed = await showDialog<bool>(
+                                    context: context,
+                                    builder: (dialogContext) {
+                                      return AlertDialog(
+                                        title: const Text('确认删除'),
+                                        content: const Text('确定要删除这条小确幸记录吗？'),
+                                        actions: [
+                                          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('取消')),
+                                          TextButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('删除')),
+                                        ],
+                                      );
+                                    },
+                                  );
+                                  if (confirmed != true) return;
+                                  onDelete();
+                                },
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+            icon: const Icon(Icons.more_horiz),
+          ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: AspectRatio(
-              aspectRatio: 4 / 3,
-              child: imageUrl.isEmpty
-                  ? Container(color: const Color(0xFFF3F4F6))
-                  : _buildLocalImage(imageUrl, fit: BoxFit.cover),
-            ),
-          ),
-          const SizedBox(height: 14),
-          Row(
+      body: RepaintBoundary(
+        key: _shareKey,
+        child: Container(
+          color: const Color(0xFFF6F8F8), // 确保分享时有背景色
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
             children: [
+              // 1. 标题
+              Text(title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+              const SizedBox(height: 12),
+
+              // 2. 描述内容
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(color: moodColor, borderRadius: BorderRadius.circular(999)),
-                child: Text(moodName, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: moodAccent)),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: const Color(0xFFF3F4F6)),
+                ),
+                child: Text(
+                  content.isEmpty ? '暂无内容' : content,
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: Color(0xFF475569), height: 1.6),
+                ),
               ),
-              const Spacer(),
-              const Icon(Icons.favorite, color: Color(0xFFF43F5E)),
+              const SizedBox(height: 14),
+
+              // 3. 标签
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(color: moodColor, borderRadius: BorderRadius.circular(999)),
+                    child: Text(moodName, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: moodAccent)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+
+              // 4. 地理位置
+              if (poiName.trim().isNotEmpty || poiAddress.trim().isNotEmpty) ...[
+                _InfoRow(
+                  iconBackground: const Color(0xFFFFEDD5),
+                  icon: Icons.location_on,
+                  iconColor: const Color(0xFFFB923C),
+                  label: '地理位置',
+                  value: poiName.trim().isNotEmpty ? poiName.trim() : poiAddress.trim(),
+                  trailingIcon: Icons.chevron_right,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => AmapLocationPage.preview(
+                          title: title,
+                          poiName: poiName.trim(),
+                          address: poiAddress.trim(),
+                          latitude: latitude,
+                          longitude: longitude,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 14),
+              ],
+
+              // 5. 发布时间
+              Row(
+                children: [
+                  const Icon(Icons.access_time, size: 16, color: Color(0xFF9CA3AF)),
+                  const SizedBox(width: 6),
+                  Text(
+                    _formatDateTime(recordDate),
+                    style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280), fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+
+              // 6. 图片展示（动态调整）
+              if (images.isNotEmpty) ...[
+                _buildImageGrid(context, images),
+                const SizedBox(height: 14),
+              ],
+
+              // 7. 万物互联
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: const Color(0xFFF3F4F6)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('万物互联', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                    const SizedBox(height: 10),
+                    if (linkChips.isEmpty)
+                      const Text('暂无关联内容', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)))
+                    else
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [for (final label in linkChips) _LinkChip(label: label)],
+                      ),
+                  ],
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFF3F4F6))),
-            child: Text(
-              content.isEmpty ? '暂无内容' : content,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF475569), height: 1.5),
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _BottomMenuButton(
+                icon: Icons.edit,
+                label: '编辑',
+                onTap: onEdit,
+              ),
+              _BottomMenuButton(
+                icon: isFavorite ? Icons.favorite : Icons.favorite_border,
+                label: '收藏',
+                iconColor: isFavorite ? const Color(0xFFF43F5E) : null,
+                onTap: onToggleFavorite,
+              ),
+              _BottomMenuButton(
+                icon: Icons.share,
+                label: '分享',
+                onTap: _shareLongImage,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImageGrid(BuildContext context, List<String> images) {
+    if (images.isEmpty) return const SizedBox.shrink();
+
+    if (images.length == 1) {
+      return GestureDetector(
+        onTap: () => _showImageDialog(context, images[0]),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: AspectRatio(
+            aspectRatio: 16 / 9,
+            child: _buildLocalImage(images[0], fit: BoxFit.cover),
+          ),
+        ),
+      );
+    }
+
+    if (images.length == 2) {
+      return Row(
+        children: images.map((img) {
+          return Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(right: images.indexOf(img) == 0 ? 8 : 0),
+              child: GestureDetector(
+                onTap: () => _showImageDialog(context, img),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: _buildLocalImage(img, fit: BoxFit.cover),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      );
+    }
+
+    if (images.length == 3) {
+      return Row(
+        children: [
+          Expanded(
+            flex: 2,
+            child: GestureDetector(
+              onTap: () => _showImageDialog(context, images[0]),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: _buildLocalImage(images[0], fit: BoxFit.cover),
+                ),
+              ),
             ),
           ),
-          if (poiName.trim().isNotEmpty || poiAddress.trim().isNotEmpty) ...[
-            const SizedBox(height: 14),
-            _InfoRow(
-              iconBackground: const Color(0xFFFFEDD5),
-              icon: Icons.location_on,
-              iconColor: const Color(0xFFFB923C),
-              label: '地理位置',
-              value: poiName.trim().isNotEmpty ? poiName.trim() : poiAddress.trim(),
-              trailingIcon: Icons.chevron_right,
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => AmapLocationPage.preview(
-                      title: title,
-                      poiName: poiName.trim(),
-                      address: poiAddress.trim(),
-                      latitude: latitude,
-                      longitude: longitude,
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 1,
+            child: Column(
+              children: [
+                GestureDetector(
+                  onTap: () => _showImageDialog(context, images[1]),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: AspectRatio(
+                      aspectRatio: 1,
+                      child: _buildLocalImage(images[1], fit: BoxFit.cover),
                     ),
                   ),
-                );
-              },
-            ),
-          ],
-          const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFF3F4F6))),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('万物互联', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                const SizedBox(height: 10),
-                if (linkChips.isEmpty)
-                  const Text('暂无关联内容', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)))
-                else
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [for (final label in linkChips) _LinkChip(label: label)],
+                ),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: () => _showImageDialog(context, images[2]),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: AspectRatio(
+                      aspectRatio: 1,
+                      child: _buildLocalImage(images[2], fit: BoxFit.cover),
+                    ),
                   ),
+                ),
               ],
             ),
           ),
         ],
+      );
+    }
+
+    // 4张及以上，九宫格布局
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
+        childAspectRatio: 1,
+      ),
+      itemCount: images.length,
+      itemBuilder: (context, index) {
+        return GestureDetector(
+          onTap: () => _showImageDialog(context, images[index]),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: _buildLocalImage(images[index], fit: BoxFit.cover),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showImageDialog(BuildContext context, String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: EdgeInsets.zero,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            InteractiveViewer(
+              child: _buildLocalImage(imageUrl, fit: BoxFit.contain),
+            ),
+            Positioned(
+              top: 40,
+              right: 20,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  String _formatDateTime(DateTime dt) {
+    return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 
   List<String> _parseImages(String? raw) {
@@ -751,6 +1086,46 @@ class MomentDetailPage extends ConsumerWidget {
     if (title.isNotEmpty) return title;
     final destination = record.destination?.trim() ?? '';
     return destination.isEmpty ? '旅行记录' : destination;
+  }
+}
+
+class _BottomMenuButton extends StatelessWidget {
+  const _BottomMenuButton({
+    required this.icon,
+    required this.label,
+    this.iconColor,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color? iconColor;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: iconColor ?? const Color(0xFF6B7280), size: 24),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: iconColor ?? const Color(0xFF6B7280),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
@@ -1107,7 +1107,99 @@ class _FriendMemorySliver extends ConsumerStatefulWidget {
 class _FriendMemorySliverState extends ConsumerState<_FriendMemorySliver> {
   var _filterIndex = 0;
 
-  List<_FriendMemoryItem> _parseEvents(List<TimelineEvent> events) {
+  Map<String, List<String>> _groupLinkIds(List<EntityLink> links, String selfType, String selfId) {
+    final result = <String, List<String>>{};
+    for (final link in links) {
+      final isSource = link.sourceType == selfType && link.sourceId == selfId;
+      final otherType = isSource ? link.targetType : link.sourceType;
+      final otherId = isSource ? link.targetId : link.sourceId;
+      (result[otherType] ??= <String>[]).add(otherId);
+    }
+    return result;
+  }
+
+  Stream<List<MomentRecord>> _watchMomentsByIds(AppDatabase db, List<String> ids) {
+    if (ids.isEmpty) return Stream.value(const <MomentRecord>[]);
+    return (db.select(db.momentRecords)
+          ..where((t) => t.isDeleted.equals(false))
+          ..where((t) => t.id.isIn(ids)))
+        .watch();
+  }
+
+  Stream<List<FoodRecord>> _watchFoodsByIds(AppDatabase db, List<String> ids) {
+    if (ids.isEmpty) return Stream.value(const <FoodRecord>[]);
+    return (db.select(db.foodRecords)
+          ..where((t) => t.isDeleted.equals(false))
+          ..where((t) => t.id.isIn(ids)))
+        .watch();
+  }
+
+  Stream<List<TravelRecord>> _watchTravelsByIds(AppDatabase db, List<String> ids) {
+    if (ids.isEmpty) return Stream.value(const <TravelRecord>[]);
+    return (db.select(db.travelRecords)
+          ..where((t) => t.isDeleted.equals(false))
+          ..where((t) => t.id.isIn(ids)))
+        .watch();
+  }
+
+  Stream<List<TimelineEvent>> _watchEncountersByIds(AppDatabase db, List<String> ids) {
+    if (ids.isEmpty) return Stream.value(const <TimelineEvent>[]);
+    return (db.select(db.timelineEvents)
+          ..where((t) => t.isDeleted.equals(false))
+          ..where((t) => t.eventType.equals('encounter'))
+          ..where((t) => t.id.isIn(ids))
+          ..orderBy([(t) => OrderingTerm.desc(t.recordDate)]))
+        .watch();
+  }
+
+  List<String> _decodeStringList(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return const <String>[];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is List) {
+        return decoded.map((e) => e.toString()).where((e) => e.trim().isNotEmpty).toList(growable: false);
+      }
+    } catch (_) {}
+    return const <String>[];
+  }
+
+  String _formatDateCN(DateTime date) {
+    return '${date.year}年 ${date.month}月 ${date.day}日';
+  }
+
+  String _momentTitleFromContent(String? raw) {
+    final content = (raw ?? '').trim();
+    if (content.isEmpty) return '小确幸';
+    final lines = content.split('\n').map((e) => e.trim()).where((e) => e.isNotEmpty).toList(growable: false);
+    return lines.isEmpty ? '小确幸' : lines.first;
+  }
+
+  String _momentBodyFromContent(String? raw) {
+    final content = (raw ?? '').trim();
+    if (content.isEmpty) return '';
+    final lines = content.split('\n');
+    var foundTitle = false;
+    final rest = <String>[];
+    for (final line in lines) {
+      if (!foundTitle) {
+        if (line.trim().isNotEmpty) {
+          foundTitle = true;
+        }
+        continue;
+      }
+      rest.add(line);
+    }
+    return rest.join('\n').trim();
+  }
+
+  String _travelTitle(TravelRecord record) {
+    final title = (record.title ?? '').trim();
+    if (title.isNotEmpty) return title;
+    final destination = (record.destination ?? '').trim();
+    return destination.isNotEmpty ? destination : '旅行记录';
+  }
+
+  List<_FriendMemoryItem> _parseEncounters(List<TimelineEvent> events) {
     return events.map((e) {
       String place = (e.poiName ?? '').trim();
       String address = (e.poiAddress ?? '').trim();
@@ -1135,8 +1227,10 @@ class _FriendMemorySliverState extends ConsumerState<_FriendMemorySliver> {
 
       final placeDisplay = place.isNotEmpty && address.isNotEmpty && !place.contains(address) ? '$place · $address' : (place.isNotEmpty ? place : address);
       return _FriendMemoryItem(
+        recordDate: e.recordDate,
+        typeKey: 'encounter',
         date: '${e.recordDate.year}年 ${e.recordDate.month}月 ${e.recordDate.day}日',
-        typeLabel: '遭遇', // 暂时统一
+        typeLabel: '相遇',
         typeIcon: Icons.diversity_3,
         title: e.title,
         content: content,
@@ -1150,81 +1244,200 @@ class _FriendMemorySliverState extends ConsumerState<_FriendMemorySliver> {
     }).toList();
   }
 
+  List<_FriendMemoryItem> _parseMoments(List<MomentRecord> records) {
+    return records.map((r) {
+      final poiName = (r.poiName ?? '').trim();
+      final poiAddress = (r.poiAddress ?? '').trim();
+      final city = (r.city ?? '').trim();
+      final place = poiName.isNotEmpty ? poiName : (poiAddress.isNotEmpty ? poiAddress : city);
+      final title = _momentTitleFromContent(r.content);
+      final body = _momentBodyFromContent(r.content);
+      return _FriendMemoryItem(
+        recordDate: r.recordDate,
+        typeKey: 'moment',
+        date: _formatDateCN(r.recordDate),
+        typeLabel: '小确幸',
+        typeIcon: Icons.auto_awesome,
+        title: title,
+        content: body,
+        place: place,
+        poiName: poiName,
+        poiAddress: poiAddress,
+        latitude: r.latitude,
+        longitude: r.longitude,
+        images: _decodeStringList(r.images),
+      );
+    }).toList(growable: false);
+  }
+
+  List<_FriendMemoryItem> _parseFoods(List<FoodRecord> records) {
+    return records.map((r) {
+      final poiName = (r.poiName ?? '').trim();
+      final poiAddress = (r.poiAddress ?? r.city ?? '').trim();
+      final place = poiName.isNotEmpty ? poiName : poiAddress;
+      return _FriendMemoryItem(
+        recordDate: r.recordDate,
+        typeKey: 'food',
+        date: _formatDateCN(r.recordDate),
+        typeLabel: '美食',
+        typeIcon: Icons.restaurant,
+        title: r.title,
+        content: (r.content ?? '').trim(),
+        place: place,
+        poiName: poiName,
+        poiAddress: poiAddress,
+        latitude: r.latitude,
+        longitude: r.longitude,
+        images: _decodeStringList(r.images),
+      );
+    }).toList(growable: false);
+  }
+
+  List<_FriendMemoryItem> _parseTravels(List<TravelRecord> records) {
+    return records.map((r) {
+      final poiName = (r.poiName ?? '').trim();
+      final poiAddress = (r.poiAddress ?? r.destination ?? '').trim();
+      final place = poiName.isNotEmpty ? poiName : poiAddress;
+      return _FriendMemoryItem(
+        recordDate: r.recordDate,
+        typeKey: 'travel',
+        date: _formatDateCN(r.recordDate),
+        typeLabel: '旅行',
+        typeIcon: Icons.flight_takeoff,
+        title: _travelTitle(r),
+        content: (r.content ?? '').trim(),
+        place: place,
+        poiName: poiName,
+        poiAddress: poiAddress,
+        latitude: r.latitude,
+        longitude: r.longitude,
+        images: _decodeStringList(r.images),
+      );
+    }).toList(growable: false);
+  }
+
   @override
   Widget build(BuildContext context) {
     final db = ref.watch(appDatabaseProvider);
 
-    return StreamBuilder<List<TimelineEvent>>(
-      stream: db.watchEncountersForFriend(widget.friend.id),
-      builder: (context, snapshot) {
-        final events = snapshot.data ?? [];
-        final items = _parseEvents(events);
+    return StreamBuilder<List<EntityLink>>(
+      stream: db.linkDao.watchLinksForEntity(entityType: 'friend', entityId: widget.friend.id),
+      builder: (context, linkSnapshot) {
+        final links = linkSnapshot.data ?? const <EntityLink>[];
+        final grouped = _groupLinkIds(links, 'friend', widget.friend.id);
+        final momentIds = grouped['moment'] ?? const <String>[];
+        final foodIds = grouped['food'] ?? const <String>[];
+        final travelIds = grouped['travel'] ?? const <String>[];
+        final encounterIds = grouped['encounter'] ?? const <String>[];
 
-        return SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) {
-              if (index == 0) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('共同回忆轴', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                                const SizedBox(height: 4),
-                                Text('共 ${items.length} 个美好瞬间', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF9CA3AF))),
-                              ],
-                            ),
+        return StreamBuilder<List<MomentRecord>>(
+          stream: _watchMomentsByIds(db, momentIds),
+          builder: (context, momentSnapshot) {
+            return StreamBuilder<List<FoodRecord>>(
+              stream: _watchFoodsByIds(db, foodIds),
+              builder: (context, foodSnapshot) {
+                return StreamBuilder<List<TravelRecord>>(
+                  stream: _watchTravelsByIds(db, travelIds),
+                  builder: (context, travelSnapshot) {
+                    return StreamBuilder<List<TimelineEvent>>(
+                      stream: _watchEncountersByIds(db, encounterIds),
+                      builder: (context, encounterSnapshot) {
+                        final moments = momentSnapshot.data ?? const <MomentRecord>[];
+                        final foods = foodSnapshot.data ?? const <FoodRecord>[];
+                        final travels = travelSnapshot.data ?? const <TravelRecord>[];
+                        final encounters = encounterSnapshot.data ?? const <TimelineEvent>[];
+
+                        final items = <_FriendMemoryItem>[
+                          ..._parseEncounters(encounters),
+                          ..._parseMoments(moments),
+                          ..._parseFoods(foods),
+                          ..._parseTravels(travels),
+                        ]..sort((a, b) => b.recordDate.compareTo(a.recordDate));
+
+                        final displayItems = _filterIndex == 0
+                            ? items
+                            : items
+                                .where((e) {
+                                  if (_filterIndex == 1) return e.typeKey == 'food';
+                                  if (_filterIndex == 2) return e.typeKey == 'travel';
+                                  if (_filterIndex == 3) return e.typeKey == 'moment';
+                                  return true;
+                                })
+                                .toList(growable: false);
+
+                        return SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              if (index == 0) {
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  child: Column(
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                const Text('共同回忆轴', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                                                const SizedBox(height: 4),
+                                                Text('共 ${displayItems.length} 个美好瞬间', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+                                              ],
+                                            ),
+                                          ),
+                                          TextButton.icon(
+                                            onPressed: () {},
+                                            icon: const Icon(Icons.filter_list, size: 18),
+                                            label: const Text('筛选'),
+                                            style: TextButton.styleFrom(foregroundColor: const Color(0xFF2BCDEE), textStyle: const TextStyle(fontWeight: FontWeight.w900)),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 12),
+                                      SingleChildScrollView(
+                                        scrollDirection: Axis.horizontal,
+                                        child: Row(
+                                          children: [
+                                            _PillTab(label: '全部', active: _filterIndex == 0, onTap: () => setState(() => _filterIndex = 0)),
+                                            const SizedBox(width: 10),
+                                            _PillTab(label: '🍽️ 美食', active: _filterIndex == 1, onTap: () => setState(() => _filterIndex = 1)),
+                                            const SizedBox(width: 10),
+                                            _PillTab(label: '✈️ 旅行', active: _filterIndex == 2, onTap: () => setState(() => _filterIndex = 2)),
+                                            const SizedBox(width: 10),
+                                            _PillTab(label: '✨ 小确幸', active: _filterIndex == 3, onTap: () => setState(() => _filterIndex = 3)),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 14),
+                                    ],
+                                  ),
+                                );
+                              }
+
+                              if (displayItems.isEmpty) {
+                                return const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 32, horizontal: 16),
+                                  child: Center(child: Text('还没有共同回忆哦，快去记录一次相遇/小确幸/美食/旅行吧！', style: TextStyle(color: Color(0xFF9CA3AF)))),
+                                );
+                              }
+
+                              final itemIndex = index - 1;
+                              final item = displayItems[itemIndex];
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                                child: _TimelineEntry(item: item, isLast: itemIndex == displayItems.length - 1),
+                              );
+                            },
+                            childCount: displayItems.isEmpty ? 2 : displayItems.length + 1,
                           ),
-                          TextButton.icon(
-                            onPressed: () {},
-                            icon: const Icon(Icons.filter_list, size: 18),
-                            label: const Text('筛选'),
-                            style: TextButton.styleFrom(foregroundColor: const Color(0xFF2BCDEE), textStyle: const TextStyle(fontWeight: FontWeight.w900)),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            _PillTab(label: '全部', active: _filterIndex == 0, onTap: () => setState(() => _filterIndex = 0)),
-                            const SizedBox(width: 10),
-                            _PillTab(label: '🍽️ 美食', active: _filterIndex == 1, onTap: () => setState(() => _filterIndex = 1)),
-                            const SizedBox(width: 10),
-                            _PillTab(label: '✈️ 旅行', active: _filterIndex == 2, onTap: () => setState(() => _filterIndex = 2)),
-                            const SizedBox(width: 10),
-                            _PillTab(label: '✨ 小确幸', active: _filterIndex == 3, onTap: () => setState(() => _filterIndex = 3)),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                    ],
-                  ),
+                        );
+                      },
+                    );
+                  },
                 );
-              }
-
-              if (items.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 32, horizontal: 16),
-                  child: Center(child: Text('还没有共同回忆哦，快去记录一次遭遇吧！', style: TextStyle(color: Color(0xFF9CA3AF)))),
-                );
-              }
-
-              final itemIndex = index - 1;
-              final item = items[itemIndex];
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-                child: _TimelineEntry(item: item, isLast: itemIndex == items.length - 1),
-              );
-            },
-            childCount: items.isEmpty ? 2 : items.length + 1,
-          ),
+              },
+            );
+          },
         );
       },
     );
@@ -1265,6 +1478,8 @@ class _PillTab extends StatelessWidget {
 
 class _FriendMemoryItem {
   const _FriendMemoryItem({
+    required this.recordDate,
+    required this.typeKey,
     required this.date,
     required this.typeLabel,
     required this.typeIcon,
@@ -1278,6 +1493,8 @@ class _FriendMemoryItem {
     required this.images,
   });
 
+  final DateTime recordDate;
+  final String typeKey;
   final String date;
   final String typeLabel;
   final IconData typeIcon;

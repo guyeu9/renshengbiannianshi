@@ -8,6 +8,25 @@ class MomentDao extends DatabaseAccessor<AppDatabase> with _$MomentDaoMixin {
     await into(db.momentRecords).insertOnConflictUpdate(entry);
   }
 
+  Future<void> updateFavorite(String id, {required bool isFavorite, required DateTime now}) async {
+    await (update(db.momentRecords)..where((t) => t.id.equals(id))).write(
+      MomentRecordsCompanion(
+        isFavorite: Value(isFavorite),
+        updatedAt: Value(now),
+      ),
+    );
+  }
+
+  Future<void> deleteById(String id) async {
+    await transaction(() async {
+      await (delete(db.timelineEvents)
+            ..where((t) => t.id.equals(id))
+            ..where((t) => t.eventType.equals('moment')))
+          .go();
+      await (delete(db.momentRecords)..where((t) => t.id.equals(id))).go();
+    });
+  }
+
   Future<void> softDeleteById(String id, {required DateTime now}) async {
     await (update(db.momentRecords)..where((t) => t.id.equals(id))).write(
       MomentRecordsCompanion(
