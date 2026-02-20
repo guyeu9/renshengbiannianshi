@@ -8,6 +8,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:drift/native.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -59,6 +60,56 @@ void main() {
     expect(find.text('旅行'), findsWidgets);
     expect(find.text('目标'), findsWidgets);
     expect(find.text('羁绊'), findsWidgets);
+  });
+
+  test('Database upgrade recreates required tables', () async {
+    final dir = await Directory.systemTemp.createTemp('life_chronicle_db_test_');
+    final file = File('${dir.path}/life_chronicle_test.sqlite');
+
+    final now = DateTime(2026, 2, 20, 12);
+
+    final db1 = AppDatabase.connect(NativeDatabase(file));
+    await db1.customStatement('DROP TABLE timeline_events');
+    await db1.customStatement('DROP TABLE entity_links');
+    await db1.customStatement('DROP TABLE link_logs');
+    await db1.customStatement('PRAGMA user_version = 3');
+    await db1.close();
+
+    final db2 = AppDatabase.connect(NativeDatabase(file));
+    await db2.into(db2.timelineEvents).insert(
+          TimelineEventsCompanion.insert(
+            id: 'e1',
+            title: 't',
+            eventType: 'moment',
+            recordDate: now,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+    await db2.into(db2.entityLinks).insert(
+          EntityLinksCompanion.insert(
+            id: 'l1',
+            sourceType: 'moment',
+            sourceId: 'e1',
+            targetType: 'friend',
+            targetId: 'f1',
+            createdAt: now,
+          ),
+        );
+    await db2.into(db2.linkLogs).insert(
+          LinkLogsCompanion.insert(
+            id: 'log1',
+            sourceType: 'moment',
+            sourceId: 'e1',
+            targetType: 'friend',
+            targetId: 'f1',
+            action: 'create',
+            createdAt: now,
+          ),
+        );
+    await db2.close();
+
+    await dir.delete(recursive: true);
   });
 }
 

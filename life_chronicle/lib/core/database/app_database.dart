@@ -3,7 +3,6 @@ import 'package:uuid/uuid.dart';
 
 import 'db_connection_io.dart' if (dart.library.html) 'db_connection_web.dart' as dbconn;
 import 'tables.dart';
-import 'migration_steps.dart';
 
 part 'app_database.g.dart';
 part 'daos/food_dao.dart';
@@ -31,53 +30,79 @@ class AppDatabase extends _$AppDatabase {
           await customStatement('PRAGMA foreign_keys = ON');
         },
         onUpgrade: (m, from, to) async {
-          final steps = <int, MigrationStep>{
-            2: (m) async {
-              await m.createTable(foodRecords);
-              await m.createTable(momentRecords);
-              await m.createTable(friendRecords);
-            },
-            3: (m) async {
-              await m.createTable(travelRecords);
-              await m.createTable(trips);
-            },
-            4: (m) async {
-              await m.addColumn(foodRecords, foodRecords.isFavorite);
-              await m.addColumn(momentRecords, momentRecords.isFavorite);
-              await m.addColumn(friendRecords, friendRecords.isFavorite);
-              await m.addColumn(travelRecords, travelRecords.isFavorite);
-            },
-            5: (m) async {
-              await m.addColumn(foodRecords, foodRecords.poiName);
-              await m.addColumn(foodRecords, foodRecords.poiAddress);
-              await m.addColumn(momentRecords, momentRecords.poiName);
-              await m.addColumn(momentRecords, momentRecords.poiAddress);
-              await m.addColumn(momentRecords, momentRecords.latitude);
-              await m.addColumn(momentRecords, momentRecords.longitude);
-              await m.addColumn(travelRecords, travelRecords.poiName);
-              await m.addColumn(travelRecords, travelRecords.poiAddress);
-              await m.addColumn(travelRecords, travelRecords.latitude);
-              await m.addColumn(travelRecords, travelRecords.longitude);
-              await m.addColumn(timelineEvents, timelineEvents.poiName);
-              await m.addColumn(timelineEvents, timelineEvents.poiAddress);
-              await m.addColumn(timelineEvents, timelineEvents.latitude);
-              await m.addColumn(timelineEvents, timelineEvents.longitude);
+          Future<bool> tableExists(String name) async {
+            final rows = await customSelect(
+              "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
+              variables: [Variable.withString(name)],
+            ).get();
+            return rows.isNotEmpty;
+          }
 
-              await customStatement(
-                'UPDATE food_records SET poi_address = city WHERE poi_address IS NULL AND city IS NOT NULL',
-              );
-              await customStatement(
-                'UPDATE food_records SET poi_name = city WHERE poi_name IS NULL AND city IS NOT NULL',
-              );
-              await customStatement(
-                'UPDATE moment_records SET poi_name = city WHERE poi_name IS NULL AND city IS NOT NULL',
-              );
-              await customStatement(
-                'UPDATE travel_records SET poi_name = destination WHERE poi_name IS NULL AND destination IS NOT NULL',
-              );
-            },
-          };
-          await runMigrationSteps(m, from, to, steps: steps);
+          Future<bool> columnExists(String table, String column) async {
+            final rows = await customSelect('PRAGMA table_info("$table")').get();
+            return rows.any((r) => r.data['name'] == column);
+          }
+
+          Future<void> ensureTable(TableInfo<Table, dynamic> table) async {
+            final name = table.actualTableName;
+            if (!await tableExists(name)) {
+              await m.createTable(table);
+            }
+          }
+
+          Future<void> ensureColumn({
+            required TableInfo<Table, dynamic> table,
+            required GeneratedColumn column,
+          }) async {
+            if (!await columnExists(table.actualTableName, column.name)) {
+              await m.addColumn(table, column);
+            }
+          }
+
+          await ensureTable(foodRecords);
+          await ensureTable(momentRecords);
+          await ensureTable(friendRecords);
+          await ensureTable(travelRecords);
+          await ensureTable(trips);
+          await ensureTable(timelineEvents);
+          await ensureTable(entityLinks);
+          await ensureTable(linkLogs);
+
+          await ensureColumn(table: foodRecords, column: foodRecords.isFavorite);
+          await ensureColumn(table: momentRecords, column: momentRecords.isFavorite);
+          await ensureColumn(table: friendRecords, column: friendRecords.isFavorite);
+          await ensureColumn(table: travelRecords, column: travelRecords.isFavorite);
+
+          await ensureColumn(table: foodRecords, column: foodRecords.poiName);
+          await ensureColumn(table: foodRecords, column: foodRecords.poiAddress);
+
+          await ensureColumn(table: momentRecords, column: momentRecords.poiName);
+          await ensureColumn(table: momentRecords, column: momentRecords.poiAddress);
+          await ensureColumn(table: momentRecords, column: momentRecords.latitude);
+          await ensureColumn(table: momentRecords, column: momentRecords.longitude);
+
+          await ensureColumn(table: travelRecords, column: travelRecords.poiName);
+          await ensureColumn(table: travelRecords, column: travelRecords.poiAddress);
+          await ensureColumn(table: travelRecords, column: travelRecords.latitude);
+          await ensureColumn(table: travelRecords, column: travelRecords.longitude);
+
+          await ensureColumn(table: timelineEvents, column: timelineEvents.poiName);
+          await ensureColumn(table: timelineEvents, column: timelineEvents.poiAddress);
+          await ensureColumn(table: timelineEvents, column: timelineEvents.latitude);
+          await ensureColumn(table: timelineEvents, column: timelineEvents.longitude);
+
+          if (await columnExists('food_records', 'poi_address') && await columnExists('food_records', 'city')) {
+            await customStatement('UPDATE food_records SET poi_address = city WHERE poi_address IS NULL AND city IS NOT NULL');
+          }
+          if (await columnExists('food_records', 'poi_name') && await columnExists('food_records', 'city')) {
+            await customStatement('UPDATE food_records SET poi_name = city WHERE poi_name IS NULL AND city IS NOT NULL');
+          }
+          if (await columnExists('moment_records', 'poi_name') && await columnExists('moment_records', 'city')) {
+            await customStatement('UPDATE moment_records SET poi_name = city WHERE poi_name IS NULL AND city IS NOT NULL');
+          }
+          if (await columnExists('travel_records', 'poi_name') && await columnExists('travel_records', 'destination')) {
+            await customStatement('UPDATE travel_records SET poi_name = destination WHERE poi_name IS NULL AND destination IS NOT NULL');
+          }
         },
       );
 
