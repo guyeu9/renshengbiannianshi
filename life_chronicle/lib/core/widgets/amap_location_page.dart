@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:amap_flutter/amap_flutter.dart' as amap;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class AmapLocationPickResult {
@@ -104,6 +105,8 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
   amap.AMapController? _mapController;
   var _sdkReady = false;
   var _sdkErrorText = '';
+  int? _androidSdkInt;
+  var _disableNativeMap = false;
 
   bool get _hasMapKey {
     if (kIsWeb) return _amapWebKey.trim().isNotEmpty;
@@ -135,8 +138,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
       _pickedLongitude = widget.initialLongitude;
       _searchController.text = widget.initialPoiName.trim().isNotEmpty ? widget.initialPoiName.trim() : widget.initialAddress.trim();
     }
-
-    _initAmapSdk();
+    Future.microtask(_bootstrap);
   }
 
   @override
@@ -147,7 +149,25 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
     super.dispose();
   }
 
+  Future<void> _bootstrap() async {
+    if (!kIsWeb && Platform.isAndroid) {
+      final sdk = await _DeviceInfo.getAndroidSdkInt();
+      if (!mounted) return;
+      _androidSdkInt = sdk;
+      if (sdk != null && sdk >= 35) {
+        setState(() {
+          _disableNativeMap = true;
+          _sdkReady = false;
+          _sdkErrorText = '';
+        });
+        return;
+      }
+    }
+    await _initAmapSdk();
+  }
+
   Future<void> _initAmapSdk() async {
+    if (_disableNativeMap) return;
     if (!_hasMapKey) return;
     try {
       await amap.AMapFlutter.init(
@@ -414,6 +434,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
 
     final mapTargetLat = _pickedLatitude ?? 39.908722;
     final mapTargetLng = _pickedLongitude ?? 116.397499;
+    final canUseNativeMap = !_disableNativeMap && _hasMapKey;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8F8),
@@ -443,9 +464,15 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
             child: Container(
               height: 220,
               color: Colors.white,
-              child: !_hasMapKey
-                  ? const Center(
-                      child: Text('未配置高德 Key', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
+              child: !canUseNativeMap
+                  ? Center(
+                      child: Text(
+                        _disableNativeMap
+                            ? '当前系统版本（Android ${_androidSdkInt ?? '-'}）暂不支持内嵌地图预览，可使用外部导航'
+                            : '未配置高德 Key',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF64748B), height: 1.4),
+                      ),
                     )
                   : (_sdkErrorText.isNotEmpty
                       ? Center(
@@ -640,6 +667,21 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
   }
 }
 
+class _DeviceInfo {
+  static const MethodChannel _channel = MethodChannel('life_chronicle/device');
+
+  static Future<int?> getAndroidSdkInt() async {
+    if (!Platform.isAndroid) return null;
+    try {
+      final v = await _channel.invokeMethod<dynamic>('getAndroidSdkInt');
+      if (v is int) return v;
+      return int.tryParse('$v');
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
 class _BottomSheetShell extends StatelessWidget {
   const _BottomSheetShell({
     required this.title,
@@ -691,4 +733,3 @@ class _BottomSheetShell extends StatelessWidget {
     );
   }
 }
-
