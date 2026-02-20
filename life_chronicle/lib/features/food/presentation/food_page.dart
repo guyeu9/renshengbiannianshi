@@ -229,6 +229,27 @@ class _FoodHeader extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
+          Consumer(
+            builder: (context, ref, _) {
+              final db = ref.watch(appDatabaseProvider);
+              return StreamBuilder<List<FoodRecord>>(
+                stream: db.foodDao.watchAllActive(),
+                builder: (context, snapshot) {
+                  final records = snapshot.data ?? const <FoodRecord>[];
+                  final tasted = records.where((e) => e.isWishlist == false).toList(growable: false);
+                  final cities = <String>{};
+                  for (final r in tasted) {
+                    final city = _resolveFoodCity(r);
+                    if (city.isNotEmpty && city != '未知') {
+                      cities.add(city);
+                    }
+                  }
+                  return _FoodStatsCard(recordCount: tasted.length, cityCount: cities.length);
+                },
+              );
+            },
+          ),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
@@ -306,6 +327,80 @@ class _HeaderCircle extends StatelessWidget {
           height: 48,
           child: Icon(icon, color: const Color(0xFF6B7280), size: 22),
         ),
+      ),
+    );
+  }
+}
+
+class _FoodStatsCard extends StatelessWidget {
+  const _FoodStatsCard({
+    required this.recordCount,
+    required this.cityCount,
+  });
+
+  final int recordCount;
+  final int cityCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 96,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 12, offset: const Offset(0, 4))],
+        image: const DecorationImage(
+          image: NetworkImage(
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/World_map_-_low_resolution.svg/800px-World_map_-_low_resolution.svg.png',
+          ),
+          fit: BoxFit.cover,
+          opacity: 0.18,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('味觉统计', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _StatItem(label: '记录', value: recordCount.toString()),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _StatItem(label: '城市', value: cityCount.toString()),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatItem extends StatelessWidget {
+  const _StatItem({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.82),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFF1F5F9)),
+      ),
+      child: Row(
+        children: [
+          Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+          const SizedBox(width: 8),
+          Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+        ],
       ),
     );
   }
@@ -2424,6 +2519,7 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
 
   var _poiName = '';
   var _poiAddress = '';
+  var _poiCity = '';
   double? _latitude;
   double? _longitude;
 
@@ -2451,7 +2547,11 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
       _wishlistDone = record.wishlistDone;
       _selectedMood = (record.mood ?? '').trim().isEmpty ? _selectedMood : record.mood!.trim();
       _poiName = (record.poiName ?? '').trim().isEmpty ? _poiName : record.poiName!.trim();
-      _poiAddress = (record.city ?? '').trim().isEmpty ? _poiAddress : record.city!.trim();
+      _poiAddress = (record.poiAddress ?? '').trim().isEmpty ? _poiAddress : record.poiAddress!.trim();
+      _poiCity = (record.city ?? '').trim();
+      if (_poiCity.isEmpty) {
+        _poiCity = _extractCityToken(_poiAddress);
+      }
       _latitude = record.latitude;
       _longitude = record.longitude;
       _imageUrls
@@ -2476,6 +2576,9 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
       }
       if ((widget.prefillPoiAddress ?? '').trim().isNotEmpty) {
         _poiAddress = widget.prefillPoiAddress!.trim();
+        if (_poiCity.isEmpty) {
+          _poiCity = _extractCityToken(_poiAddress);
+        }
       }
       if (widget.prefillPricePerPerson != null) {
         _priceController.text = widget.prefillPricePerPerson!.toString();
@@ -2885,6 +2988,7 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
               initialAddress: _poiAddress,
               initialLatitude: _latitude,
               initialLongitude: _longitude,
+              initialCity: _poiCity,
             ),
           ),
         );
@@ -2893,6 +2997,7 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
         setState(() {
           _poiName = result.poiName;
           _poiAddress = result.address;
+          _poiCity = result.city.trim().isNotEmpty ? result.city.trim() : _extractCityToken(result.address);
           _latitude = result.latitude;
           _longitude = result.longitude;
         });
@@ -2937,6 +3042,16 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
                   Text(
                     _poiAddress.trim().isEmpty ? '点击选择地址' : _poiAddress,
                     style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF)),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _poiCity.trim().isEmpty ? '请补充城市' : '城市：${_poiCity.trim()}',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: _poiCity.trim().isEmpty ? const Color(0xFFF59E0B) : const Color(0xFF9CA3AF),
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
@@ -3590,6 +3705,13 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
     final price = double.tryParse(_priceController.text.trim());
     final selectedTags = _availableTags.where(_selectedTags.contains).toList();
     final wishlistDone = _isWishlist ? false : _wishlistDone;
+    final resolvedCity = _poiCity.trim().isNotEmpty ? _poiCity.trim() : _extractCityToken(_poiAddress);
+    final hasLocationInput = _poiName.trim().isNotEmpty || _poiAddress.trim().isNotEmpty;
+    if (hasLocationInput && resolvedCity.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请补充城市信息')));
+      return;
+    }
 
     await db.foodDao.upsert(
       FoodRecordsCompanion.insert(
@@ -3603,7 +3725,7 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
         link: Value(link.isEmpty ? null : link),
         poiName: Value(_poiName.trim().isEmpty ? null : _poiName.trim()),
         poiAddress: Value(_poiAddress.trim().isEmpty ? null : _poiAddress.trim()),
-        city: Value(_poiAddress.trim().isEmpty ? null : _poiAddress.trim()),
+        city: Value(resolvedCity.isEmpty ? null : resolvedCity),
         latitude: Value(_latitude),
         longitude: Value(_longitude),
         mood: Value(_selectedMood.trim().isEmpty ? null : _selectedMood.trim()),
@@ -4384,11 +4506,11 @@ String _resolveFoodCity(FoodRecord record) {
   final cityRaw = (record.city ?? '').trim();
   if (poiAddress.isEmpty && cityRaw.isEmpty) return '';
 
-  final fromPoi = _extractCityToken(poiAddress);
-  if (fromPoi.isNotEmpty) return fromPoi;
-
   final fromCity = _extractCityToken(cityRaw);
   if (fromCity.isNotEmpty) return fromCity;
+
+  final fromPoi = _extractCityToken(poiAddress);
+  if (fromPoi.isNotEmpty) return fromPoi;
 
   return '未知';
 }

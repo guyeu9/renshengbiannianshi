@@ -13,12 +13,14 @@ class AmapLocationPickResult {
     required this.address,
     required this.latitude,
     required this.longitude,
+    this.city = '',
   });
 
   final String poiName;
   final String address;
   final double? latitude;
   final double? longitude;
+  final String city;
 }
 
 enum AmapLocationPageMode { pick, preview }
@@ -30,6 +32,7 @@ class AmapLocationPage extends StatefulWidget {
     required this.initialAddress,
     required this.initialLatitude,
     required this.initialLongitude,
+    this.initialCity = '',
   })  : mode = AmapLocationPageMode.pick,
         title = null,
         poiName = '',
@@ -48,7 +51,8 @@ class AmapLocationPage extends StatefulWidget {
         initialPoiName = '',
         initialAddress = '',
         initialLatitude = null,
-        initialLongitude = null;
+        initialLongitude = null,
+        initialCity = '';
 
   final AmapLocationPageMode mode;
 
@@ -62,6 +66,7 @@ class AmapLocationPage extends StatefulWidget {
   final String initialAddress;
   final double? initialLatitude;
   final double? initialLongitude;
+  final String initialCity;
 
   @override
   State<AmapLocationPage> createState() => _AmapLocationPageState();
@@ -73,12 +78,14 @@ class _AmapPoi {
     required this.address,
     required this.latitude,
     required this.longitude,
+    required this.city,
   });
 
   final String name;
   final String address;
   final double? latitude;
   final double? longitude;
+  final String city;
 }
 
 class _AmapLocationPageState extends State<AmapLocationPage> {
@@ -91,6 +98,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
   final _searchController = TextEditingController();
   final _poiNameController = TextEditingController();
   final _addressController = TextEditingController();
+  final _cityController = TextEditingController();
 
   var _loading = false;
   var _errorText = '';
@@ -98,6 +106,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
 
   String get _pickedPoiName => _poiNameController.text.trim();
   String get _pickedAddress => _addressController.text.trim();
+  String get _pickedCity => _cityController.text.trim();
 
   double? _pickedLatitude;
   double? _pickedLongitude;
@@ -122,12 +131,14 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
     if (widget.mode == AmapLocationPageMode.preview) {
       _poiNameController.text = widget.poiName;
       _addressController.text = widget.address;
+      _cityController.text = '';
       _pickedLatitude = widget.latitude;
       _pickedLongitude = widget.longitude;
       _searchController.text = widget.poiName.trim().isNotEmpty ? widget.poiName.trim() : widget.address.trim();
     } else {
       _poiNameController.text = widget.initialPoiName;
       _addressController.text = widget.initialAddress;
+      _cityController.text = widget.initialCity;
       _pickedLatitude = widget.initialLatitude;
       _pickedLongitude = widget.initialLongitude;
       _searchController.text = widget.initialPoiName.trim().isNotEmpty ? widget.initialPoiName.trim() : widget.initialAddress.trim();
@@ -139,6 +150,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
     _searchController.dispose();
     _poiNameController.dispose();
     _addressController.dispose();
+    _cityController.dispose();
     super.dispose();
   }
 
@@ -222,6 +234,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
           if (p is! Map) continue;
           final name = '${p['name'] ?? ''}'.trim();
           final address = '${p['address'] ?? ''}'.trim();
+          final city = '${p['cityname'] ?? p['city'] ?? p['adname'] ?? ''}'.trim();
           final location = '${p['location'] ?? ''}'.trim();
           double? lng;
           double? lat;
@@ -233,7 +246,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
             }
           }
           if (name.isEmpty && address.isEmpty) continue;
-          next.add(_AmapPoi(name: name, address: address, latitude: lat, longitude: lng));
+          next.add(_AmapPoi(name: name, address: address, latitude: lat, longitude: lng, city: city));
         }
       }
 
@@ -292,6 +305,18 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
                   decoration: InputDecoration(
                     labelText: '地址',
                     hintText: '例如：北京市海淀区…',
+                    filled: true,
+                    fillColor: const Color(0xFFF3F4F6),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _cityController,
+                  decoration: InputDecoration(
+                    labelText: '城市',
+                    hintText: '例如：北京',
                     filled: true,
                     fillColor: const Color(0xFFF3F4F6),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
@@ -493,6 +518,9 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
                 const SizedBox(height: 6),
                 Text(_pickedAddress.isEmpty ? '未填写地址' : _pickedAddress,
                     style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                const SizedBox(height: 6),
+                Text(_pickedCity.isEmpty ? '未填写城市' : _pickedCity,
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _pickedCity.isEmpty ? const Color(0xFFF59E0B) : const Color(0xFF64748B))),
                 const SizedBox(height: 8),
                 Row(
                   children: [
@@ -569,6 +597,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
                       setState(() {
                         _poiNameController.text = p.name;
                         _addressController.text = p.address;
+                        _cityController.text = p.city;
                         _pickedLatitude = p.latitude;
                         _pickedLongitude = p.longitude;
                       });
@@ -618,6 +647,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
                         address: _pickedAddress,
                         latitude: _pickedLatitude,
                         longitude: _pickedLongitude,
+                        city: _pickedCity,
                       ),
                     );
                   },
