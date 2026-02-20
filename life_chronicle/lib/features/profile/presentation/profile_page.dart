@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
-import 'package:drift/drift.dart' show OrderingMode, OrderingTerm;
+import 'package:drift/drift.dart' show OrderingMode, OrderingTerm, Value;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -159,6 +159,14 @@ class ProfilePage extends StatelessWidget {
                               title: '万物互联',
                               onTap: () => Navigator.of(context).push(
                                 MaterialPageRoute(builder: (_) => const UniversalLinkPage()),
+                              ),
+                            ),
+                            _ListItem(
+                              icon: Icons.person,
+                              iconColor: Colors.black,
+                              title: '个人资料',
+                              onTap: () => Navigator.of(context).push(
+                                MaterialPageRoute(builder: (_) => const PersonalProfilePage()),
                               ),
                             ),
                             _ListItem(
@@ -420,7 +428,26 @@ class _HeaderState extends State<_Header> {
             ),
           ),
           const SizedBox(height: 12),
-          const Text('Alex Chen', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF1F2937))),
+          Consumer(
+            builder: (context, ref, _) {
+              final nameAsync = ref.watch(userDisplayNameProvider);
+              return nameAsync.when(
+                data: (name) => Text(
+                  name,
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                loading: () => const Text(
+                  '林晓梦',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
+                ),
+                error: (_, __) => const Text(
+                  '林晓梦',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
+                ),
+              );
+            },
+          ),
           const SizedBox(height: 10),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -1841,6 +1868,288 @@ class DataManagementPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const _PlaceholderPage(title: '个人中心-数据管理');
+  }
+}
+
+class PersonalProfilePage extends ConsumerStatefulWidget {
+  const PersonalProfilePage({super.key});
+
+  @override
+  ConsumerState<PersonalProfilePage> createState() => _PersonalProfilePageState();
+}
+
+class _PersonalProfilePageState extends ConsumerState<PersonalProfilePage> {
+  final _nameController = TextEditingController();
+  final _heightController = TextEditingController();
+  final _weightController = TextEditingController();
+
+  DateTime? _birthday;
+  String _relationshipStatus = '单身汪';
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _heightController.dispose();
+    _weightController.dispose();
+    super.dispose();
+  }
+
+  String? _formatNumber(Object? value) {
+    if (value == null) return null;
+    if (value is num) {
+      final asInt = value.toInt();
+      if (asInt.toDouble() == value.toDouble()) return asInt.toString();
+      return value.toString();
+    }
+    return value.toString();
+  }
+
+  double? _parseNumber(String raw) {
+    final value = raw.trim();
+    if (value.isEmpty) return null;
+    return double.tryParse(value);
+  }
+
+  Future<void> _load() async {
+    final db = ref.read(appDatabaseProvider);
+    final row = await (db.select(db.userProfiles)..where((t) => t.id.equals('me'))).getSingleOrNull();
+
+    final displayName = (row?.displayName ?? '').trim();
+    final nameAsync = displayName.isEmpty ? await ref.read(userDisplayNameProvider.future) : displayName;
+    final birthday = row?.birthday == null ? null : DateTime(row!.birthday!.year, row.birthday!.month, row.birthday!.day);
+
+    final heightText = _formatNumber(row?.heightCm);
+    final weightText = _formatNumber(row?.weightKg);
+    final statusText = (row?.relationshipStatus ?? '').trim();
+
+    if (!mounted) return;
+    setState(() {
+      _nameController.text = nameAsync;
+      _birthday = birthday;
+      if (heightText != null) _heightController.text = heightText;
+      if (weightText != null) _weightController.text = weightText;
+      if (['单身汪', '有对象', '已婚'].contains(statusText)) {
+        _relationshipStatus = statusText;
+      }
+    });
+  }
+
+  Future<void> _pickBirthday() async {
+    final now = DateTime.now();
+    final initial = _birthday ?? DateTime(now.year - 20, now.month, now.day);
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(1900, 1, 1),
+      lastDate: DateTime(now.year + 1, 12, 31),
+      locale: const Locale('zh', 'CN'),
+    );
+    if (pickedDate == null) return;
+    if (!mounted) return;
+    setState(() => _birthday = DateTime(pickedDate.year, pickedDate.month, pickedDate.day));
+  }
+
+  String _birthdayText() {
+    final value = _birthday;
+    if (value == null) return '未填写';
+    final y = value.year.toString().padLeft(4, '0');
+    final m = value.month.toString().padLeft(2, '0');
+    final d = value.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
+  }
+
+  Future<void> _save() async {
+    final displayName = _nameController.text.trim();
+    if (displayName.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请填写用户名')));
+      return;
+    }
+    final height = _parseNumber(_heightController.text);
+    final weight = _parseNumber(_weightController.text);
+
+    final db = ref.read(appDatabaseProvider);
+    final now = DateTime.now();
+    final existed = await (db.select(db.userProfiles)..where((t) => t.id.equals('me'))).getSingleOrNull();
+    await db.into(db.userProfiles).insertOnConflictUpdate(
+          UserProfilesCompanion(
+            id: const Value('me'),
+            displayName: Value(displayName),
+            birthday: Value(_birthday),
+            heightCm: Value(height),
+            weightKg: Value(weight),
+            relationshipStatus: Value(_relationshipStatus),
+            createdAt: Value(existed?.createdAt ?? now),
+            updatedAt: Value(now),
+          ),
+        );
+
+    final notifier = ref.read(profileRevisionProvider.notifier);
+    notifier.state = notifier.state + 1;
+
+    if (!mounted) return;
+    Navigator.of(context).pop(true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF2F4F6),
+      appBar: AppBar(
+        backgroundColor: Colors.white.withValues(alpha: 0.7),
+        title: const Text('个人资料', style: TextStyle(fontWeight: FontWeight.w800)),
+        actions: [
+          TextButton(
+            onPressed: _save,
+            child: const Text('保存', style: TextStyle(fontWeight: FontWeight.w800)),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          children: [
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFF3F4F6)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('用户名', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _nameController,
+                    textInputAction: TextInputAction.done,
+                    decoration: InputDecoration(
+                      hintText: '请输入用户名',
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('出生日期', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: _pickBirthday,
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFF1F5F9)),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _birthdayText(),
+                              style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF111827)),
+                            ),
+                          ),
+                          const Icon(Icons.calendar_month, size: 18, color: Color(0xFF64748B)),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('身高(cm)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                            const SizedBox(height: 8),
+                            TextField(
+                              controller: _heightController,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              decoration: InputDecoration(
+                                hintText: '例如 170',
+                                filled: true,
+                                fillColor: const Color(0xFFF8FAFC),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('体重(kg)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                            const SizedBox(height: 8),
+                            TextField(
+                              controller: _weightController,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              decoration: InputDecoration(
+                                hintText: '例如 60',
+                                filled: true,
+                                fillColor: const Color(0xFFF8FAFC),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('感情状态', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    value: _relationshipStatus,
+                    items: const [
+                      DropdownMenuItem(value: '单身汪', child: Text('单身汪')),
+                      DropdownMenuItem(value: '有对象', child: Text('有对象')),
+                      DropdownMenuItem(value: '已婚', child: Text('已婚')),
+                    ],
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setState(() => _relationshipStatus = value);
+                    },
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: ProfilePage._primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                textStyle: const TextStyle(fontWeight: FontWeight.w900),
+              ),
+              onPressed: _save,
+              child: const Text('保存'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

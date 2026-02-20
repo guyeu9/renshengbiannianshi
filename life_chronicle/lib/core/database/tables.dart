@@ -165,3 +165,17 @@ class LinkLogs extends Table {
   @override
   Set<Column> get primaryKey => {id};
 }
+
+class UserProfiles extends Table {
+  TextColumn get id => text()();
+  TextColumn get displayName => text()();
+  DateTimeColumn get birthday => dateTime().nullable()();
+  RealColumn get heightCm => real().nullable()();
+  RealColumn get weightKg => real().nullable()();
+  TextColumn get relationshipStatus => text().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}

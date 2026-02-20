@@ -163,8 +163,8 @@ class _GlassHeaderState extends State<_GlassHeader> {
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
+                  children: [
+                    const Text(
                       '早上好',
                       style: TextStyle(
                         fontSize: 12,
@@ -172,16 +172,43 @@ class _GlassHeaderState extends State<_GlassHeader> {
                         color: AppTheme.textMuted,
                       ),
                     ),
-                    SizedBox(height: 2),
-                    Text(
-                      '林晓梦',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        height: 1.1,
-                        color: AppTheme.textMain,
-                      ),
-                      overflow: TextOverflow.ellipsis,
+                    const SizedBox(height: 2),
+                    Consumer(
+                      builder: (context, ref, _) {
+                        final nameAsync = ref.watch(userDisplayNameProvider);
+                        return nameAsync.when(
+                          data: (name) => Text(
+                            name,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              height: 1.1,
+                              color: AppTheme.textMain,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          loading: () => const Text(
+                            '林晓梦',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              height: 1.1,
+                              color: AppTheme.textMain,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          error: (_, __) => const Text(
+                            '林晓梦',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              height: 1.1,
+                              color: AppTheme.textMain,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
