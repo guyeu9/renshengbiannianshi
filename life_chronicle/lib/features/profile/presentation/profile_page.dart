@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
-import 'package:drift/drift.dart' show OrderingMode, OrderingTerm, Value;
+import 'package:drift/drift.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -1680,108 +1680,408 @@ class UniversalLinkPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final db = ref.watch(appDatabaseProvider);
+    return const _UniversalLinkHomePage();
+  }
+}
 
-    final logsQuery = (db.select(db.linkLogs)
+class _UniversalLinkHomePage extends ConsumerStatefulWidget {
+  const _UniversalLinkHomePage();
+
+  @override
+  ConsumerState<_UniversalLinkHomePage> createState() => _UniversalLinkHomePageState();
+}
+
+class _UniversalLinkHomePageState extends ConsumerState<_UniversalLinkHomePage> {
+  final _searchController = TextEditingController();
+  String _selectedType = 'all';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final db = ref.watch(appDatabaseProvider);
+    final linkCountExp = db.entityLinks.id.count();
+    final logCountExp = db.linkLogs.id.count();
+
+    final linkCountQuery = db.selectOnly(db.entityLinks)..addColumns([linkCountExp]);
+    final logCountQuery = db.selectOnly(db.linkLogs)..addColumns([logCountExp]);
+
+    final recentLinksQuery = (db.select(db.entityLinks)
+      ..orderBy([(t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc)])
+      ..limit(20));
+
+    final recentLogsQuery = (db.select(db.linkLogs)
       ..orderBy([(t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc)])
       ..limit(50));
 
+    final goalsStream = (db.select(db.timelineEvents)
+          ..where((t) => t.eventType.equals('goal'))
+          ..where((t) => t.isDeleted.equals(false))
+          ..orderBy([(t) => OrderingTerm(expression: t.recordDate, mode: OrderingMode.desc)]))
+        .watch();
+
+    final encountersStream = db.watchEncounterEvents();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF2F4F6),
-      appBar: AppBar(
-        backgroundColor: Colors.white.withValues(alpha: 0.7),
-        title: const Text('个人中心-万物互联', style: TextStyle(fontWeight: FontWeight.w800)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UniversalLinkAllLogsPage())),
-            child: const Text('全部日志'),
-          ),
-        ],
-      ),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFF3F4F6)),
+                color: Colors.white.withValues(alpha: 0.85),
+                border: const Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
               ),
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('说明', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                  SizedBox(height: 8),
-                  Text('万物互联的底层是 entity_links + link_logs；这里展示最近的关联操作日志，便于校验各模块是否已正确写入关联。', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B), height: 1.5)),
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.of(context).maybePop(),
+                        icon: const Icon(Icons.arrow_back_ios_new, size: 18),
+                      ),
+                      const SizedBox(width: 4),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('万物互联', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                            SizedBox(height: 2),
+                            Text('管理人生碎片的深度羁绊', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF6B7280))),
+                          ],
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UniversalLinkAllLogsPage())),
+                        style: TextButton.styleFrom(foregroundColor: const Color(0xFF2BCDEE), textStyle: const TextStyle(fontWeight: FontWeight.w900)),
+                        child: const Text('全部日志'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                    height: 44,
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 10, offset: Offset(0, 4))]),
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (_) => setState(() {}),
+                      decoration: InputDecoration(
+                        hintText: '搜索记忆关键词（如：成都、火锅...）',
+                        border: InputBorder.none,
+                        prefixIcon: const Icon(Icons.search, color: Color(0xFF2BCDEE)),
+                        suffixIcon: _searchController.text.trim().isEmpty
+                            ? null
+                            : IconButton(
+                                onPressed: () {
+                                  _searchController.clear();
+                                  setState(() {});
+                                },
+                                icon: const Icon(Icons.close, size: 18, color: Color(0xFF9CA3AF)),
+                              ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                const Text('最近日志', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                const Spacer(),
-                TextButton(
-                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UniversalLinkAllLogsPage())),
-                  style: TextButton.styleFrom(foregroundColor: const Color(0xFF2BCDEE), textStyle: const TextStyle(fontWeight: FontWeight.w900)),
-                  child: const Text('查看全部'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            StreamBuilder<List<LinkLog>>(
-              stream: logsQuery.watch(),
-              builder: (context, snapshot) {
-                final items = snapshot.data ?? const <LinkLog>[];
-
-                if (snapshot.connectionState == ConnectionState.waiting && items.isEmpty) {
-                  return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()));
-                }
-
-                if (items.isEmpty) {
-                  return Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFF3F4F6))),
-                    child: const Text('暂无日志：请在任意新建页发布一条记录并进行关联。', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
-                  );
-                }
-
-                return Container(
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFF3F4F6))),
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: items.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF3F4F6)),
-                    itemBuilder: (context, index) {
-                      final log = items[index];
-                      return ListTile(
-                        dense: true,
-                        leading: Container(
-                          width: 34,
-                          height: 34,
-                          decoration: BoxDecoration(
-                            color: log.action == 'delete' ? const Color(0xFFFFEBEE) : const Color(0xFFEFF6FF),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          alignment: Alignment.center,
-                          child: Icon(log.action == 'delete' ? Icons.link_off : Icons.link, size: 18, color: log.action == 'delete' ? const Color(0xFFEF4444) : const Color(0xFF3B82F6)),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: StreamBuilder<TypedResult>(
+                          stream: linkCountQuery.watchSingle(),
+                          builder: (context, snapshot) {
+                            final count = snapshot.data?.read(linkCountExp) ?? 0;
+                            return _UniversalStatCard(title: '当前已建立关联', value: '$count', unit: '处');
+                          },
                         ),
-                        title: Text(
-                          '${_typeLabel(log.sourceType)} → ${_typeLabel(log.targetType)}',
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: StreamBuilder<TypedResult>(
+                          stream: logCountQuery.watchSingle(),
+                          builder: (context, snapshot) {
+                            final count = snapshot.data?.read(logCountExp) ?? 0;
+                            return _UniversalStatCard(title: '全部日志', value: '$count', unit: '条');
+                          },
                         ),
-                        subtitle: Text(
-                          '${log.action} · ${log.createdAt.toLocal().toString().substring(0, 19)}\n${log.sourceType}:${log.sourceId}  →  ${log.targetType}:${log.targetId}',
-                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B), height: 1.35),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    height: 38,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: [
+                        _UniversalFilterChip(
+                          label: '全部关联',
+                          selected: _selectedType == 'all',
+                          onTap: () => setState(() => _selectedType = 'all'),
                         ),
+                        _UniversalFilterChip(
+                          label: '羁绊',
+                          selected: _selectedType == 'friend',
+                          onTap: () => setState(() => _selectedType = 'friend'),
+                        ),
+                        _UniversalFilterChip(
+                          label: '美食',
+                          selected: _selectedType == 'food',
+                          onTap: () => setState(() => _selectedType = 'food'),
+                        ),
+                        _UniversalFilterChip(
+                          label: '旅行',
+                          selected: _selectedType == 'travel',
+                          onTap: () => setState(() => _selectedType = 'travel'),
+                        ),
+                        _UniversalFilterChip(
+                          label: '小确幸',
+                          selected: _selectedType == 'moment',
+                          onTap: () => setState(() => _selectedType = 'moment'),
+                        ),
+                        _UniversalFilterChip(
+                          label: '目标',
+                          selected: _selectedType == 'goal',
+                          onTap: () => setState(() => _selectedType = 'goal'),
+                        ),
+                        _UniversalFilterChip(
+                          label: '相遇',
+                          selected: _selectedType == 'encounter',
+                          onTap: () => setState(() => _selectedType = 'encounter'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      const Text('最近关联', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                      const Spacer(),
+                      TextButton(
+                        onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UniversalLinkAllLogsPage())),
+                        style: TextButton.styleFrom(foregroundColor: const Color(0xFF2BCDEE), textStyle: const TextStyle(fontWeight: FontWeight.w900)),
+                        child: const Text('查看全部'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  StreamBuilder<List<EntityLink>>(
+                    stream: recentLinksQuery.watch(),
+                    builder: (context, snapshot) {
+                      final links = snapshot.data ?? const <EntityLink>[];
+                      return StreamBuilder<List<FriendRecord>>(
+                        stream: db.friendDao.watchAllActive(),
+                        builder: (context, friendSnapshot) {
+                          final friends = friendSnapshot.data ?? const <FriendRecord>[];
+                          return StreamBuilder<List<FoodRecord>>(
+                            stream: db.foodDao.watchAllActive(),
+                            builder: (context, foodSnapshot) {
+                              final foods = foodSnapshot.data ?? const <FoodRecord>[];
+                              return StreamBuilder<List<MomentRecord>>(
+                                stream: db.momentDao.watchAllActive(),
+                                builder: (context, momentSnapshot) {
+                                  final moments = momentSnapshot.data ?? const <MomentRecord>[];
+                                  return StreamBuilder<List<TravelRecord>>(
+                                    stream: db.watchAllActiveTravelRecords(),
+                                    builder: (context, travelSnapshot) {
+                                      final travels = travelSnapshot.data ?? const <TravelRecord>[];
+                                      return StreamBuilder<List<TimelineEvent>>(
+                                        stream: goalsStream,
+                                        builder: (context, goalSnapshot) {
+                                          final goals = goalSnapshot.data ?? const <TimelineEvent>[];
+                                          return StreamBuilder<List<TimelineEvent>>(
+                                            stream: encountersStream,
+                                            builder: (context, encounterSnapshot) {
+                                              final encounters = encounterSnapshot.data ?? const <TimelineEvent>[];
+                                              final maps = _UniversalEntityMaps(
+                                                foods: {for (final f in foods) f.id: (f.title).trim().isEmpty ? '美食记录' : f.title.trim()},
+                                                moments: {for (final m in moments) m.id: _momentTitleFromContent(m.content)},
+                                                friends: {for (final f in friends) f.id: (f.name).trim().isEmpty ? '朋友' : f.name.trim()},
+                                                travels: {
+                                                  for (final t in travels)
+                                                    t.id: ((t.title ?? '').trim().isNotEmpty ? t.title!.trim() : ((t.destination ?? '').trim().isNotEmpty ? t.destination!.trim() : '旅行记录'))
+                                                },
+                                                goals: {for (final g in goals) g.id: g.title},
+                                                encounters: {for (final e in encounters) e.id: e.title},
+                                              );
+                                              final query = _searchController.text.trim();
+                                              final filtered = links.where((link) {
+                                                if (_selectedType != 'all' && link.sourceType != _selectedType && link.targetType != _selectedType) return false;
+                                                if (query.isEmpty) return true;
+                                                final left = '${_typeLabel(link.sourceType)} ${maps.titleOf(link.sourceType, link.sourceId)}';
+                                                final right = '${_typeLabel(link.targetType)} ${maps.titleOf(link.targetType, link.targetId)}';
+                                                return left.contains(query) || right.contains(query);
+                                              }).toList(growable: false);
+
+                                              if (filtered.isEmpty) {
+                                                return Container(
+                                                  padding: const EdgeInsets.all(16),
+                                                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFF3F4F6))),
+                                                  child: Text(
+                                                    query.isEmpty ? '暂无关联：请在任意新建页选择关联项并保存。' : '未找到匹配的关联项',
+                                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)),
+                                                  ),
+                                                );
+                                              }
+
+                                              return Column(
+                                                children: [
+                                                  for (final link in filtered) ...[
+                                                    _UniversalLinkCard(
+                                                      leftTitle: maps.titleOf(link.sourceType, link.sourceId),
+                                                      leftType: _typeLabel(link.sourceType),
+                                                      rightTitle: maps.titleOf(link.targetType, link.targetId),
+                                                      rightType: _typeLabel(link.targetType),
+                                                      linkLabel: _linkTypeLabel(link.linkType),
+                                                      createdAt: link.createdAt,
+                                                    ),
+                                                    const SizedBox(height: 10),
+                                                  ],
+                                                ],
+                                              );
+                                            },
+                                          );
+                                        },
+                                      );
+                                    },
+                                  );
+                                },
+                              );
+                            },
+                          );
+                        },
                       );
                     },
                   ),
-                );
-              },
+                  const SizedBox(height: 18),
+                  const Text('最近日志', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                  const SizedBox(height: 8),
+                  StreamBuilder<List<LinkLog>>(
+                    stream: recentLogsQuery.watch(),
+                    builder: (context, snapshot) {
+                      final logs = snapshot.data ?? const <LinkLog>[];
+                      if (snapshot.connectionState == ConnectionState.waiting && logs.isEmpty) {
+                        return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()));
+                      }
+                      if (logs.isEmpty) {
+                        return Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFF3F4F6))),
+                          child: const Text('暂无日志：请在任意新建页保存一条关联记录。', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                        );
+                      }
+
+                      return StreamBuilder<List<FriendRecord>>(
+                        stream: db.friendDao.watchAllActive(),
+                        builder: (context, friendSnapshot) {
+                          final friends = friendSnapshot.data ?? const <FriendRecord>[];
+                          return StreamBuilder<List<FoodRecord>>(
+                            stream: db.foodDao.watchAllActive(),
+                            builder: (context, foodSnapshot) {
+                              final foods = foodSnapshot.data ?? const <FoodRecord>[];
+                              return StreamBuilder<List<MomentRecord>>(
+                                stream: db.momentDao.watchAllActive(),
+                                builder: (context, momentSnapshot) {
+                                  final moments = momentSnapshot.data ?? const <MomentRecord>[];
+                                  return StreamBuilder<List<TravelRecord>>(
+                                    stream: db.watchAllActiveTravelRecords(),
+                                    builder: (context, travelSnapshot) {
+                                      final travels = travelSnapshot.data ?? const <TravelRecord>[];
+                                      return StreamBuilder<List<TimelineEvent>>(
+                                        stream: goalsStream,
+                                        builder: (context, goalSnapshot) {
+                                          final goals = goalSnapshot.data ?? const <TimelineEvent>[];
+                                          return StreamBuilder<List<TimelineEvent>>(
+                                            stream: encountersStream,
+                                            builder: (context, encounterSnapshot) {
+                                              final encounters = encounterSnapshot.data ?? const <TimelineEvent>[];
+                                              final maps = _UniversalEntityMaps(
+                                                foods: {for (final f in foods) f.id: (f.title).trim().isEmpty ? '美食记录' : f.title.trim()},
+                                                moments: {for (final m in moments) m.id: _momentTitleFromContent(m.content)},
+                                                friends: {for (final f in friends) f.id: (f.name).trim().isEmpty ? '朋友' : f.name.trim()},
+                                                travels: {
+                                                  for (final t in travels)
+                                                    t.id: ((t.title ?? '').trim().isNotEmpty ? t.title!.trim() : ((t.destination ?? '').trim().isNotEmpty ? t.destination!.trim() : '旅行记录'))
+                                                },
+                                                goals: {for (final g in goals) g.id: g.title},
+                                                encounters: {for (final e in encounters) e.id: e.title},
+                                              );
+
+                                              final query = _searchController.text.trim();
+                                              final filtered = logs.where((log) {
+                                                if (_selectedType != 'all' && log.sourceType != _selectedType && log.targetType != _selectedType) return false;
+                                                if (query.isEmpty) return true;
+                                                final left = '${_typeLabel(log.sourceType)} ${maps.titleOf(log.sourceType, log.sourceId)}';
+                                                final right = '${_typeLabel(log.targetType)} ${maps.titleOf(log.targetType, log.targetId)}';
+                                                return left.contains(query) || right.contains(query);
+                                              }).toList(growable: false);
+
+                                              return Container(
+                                                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFF3F4F6))),
+                                                child: ListView.separated(
+                                                  shrinkWrap: true,
+                                                  physics: const NeverScrollableScrollPhysics(),
+                                                  itemCount: filtered.length,
+                                                  separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF3F4F6)),
+                                                  itemBuilder: (context, index) {
+                                                    final log = filtered[index];
+                                                    final leftTitle = maps.titleOf(log.sourceType, log.sourceId);
+                                                    final rightTitle = maps.titleOf(log.targetType, log.targetId);
+                                                    return ListTile(
+                                                      dense: true,
+                                                      leading: Container(
+                                                        width: 34,
+                                                        height: 34,
+                                                        decoration: BoxDecoration(
+                                                          color: _logActionColor(log.action),
+                                                          borderRadius: BorderRadius.circular(12),
+                                                        ),
+                                                        alignment: Alignment.center,
+                                                        child: Icon(_logActionIcon(log.action), size: 18, color: _logActionIconColor(log.action)),
+                                                      ),
+                                                      title: Text(
+                                                        '${_logActionLabel(log.action)}：$leftTitle ↔ $rightTitle',
+                                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                      subtitle: Text(
+                                                        '${_typeLabel(log.sourceType)} · $leftTitle\n${_typeLabel(log.targetType)} · $rightTitle',
+                                                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B), height: 1.35),
+                                                      ),
+                                                      trailing: Text(
+                                                        _timeText(log.createdAt),
+                                                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)),
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                              );
+                                            },
+                                          );
+                                        },
+                                      );
+                                    },
+                                  );
+                                },
+                              );
+                            },
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -1790,76 +2090,238 @@ class UniversalLinkPage extends ConsumerWidget {
   }
 }
 
-class UniversalLinkAllLogsPage extends ConsumerWidget {
+class UniversalLinkAllLogsPage extends ConsumerStatefulWidget {
   const UniversalLinkAllLogsPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<UniversalLinkAllLogsPage> createState() => _UniversalLinkAllLogsPageState();
+}
+
+class _UniversalLinkAllLogsPageState extends ConsumerState<UniversalLinkAllLogsPage> {
+  String _action = 'all';
+  String _entityType = 'all';
+  int _limit = 200;
+
+  @override
+  Widget build(BuildContext context) {
     final db = ref.watch(appDatabaseProvider);
     final logsQuery = (db.select(db.linkLogs)
       ..orderBy([(t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc)])
-      ..limit(300));
+      ..limit(_limit));
+
+    final goalsStream = (db.select(db.timelineEvents)
+          ..where((t) => t.eventType.equals('goal'))
+          ..where((t) => t.isDeleted.equals(false))
+          ..orderBy([(t) => OrderingTerm(expression: t.recordDate, mode: OrderingMode.desc)]))
+        .watch();
+    final encountersStream = db.watchEncounterEvents();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF2F4F6),
       appBar: AppBar(
-        backgroundColor: Colors.white.withValues(alpha: 0.7),
-        title: const Text('个人中心-万物互联-全部日志', style: TextStyle(fontWeight: FontWeight.w800)),
+        backgroundColor: Colors.white.withValues(alpha: 0.85),
+        title: const Text('全部日志', style: TextStyle(fontWeight: FontWeight.w900)),
+        actions: const [SizedBox(width: 8)],
       ),
       body: SafeArea(
-        child: StreamBuilder<List<LinkLog>>(
-          stream: logsQuery.watch(),
-          builder: (context, snapshot) {
-            final items = snapshot.data ?? const <LinkLog>[];
-            if (snapshot.connectionState == ConnectionState.waiting && items.isEmpty) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (items.isEmpty) {
-              return const Center(
-                child: Text('暂无日志', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF6B7280))),
-              );
-            }
-
-            return ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-              itemCount: items.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
-              itemBuilder: (context, index) {
-                final log = items[index];
-                return Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFF3F4F6))),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
+          children: [
+            Container(
+              color: Colors.white,
+              child: Column(
+                children: [
+                  Row(
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: log.action == 'delete' ? const Color(0xFFFFEBEE) : const Color(0xFFEFF6FF),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Text(log.action, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: log.action == 'delete' ? const Color(0xFFEF4444) : const Color(0xFF2563EB))),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(_typeLabel(log.sourceType), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                          const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Icon(Icons.chevron_right, size: 18, color: Color(0xFFCBD5E1))),
-                          Text(_typeLabel(log.targetType), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                          const Spacer(),
-                          Text(log.createdAt.toLocal().toString().substring(0, 19), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
-                        ],
+                      _UniversalTab(
+                        label: '全部',
+                        selected: _action == 'all',
+                        onTap: () => setState(() => _action = 'all'),
                       ),
-                      const SizedBox(height: 10),
-                      Text('${log.sourceType}:${log.sourceId}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
-                      const SizedBox(height: 6),
-                      Text('${log.targetType}:${log.targetId}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                      _UniversalTab(
+                        label: '新增',
+                        selected: _action == 'create',
+                        onTap: () => setState(() => _action = 'create'),
+                      ),
+                      _UniversalTab(
+                        label: '修改',
+                        selected: _action == 'update',
+                        onTap: () => setState(() => _action = 'update'),
+                      ),
+                      _UniversalTab(
+                        label: '删除',
+                        selected: _action == 'delete',
+                        onTap: () => setState(() => _action = 'delete'),
+                      ),
                     ],
                   ),
-                );
-              },
-            );
-          },
+                  SizedBox(
+                    height: 48,
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                      scrollDirection: Axis.horizontal,
+                      children: [
+                        _UniversalChip(
+                          label: '全部',
+                          selected: _entityType == 'all',
+                          onTap: () => setState(() => _entityType = 'all'),
+                        ),
+                        _UniversalChip(
+                          label: '美食',
+                          selected: _entityType == 'food',
+                          onTap: () => setState(() => _entityType = 'food'),
+                        ),
+                        _UniversalChip(
+                          label: '旅行',
+                          selected: _entityType == 'travel',
+                          onTap: () => setState(() => _entityType = 'travel'),
+                        ),
+                        _UniversalChip(
+                          label: '小确幸',
+                          selected: _entityType == 'moment',
+                          onTap: () => setState(() => _entityType = 'moment'),
+                        ),
+                        _UniversalChip(
+                          label: '目标',
+                          selected: _entityType == 'goal',
+                          onTap: () => setState(() => _entityType = 'goal'),
+                        ),
+                        _UniversalChip(
+                          label: '羁绊',
+                          selected: _entityType == 'friend',
+                          onTap: () => setState(() => _entityType = 'friend'),
+                        ),
+                        _UniversalChip(
+                          label: '相遇',
+                          selected: _entityType == 'encounter',
+                          onTap: () => setState(() => _entityType = 'encounter'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1, color: Color(0xFFE5E7EB)),
+                ],
+              ),
+            ),
+            Expanded(
+              child: StreamBuilder<List<LinkLog>>(
+                stream: logsQuery.watch(),
+                builder: (context, snapshot) {
+                  final raw = snapshot.data ?? const <LinkLog>[];
+                  if (snapshot.connectionState == ConnectionState.waiting && raw.isEmpty) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (raw.isEmpty) {
+                    return const Center(child: Text('暂无日志', style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF6B7280))));
+                  }
+
+                  return StreamBuilder<List<FriendRecord>>(
+                    stream: db.friendDao.watchAllActive(),
+                    builder: (context, friendSnapshot) {
+                      final friends = friendSnapshot.data ?? const <FriendRecord>[];
+                      return StreamBuilder<List<FoodRecord>>(
+                        stream: db.foodDao.watchAllActive(),
+                        builder: (context, foodSnapshot) {
+                          final foods = foodSnapshot.data ?? const <FoodRecord>[];
+                          return StreamBuilder<List<MomentRecord>>(
+                            stream: db.momentDao.watchAllActive(),
+                            builder: (context, momentSnapshot) {
+                              final moments = momentSnapshot.data ?? const <MomentRecord>[];
+                              return StreamBuilder<List<TravelRecord>>(
+                                stream: db.watchAllActiveTravelRecords(),
+                                builder: (context, travelSnapshot) {
+                                  final travels = travelSnapshot.data ?? const <TravelRecord>[];
+                                  return StreamBuilder<List<TimelineEvent>>(
+                                    stream: goalsStream,
+                                    builder: (context, goalSnapshot) {
+                                      final goals = goalSnapshot.data ?? const <TimelineEvent>[];
+                                      return StreamBuilder<List<TimelineEvent>>(
+                                        stream: encountersStream,
+                                        builder: (context, encounterSnapshot) {
+                                          final encounters = encounterSnapshot.data ?? const <TimelineEvent>[];
+                                          final maps = _UniversalEntityMaps(
+                                            foods: {for (final f in foods) f.id: (f.title).trim().isEmpty ? '美食记录' : f.title.trim()},
+                                            moments: {for (final m in moments) m.id: _momentTitleFromContent(m.content)},
+                                            friends: {for (final f in friends) f.id: (f.name).trim().isEmpty ? '朋友' : f.name.trim()},
+                                            travels: {
+                                              for (final t in travels)
+                                                t.id: ((t.title ?? '').trim().isNotEmpty ? t.title!.trim() : ((t.destination ?? '').trim().isNotEmpty ? t.destination!.trim() : '旅行记录'))
+                                            },
+                                            goals: {for (final g in goals) g.id: g.title},
+                                            encounters: {for (final e in encounters) e.id: e.title},
+                                          );
+
+                                          final items = raw.where((log) {
+                                            if (_action != 'all' && log.action != _action) return false;
+                                            if (_entityType == 'all') return true;
+                                            return log.sourceType == _entityType || log.targetType == _entityType;
+                                          }).toList(growable: false);
+
+                                          if (items.isEmpty) {
+                                            return const Center(
+                                              child: Text('没有符合筛选条件的日志', style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF6B7280))),
+                                            );
+                                          }
+
+                                          final groups = _groupLogsByDay(items);
+
+                                          return ListView.builder(
+                                            padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
+                                            itemCount: groups.length + 1,
+                                            itemBuilder: (context, index) {
+                                              if (index == groups.length) {
+                                                return Padding(
+                                                  padding: const EdgeInsets.only(top: 10),
+                                                  child: OutlinedButton(
+                                                    style: OutlinedButton.styleFrom(
+                                                      foregroundColor: const Color(0xFF64748B),
+                                                      side: const BorderSide(color: Color(0xFFE5E7EB), style: BorderStyle.solid),
+                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                                      textStyle: const TextStyle(fontWeight: FontWeight.w900),
+                                                    ),
+                                                    onPressed: () => setState(() => _limit += 200),
+                                                    child: const Text('查看更早的记录'),
+                                                  ),
+                                                );
+                                              }
+
+                                              final group = groups[index];
+                                              return Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Padding(
+                                                    padding: EdgeInsets.only(top: index == 0 ? 0 : 14, bottom: 8, left: 2),
+                                                    child: Text(group.title, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF94A3B8))),
+                                                  ),
+                                                  for (final log in group.items) ...[
+                                                    _UniversalLogRow(
+                                                      color: _typeColor(log.sourceType),
+                                                      title: '${_logActionLabel(log.action)}关联',
+                                                      subtitle: '${_typeLabel(log.sourceType)} · ${maps.titleOf(log.sourceType, log.sourceId)}  ↔  ${_typeLabel(log.targetType)} · ${maps.titleOf(log.targetType, log.targetId)}',
+                                                      time: _timeText(log.createdAt, includeDayPrefix: group.title == '昨天'),
+                                                    ),
+                                                    const SizedBox(height: 10),
+                                                  ],
+                                                ],
+                                              );
+                                            },
+                                          );
+                                        },
+                                      );
+                                    },
+                                  );
+                                },
+                              );
+                            },
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -1883,6 +2345,423 @@ String _typeLabel(String t) {
     default:
       return t;
   }
+}
+
+String _linkTypeLabel(String raw) {
+  final value = raw.trim();
+  if (value.isEmpty) return '关联';
+  if (value == 'manual') return '共同回忆';
+  if (value == 'auto') return '系统关联';
+  return value;
+}
+
+String _momentTitleFromContent(String? content) {
+  final raw = (content ?? '').trim();
+  if (raw.isEmpty) return '小确幸';
+  final lines = raw.split('\n').map((e) => e.trim()).where((e) => e.isNotEmpty).toList(growable: false);
+  if (lines.isEmpty) return '小确幸';
+  return lines.first.length > 24 ? '${lines.first.substring(0, 24)}…' : lines.first;
+}
+
+IconData _logActionIcon(String action) {
+  switch (action) {
+    case 'delete':
+      return Icons.link_off;
+    case 'update':
+      return Icons.edit;
+    default:
+      return Icons.link;
+  }
+}
+
+Color _logActionIconColor(String action) {
+  switch (action) {
+    case 'delete':
+      return const Color(0xFFEF4444);
+    case 'update':
+      return const Color(0xFFF59E0B);
+    default:
+      return const Color(0xFF3B82F6);
+  }
+}
+
+Color _logActionColor(String action) {
+  switch (action) {
+    case 'delete':
+      return const Color(0xFFFFEBEE);
+    case 'update':
+      return const Color(0xFFFFF7ED);
+    default:
+      return const Color(0xFFEFF6FF);
+  }
+}
+
+String _logActionLabel(String action) {
+  switch (action) {
+    case 'delete':
+      return '删除';
+    case 'update':
+      return '修改';
+    default:
+      return '新增';
+  }
+}
+
+String _timeText(DateTime dateTime, {bool includeDayPrefix = false}) {
+  final local = dateTime.toLocal();
+  final hh = local.hour.toString().padLeft(2, '0');
+  final mm = local.minute.toString().padLeft(2, '0');
+  if (!includeDayPrefix) return '$hh:$mm';
+  return '昨天 $hh:$mm';
+}
+
+Color _typeColor(String type) {
+  switch (type) {
+    case 'food':
+      return const Color(0xFFF97316);
+    case 'travel':
+      return const Color(0xFF60A5FA);
+    case 'moment':
+      return const Color(0xFFF472B6);
+    case 'goal':
+      return const Color(0xFF34D399);
+    case 'friend':
+      return const Color(0xFFA78BFA);
+    case 'encounter':
+      return const Color(0xFF818CF8);
+    default:
+      return const Color(0xFF94A3B8);
+  }
+}
+
+class _UniversalEntityMaps {
+  const _UniversalEntityMaps({
+    required this.foods,
+    required this.moments,
+    required this.friends,
+    required this.travels,
+    required this.goals,
+    required this.encounters,
+  });
+
+  final Map<String, String> foods;
+  final Map<String, String> moments;
+  final Map<String, String> friends;
+  final Map<String, String> travels;
+  final Map<String, String> goals;
+  final Map<String, String> encounters;
+
+  String titleOf(String type, String id) {
+    switch (type) {
+      case 'food':
+        return foods[id] ?? '已删除/未找到';
+      case 'moment':
+        return moments[id] ?? '已删除/未找到';
+      case 'friend':
+        return friends[id] ?? '已删除/未找到';
+      case 'travel':
+        return travels[id] ?? '已删除/未找到';
+      case 'goal':
+        return goals[id] ?? '已删除/未找到';
+      case 'encounter':
+        return encounters[id] ?? '已删除/未找到';
+      default:
+        return '已删除/未找到';
+    }
+  }
+}
+
+class _UniversalStatCard extends StatelessWidget {
+  const _UniversalStatCard({required this.title, required this.value, required this.unit});
+
+  final String title;
+  final String value;
+  final String unit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFF3F4F6)),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 10, offset: Offset(0, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF6B7280))),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(value, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: Color(0xFF2BCDEE))),
+              const SizedBox(width: 4),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 3),
+                child: Text(unit, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _UniversalFilterChip extends StatelessWidget {
+  const _UniversalFilterChip({required this.label, required this.selected, required this.onTap});
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: selected ? const Color(0xFF2BCDEE) : Colors.white,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: selected ? const Color(0xFF2BCDEE) : const Color(0xFFE5E7EB)),
+            boxShadow: selected ? const [BoxShadow(color: Color(0x332BCDEE), blurRadius: 12, offset: Offset(0, 4))] : null,
+          ),
+          child: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: selected ? Colors.white : const Color(0xFF64748B))),
+        ),
+      ),
+    );
+  }
+}
+
+class _UniversalLinkCard extends StatelessWidget {
+  const _UniversalLinkCard({
+    required this.leftTitle,
+    required this.leftType,
+    required this.rightTitle,
+    required this.rightType,
+    required this.linkLabel,
+    required this.createdAt,
+  });
+
+  final String leftTitle;
+  final String leftType;
+  final String rightTitle;
+  final String rightType;
+  final String linkLabel;
+  final DateTime createdAt;
+
+  @override
+  Widget build(BuildContext context) {
+    final local = createdAt.toLocal();
+    final date = '${local.year.toString().padLeft(4, '0')}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')}';
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFF3F4F6)),
+        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 10, offset: Offset(0, 4))],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(child: _UniversalEntityCell(title: leftTitle, type: leftType)),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(color: const Color(0x1A2BCDEE), borderRadius: BorderRadius.circular(999)),
+                      alignment: Alignment.center,
+                      child: const Icon(Icons.link, size: 16, color: Color(0xFF2BCDEE)),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(linkLabel, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF2BCDEE))),
+                  ],
+                ),
+              ),
+              Expanded(child: _UniversalEntityCell(title: rightTitle, type: rightType)),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Container(height: 1, color: const Color(0xFFF1F5F9)),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Text('关联于 $date', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+              const Spacer(),
+              Text('普通关联', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF64748B).withValues(alpha: 0.9))),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _UniversalEntityCell extends StatelessWidget {
+  const _UniversalEntityCell({required this.title, required this.type});
+
+  final String title;
+  final String type;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF111827)), maxLines: 1, overflow: TextOverflow.ellipsis),
+        const SizedBox(height: 2),
+        Text(type, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+      ],
+    );
+  }
+}
+
+class _UniversalTab extends StatelessWidget {
+  const _UniversalTab({required this.label, required this.selected, required this.onTap});
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: selected ? const Color(0xFF2BCDEE) : Colors.transparent, width: 2)),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, fontWeight: selected ? FontWeight.w900 : FontWeight.w700, color: selected ? const Color(0xFF2BCDEE) : const Color(0xFF94A3B8)),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _UniversalChip extends StatelessWidget {
+  const _UniversalChip({required this.label, required this.selected, required this.onTap});
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: selected ? const Color(0x1A2BCDEE) : Colors.white,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: selected ? const Color(0x332BCDEE) : const Color(0xFFE5E7EB)),
+          ),
+          child: Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: selected ? const Color(0xFF2BCDEE) : const Color(0xFF64748B))),
+        ),
+      ),
+    );
+  }
+}
+
+class _UniversalLogRow extends StatelessWidget {
+  const _UniversalLogRow({required this.color, required this.title, required this.subtitle, required this.time});
+
+  final Color color;
+  final String title;
+  final String subtitle;
+  final String time;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFF1F5F9)),
+        boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 3))],
+      ),
+      child: Row(
+        children: [
+          Container(width: 6, height: 46, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(999))),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                const SizedBox(height: 4),
+                Text(subtitle, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)), maxLines: 2, overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(time, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+        ],
+      ),
+    );
+  }
+}
+
+class _LogGroup {
+  const _LogGroup({required this.title, required this.items});
+  final String title;
+  final List<LinkLog> items;
+}
+
+List<_LogGroup> _groupLogsByDay(List<LinkLog> logs) {
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final yesterday = today.subtract(const Duration(days: 1));
+
+  final todayItems = <LinkLog>[];
+  final yesterdayItems = <LinkLog>[];
+  final olderGroups = <String, List<LinkLog>>{};
+
+  for (final log in logs) {
+    final local = log.createdAt.toLocal();
+    final day = DateTime(local.year, local.month, local.day);
+    if (day == today) {
+      todayItems.add(log);
+      continue;
+    }
+    if (day == yesterday) {
+      yesterdayItems.add(log);
+      continue;
+    }
+    final key = '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
+    (olderGroups[key] ??= <LinkLog>[]).add(log);
+  }
+
+  final result = <_LogGroup>[];
+  if (todayItems.isNotEmpty) result.add(_LogGroup(title: '今天', items: todayItems));
+  if (yesterdayItems.isNotEmpty) result.add(_LogGroup(title: '昨天', items: yesterdayItems));
+
+  final olderKeys = olderGroups.keys.toList(growable: false)..sort((a, b) => b.compareTo(a));
+  for (final k in olderKeys) {
+    result.add(_LogGroup(title: k, items: olderGroups[k] ?? const <LinkLog>[]));
+  }
+  return result;
 }
 
 class DataManagementPage extends StatelessWidget {
