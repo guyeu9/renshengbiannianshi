@@ -38,18 +38,67 @@ Color _parseMomentMoodColor(String? raw, Color fallback) {
   return Color(value);
 }
 
+({String title, String content}) _splitMomentText(String? raw) {
+  final text = (raw ?? '').trim();
+  if (text.isEmpty) {
+    return (title: '', content: '');
+  }
+  final splitIndex = text.indexOf('\n\n');
+  if (splitIndex >= 0) {
+    final title = text.substring(0, splitIndex).trim();
+    final content = text.substring(splitIndex + 2).trim();
+    return (title: title, content: content);
+  }
+  final lines = text.split('\n');
+  final title = lines.first.trim();
+  final content = lines.skip(1).join('\n').trim();
+  return (title: title, content: content);
+}
+
+List<String> _parseSceneTags(String? raw) {
+  if (raw == null || raw.trim().isEmpty) return const [];
+  final value = raw.trim();
+  if (value.startsWith('[')) {
+    try {
+      final decoded = jsonDecode(value);
+      if (decoded is List) {
+        return decoded.whereType<String>().map((e) => e.trim()).where((e) => e.isNotEmpty).toList(growable: false);
+      }
+    } catch (_) {}
+  }
+  final parts = value.split(RegExp(r'[,\s，、/]+')).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+  return parts;
+}
+
+String? _encodeSceneTags(List<String> tags) {
+  final cleaned = tags.map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+  if (cleaned.isEmpty) return null;
+  if (cleaned.length == 1) return cleaned.first;
+  return jsonEncode(cleaned);
+}
+
 String _momentTitleFromRecord(MomentRecord record) {
-  final content = (record.content ?? '').trim();
-  if (content.isEmpty) return '小确幸';
-  final lines = content.split('\n').where((line) => line.trim().isNotEmpty).toList();
-  return lines.isEmpty ? '小确幸' : lines.first.trim();
+  final split = _splitMomentText(record.content);
+  return split.title.isEmpty ? '小确幸' : split.title;
 }
 
 String _momentContentFromRecord(MomentRecord record) {
-  final content = (record.content ?? '').trim();
-  if (content.isEmpty) return '';
-  return content;
+  final split = _splitMomentText(record.content);
+  return split.content;
 }
+
+String _formatMomentCardDate(DateTime date) {
+  return '${date.month}月${date.day}日';
+}
+
+const _momentMoodOptions = <_MoodOption>[
+  _MoodOption(label: '开心', emoji: '😊', color: Color(0xFFFCA5A5)),
+  _MoodOption(label: '平静', emoji: '😌', color: Color(0xFF22C55E)),
+  _MoodOption(label: '治愈', emoji: '🌿', color: Color(0xFF60A5FA)),
+  _MoodOption(label: '思考', emoji: '🤔', color: Color(0xFFA855F7)),
+  _MoodOption(label: '放空', emoji: '☁️', color: Color(0xFF64748B)),
+  _MoodOption(label: 'emo', emoji: '😶', color: Color(0xFF3B82F6)),
+];
 
 class MomentPage extends StatefulWidget {
   const MomentPage({super.key});
@@ -178,16 +227,13 @@ class _MomentHeader extends StatelessWidget {
             height: 36,
             child: ListView(
               scrollDirection: Axis.horizontal,
-              children: const [
-                _MoodChip(active: true, label: '全部', color: Color(0xFF2BCDEE)),
-                SizedBox(width: 10),
-                _MoodChip(active: false, label: '开心', color: Color(0xFFF59E0B)),
-                SizedBox(width: 10),
-                _MoodChip(active: false, label: '平静', color: Color(0xFF22C55E)),
-                SizedBox(width: 10),
-                _MoodChip(active: false, label: '感动', color: Color(0xFFA855F7)),
-                SizedBox(width: 10),
-                _MoodChip(active: false, label: '治愈', color: Color(0xFF60A5FA)),
+              children: [
+                const _MoodChip(active: true, label: '全部', color: Color(0xFF2BCDEE)),
+                const SizedBox(width: 10),
+                for (var i = 0; i < _momentMoodOptions.length; i++) ...[
+                  _MoodChip(active: false, label: _momentMoodOptions[i].label, color: _momentMoodOptions[i].color),
+                  if (i != _momentMoodOptions.length - 1) const SizedBox(width: 10),
+                ],
               ],
             ),
           ),
@@ -266,16 +312,59 @@ class _LinkChip extends StatelessWidget {
   }
 }
 
-class _MomentHomeBody extends ConsumerWidget {
+class _MomentHomeBody extends ConsumerStatefulWidget {
   const _MomentHomeBody();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_MomentHomeBody> createState() => _MomentHomeBodyState();
+}
+
+class _MomentHomeBodyState extends ConsumerState<_MomentHomeBody> {
+  int _selectedYear = DateTime.now().year;
+
+  Future<void> _pickYear(List<int> years, int activeYear) async {
+    if (years.isEmpty) return;
+    final selected = await showModalBottomSheet<int>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return SafeArea(
+          child: ListView.separated(
+            shrinkWrap: true,
+            itemCount: years.length,
+            separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF3F4F6)),
+            itemBuilder: (context, index) {
+              final year = years[index];
+              final isActive = year == activeYear;
+              return ListTile(
+                title: Text('$year年', style: TextStyle(fontWeight: FontWeight.w800, color: isActive ? const Color(0xFF2BCDEE) : const Color(0xFF111827))),
+                trailing: isActive ? const Icon(Icons.check, color: Color(0xFF2BCDEE)) : null,
+                onTap: () => Navigator.of(context).pop(year),
+              );
+            },
+          ),
+        );
+      },
+    );
+    if (selected == null || !mounted) return;
+    setState(() => _selectedYear = selected);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final db = ref.watch(appDatabaseProvider);
     return StreamBuilder<List<MomentRecord>>(
       stream: db.momentDao.watchAllActive(),
       builder: (context, snapshot) {
         final records = snapshot.data ?? const <MomentRecord>[];
+        final years = records.map((e) => e.recordDate.year).toSet().toList()..sort((a, b) => b.compareTo(a));
+        final activeYear = years.contains(_selectedYear) ? _selectedYear : (years.isNotEmpty ? years.first : _selectedYear);
+        final moodCounts = <String, int>{};
+        for (final record in records) {
+          if (record.recordDate.year != activeYear) continue;
+          moodCounts.update(record.mood, (value) => value + 1, ifAbsent: () => 1);
+        }
         final items = <MomentCardData>[];
         for (var i = 0; i < records.length; i++) {
           final record = records[i];
@@ -283,6 +372,7 @@ class _MomentHomeBody extends ConsumerWidget {
           final accent = _parseMomentMoodColor(record.moodColor, const Color(0xFF2BCDEE));
           final title = _momentTitleFromRecord(record);
           final content = _momentContentFromRecord(record);
+          final tags = _parseSceneTags(record.sceneTag);
           items.add(
             MomentCardData(
               recordId: record.id,
@@ -291,6 +381,8 @@ class _MomentHomeBody extends ConsumerWidget {
               moodAccent: accent,
               title: title,
               content: content,
+              tags: tags,
+              recordDate: record.recordDate,
               imageUrl: images.isEmpty ? '' : images.first,
               imageHeight: 180 + (i % 3) * 20,
             ),
@@ -307,14 +399,62 @@ class _MomentHomeBody extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: const [
-                  Expanded(
-                    child: Text('今日心情', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                  ),
-                  Text('年度心情', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF2BCDEE))),
-                ],
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: const Color(0xFFF3F4F6)),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 12, offset: const Offset(0, 4))],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Text('年度心情', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                        const Spacer(),
+                        InkWell(
+                          borderRadius: BorderRadius.circular(999),
+                          onTap: () => _pickYear(years, activeYear),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            child: Row(
+                              children: [
+                                Text('$activeYear', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF2BCDEE))),
+                                const Icon(Icons.keyboard_arrow_down, size: 18, color: Color(0xFF2BCDEE)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    if (moodCounts.isEmpty)
+                      const Text('暂无心情记录', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)))
+                    else
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: [
+                          for (final option in _momentMoodOptions)
+                            if (moodCounts.containsKey(option.label))
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: option.color.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Text('${option.emoji} ${option.label} ${moodCounts[option.label]}',
+                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: option.color)),
+                              ),
+                        ],
+                      ),
+                  ],
+                ),
               ),
+              const SizedBox(height: 16),
+              const Text('今日心情', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
               const SizedBox(height: 12),
               if (items.isEmpty)
                 const Padding(
@@ -366,6 +506,8 @@ class MomentCardData {
     required this.moodAccent,
     required this.title,
     required this.content,
+    required this.tags,
+    required this.recordDate,
     required this.imageUrl,
     required this.imageHeight,
   });
@@ -376,6 +518,8 @@ class MomentCardData {
   final Color moodAccent;
   final String title;
   final String content;
+  final List<String> tags;
+  final DateTime recordDate;
   final String imageUrl;
   final double imageHeight;
 }
@@ -387,8 +531,11 @@ class _MomentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasImage = item.imageUrl.trim().isNotEmpty;
+    final contentText = item.content.trim().isEmpty ? '暂无内容' : item.content.trim();
+    final compactContent = contentText.length > 100 ? '${contentText.substring(0, 100)}…' : contentText;
     return Material(
-      color: Colors.white,
+      color: item.moodColor,
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
@@ -406,10 +553,11 @@ class _MomentCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                child: SizedBox(height: item.imageHeight, child: _buildLocalImage(item.imageUrl, fit: BoxFit.cover)),
-              ),
+              if (hasImage)
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  child: SizedBox(height: item.imageHeight, child: _buildLocalImage(item.imageUrl, fit: BoxFit.cover)),
+                ),
               Padding(
                 padding: const EdgeInsets.all(12),
                 child: Column(
@@ -433,10 +581,29 @@ class _MomentCard extends StatelessWidget {
                     Text(item.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
                     const SizedBox(height: 6),
                     Text(
-                      item.content,
+                      hasImage ? contentText : compactContent,
                       style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF6B7280), height: 1.4),
-                      maxLines: 2,
+                      maxLines: hasImage ? 2 : 4,
                       overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 10),
+                    if (item.tags.isNotEmpty)
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          for (final tag in item.tags)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(999)),
+                              child: Text('#$tag', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
+                            ),
+                        ],
+                      ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _formatMomentCardDate(item.recordDate),
+                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)),
                     ),
                   ],
                 ),
@@ -502,6 +669,7 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
         moodAccent: widget.item?.moodAccent ?? const Color(0xFF475569),
         title: widget.item?.title ?? '小确幸',
         content: widget.item?.content ?? '',
+        tags: widget.item?.tags ?? const [],
         linkChips: const [],
         onEdit: null,
         poiName: '',
@@ -529,6 +697,7 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
             moodAccent: const Color(0xFF475569),
             title: '记录不存在或已删除',
             content: '',
+            tags: const [],
             linkChips: const [],
             onEdit: null,
             poiName: '',
@@ -548,6 +717,7 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
         final moodColor = moodAccent.withValues(alpha: 0.12);
         final title = _momentTitle(record);
         final content = _momentContent(record);
+        final tags = _parseSceneTags(record.sceneTag);
         final poiName = (record.poiName ?? '').trim().isNotEmpty ? record.poiName!.trim() : (record.city ?? '').trim();
         final poiAddress = (record.poiAddress ?? '').trim();
         final latitude = record.latitude;
@@ -606,6 +776,7 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
                               moodAccent: moodAccent,
                               title: title,
                               content: content,
+                              tags: tags,
                               linkChips: linkChips,
                               onEdit: () {
                                 Navigator.of(context).push(
@@ -667,6 +838,7 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
     required Color moodAccent,
     required String title,
     required String content,
+    required List<String> tags,
     required List<String> linkChips,
     required VoidCallback? onEdit,
     required String poiName,
@@ -760,13 +932,21 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
               const SizedBox(height: 14),
 
               // 3. 标签
-              Row(
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(color: moodColor, borderRadius: BorderRadius.circular(999)),
                     child: Text(moodName, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: moodAccent)),
                   ),
+                  for (final tag in tags)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(999)),
+                      child: Text('#$tag', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
+                    ),
                 ],
               ),
               const SizedBox(height: 14),
@@ -1047,16 +1227,13 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
   }
 
   String _momentTitle(MomentRecord record) {
-    final content = (record.content ?? '').trim();
-    if (content.isEmpty) return '小确幸';
-    final lines = content.split('\n').where((line) => line.trim().isNotEmpty).toList();
-    return lines.isEmpty ? '小确幸' : lines.first.trim();
+    final split = _splitMomentText(record.content);
+    return split.title.isEmpty ? '小确幸' : split.title;
   }
 
   String _momentContent(MomentRecord record) {
-    final content = (record.content ?? '').trim();
-    if (content.isEmpty) return '';
-    return content;
+    final split = _splitMomentText(record.content);
+    return split.content;
   }
 
   Map<String, List<String>> _groupLinkIds(List<EntityLink> links, String entityType, String entityId) {
@@ -1156,7 +1333,7 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
   double? _longitude;
 
   final List<String> _tags = ['读书', '搬家', '桌面布置', '电影'];
-  int _selectedTagIndex = 0;
+  final Set<String> _selectedTags = {};
 
   final List<String> _imageUrls = [];
 
@@ -1165,13 +1342,7 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
   final Set<String> _linkedTravelIds = {};
   final Set<String> _linkedGoalIds = {};
 
-  static const _moods = <_MoodOption>[
-    _MoodOption(label: '开心', emoji: '😊', color: Color(0xFF2BCDEE)),
-    _MoodOption(label: '平静', emoji: '😌', color: Color(0xFF22C55E)),
-    _MoodOption(label: '治愈', emoji: '🌿', color: Color(0xFF60A5FA)),
-    _MoodOption(label: '思考', emoji: '🤔', color: Color(0xFFA855F7)),
-    _MoodOption(label: '放空', emoji: '☁️', color: Color(0xFF64748B)),
-  ];
+  static const _moods = _momentMoodOptions;
   int _selectedMoodIndex = 0;
 
   @override
@@ -1190,12 +1361,14 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
       _imageUrls
         ..clear()
         ..addAll(_parseMomentImages(record.images));
-      final tag = (record.sceneTag ?? '').trim();
-      if (tag.isNotEmpty) {
-        if (!_tags.contains(tag)) {
-          _tags.insert(0, tag);
+      final tags = _parseSceneTags(record.sceneTag);
+      if (tags.isNotEmpty) {
+        for (final tag in tags) {
+          if (!_tags.contains(tag)) {
+            _tags.insert(0, tag);
+          }
+          _selectedTags.add(tag);
         }
-        _selectedTagIndex = _tags.indexOf(tag).clamp(0, _tags.length - 1);
       }
       final moodIndex = _moods.indexWhere((m) => m.label == record.mood);
       if (moodIndex >= 0) {
@@ -1365,7 +1538,7 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
     if (tag.isEmpty) return;
     setState(() {
       _tags.insert(0, tag);
-      _selectedTagIndex = 0;
+      _selectedTags.add(tag);
     });
   }
 
@@ -1536,7 +1709,8 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
     final mergedContent = content.isEmpty ? title : '$title\n\n$content';
 
     final mood = _moods[_selectedMoodIndex];
-    final tag = _tags.isEmpty ? null : _tags[_selectedTagIndex.clamp(0, _tags.length - 1)];
+    final selectedTags = _tags.where(_selectedTags.contains).toList();
+    final tag = _encodeSceneTags(selectedTags);
     final locationName = _locationName.trim();
     final locationAddress = _locationAddress.trim();
     final location = locationName.isNotEmpty ? locationName : locationAddress;
@@ -1550,7 +1724,7 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
         images: Value(_imageUrls.isEmpty ? null : jsonEncode(_imageUrls)),
         mood: mood.label,
         moodColor: Value('#${mood.color.toARGB32().toRadixString(16).padLeft(8, '0')}'),
-        sceneTag: Value(tag?.trim().isEmpty == true ? null : tag),
+        sceneTag: Value(tag),
         poiName: Value(locationName.isEmpty ? null : locationName),
         poiAddress: Value(locationAddress.isEmpty ? null : locationAddress),
         city: Value(location.isEmpty ? null : location),
@@ -1709,10 +1883,19 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemBuilder: (context, index) {
-                        final selected = index == _selectedTagIndex;
+                        final tag = _tags[index];
+                        final selected = _selectedTags.contains(tag);
                         return InkWell(
                           borderRadius: BorderRadius.circular(999),
-                          onTap: () => setState(() => _selectedTagIndex = index),
+                          onTap: () {
+                            setState(() {
+                              if (selected) {
+                                _selectedTags.remove(tag);
+                              } else {
+                                _selectedTags.add(tag);
+                              }
+                            });
+                          },
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                             decoration: BoxDecoration(
@@ -1721,7 +1904,7 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
                               border: Border.all(color: selected ? const Color(0xFF2BCDEE).withValues(alpha: 0.25) : const Color(0xFFF3F4F6)),
                             ),
                             child: Text(
-                              '# ${_tags[index]}',
+                              '# $tag',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w800,
