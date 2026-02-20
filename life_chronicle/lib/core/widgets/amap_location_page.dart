@@ -141,14 +141,6 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
     Future.microtask(_bootstrap);
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    _poiNameController.dispose();
-    _addressController.dispose();
-    super.dispose();
-  }
-
   Future<void> _bootstrap() async {
     if (!kIsWeb && Platform.isAndroid) {
       final sdk = await _DeviceInfo.getAndroidSdkInt();
@@ -190,6 +182,14 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
         _sdkErrorText = '$e';
       });
     }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _poiNameController.dispose();
+    _addressController.dispose();
+    super.dispose();
   }
 
   void _syncMarkerAndCamera() {
@@ -435,6 +435,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
     final mapTargetLat = _pickedLatitude ?? 39.908722;
     final mapTargetLng = _pickedLongitude ?? 116.397499;
     final canUseNativeMap = !_disableNativeMap && _hasMapKey;
+    final canUseStaticPreview = _disableNativeMap && _hasWebKey;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8F8),
@@ -465,15 +466,56 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
               height: 220,
               color: Colors.white,
               child: !canUseNativeMap
-                  ? Center(
-                      child: Text(
-                        _disableNativeMap
-                            ? '当前系统版本（Android ${_androidSdkInt ?? '-'}）暂不支持内嵌地图预览，可使用外部导航'
-                            : '未配置高德 Key',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF64748B), height: 1.4),
-                      ),
-                    )
+                  ? (canUseStaticPreview
+                      ? Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Image.network(
+                              Uri.https('restapi.amap.com', '/v3/staticmap', {
+                                'location': '$mapTargetLng,$mapTargetLat',
+                                'zoom': '15',
+                                'size': '600*300',
+                                'scale': '2',
+                                'markers': 'mid,,A:$mapTargetLng,$mapTargetLat',
+                                'key': _amapWebKey,
+                              }).toString(),
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Center(
+                                  child: Text(
+                                    '静态地图加载失败，可使用外部导航',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF64748B), height: 1.4),
+                                  ),
+                                );
+                              },
+                            ),
+                            Positioned(
+                              left: 10,
+                              top: 10,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.55),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Text(
+                                  'Android ${_androidSdkInt ?? '-'}：静态预览',
+                                  style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800),
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      : Center(
+                          child: Text(
+                            _disableNativeMap
+                                ? '当前系统版本（Android ${_androidSdkInt ?? '-'}）暂不支持内嵌地图预览，可使用外部导航'
+                                : '未配置高德 Key',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF64748B), height: 1.4),
+                          ),
+                        ))
                   : (_sdkErrorText.isNotEmpty
                       ? Center(
                           child: Text(
