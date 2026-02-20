@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:amap_flutter/amap_flutter.dart' as amap;
+import 'package:amap_flutter_base/amap_flutter_base.dart' as amap_base;
+import 'package:amap_flutter_map/amap_flutter_map.dart' as amap;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class AmapLocationPickResult {
@@ -103,13 +103,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
   double? _pickedLongitude;
 
   amap.AMapController? _mapController;
-  var _sdkReady = false;
-  var _sdkErrorText = '';
-  int? _androidSdkInt;
-  var _disableNativeMap = false;
-
-  bool get _hasMapKey {
-    if (kIsWeb) return _amapWebKey.trim().isNotEmpty;
+  bool get _hasNativeKey {
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
         return _amapAndroidKey.trim().isNotEmpty;
@@ -138,50 +132,6 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
       _pickedLongitude = widget.initialLongitude;
       _searchController.text = widget.initialPoiName.trim().isNotEmpty ? widget.initialPoiName.trim() : widget.initialAddress.trim();
     }
-    Future.microtask(_bootstrap);
-  }
-
-  Future<void> _bootstrap() async {
-    if (!kIsWeb && Platform.isAndroid) {
-      final sdk = await _DeviceInfo.getAndroidSdkInt();
-      if (!mounted) return;
-      _androidSdkInt = sdk;
-      if (sdk != null && sdk >= 35) {
-        setState(() {
-          _disableNativeMap = true;
-          _sdkReady = false;
-          _sdkErrorText = '';
-        });
-        return;
-      }
-    }
-    await _initAmapSdk();
-  }
-
-  Future<void> _initAmapSdk() async {
-    if (_disableNativeMap) return;
-    if (!_hasMapKey) return;
-    try {
-      await amap.AMapFlutter.init(
-        apiKey: amap.ApiKey(
-          iosKey: _amapIosKey,
-          androidKey: _amapAndroidKey,
-          webKey: _amapWebKey,
-        ),
-        agreePrivacy: true,
-      );
-      if (!mounted) return;
-      setState(() {
-        _sdkReady = true;
-        _sdkErrorText = '';
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _sdkReady = false;
-        _sdkErrorText = '$e';
-      });
-    }
   }
 
   @override
@@ -192,25 +142,30 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
     super.dispose();
   }
 
-  void _syncMarkerAndCamera() {
-    final controller = _mapController;
-    if (controller == null) return;
-    controller.removeMarker('picked');
+  Set<amap.Marker> get _pickedMarkers {
     final lat = _pickedLatitude;
     final lng = _pickedLongitude;
-    if (lat == null || lng == null) return;
-    controller.addMarker(
+    if (lat == null || lng == null) return <amap.Marker>{};
+    return {
       amap.Marker(
-        id: 'picked',
-        position: amap.Position(latitude: lat, longitude: lng),
+        position: amap_base.LatLng(lat, lng),
       ),
-    );
+    };
+  }
+
+  void _syncMarkerAndCamera() {
+    final controller = _mapController;
+    final lat = _pickedLatitude;
+    final lng = _pickedLongitude;
+    if (controller == null || lat == null || lng == null) return;
     controller.moveCamera(
-      amap.CameraPosition(
-        position: amap.Position(latitude: lat, longitude: lng),
-        zoom: 15,
+      amap.CameraUpdate.newCameraPosition(
+        amap.CameraPosition(
+          target: amap_base.LatLng(lat, lng),
+          zoom: 15,
+        ),
       ),
-      const Duration(milliseconds: 220),
+      duration: 220,
     );
   }
 
@@ -434,8 +389,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
 
     final mapTargetLat = _pickedLatitude ?? 39.908722;
     final mapTargetLng = _pickedLongitude ?? 116.397499;
-    final canUseNativeMap = !_disableNativeMap && _hasMapKey;
-    final canUseStaticPreview = _disableNativeMap && _hasWebKey;
+    final canUseNativeMap = !kIsWeb && _hasNativeKey;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8F8),
@@ -466,95 +420,62 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
               height: 220,
               color: Colors.white,
               child: !canUseNativeMap
-                  ? (canUseStaticPreview
-                      ? Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            Image.network(
-                              Uri.https('restapi.amap.com', '/v3/staticmap', {
-                                'location': '$mapTargetLng,$mapTargetLat',
-                                'zoom': '15',
-                                'size': '600*300',
-                                'scale': '2',
-                                'markers': 'mid,,A:$mapTargetLng,$mapTargetLat',
-                                'key': _amapWebKey,
-                              }).toString(),
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Center(
-                                  child: Text(
-                                    '静态地图加载失败，可使用外部导航',
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF64748B), height: 1.4),
-                                  ),
-                                );
-                              },
-                            ),
-                            Positioned(
-                              left: 10,
-                              top: 10,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.55),
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                                child: Text(
-                                  'Android ${_androidSdkInt ?? '-'}：静态预览',
-                                  style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800),
-                                ),
-                              ),
-                            ),
-                          ],
-                        )
-                      : Center(
-                          child: Text(
-                            _disableNativeMap
-                                ? '当前系统版本（Android ${_androidSdkInt ?? '-'}）暂不支持内嵌地图预览，可使用外部导航'
-                                : '未配置高德 Key',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF64748B), height: 1.4),
+                  ? Center(
+                      child: Text(
+                        kIsWeb ? 'Web 暂不支持内嵌地图' : '未配置高德 Key',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF64748B), height: 1.4),
+                      ),
+                    )
+                  : Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        amap.AMapWidget(
+                          privacyStatement: const amap_base.AMapPrivacyStatement(hasContains: true, hasShow: true, hasAgree: true),
+                          apiKey: amap_base.AMapApiKey(androidKey: _amapAndroidKey, iosKey: _amapIosKey),
+                          initialCameraPosition: amap.CameraPosition(
+                            target: amap_base.LatLng(mapTargetLat, mapTargetLng),
+                            zoom: 15,
                           ),
-                        ))
-                  : (_sdkErrorText.isNotEmpty
-                      ? Center(
-                          child: Text(
-                            _sdkErrorText,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFFEF4444)),
-                          ),
-                        )
-                      : (!_sdkReady
-                          ? const Center(child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)))
-                          : amap.AMapFlutter(
-                              initCameraPosition: amap.CameraPosition(
-                                position: amap.Position(latitude: mapTargetLat, longitude: mapTargetLng),
-                                zoom: 15,
-                              ),
-                              onMapCreated: (controller) {
-                                _mapController = controller;
-                                _syncMarkerAndCamera();
-                              },
-                              onPoiClick: isPreview
-                                  ? null
-                                  : (poi) {
-                                      setState(() {
-                                        _poiNameController.text = poi.name;
-                                        _pickedLatitude = poi.position.latitude;
-                                        _pickedLongitude = poi.position.longitude;
-                                      });
-                                      _syncMarkerAndCamera();
-                                    },
-                              onMapLongPress: isPreview
-                                  ? null
-                                  : (position) {
-                                      setState(() {
-                                        _pickedLatitude = position.latitude;
-                                        _pickedLongitude = position.longitude;
-                                      });
-                                      _syncMarkerAndCamera();
-                                    },
-                            ))),
+                          myLocationStyleOptions: amap.MyLocationStyleOptions(true),
+                          markers: isPreview ? _pickedMarkers : <amap.Marker>{},
+                          onMapCreated: (controller) {
+                            _mapController = controller;
+                            _syncMarkerAndCamera();
+                          },
+                          onPoiTouched: isPreview
+                              ? null
+                              : (poi) {
+                                  final latLng = poi.latLng;
+                                  if (latLng == null) return;
+                                  setState(() {
+                                    _poiNameController.text = (poi.name ?? '').trim();
+                                    _pickedLatitude = latLng.latitude;
+                                    _pickedLongitude = latLng.longitude;
+                                  });
+                                  _syncMarkerAndCamera();
+                                },
+                          onLongPress: isPreview
+                              ? null
+                              : (position) {
+                                  setState(() {
+                                    _pickedLatitude = position.latitude;
+                                    _pickedLongitude = position.longitude;
+                                  });
+                                  _syncMarkerAndCamera();
+                                },
+                          onCameraMoveEnd: isPreview
+                              ? null
+                              : (position) {
+                                  setState(() {
+                                    _pickedLatitude = position.target.latitude;
+                                    _pickedLongitude = position.target.longitude;
+                                  });
+                                },
+                        ),
+                        if (!isPreview) Center(child: Icon(Icons.place, color: _primary, size: 32)),
+                      ],
+                    ),
             ),
           ),
           const SizedBox(height: 12),
@@ -706,21 +627,6 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
             )
           : null,
     );
-  }
-}
-
-class _DeviceInfo {
-  static const MethodChannel _channel = MethodChannel('life_chronicle/device');
-
-  static Future<int?> getAndroidSdkInt() async {
-    if (!Platform.isAndroid) return null;
-    try {
-      final v = await _channel.invokeMethod<dynamic>('getAndroidSdkInt');
-      if (v is int) return v;
-      return int.tryParse('$v');
-    } catch (_) {
-      return null;
-    }
   }
 }
 

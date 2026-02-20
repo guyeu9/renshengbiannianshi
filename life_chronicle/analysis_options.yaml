@@ -4,5 +4,6 @@ analyzer:
   exclude:
     - _toolchain/**
     - windows_bak/**
+    - plugins/**
   errors:
     deprecated_member_use: ignore

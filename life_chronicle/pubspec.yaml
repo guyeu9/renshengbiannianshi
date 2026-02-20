@@ -22,7 +22,10 @@ dependencies:
   uuid: ^4.4.2
   share_plus: ^12.0.1
   url_launcher: ^6.3.0
-  amap_flutter: ^0.7.0
+  amap_flutter_base:
+    path: plugins/amap_flutter_base
+  amap_flutter_map:
+    path: plugins/amap_flutter_map
 
 dev_dependencies:
   flutter_test:
@@ -30,6 +33,10 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   build_runner: ^2.4.11
   drift_dev: ^2.20.0
+
+dependency_overrides:
+  amap_flutter_base:
+    path: plugins/amap_flutter_base
 
 flutter:
   uses-material-design: true
