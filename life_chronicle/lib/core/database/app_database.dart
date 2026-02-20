@@ -19,7 +19,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.connect(super.executor);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6; // 升级到 6，触发全量检查
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
