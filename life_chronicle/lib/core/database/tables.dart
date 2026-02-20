@@ -12,6 +12,7 @@ class FoodRecords extends Table {
   RealColumn get latitude => real().nullable()();
   RealColumn get longitude => real().nullable()();
   TextColumn get poiName => text().nullable()();
+  TextColumn get poiAddress => text().nullable()();
   TextColumn get city => text().nullable()();
   TextColumn get mood => text().nullable()();
   BoolColumn get isWishlist => boolean().withDefault(const Constant(false))();
@@ -33,6 +34,8 @@ class MomentRecords extends Table {
   TextColumn get mood => text()();
   TextColumn get moodColor => text().nullable()();
   TextColumn get sceneTag => text().nullable()();
+  TextColumn get poiName => text().nullable()();
+  TextColumn get poiAddress => text().nullable()();
   RealColumn get latitude => real().nullable()();
   RealColumn get longitude => real().nullable()();
   TextColumn get city => text().nullable()();
@@ -74,6 +77,8 @@ class TravelRecords extends Table {
   TextColumn get content => text().nullable()();
   TextColumn get images => text().nullable()();
   TextColumn get destination => text().nullable()();
+  TextColumn get poiName => text().nullable()();
+  TextColumn get poiAddress => text().nullable()();
   RealColumn get latitude => real().nullable()();
   RealColumn get longitude => real().nullable()();
   TextColumn get city => text().nullable()();
@@ -116,6 +121,10 @@ class TimelineEvents extends Table {
   DateTimeColumn get startAt => dateTime().nullable()();
   DateTimeColumn get endAt => dateTime().nullable()();
   TextColumn get note => text().nullable()();
+  TextColumn get poiName => text().nullable()();
+  TextColumn get poiAddress => text().nullable()();
+  RealColumn get latitude => real().nullable()();
+  RealColumn get longitude => real().nullable()();
   DateTimeColumn get recordDate => dateTime()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();

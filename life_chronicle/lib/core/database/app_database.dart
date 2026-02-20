@@ -20,7 +20,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.connect(super.executor);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -46,6 +46,35 @@ class AppDatabase extends _$AppDatabase {
               await m.addColumn(momentRecords, momentRecords.isFavorite);
               await m.addColumn(friendRecords, friendRecords.isFavorite);
               await m.addColumn(travelRecords, travelRecords.isFavorite);
+            },
+            5: (m) async {
+              await m.addColumn(foodRecords, foodRecords.poiName);
+              await m.addColumn(foodRecords, foodRecords.poiAddress);
+              await m.addColumn(momentRecords, momentRecords.poiName);
+              await m.addColumn(momentRecords, momentRecords.poiAddress);
+              await m.addColumn(momentRecords, momentRecords.latitude);
+              await m.addColumn(momentRecords, momentRecords.longitude);
+              await m.addColumn(travelRecords, travelRecords.poiName);
+              await m.addColumn(travelRecords, travelRecords.poiAddress);
+              await m.addColumn(travelRecords, travelRecords.latitude);
+              await m.addColumn(travelRecords, travelRecords.longitude);
+              await m.addColumn(timelineEvents, timelineEvents.poiName);
+              await m.addColumn(timelineEvents, timelineEvents.poiAddress);
+              await m.addColumn(timelineEvents, timelineEvents.latitude);
+              await m.addColumn(timelineEvents, timelineEvents.longitude);
+
+              await customStatement(
+                'UPDATE food_records SET poi_address = city WHERE poi_address IS NULL AND city IS NOT NULL',
+              );
+              await customStatement(
+                'UPDATE food_records SET poi_name = city WHERE poi_name IS NULL AND city IS NOT NULL',
+              );
+              await customStatement(
+                'UPDATE moment_records SET poi_name = city WHERE poi_name IS NULL AND city IS NOT NULL',
+              );
+              await customStatement(
+                'UPDATE travel_records SET poi_name = destination WHERE poi_name IS NULL AND destination IS NOT NULL',
+              );
             },
           };
           await runMigrationSteps(m, from, to, steps: steps);

@@ -69,6 +69,12 @@ class $FoodRecordsTable extends FoodRecords
   late final GeneratedColumn<String> poiName = GeneratedColumn<String>(
       'poi_name', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _poiAddressMeta =
+      const VerificationMeta('poiAddress');
+  @override
+  late final GeneratedColumn<String> poiAddress = GeneratedColumn<String>(
+      'poi_address', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _cityMeta = const VerificationMeta('city');
   @override
   late final GeneratedColumn<String> city = GeneratedColumn<String>(
@@ -150,6 +156,7 @@ class $FoodRecordsTable extends FoodRecords
         latitude,
         longitude,
         poiName,
+        poiAddress,
         city,
         mood,
         isWishlist,
@@ -218,6 +225,12 @@ class $FoodRecordsTable extends FoodRecords
     if (data.containsKey('poi_name')) {
       context.handle(_poiNameMeta,
           poiName.isAcceptableOrUnknown(data['poi_name']!, _poiNameMeta));
+    }
+    if (data.containsKey('poi_address')) {
+      context.handle(
+          _poiAddressMeta,
+          poiAddress.isAcceptableOrUnknown(
+              data['poi_address']!, _poiAddressMeta));
     }
     if (data.containsKey('city')) {
       context.handle(
@@ -300,6 +313,8 @@ class $FoodRecordsTable extends FoodRecords
           .read(DriftSqlType.double, data['${effectivePrefix}longitude']),
       poiName: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}poi_name']),
+      poiAddress: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}poi_address']),
       city: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}city']),
       mood: attachedDatabase.typeMapping
@@ -339,6 +354,7 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
   final double? latitude;
   final double? longitude;
   final String? poiName;
+  final String? poiAddress;
   final String? city;
   final String? mood;
   final bool isWishlist;
@@ -360,6 +376,7 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
       this.latitude,
       this.longitude,
       this.poiName,
+      this.poiAddress,
       this.city,
       this.mood,
       required this.isWishlist,
@@ -400,6 +417,9 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
     }
     if (!nullToAbsent || poiName != null) {
       map['poi_name'] = Variable<String>(poiName);
+    }
+    if (!nullToAbsent || poiAddress != null) {
+      map['poi_address'] = Variable<String>(poiAddress);
     }
     if (!nullToAbsent || city != null) {
       map['city'] = Variable<String>(city);
@@ -442,6 +462,9 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
       poiName: poiName == null && nullToAbsent
           ? const Value.absent()
           : Value(poiName),
+      poiAddress: poiAddress == null && nullToAbsent
+          ? const Value.absent()
+          : Value(poiAddress),
       city: city == null && nullToAbsent ? const Value.absent() : Value(city),
       mood: mood == null && nullToAbsent ? const Value.absent() : Value(mood),
       isWishlist: Value(isWishlist),
@@ -469,6 +492,7 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
       latitude: serializer.fromJson<double?>(json['latitude']),
       longitude: serializer.fromJson<double?>(json['longitude']),
       poiName: serializer.fromJson<String?>(json['poiName']),
+      poiAddress: serializer.fromJson<String?>(json['poiAddress']),
       city: serializer.fromJson<String?>(json['city']),
       mood: serializer.fromJson<String?>(json['mood']),
       isWishlist: serializer.fromJson<bool>(json['isWishlist']),
@@ -495,6 +519,7 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
       'latitude': serializer.toJson<double?>(latitude),
       'longitude': serializer.toJson<double?>(longitude),
       'poiName': serializer.toJson<String?>(poiName),
+      'poiAddress': serializer.toJson<String?>(poiAddress),
       'city': serializer.toJson<String?>(city),
       'mood': serializer.toJson<String?>(mood),
       'isWishlist': serializer.toJson<bool>(isWishlist),
@@ -519,6 +544,7 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
           Value<double?> latitude = const Value.absent(),
           Value<double?> longitude = const Value.absent(),
           Value<String?> poiName = const Value.absent(),
+          Value<String?> poiAddress = const Value.absent(),
           Value<String?> city = const Value.absent(),
           Value<String?> mood = const Value.absent(),
           bool? isWishlist,
@@ -541,6 +567,7 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
         latitude: latitude.present ? latitude.value : this.latitude,
         longitude: longitude.present ? longitude.value : this.longitude,
         poiName: poiName.present ? poiName.value : this.poiName,
+        poiAddress: poiAddress.present ? poiAddress.value : this.poiAddress,
         city: city.present ? city.value : this.city,
         mood: mood.present ? mood.value : this.mood,
         isWishlist: isWishlist ?? this.isWishlist,
@@ -566,6 +593,8 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
       latitude: data.latitude.present ? data.latitude.value : this.latitude,
       longitude: data.longitude.present ? data.longitude.value : this.longitude,
       poiName: data.poiName.present ? data.poiName.value : this.poiName,
+      poiAddress:
+          data.poiAddress.present ? data.poiAddress.value : this.poiAddress,
       city: data.city.present ? data.city.value : this.city,
       mood: data.mood.present ? data.mood.value : this.mood,
       isWishlist:
@@ -597,6 +626,7 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
           ..write('latitude: $latitude, ')
           ..write('longitude: $longitude, ')
           ..write('poiName: $poiName, ')
+          ..write('poiAddress: $poiAddress, ')
           ..write('city: $city, ')
           ..write('mood: $mood, ')
           ..write('isWishlist: $isWishlist, ')
@@ -611,27 +641,29 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
   }
 
   @override
-  int get hashCode => Object.hash(
-      id,
-      title,
-      content,
-      images,
-      tags,
-      rating,
-      pricePerPerson,
-      link,
-      latitude,
-      longitude,
-      poiName,
-      city,
-      mood,
-      isWishlist,
-      isFavorite,
-      wishlistDone,
-      recordDate,
-      createdAt,
-      updatedAt,
-      isDeleted);
+  int get hashCode => Object.hashAll([
+        id,
+        title,
+        content,
+        images,
+        tags,
+        rating,
+        pricePerPerson,
+        link,
+        latitude,
+        longitude,
+        poiName,
+        poiAddress,
+        city,
+        mood,
+        isWishlist,
+        isFavorite,
+        wishlistDone,
+        recordDate,
+        createdAt,
+        updatedAt,
+        isDeleted
+      ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -647,6 +679,7 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
           other.latitude == this.latitude &&
           other.longitude == this.longitude &&
           other.poiName == this.poiName &&
+          other.poiAddress == this.poiAddress &&
           other.city == this.city &&
           other.mood == this.mood &&
           other.isWishlist == this.isWishlist &&
@@ -670,6 +703,7 @@ class FoodRecordsCompanion extends UpdateCompanion<FoodRecord> {
   final Value<double?> latitude;
   final Value<double?> longitude;
   final Value<String?> poiName;
+  final Value<String?> poiAddress;
   final Value<String?> city;
   final Value<String?> mood;
   final Value<bool> isWishlist;
@@ -692,6 +726,7 @@ class FoodRecordsCompanion extends UpdateCompanion<FoodRecord> {
     this.latitude = const Value.absent(),
     this.longitude = const Value.absent(),
     this.poiName = const Value.absent(),
+    this.poiAddress = const Value.absent(),
     this.city = const Value.absent(),
     this.mood = const Value.absent(),
     this.isWishlist = const Value.absent(),
@@ -715,6 +750,7 @@ class FoodRecordsCompanion extends UpdateCompanion<FoodRecord> {
     this.latitude = const Value.absent(),
     this.longitude = const Value.absent(),
     this.poiName = const Value.absent(),
+    this.poiAddress = const Value.absent(),
     this.city = const Value.absent(),
     this.mood = const Value.absent(),
     this.isWishlist = const Value.absent(),
@@ -742,6 +778,7 @@ class FoodRecordsCompanion extends UpdateCompanion<FoodRecord> {
     Expression<double>? latitude,
     Expression<double>? longitude,
     Expression<String>? poiName,
+    Expression<String>? poiAddress,
     Expression<String>? city,
     Expression<String>? mood,
     Expression<bool>? isWishlist,
@@ -765,6 +802,7 @@ class FoodRecordsCompanion extends UpdateCompanion<FoodRecord> {
       if (latitude != null) 'latitude': latitude,
       if (longitude != null) 'longitude': longitude,
       if (poiName != null) 'poi_name': poiName,
+      if (poiAddress != null) 'poi_address': poiAddress,
       if (city != null) 'city': city,
       if (mood != null) 'mood': mood,
       if (isWishlist != null) 'is_wishlist': isWishlist,
@@ -790,6 +828,7 @@ class FoodRecordsCompanion extends UpdateCompanion<FoodRecord> {
       Value<double?>? latitude,
       Value<double?>? longitude,
       Value<String?>? poiName,
+      Value<String?>? poiAddress,
       Value<String?>? city,
       Value<String?>? mood,
       Value<bool>? isWishlist,
@@ -812,6 +851,7 @@ class FoodRecordsCompanion extends UpdateCompanion<FoodRecord> {
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       poiName: poiName ?? this.poiName,
+      poiAddress: poiAddress ?? this.poiAddress,
       city: city ?? this.city,
       mood: mood ?? this.mood,
       isWishlist: isWishlist ?? this.isWishlist,
@@ -861,6 +901,9 @@ class FoodRecordsCompanion extends UpdateCompanion<FoodRecord> {
     if (poiName.present) {
       map['poi_name'] = Variable<String>(poiName.value);
     }
+    if (poiAddress.present) {
+      map['poi_address'] = Variable<String>(poiAddress.value);
+    }
     if (city.present) {
       map['city'] = Variable<String>(city.value);
     }
@@ -908,6 +951,7 @@ class FoodRecordsCompanion extends UpdateCompanion<FoodRecord> {
           ..write('latitude: $latitude, ')
           ..write('longitude: $longitude, ')
           ..write('poiName: $poiName, ')
+          ..write('poiAddress: $poiAddress, ')
           ..write('city: $city, ')
           ..write('mood: $mood, ')
           ..write('isWishlist: $isWishlist, ')
@@ -961,6 +1005,18 @@ class $MomentRecordsTable extends MomentRecords
   @override
   late final GeneratedColumn<String> sceneTag = GeneratedColumn<String>(
       'scene_tag', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _poiNameMeta =
+      const VerificationMeta('poiName');
+  @override
+  late final GeneratedColumn<String> poiName = GeneratedColumn<String>(
+      'poi_name', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _poiAddressMeta =
+      const VerificationMeta('poiAddress');
+  @override
+  late final GeneratedColumn<String> poiAddress = GeneratedColumn<String>(
+      'poi_address', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _latitudeMeta =
       const VerificationMeta('latitude');
@@ -1025,6 +1081,8 @@ class $MomentRecordsTable extends MomentRecords
         mood,
         moodColor,
         sceneTag,
+        poiName,
+        poiAddress,
         latitude,
         longitude,
         city,
@@ -1070,6 +1128,16 @@ class $MomentRecordsTable extends MomentRecords
     if (data.containsKey('scene_tag')) {
       context.handle(_sceneTagMeta,
           sceneTag.isAcceptableOrUnknown(data['scene_tag']!, _sceneTagMeta));
+    }
+    if (data.containsKey('poi_name')) {
+      context.handle(_poiNameMeta,
+          poiName.isAcceptableOrUnknown(data['poi_name']!, _poiNameMeta));
+    }
+    if (data.containsKey('poi_address')) {
+      context.handle(
+          _poiAddressMeta,
+          poiAddress.isAcceptableOrUnknown(
+              data['poi_address']!, _poiAddressMeta));
     }
     if (data.containsKey('latitude')) {
       context.handle(_latitudeMeta,
@@ -1134,6 +1202,10 @@ class $MomentRecordsTable extends MomentRecords
           .read(DriftSqlType.string, data['${effectivePrefix}mood_color']),
       sceneTag: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}scene_tag']),
+      poiName: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}poi_name']),
+      poiAddress: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}poi_address']),
       latitude: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}latitude']),
       longitude: attachedDatabase.typeMapping
@@ -1166,6 +1238,8 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
   final String mood;
   final String? moodColor;
   final String? sceneTag;
+  final String? poiName;
+  final String? poiAddress;
   final double? latitude;
   final double? longitude;
   final String? city;
@@ -1181,6 +1255,8 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
       required this.mood,
       this.moodColor,
       this.sceneTag,
+      this.poiName,
+      this.poiAddress,
       this.latitude,
       this.longitude,
       this.city,
@@ -1205,6 +1281,12 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
     }
     if (!nullToAbsent || sceneTag != null) {
       map['scene_tag'] = Variable<String>(sceneTag);
+    }
+    if (!nullToAbsent || poiName != null) {
+      map['poi_name'] = Variable<String>(poiName);
+    }
+    if (!nullToAbsent || poiAddress != null) {
+      map['poi_address'] = Variable<String>(poiAddress);
     }
     if (!nullToAbsent || latitude != null) {
       map['latitude'] = Variable<double>(latitude);
@@ -1238,6 +1320,12 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
       sceneTag: sceneTag == null && nullToAbsent
           ? const Value.absent()
           : Value(sceneTag),
+      poiName: poiName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(poiName),
+      poiAddress: poiAddress == null && nullToAbsent
+          ? const Value.absent()
+          : Value(poiAddress),
       latitude: latitude == null && nullToAbsent
           ? const Value.absent()
           : Value(latitude),
@@ -1263,6 +1351,8 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
       mood: serializer.fromJson<String>(json['mood']),
       moodColor: serializer.fromJson<String?>(json['moodColor']),
       sceneTag: serializer.fromJson<String?>(json['sceneTag']),
+      poiName: serializer.fromJson<String?>(json['poiName']),
+      poiAddress: serializer.fromJson<String?>(json['poiAddress']),
       latitude: serializer.fromJson<double?>(json['latitude']),
       longitude: serializer.fromJson<double?>(json['longitude']),
       city: serializer.fromJson<String?>(json['city']),
@@ -1283,6 +1373,8 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
       'mood': serializer.toJson<String>(mood),
       'moodColor': serializer.toJson<String?>(moodColor),
       'sceneTag': serializer.toJson<String?>(sceneTag),
+      'poiName': serializer.toJson<String?>(poiName),
+      'poiAddress': serializer.toJson<String?>(poiAddress),
       'latitude': serializer.toJson<double?>(latitude),
       'longitude': serializer.toJson<double?>(longitude),
       'city': serializer.toJson<String?>(city),
@@ -1301,6 +1393,8 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
           String? mood,
           Value<String?> moodColor = const Value.absent(),
           Value<String?> sceneTag = const Value.absent(),
+          Value<String?> poiName = const Value.absent(),
+          Value<String?> poiAddress = const Value.absent(),
           Value<double?> latitude = const Value.absent(),
           Value<double?> longitude = const Value.absent(),
           Value<String?> city = const Value.absent(),
@@ -1316,6 +1410,8 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
         mood: mood ?? this.mood,
         moodColor: moodColor.present ? moodColor.value : this.moodColor,
         sceneTag: sceneTag.present ? sceneTag.value : this.sceneTag,
+        poiName: poiName.present ? poiName.value : this.poiName,
+        poiAddress: poiAddress.present ? poiAddress.value : this.poiAddress,
         latitude: latitude.present ? latitude.value : this.latitude,
         longitude: longitude.present ? longitude.value : this.longitude,
         city: city.present ? city.value : this.city,
@@ -1333,6 +1429,9 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
       mood: data.mood.present ? data.mood.value : this.mood,
       moodColor: data.moodColor.present ? data.moodColor.value : this.moodColor,
       sceneTag: data.sceneTag.present ? data.sceneTag.value : this.sceneTag,
+      poiName: data.poiName.present ? data.poiName.value : this.poiName,
+      poiAddress:
+          data.poiAddress.present ? data.poiAddress.value : this.poiAddress,
       latitude: data.latitude.present ? data.latitude.value : this.latitude,
       longitude: data.longitude.present ? data.longitude.value : this.longitude,
       city: data.city.present ? data.city.value : this.city,
@@ -1355,6 +1454,8 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
           ..write('mood: $mood, ')
           ..write('moodColor: $moodColor, ')
           ..write('sceneTag: $sceneTag, ')
+          ..write('poiName: $poiName, ')
+          ..write('poiAddress: $poiAddress, ')
           ..write('latitude: $latitude, ')
           ..write('longitude: $longitude, ')
           ..write('city: $city, ')
@@ -1375,6 +1476,8 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
       mood,
       moodColor,
       sceneTag,
+      poiName,
+      poiAddress,
       latitude,
       longitude,
       city,
@@ -1393,6 +1496,8 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
           other.mood == this.mood &&
           other.moodColor == this.moodColor &&
           other.sceneTag == this.sceneTag &&
+          other.poiName == this.poiName &&
+          other.poiAddress == this.poiAddress &&
           other.latitude == this.latitude &&
           other.longitude == this.longitude &&
           other.city == this.city &&
@@ -1410,6 +1515,8 @@ class MomentRecordsCompanion extends UpdateCompanion<MomentRecord> {
   final Value<String> mood;
   final Value<String?> moodColor;
   final Value<String?> sceneTag;
+  final Value<String?> poiName;
+  final Value<String?> poiAddress;
   final Value<double?> latitude;
   final Value<double?> longitude;
   final Value<String?> city;
@@ -1426,6 +1533,8 @@ class MomentRecordsCompanion extends UpdateCompanion<MomentRecord> {
     this.mood = const Value.absent(),
     this.moodColor = const Value.absent(),
     this.sceneTag = const Value.absent(),
+    this.poiName = const Value.absent(),
+    this.poiAddress = const Value.absent(),
     this.latitude = const Value.absent(),
     this.longitude = const Value.absent(),
     this.city = const Value.absent(),
@@ -1443,6 +1552,8 @@ class MomentRecordsCompanion extends UpdateCompanion<MomentRecord> {
     required String mood,
     this.moodColor = const Value.absent(),
     this.sceneTag = const Value.absent(),
+    this.poiName = const Value.absent(),
+    this.poiAddress = const Value.absent(),
     this.latitude = const Value.absent(),
     this.longitude = const Value.absent(),
     this.city = const Value.absent(),
@@ -1464,6 +1575,8 @@ class MomentRecordsCompanion extends UpdateCompanion<MomentRecord> {
     Expression<String>? mood,
     Expression<String>? moodColor,
     Expression<String>? sceneTag,
+    Expression<String>? poiName,
+    Expression<String>? poiAddress,
     Expression<double>? latitude,
     Expression<double>? longitude,
     Expression<String>? city,
@@ -1481,6 +1594,8 @@ class MomentRecordsCompanion extends UpdateCompanion<MomentRecord> {
       if (mood != null) 'mood': mood,
       if (moodColor != null) 'mood_color': moodColor,
       if (sceneTag != null) 'scene_tag': sceneTag,
+      if (poiName != null) 'poi_name': poiName,
+      if (poiAddress != null) 'poi_address': poiAddress,
       if (latitude != null) 'latitude': latitude,
       if (longitude != null) 'longitude': longitude,
       if (city != null) 'city': city,
@@ -1500,6 +1615,8 @@ class MomentRecordsCompanion extends UpdateCompanion<MomentRecord> {
       Value<String>? mood,
       Value<String?>? moodColor,
       Value<String?>? sceneTag,
+      Value<String?>? poiName,
+      Value<String?>? poiAddress,
       Value<double?>? latitude,
       Value<double?>? longitude,
       Value<String?>? city,
@@ -1516,6 +1633,8 @@ class MomentRecordsCompanion extends UpdateCompanion<MomentRecord> {
       mood: mood ?? this.mood,
       moodColor: moodColor ?? this.moodColor,
       sceneTag: sceneTag ?? this.sceneTag,
+      poiName: poiName ?? this.poiName,
+      poiAddress: poiAddress ?? this.poiAddress,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       city: city ?? this.city,
@@ -1548,6 +1667,12 @@ class MomentRecordsCompanion extends UpdateCompanion<MomentRecord> {
     }
     if (sceneTag.present) {
       map['scene_tag'] = Variable<String>(sceneTag.value);
+    }
+    if (poiName.present) {
+      map['poi_name'] = Variable<String>(poiName.value);
+    }
+    if (poiAddress.present) {
+      map['poi_address'] = Variable<String>(poiAddress.value);
     }
     if (latitude.present) {
       map['latitude'] = Variable<double>(latitude.value);
@@ -1588,6 +1713,8 @@ class MomentRecordsCompanion extends UpdateCompanion<MomentRecord> {
           ..write('mood: $mood, ')
           ..write('moodColor: $moodColor, ')
           ..write('sceneTag: $sceneTag, ')
+          ..write('poiName: $poiName, ')
+          ..write('poiAddress: $poiAddress, ')
           ..write('latitude: $latitude, ')
           ..write('longitude: $longitude, ')
           ..write('city: $city, ')
@@ -2381,6 +2508,18 @@ class $TravelRecordsTable extends TravelRecords
   late final GeneratedColumn<String> destination = GeneratedColumn<String>(
       'destination', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _poiNameMeta =
+      const VerificationMeta('poiName');
+  @override
+  late final GeneratedColumn<String> poiName = GeneratedColumn<String>(
+      'poi_name', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _poiAddressMeta =
+      const VerificationMeta('poiAddress');
+  @override
+  late final GeneratedColumn<String> poiAddress = GeneratedColumn<String>(
+      'poi_address', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _latitudeMeta =
       const VerificationMeta('latitude');
   @override
@@ -2499,6 +2638,8 @@ class $TravelRecordsTable extends TravelRecords
         content,
         images,
         destination,
+        poiName,
+        poiAddress,
         latitude,
         longitude,
         city,
@@ -2554,6 +2695,16 @@ class $TravelRecordsTable extends TravelRecords
           _destinationMeta,
           destination.isAcceptableOrUnknown(
               data['destination']!, _destinationMeta));
+    }
+    if (data.containsKey('poi_name')) {
+      context.handle(_poiNameMeta,
+          poiName.isAcceptableOrUnknown(data['poi_name']!, _poiNameMeta));
+    }
+    if (data.containsKey('poi_address')) {
+      context.handle(
+          _poiAddressMeta,
+          poiAddress.isAcceptableOrUnknown(
+              data['poi_address']!, _poiAddressMeta));
     }
     if (data.containsKey('latitude')) {
       context.handle(_latitudeMeta,
@@ -2662,6 +2813,10 @@ class $TravelRecordsTable extends TravelRecords
           .read(DriftSqlType.string, data['${effectivePrefix}images']),
       destination: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}destination']),
+      poiName: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}poi_name']),
+      poiAddress: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}poi_address']),
       latitude: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}latitude']),
       longitude: attachedDatabase.typeMapping
@@ -2710,6 +2865,8 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
   final String? content;
   final String? images;
   final String? destination;
+  final String? poiName;
+  final String? poiAddress;
   final double? latitude;
   final double? longitude;
   final String? city;
@@ -2733,6 +2890,8 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
       this.content,
       this.images,
       this.destination,
+      this.poiName,
+      this.poiAddress,
       this.latitude,
       this.longitude,
       this.city,
@@ -2765,6 +2924,12 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
     }
     if (!nullToAbsent || destination != null) {
       map['destination'] = Variable<String>(destination);
+    }
+    if (!nullToAbsent || poiName != null) {
+      map['poi_name'] = Variable<String>(poiName);
+    }
+    if (!nullToAbsent || poiAddress != null) {
+      map['poi_address'] = Variable<String>(poiAddress);
     }
     if (!nullToAbsent || latitude != null) {
       map['latitude'] = Variable<double>(latitude);
@@ -2817,6 +2982,12 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
       destination: destination == null && nullToAbsent
           ? const Value.absent()
           : Value(destination),
+      poiName: poiName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(poiName),
+      poiAddress: poiAddress == null && nullToAbsent
+          ? const Value.absent()
+          : Value(poiAddress),
       latitude: latitude == null && nullToAbsent
           ? const Value.absent()
           : Value(latitude),
@@ -2860,6 +3031,8 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
       content: serializer.fromJson<String?>(json['content']),
       images: serializer.fromJson<String?>(json['images']),
       destination: serializer.fromJson<String?>(json['destination']),
+      poiName: serializer.fromJson<String?>(json['poiName']),
+      poiAddress: serializer.fromJson<String?>(json['poiAddress']),
       latitude: serializer.fromJson<double?>(json['latitude']),
       longitude: serializer.fromJson<double?>(json['longitude']),
       city: serializer.fromJson<String?>(json['city']),
@@ -2888,6 +3061,8 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
       'content': serializer.toJson<String?>(content),
       'images': serializer.toJson<String?>(images),
       'destination': serializer.toJson<String?>(destination),
+      'poiName': serializer.toJson<String?>(poiName),
+      'poiAddress': serializer.toJson<String?>(poiAddress),
       'latitude': serializer.toJson<double?>(latitude),
       'longitude': serializer.toJson<double?>(longitude),
       'city': serializer.toJson<String?>(city),
@@ -2914,6 +3089,8 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
           Value<String?> content = const Value.absent(),
           Value<String?> images = const Value.absent(),
           Value<String?> destination = const Value.absent(),
+          Value<String?> poiName = const Value.absent(),
+          Value<String?> poiAddress = const Value.absent(),
           Value<double?> latitude = const Value.absent(),
           Value<double?> longitude = const Value.absent(),
           Value<String?> city = const Value.absent(),
@@ -2937,6 +3114,8 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
         content: content.present ? content.value : this.content,
         images: images.present ? images.value : this.images,
         destination: destination.present ? destination.value : this.destination,
+        poiName: poiName.present ? poiName.value : this.poiName,
+        poiAddress: poiAddress.present ? poiAddress.value : this.poiAddress,
         latitude: latitude.present ? latitude.value : this.latitude,
         longitude: longitude.present ? longitude.value : this.longitude,
         city: city.present ? city.value : this.city,
@@ -2967,6 +3146,9 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
       images: data.images.present ? data.images.value : this.images,
       destination:
           data.destination.present ? data.destination.value : this.destination,
+      poiName: data.poiName.present ? data.poiName.value : this.poiName,
+      poiAddress:
+          data.poiAddress.present ? data.poiAddress.value : this.poiAddress,
       latitude: data.latitude.present ? data.latitude.value : this.latitude,
       longitude: data.longitude.present ? data.longitude.value : this.longitude,
       city: data.city.present ? data.city.value : this.city,
@@ -3007,6 +3189,8 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
           ..write('content: $content, ')
           ..write('images: $images, ')
           ..write('destination: $destination, ')
+          ..write('poiName: $poiName, ')
+          ..write('poiAddress: $poiAddress, ')
           ..write('latitude: $latitude, ')
           ..write('longitude: $longitude, ')
           ..write('city: $city, ')
@@ -3035,6 +3219,8 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
         content,
         images,
         destination,
+        poiName,
+        poiAddress,
         latitude,
         longitude,
         city,
@@ -3062,6 +3248,8 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
           other.content == this.content &&
           other.images == this.images &&
           other.destination == this.destination &&
+          other.poiName == this.poiName &&
+          other.poiAddress == this.poiAddress &&
           other.latitude == this.latitude &&
           other.longitude == this.longitude &&
           other.city == this.city &&
@@ -3087,6 +3275,8 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
   final Value<String?> content;
   final Value<String?> images;
   final Value<String?> destination;
+  final Value<String?> poiName;
+  final Value<String?> poiAddress;
   final Value<double?> latitude;
   final Value<double?> longitude;
   final Value<String?> city;
@@ -3111,6 +3301,8 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
     this.content = const Value.absent(),
     this.images = const Value.absent(),
     this.destination = const Value.absent(),
+    this.poiName = const Value.absent(),
+    this.poiAddress = const Value.absent(),
     this.latitude = const Value.absent(),
     this.longitude = const Value.absent(),
     this.city = const Value.absent(),
@@ -3136,6 +3328,8 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
     this.content = const Value.absent(),
     this.images = const Value.absent(),
     this.destination = const Value.absent(),
+    this.poiName = const Value.absent(),
+    this.poiAddress = const Value.absent(),
     this.latitude = const Value.absent(),
     this.longitude = const Value.absent(),
     this.city = const Value.absent(),
@@ -3165,6 +3359,8 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
     Expression<String>? content,
     Expression<String>? images,
     Expression<String>? destination,
+    Expression<String>? poiName,
+    Expression<String>? poiAddress,
     Expression<double>? latitude,
     Expression<double>? longitude,
     Expression<String>? city,
@@ -3190,6 +3386,8 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
       if (content != null) 'content': content,
       if (images != null) 'images': images,
       if (destination != null) 'destination': destination,
+      if (poiName != null) 'poi_name': poiName,
+      if (poiAddress != null) 'poi_address': poiAddress,
       if (latitude != null) 'latitude': latitude,
       if (longitude != null) 'longitude': longitude,
       if (city != null) 'city': city,
@@ -3217,6 +3415,8 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
       Value<String?>? content,
       Value<String?>? images,
       Value<String?>? destination,
+      Value<String?>? poiName,
+      Value<String?>? poiAddress,
       Value<double?>? latitude,
       Value<double?>? longitude,
       Value<String?>? city,
@@ -3241,6 +3441,8 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
       content: content ?? this.content,
       images: images ?? this.images,
       destination: destination ?? this.destination,
+      poiName: poiName ?? this.poiName,
+      poiAddress: poiAddress ?? this.poiAddress,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       city: city ?? this.city,
@@ -3281,6 +3483,12 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
     }
     if (destination.present) {
       map['destination'] = Variable<String>(destination.value);
+    }
+    if (poiName.present) {
+      map['poi_name'] = Variable<String>(poiName.value);
+    }
+    if (poiAddress.present) {
+      map['poi_address'] = Variable<String>(poiAddress.value);
     }
     if (latitude.present) {
       map['latitude'] = Variable<double>(latitude.value);
@@ -3345,6 +3553,8 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
           ..write('content: $content, ')
           ..write('images: $images, ')
           ..write('destination: $destination, ')
+          ..write('poiName: $poiName, ')
+          ..write('poiAddress: $poiAddress, ')
           ..write('latitude: $latitude, ')
           ..write('longitude: $longitude, ')
           ..write('city: $city, ')
@@ -3846,6 +4056,30 @@ class $TimelineEventsTable extends TimelineEvents
   late final GeneratedColumn<String> note = GeneratedColumn<String>(
       'note', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _poiNameMeta =
+      const VerificationMeta('poiName');
+  @override
+  late final GeneratedColumn<String> poiName = GeneratedColumn<String>(
+      'poi_name', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _poiAddressMeta =
+      const VerificationMeta('poiAddress');
+  @override
+  late final GeneratedColumn<String> poiAddress = GeneratedColumn<String>(
+      'poi_address', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _latitudeMeta =
+      const VerificationMeta('latitude');
+  @override
+  late final GeneratedColumn<double> latitude = GeneratedColumn<double>(
+      'latitude', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _longitudeMeta =
+      const VerificationMeta('longitude');
+  @override
+  late final GeneratedColumn<double> longitude = GeneratedColumn<double>(
+      'longitude', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
   static const VerificationMeta _recordDateMeta =
       const VerificationMeta('recordDate');
   @override
@@ -3882,6 +4116,10 @@ class $TimelineEventsTable extends TimelineEvents
         startAt,
         endAt,
         note,
+        poiName,
+        poiAddress,
+        latitude,
+        longitude,
         recordDate,
         createdAt,
         updatedAt,
@@ -3925,6 +4163,24 @@ class $TimelineEventsTable extends TimelineEvents
     if (data.containsKey('note')) {
       context.handle(
           _noteMeta, note.isAcceptableOrUnknown(data['note']!, _noteMeta));
+    }
+    if (data.containsKey('poi_name')) {
+      context.handle(_poiNameMeta,
+          poiName.isAcceptableOrUnknown(data['poi_name']!, _poiNameMeta));
+    }
+    if (data.containsKey('poi_address')) {
+      context.handle(
+          _poiAddressMeta,
+          poiAddress.isAcceptableOrUnknown(
+              data['poi_address']!, _poiAddressMeta));
+    }
+    if (data.containsKey('latitude')) {
+      context.handle(_latitudeMeta,
+          latitude.isAcceptableOrUnknown(data['latitude']!, _latitudeMeta));
+    }
+    if (data.containsKey('longitude')) {
+      context.handle(_longitudeMeta,
+          longitude.isAcceptableOrUnknown(data['longitude']!, _longitudeMeta));
     }
     if (data.containsKey('record_date')) {
       context.handle(
@@ -3971,6 +4227,14 @@ class $TimelineEventsTable extends TimelineEvents
           .read(DriftSqlType.dateTime, data['${effectivePrefix}end_at']),
       note: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}note']),
+      poiName: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}poi_name']),
+      poiAddress: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}poi_address']),
+      latitude: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}latitude']),
+      longitude: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}longitude']),
       recordDate: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}record_date'])!,
       createdAt: attachedDatabase.typeMapping
@@ -3995,6 +4259,10 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
   final DateTime? startAt;
   final DateTime? endAt;
   final String? note;
+  final String? poiName;
+  final String? poiAddress;
+  final double? latitude;
+  final double? longitude;
   final DateTime recordDate;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -4006,6 +4274,10 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
       this.startAt,
       this.endAt,
       this.note,
+      this.poiName,
+      this.poiAddress,
+      this.latitude,
+      this.longitude,
       required this.recordDate,
       required this.createdAt,
       required this.updatedAt,
@@ -4025,6 +4297,18 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
     if (!nullToAbsent || note != null) {
       map['note'] = Variable<String>(note);
     }
+    if (!nullToAbsent || poiName != null) {
+      map['poi_name'] = Variable<String>(poiName);
+    }
+    if (!nullToAbsent || poiAddress != null) {
+      map['poi_address'] = Variable<String>(poiAddress);
+    }
+    if (!nullToAbsent || latitude != null) {
+      map['latitude'] = Variable<double>(latitude);
+    }
+    if (!nullToAbsent || longitude != null) {
+      map['longitude'] = Variable<double>(longitude);
+    }
     map['record_date'] = Variable<DateTime>(recordDate);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -4043,6 +4327,18 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
       endAt:
           endAt == null && nullToAbsent ? const Value.absent() : Value(endAt),
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      poiName: poiName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(poiName),
+      poiAddress: poiAddress == null && nullToAbsent
+          ? const Value.absent()
+          : Value(poiAddress),
+      latitude: latitude == null && nullToAbsent
+          ? const Value.absent()
+          : Value(latitude),
+      longitude: longitude == null && nullToAbsent
+          ? const Value.absent()
+          : Value(longitude),
       recordDate: Value(recordDate),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -4060,6 +4356,10 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
       startAt: serializer.fromJson<DateTime?>(json['startAt']),
       endAt: serializer.fromJson<DateTime?>(json['endAt']),
       note: serializer.fromJson<String?>(json['note']),
+      poiName: serializer.fromJson<String?>(json['poiName']),
+      poiAddress: serializer.fromJson<String?>(json['poiAddress']),
+      latitude: serializer.fromJson<double?>(json['latitude']),
+      longitude: serializer.fromJson<double?>(json['longitude']),
       recordDate: serializer.fromJson<DateTime>(json['recordDate']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -4076,6 +4376,10 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
       'startAt': serializer.toJson<DateTime?>(startAt),
       'endAt': serializer.toJson<DateTime?>(endAt),
       'note': serializer.toJson<String?>(note),
+      'poiName': serializer.toJson<String?>(poiName),
+      'poiAddress': serializer.toJson<String?>(poiAddress),
+      'latitude': serializer.toJson<double?>(latitude),
+      'longitude': serializer.toJson<double?>(longitude),
       'recordDate': serializer.toJson<DateTime>(recordDate),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -4090,6 +4394,10 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
           Value<DateTime?> startAt = const Value.absent(),
           Value<DateTime?> endAt = const Value.absent(),
           Value<String?> note = const Value.absent(),
+          Value<String?> poiName = const Value.absent(),
+          Value<String?> poiAddress = const Value.absent(),
+          Value<double?> latitude = const Value.absent(),
+          Value<double?> longitude = const Value.absent(),
           DateTime? recordDate,
           DateTime? createdAt,
           DateTime? updatedAt,
@@ -4101,6 +4409,10 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
         startAt: startAt.present ? startAt.value : this.startAt,
         endAt: endAt.present ? endAt.value : this.endAt,
         note: note.present ? note.value : this.note,
+        poiName: poiName.present ? poiName.value : this.poiName,
+        poiAddress: poiAddress.present ? poiAddress.value : this.poiAddress,
+        latitude: latitude.present ? latitude.value : this.latitude,
+        longitude: longitude.present ? longitude.value : this.longitude,
         recordDate: recordDate ?? this.recordDate,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
@@ -4114,6 +4426,11 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
       startAt: data.startAt.present ? data.startAt.value : this.startAt,
       endAt: data.endAt.present ? data.endAt.value : this.endAt,
       note: data.note.present ? data.note.value : this.note,
+      poiName: data.poiName.present ? data.poiName.value : this.poiName,
+      poiAddress:
+          data.poiAddress.present ? data.poiAddress.value : this.poiAddress,
+      latitude: data.latitude.present ? data.latitude.value : this.latitude,
+      longitude: data.longitude.present ? data.longitude.value : this.longitude,
       recordDate:
           data.recordDate.present ? data.recordDate.value : this.recordDate,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
@@ -4131,6 +4448,10 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
           ..write('startAt: $startAt, ')
           ..write('endAt: $endAt, ')
           ..write('note: $note, ')
+          ..write('poiName: $poiName, ')
+          ..write('poiAddress: $poiAddress, ')
+          ..write('latitude: $latitude, ')
+          ..write('longitude: $longitude, ')
           ..write('recordDate: $recordDate, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -4140,8 +4461,21 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
   }
 
   @override
-  int get hashCode => Object.hash(id, title, eventType, startAt, endAt, note,
-      recordDate, createdAt, updatedAt, isDeleted);
+  int get hashCode => Object.hash(
+      id,
+      title,
+      eventType,
+      startAt,
+      endAt,
+      note,
+      poiName,
+      poiAddress,
+      latitude,
+      longitude,
+      recordDate,
+      createdAt,
+      updatedAt,
+      isDeleted);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -4152,6 +4486,10 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
           other.startAt == this.startAt &&
           other.endAt == this.endAt &&
           other.note == this.note &&
+          other.poiName == this.poiName &&
+          other.poiAddress == this.poiAddress &&
+          other.latitude == this.latitude &&
+          other.longitude == this.longitude &&
           other.recordDate == this.recordDate &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -4165,6 +4503,10 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
   final Value<DateTime?> startAt;
   final Value<DateTime?> endAt;
   final Value<String?> note;
+  final Value<String?> poiName;
+  final Value<String?> poiAddress;
+  final Value<double?> latitude;
+  final Value<double?> longitude;
   final Value<DateTime> recordDate;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -4177,6 +4519,10 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
     this.startAt = const Value.absent(),
     this.endAt = const Value.absent(),
     this.note = const Value.absent(),
+    this.poiName = const Value.absent(),
+    this.poiAddress = const Value.absent(),
+    this.latitude = const Value.absent(),
+    this.longitude = const Value.absent(),
     this.recordDate = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -4190,6 +4536,10 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
     this.startAt = const Value.absent(),
     this.endAt = const Value.absent(),
     this.note = const Value.absent(),
+    this.poiName = const Value.absent(),
+    this.poiAddress = const Value.absent(),
+    this.latitude = const Value.absent(),
+    this.longitude = const Value.absent(),
     required DateTime recordDate,
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -4208,6 +4558,10 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
     Expression<DateTime>? startAt,
     Expression<DateTime>? endAt,
     Expression<String>? note,
+    Expression<String>? poiName,
+    Expression<String>? poiAddress,
+    Expression<double>? latitude,
+    Expression<double>? longitude,
     Expression<DateTime>? recordDate,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -4221,6 +4575,10 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
       if (startAt != null) 'start_at': startAt,
       if (endAt != null) 'end_at': endAt,
       if (note != null) 'note': note,
+      if (poiName != null) 'poi_name': poiName,
+      if (poiAddress != null) 'poi_address': poiAddress,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
       if (recordDate != null) 'record_date': recordDate,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -4236,6 +4594,10 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
       Value<DateTime?>? startAt,
       Value<DateTime?>? endAt,
       Value<String?>? note,
+      Value<String?>? poiName,
+      Value<String?>? poiAddress,
+      Value<double?>? latitude,
+      Value<double?>? longitude,
       Value<DateTime>? recordDate,
       Value<DateTime>? createdAt,
       Value<DateTime>? updatedAt,
@@ -4248,6 +4610,10 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
       startAt: startAt ?? this.startAt,
       endAt: endAt ?? this.endAt,
       note: note ?? this.note,
+      poiName: poiName ?? this.poiName,
+      poiAddress: poiAddress ?? this.poiAddress,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
       recordDate: recordDate ?? this.recordDate,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -4277,6 +4643,18 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
     if (note.present) {
       map['note'] = Variable<String>(note.value);
     }
+    if (poiName.present) {
+      map['poi_name'] = Variable<String>(poiName.value);
+    }
+    if (poiAddress.present) {
+      map['poi_address'] = Variable<String>(poiAddress.value);
+    }
+    if (latitude.present) {
+      map['latitude'] = Variable<double>(latitude.value);
+    }
+    if (longitude.present) {
+      map['longitude'] = Variable<double>(longitude.value);
+    }
     if (recordDate.present) {
       map['record_date'] = Variable<DateTime>(recordDate.value);
     }
@@ -4304,6 +4682,10 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
           ..write('startAt: $startAt, ')
           ..write('endAt: $endAt, ')
           ..write('note: $note, ')
+          ..write('poiName: $poiName, ')
+          ..write('poiAddress: $poiAddress, ')
+          ..write('latitude: $latitude, ')
+          ..write('longitude: $longitude, ')
           ..write('recordDate: $recordDate, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -5185,6 +5567,7 @@ typedef $$FoodRecordsTableCreateCompanionBuilder = FoodRecordsCompanion
   Value<double?> latitude,
   Value<double?> longitude,
   Value<String?> poiName,
+  Value<String?> poiAddress,
   Value<String?> city,
   Value<String?> mood,
   Value<bool> isWishlist,
@@ -5209,6 +5592,7 @@ typedef $$FoodRecordsTableUpdateCompanionBuilder = FoodRecordsCompanion
   Value<double?> latitude,
   Value<double?> longitude,
   Value<String?> poiName,
+  Value<String?> poiAddress,
   Value<String?> city,
   Value<String?> mood,
   Value<bool> isWishlist,
@@ -5263,6 +5647,9 @@ class $$FoodRecordsTableFilterComposer
 
   ColumnFilters<String> get poiName => $composableBuilder(
       column: $table.poiName, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get poiAddress => $composableBuilder(
+      column: $table.poiAddress, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get city => $composableBuilder(
       column: $table.city, builder: (column) => ColumnFilters(column));
@@ -5335,6 +5722,9 @@ class $$FoodRecordsTableOrderingComposer
   ColumnOrderings<String> get poiName => $composableBuilder(
       column: $table.poiName, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get poiAddress => $composableBuilder(
+      column: $table.poiAddress, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get city => $composableBuilder(
       column: $table.city, builder: (column) => ColumnOrderings(column));
 
@@ -5406,6 +5796,9 @@ class $$FoodRecordsTableAnnotationComposer
   GeneratedColumn<String> get poiName =>
       $composableBuilder(column: $table.poiName, builder: (column) => column);
 
+  GeneratedColumn<String> get poiAddress => $composableBuilder(
+      column: $table.poiAddress, builder: (column) => column);
+
   GeneratedColumn<String> get city =>
       $composableBuilder(column: $table.city, builder: (column) => column);
 
@@ -5468,6 +5861,7 @@ class $$FoodRecordsTableTableManager extends RootTableManager<
             Value<double?> latitude = const Value.absent(),
             Value<double?> longitude = const Value.absent(),
             Value<String?> poiName = const Value.absent(),
+            Value<String?> poiAddress = const Value.absent(),
             Value<String?> city = const Value.absent(),
             Value<String?> mood = const Value.absent(),
             Value<bool> isWishlist = const Value.absent(),
@@ -5491,6 +5885,7 @@ class $$FoodRecordsTableTableManager extends RootTableManager<
             latitude: latitude,
             longitude: longitude,
             poiName: poiName,
+            poiAddress: poiAddress,
             city: city,
             mood: mood,
             isWishlist: isWishlist,
@@ -5514,6 +5909,7 @@ class $$FoodRecordsTableTableManager extends RootTableManager<
             Value<double?> latitude = const Value.absent(),
             Value<double?> longitude = const Value.absent(),
             Value<String?> poiName = const Value.absent(),
+            Value<String?> poiAddress = const Value.absent(),
             Value<String?> city = const Value.absent(),
             Value<String?> mood = const Value.absent(),
             Value<bool> isWishlist = const Value.absent(),
@@ -5537,6 +5933,7 @@ class $$FoodRecordsTableTableManager extends RootTableManager<
             latitude: latitude,
             longitude: longitude,
             poiName: poiName,
+            poiAddress: poiAddress,
             city: city,
             mood: mood,
             isWishlist: isWishlist,
@@ -5575,6 +5972,8 @@ typedef $$MomentRecordsTableCreateCompanionBuilder = MomentRecordsCompanion
   required String mood,
   Value<String?> moodColor,
   Value<String?> sceneTag,
+  Value<String?> poiName,
+  Value<String?> poiAddress,
   Value<double?> latitude,
   Value<double?> longitude,
   Value<String?> city,
@@ -5593,6 +5992,8 @@ typedef $$MomentRecordsTableUpdateCompanionBuilder = MomentRecordsCompanion
   Value<String> mood,
   Value<String?> moodColor,
   Value<String?> sceneTag,
+  Value<String?> poiName,
+  Value<String?> poiAddress,
   Value<double?> latitude,
   Value<double?> longitude,
   Value<String?> city,
@@ -5630,6 +6031,12 @@ class $$MomentRecordsTableFilterComposer
 
   ColumnFilters<String> get sceneTag => $composableBuilder(
       column: $table.sceneTag, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get poiName => $composableBuilder(
+      column: $table.poiName, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get poiAddress => $composableBuilder(
+      column: $table.poiAddress, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<double> get latitude => $composableBuilder(
       column: $table.latitude, builder: (column) => ColumnFilters(column));
@@ -5683,6 +6090,12 @@ class $$MomentRecordsTableOrderingComposer
   ColumnOrderings<String> get sceneTag => $composableBuilder(
       column: $table.sceneTag, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get poiName => $composableBuilder(
+      column: $table.poiName, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get poiAddress => $composableBuilder(
+      column: $table.poiAddress, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<double> get latitude => $composableBuilder(
       column: $table.latitude, builder: (column) => ColumnOrderings(column));
 
@@ -5734,6 +6147,12 @@ class $$MomentRecordsTableAnnotationComposer
 
   GeneratedColumn<String> get sceneTag =>
       $composableBuilder(column: $table.sceneTag, builder: (column) => column);
+
+  GeneratedColumn<String> get poiName =>
+      $composableBuilder(column: $table.poiName, builder: (column) => column);
+
+  GeneratedColumn<String> get poiAddress => $composableBuilder(
+      column: $table.poiAddress, builder: (column) => column);
 
   GeneratedColumn<double> get latitude =>
       $composableBuilder(column: $table.latitude, builder: (column) => column);
@@ -5792,6 +6211,8 @@ class $$MomentRecordsTableTableManager extends RootTableManager<
             Value<String> mood = const Value.absent(),
             Value<String?> moodColor = const Value.absent(),
             Value<String?> sceneTag = const Value.absent(),
+            Value<String?> poiName = const Value.absent(),
+            Value<String?> poiAddress = const Value.absent(),
             Value<double?> latitude = const Value.absent(),
             Value<double?> longitude = const Value.absent(),
             Value<String?> city = const Value.absent(),
@@ -5809,6 +6230,8 @@ class $$MomentRecordsTableTableManager extends RootTableManager<
             mood: mood,
             moodColor: moodColor,
             sceneTag: sceneTag,
+            poiName: poiName,
+            poiAddress: poiAddress,
             latitude: latitude,
             longitude: longitude,
             city: city,
@@ -5826,6 +6249,8 @@ class $$MomentRecordsTableTableManager extends RootTableManager<
             required String mood,
             Value<String?> moodColor = const Value.absent(),
             Value<String?> sceneTag = const Value.absent(),
+            Value<String?> poiName = const Value.absent(),
+            Value<String?> poiAddress = const Value.absent(),
             Value<double?> latitude = const Value.absent(),
             Value<double?> longitude = const Value.absent(),
             Value<String?> city = const Value.absent(),
@@ -5843,6 +6268,8 @@ class $$MomentRecordsTableTableManager extends RootTableManager<
             mood: mood,
             moodColor: moodColor,
             sceneTag: sceneTag,
+            poiName: poiName,
+            poiAddress: poiAddress,
             latitude: latitude,
             longitude: longitude,
             city: city,
@@ -6211,6 +6638,8 @@ typedef $$TravelRecordsTableCreateCompanionBuilder = TravelRecordsCompanion
   Value<String?> content,
   Value<String?> images,
   Value<String?> destination,
+  Value<String?> poiName,
+  Value<String?> poiAddress,
   Value<double?> latitude,
   Value<double?> longitude,
   Value<String?> city,
@@ -6237,6 +6666,8 @@ typedef $$TravelRecordsTableUpdateCompanionBuilder = TravelRecordsCompanion
   Value<String?> content,
   Value<String?> images,
   Value<String?> destination,
+  Value<String?> poiName,
+  Value<String?> poiAddress,
   Value<double?> latitude,
   Value<double?> longitude,
   Value<String?> city,
@@ -6282,6 +6713,12 @@ class $$TravelRecordsTableFilterComposer
 
   ColumnFilters<String> get destination => $composableBuilder(
       column: $table.destination, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get poiName => $composableBuilder(
+      column: $table.poiName, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get poiAddress => $composableBuilder(
+      column: $table.poiAddress, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<double> get latitude => $composableBuilder(
       column: $table.latitude, builder: (column) => ColumnFilters(column));
@@ -6359,6 +6796,12 @@ class $$TravelRecordsTableOrderingComposer
 
   ColumnOrderings<String> get destination => $composableBuilder(
       column: $table.destination, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get poiName => $composableBuilder(
+      column: $table.poiName, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get poiAddress => $composableBuilder(
+      column: $table.poiAddress, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<double> get latitude => $composableBuilder(
       column: $table.latitude, builder: (column) => ColumnOrderings(column));
@@ -6439,6 +6882,12 @@ class $$TravelRecordsTableAnnotationComposer
 
   GeneratedColumn<String> get destination => $composableBuilder(
       column: $table.destination, builder: (column) => column);
+
+  GeneratedColumn<String> get poiName =>
+      $composableBuilder(column: $table.poiName, builder: (column) => column);
+
+  GeneratedColumn<String> get poiAddress => $composableBuilder(
+      column: $table.poiAddress, builder: (column) => column);
 
   GeneratedColumn<double> get latitude =>
       $composableBuilder(column: $table.latitude, builder: (column) => column);
@@ -6521,6 +6970,8 @@ class $$TravelRecordsTableTableManager extends RootTableManager<
             Value<String?> content = const Value.absent(),
             Value<String?> images = const Value.absent(),
             Value<String?> destination = const Value.absent(),
+            Value<String?> poiName = const Value.absent(),
+            Value<String?> poiAddress = const Value.absent(),
             Value<double?> latitude = const Value.absent(),
             Value<double?> longitude = const Value.absent(),
             Value<String?> city = const Value.absent(),
@@ -6546,6 +6997,8 @@ class $$TravelRecordsTableTableManager extends RootTableManager<
             content: content,
             images: images,
             destination: destination,
+            poiName: poiName,
+            poiAddress: poiAddress,
             latitude: latitude,
             longitude: longitude,
             city: city,
@@ -6571,6 +7024,8 @@ class $$TravelRecordsTableTableManager extends RootTableManager<
             Value<String?> content = const Value.absent(),
             Value<String?> images = const Value.absent(),
             Value<String?> destination = const Value.absent(),
+            Value<String?> poiName = const Value.absent(),
+            Value<String?> poiAddress = const Value.absent(),
             Value<double?> latitude = const Value.absent(),
             Value<double?> longitude = const Value.absent(),
             Value<String?> city = const Value.absent(),
@@ -6596,6 +7051,8 @@ class $$TravelRecordsTableTableManager extends RootTableManager<
             content: content,
             images: images,
             destination: destination,
+            poiName: poiName,
+            poiAddress: poiAddress,
             latitude: latitude,
             longitude: longitude,
             city: city,
@@ -6855,6 +7312,10 @@ typedef $$TimelineEventsTableCreateCompanionBuilder = TimelineEventsCompanion
   Value<DateTime?> startAt,
   Value<DateTime?> endAt,
   Value<String?> note,
+  Value<String?> poiName,
+  Value<String?> poiAddress,
+  Value<double?> latitude,
+  Value<double?> longitude,
   required DateTime recordDate,
   required DateTime createdAt,
   required DateTime updatedAt,
@@ -6869,6 +7330,10 @@ typedef $$TimelineEventsTableUpdateCompanionBuilder = TimelineEventsCompanion
   Value<DateTime?> startAt,
   Value<DateTime?> endAt,
   Value<String?> note,
+  Value<String?> poiName,
+  Value<String?> poiAddress,
+  Value<double?> latitude,
+  Value<double?> longitude,
   Value<DateTime> recordDate,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
@@ -6902,6 +7367,18 @@ class $$TimelineEventsTableFilterComposer
 
   ColumnFilters<String> get note => $composableBuilder(
       column: $table.note, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get poiName => $composableBuilder(
+      column: $table.poiName, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get poiAddress => $composableBuilder(
+      column: $table.poiAddress, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get latitude => $composableBuilder(
+      column: $table.latitude, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get longitude => $composableBuilder(
+      column: $table.longitude, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get recordDate => $composableBuilder(
       column: $table.recordDate, builder: (column) => ColumnFilters(column));
@@ -6943,6 +7420,18 @@ class $$TimelineEventsTableOrderingComposer
   ColumnOrderings<String> get note => $composableBuilder(
       column: $table.note, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get poiName => $composableBuilder(
+      column: $table.poiName, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get poiAddress => $composableBuilder(
+      column: $table.poiAddress, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get latitude => $composableBuilder(
+      column: $table.latitude, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get longitude => $composableBuilder(
+      column: $table.longitude, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get recordDate => $composableBuilder(
       column: $table.recordDate, builder: (column) => ColumnOrderings(column));
 
@@ -6982,6 +7471,18 @@ class $$TimelineEventsTableAnnotationComposer
 
   GeneratedColumn<String> get note =>
       $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<String> get poiName =>
+      $composableBuilder(column: $table.poiName, builder: (column) => column);
+
+  GeneratedColumn<String> get poiAddress => $composableBuilder(
+      column: $table.poiAddress, builder: (column) => column);
+
+  GeneratedColumn<double> get latitude =>
+      $composableBuilder(column: $table.latitude, builder: (column) => column);
+
+  GeneratedColumn<double> get longitude =>
+      $composableBuilder(column: $table.longitude, builder: (column) => column);
 
   GeneratedColumn<DateTime> get recordDate => $composableBuilder(
       column: $table.recordDate, builder: (column) => column);
@@ -7029,6 +7530,10 @@ class $$TimelineEventsTableTableManager extends RootTableManager<
             Value<DateTime?> startAt = const Value.absent(),
             Value<DateTime?> endAt = const Value.absent(),
             Value<String?> note = const Value.absent(),
+            Value<String?> poiName = const Value.absent(),
+            Value<String?> poiAddress = const Value.absent(),
+            Value<double?> latitude = const Value.absent(),
+            Value<double?> longitude = const Value.absent(),
             Value<DateTime> recordDate = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
@@ -7042,6 +7547,10 @@ class $$TimelineEventsTableTableManager extends RootTableManager<
             startAt: startAt,
             endAt: endAt,
             note: note,
+            poiName: poiName,
+            poiAddress: poiAddress,
+            latitude: latitude,
+            longitude: longitude,
             recordDate: recordDate,
             createdAt: createdAt,
             updatedAt: updatedAt,
@@ -7055,6 +7564,10 @@ class $$TimelineEventsTableTableManager extends RootTableManager<
             Value<DateTime?> startAt = const Value.absent(),
             Value<DateTime?> endAt = const Value.absent(),
             Value<String?> note = const Value.absent(),
+            Value<String?> poiName = const Value.absent(),
+            Value<String?> poiAddress = const Value.absent(),
+            Value<double?> latitude = const Value.absent(),
+            Value<double?> longitude = const Value.absent(),
             required DateTime recordDate,
             required DateTime createdAt,
             required DateTime updatedAt,
@@ -7068,6 +7581,10 @@ class $$TimelineEventsTableTableManager extends RootTableManager<
             startAt: startAt,
             endAt: endAt,
             note: note,
+            poiName: poiName,
+            poiAddress: poiAddress,
+            latitude: latitude,
+            longitude: longitude,
             recordDate: recordDate,
             createdAt: createdAt,
             updatedAt: updatedAt,

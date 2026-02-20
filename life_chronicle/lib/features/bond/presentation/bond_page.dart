@@ -10,6 +10,7 @@ import 'package:uuid/uuid.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/utils/media_storage.dart';
+import '../../../core/widgets/amap_location_page.dart';
 
 class BondPage extends StatefulWidget {
   const BondPage({super.key});
@@ -580,131 +581,80 @@ class _FriendCard extends StatelessWidget {
   }
 }
 
-class _EncounterTimeline extends StatelessWidget {
+class _EncounterTimeline extends ConsumerWidget {
   const _EncounterTimeline();
 
-  static const _items = <_EncounterItem>[
-    _EncounterItem(
-      date: '2023年10月15日',
-      title: '与 小明 在 Oishii Sushi 共进晚餐',
-      content: '分享了最近的职场趣闻，寿司的味道依然如故。聊到了关于明年的旅行计划。',
-      icon: Icons.calendar_today,
-      iconFilled: true,
-      avatars: [
-        _EncounterAvatar(
-          image:
-              'https://lh3.googleusercontent.com/aida-public/AB6AXuAGk_HxDxrbpCRA6nSpTvEx_Io_FA5-C-wqijGhFkRJZFjWpnNLZ-k-AQhJwTA8l2oHDOwDJJGVRBDrNX54Ud6jT0MXlkXTfMYEVYfvY9GS_joYMeb0OOUimcx0PQfqw8ibMAAGF1F-3looMH4sH5jO8v6-GAII_IFmIqZ1Zw9NSsu7YxXpTCTVudfG0FG1Pc8uu9R9BL407BNh7DUcIWczb_gQ7MDiJ3oHnBwVnQHuH8ZpZMnIOjAQmw_d-cboUPe_DoRuhUg9ZyI6',
-          badge: 'Me',
-        ),
-      ],
-      extraChip: 'M',
-    ),
-    _EncounterItem(
-      date: '2023年9月20日',
-      title: '与 佳佳、阿强 开启 京都之旅',
-      content: '清水寺的晚霞非常壮丽。三个人的旅行虽然偶尔有小摩擦，但更多的是欢笑。',
-      icon: Icons.flight_takeoff,
-      iconFilled: true,
-      avatars: [
-        _EncounterAvatar(
-          image:
-              'https://lh3.googleusercontent.com/aida-public/AB6AXuAfqbTtlSzcGbxP6sDWFkXEXnXY7S9cEL6Bt3EJFPLD4Rw4StNb79kcTLEPX-DpJkD-EixDzyQ6VaF22CHOCaE0oYW39n2OsTFHJzLc152j70DhBjAAR5fvSJSTauBaUMy49hKBlkyVA9qW0YTbdc9La2XSgErXsEHMkPotxhkDCM3ji8Ztz0Pniue06QW1WXBgJvIZt2LvcGUYOW4SBrEjzS-xqNRpXpHhqISfj24SoyJj7wCWaf9vQce7Lm5-lO3SsHbeXAYpSmqo',
-        ),
-        _EncounterAvatar(
-          image:
-              'https://lh3.googleusercontent.com/aida-public/AB6AXuDtAP63KUCiq0PzWilgClTpCmQSFmEXpK9FGb2IB7ogpjVWu_vs342c4QeGysBwdHS1jP7MGfXnuwRozaxnI_8Lp0i_JBo7-3uqhagGpgt8MVAOyhMUAcz4GQl-Y7kqzYE0pzBFVw3esKYOm4MnQJsTRx4cv14lraUivp1APir-9n02Ajzdl3nPBejG-cCs69Tle82GmPCROQzKPfEerHtNsruSKQycVv2lM7wbb8YO66mUp0XgOgqr8aoGHomDB5UjYoVUdB4WxGos',
-        ),
-      ],
-      extraChip: '+2 位伙伴',
-    ),
-    _EncounterItem(
-      date: '2023年8月05日',
-      title: '在 公园 与 小红 散步',
-      content: '初秋的微风，我们聊了很多关于未来的想法。生活就是由这些平凡的时刻组成的。',
-      icon: Icons.park,
-      iconFilled: true,
-      avatars: [
-        _EncounterAvatar(
-          image:
-              'https://lh3.googleusercontent.com/aida-public/AB6AXuBjJ_wNHKW7CgtCLI2HD7UJjfBb-w2Tp1oreBYKtJEJmzS5ZocJ7P1u3GIskb2LWreXDDihpXzWjEhSt8rrwn9356112wZu2fz8HepNGNfOaxTFiTK5SwltbAsJAVWsOi-Z6p4X03UtTN4lIn8u61_jer0T8mer3Iti8vGeLepODSFiOFyaTHMLD95vuDshdpk13EscElon4D_4POOR2ir6Zij-MR2SykIenIJ6PdLNzSosTQGzQDymOcI7dYq936Ve4oFdBcZ8sL9A',
-        ),
-      ],
-    ),
-  ];
-
   @override
-  Widget build(BuildContext context) {
-    return Stack(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final db = ref.watch(appDatabaseProvider);
+    return StreamBuilder<List<TimelineEvent>>(
       key: const ValueKey('encounters'),
-      children: [
-        Positioned(
-          left: 36,
-          top: 0,
-          bottom: 0,
-          child: Container(width: 2, color: const Color(0xFFE5E7EB)),
-        ),
-        ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 140),
+      stream: db.watchEncounterEvents(),
+      builder: (context, snapshot) {
+        final events = snapshot.data ?? const <TimelineEvent>[];
+
+        if (events.isEmpty) {
+          return const Center(
+            child: Text('还没有相遇记录，去新建一次相遇吧', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+          );
+        }
+
+        return Stack(
           children: [
-            for (final item in _items) ...[
-              _EncounterRow(item: item),
-              const SizedBox(height: 18),
-            ],
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 26),
-              child: Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.55),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
-                  ),
-                  child: const Text('已加载全部美好回忆', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
-                ),
-              ),
+            Positioned(
+              left: 36,
+              top: 0,
+              bottom: 0,
+              child: Container(width: 2, color: const Color(0xFFE5E7EB)),
+            ),
+            ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 140),
+              itemCount: events.length + 1,
+              separatorBuilder: (_, __) => const SizedBox(height: 18),
+              itemBuilder: (context, index) {
+                if (index == events.length) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 26),
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.55),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
+                        ),
+                        child: const Text('已加载全部相遇', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+                      ),
+                    ),
+                  );
+                }
+
+                final event = events[index];
+                return _EncounterEventRow(event: event);
+              },
             ),
           ],
-        ),
-      ],
+        );
+      },
     );
   }
 }
 
-class _EncounterItem {
-  const _EncounterItem({
-    required this.date,
-    required this.title,
-    required this.content,
-    required this.icon,
-    required this.iconFilled,
-    required this.avatars,
-    this.extraChip,
-  });
+class _EncounterEventRow extends ConsumerWidget {
+  const _EncounterEventRow({required this.event});
 
-  final String date;
-  final String title;
-  final String content;
-  final IconData icon;
-  final bool iconFilled;
-  final List<_EncounterAvatar> avatars;
-  final String? extraChip;
-}
-
-class _EncounterAvatar {
-  const _EncounterAvatar({required this.image, this.badge});
-
-  final String image;
-  final String? badge;
-}
-
-class _EncounterRow extends StatelessWidget {
-  const _EncounterRow({required this.item});
-
-  final _EncounterItem item;
+  final TimelineEvent event;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final db = ref.watch(appDatabaseProvider);
+    final date = event.recordDate;
+    final dateText = '${date.year}年${date.month}月${date.day}日';
+    final noteParts = _parseEncounterNoteParts(event.note);
+    final content = noteParts.content.trim();
+    final contentPreview = content.length > 60 ? '${content.substring(0, 60)}…' : content;
+    final locationDisplay = _eventLocationDisplay(event, fallbackPlace: noteParts.placeFromNote);
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -713,19 +663,12 @@ class _EncounterRow extends StatelessWidget {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: item.date.contains('10月') ? const Color(0xFF2BCDEE) : Colors.white,
+            color: const Color(0xFF2BCDEE),
             borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: item.date.contains('10月') ? const Color(0xFFF6F6F6) : const Color(0xFFEAF9FD),
-              width: 3,
-            ),
+            border: Border.all(color: const Color(0xFFF6F6F6), width: 3),
             boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 10, offset: const Offset(0, 3))],
           ),
-          child: Icon(
-            item.icon,
-            color: item.date.contains('10月') ? Colors.white : const Color(0xFF2BCDEE),
-            size: 18,
-          ),
+          child: const Icon(Icons.diversity_3, color: Colors.white, size: 18),
         ),
         const SizedBox(width: 14),
         Expanded(
@@ -733,7 +676,7 @@ class _EncounterRow extends StatelessWidget {
             color: Colors.white,
             borderRadius: BorderRadius.circular(28),
             child: InkWell(
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => _EncounterDetailPage(item: item))),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => _EncounterDetailPage(encounterId: event.id))),
               borderRadius: BorderRadius.circular(28),
               child: Container(
                 padding: const EdgeInsets.all(16),
@@ -748,38 +691,65 @@ class _EncounterRow extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: Text(item.date, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF2BCDEE))),
+                          child: Text(dateText, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF2BCDEE))),
                         ),
                         const Icon(Icons.chevron_right, size: 18, color: Color(0x809CA3AF)),
                       ],
                     ),
                     const SizedBox(height: 10),
-                    Text(item.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827), height: 1.2)),
-                    const SizedBox(height: 8),
-                    Text(item.content, style: const TextStyle(fontSize: 13, color: Color(0xFF78909C), height: 1.4)),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        SizedBox(
-                          height: 32,
-                          child: Stack(
-                            children: [
-                              for (var i = 0; i < item.avatars.length; i++)
-                                Positioned(
-                                  left: i * 18,
-                                  child: _Avatar(image: item.avatars[i].image, badge: item.avatars[i].badge),
-                                ),
-                            ],
+                    Text(event.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827), height: 1.2)),
+                    if (contentPreview.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(contentPreview, style: const TextStyle(fontSize: 13, color: Color(0xFF78909C), height: 1.4)),
+                    ],
+                    if (locationDisplay.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          const Icon(Icons.place, size: 16, color: Color(0xFF94A3B8)),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              locationDisplay,
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        if (item.extraChip != null)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(color: const Color(0xFFE5E7EB), borderRadius: BorderRadius.circular(999)),
-                            child: Text(item.extraChip!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF6B7280))),
-                          ),
-                      ],
+                        ],
+                      ),
+                    ],
+                    StreamBuilder<List<EntityLink>>(
+                      stream: db.linkDao.watchLinksForEntity(entityType: 'encounter', entityId: event.id),
+                      builder: (context, linkSnapshot) {
+                        final friendIds = _collectLinkIds(linkSnapshot.data ?? const <EntityLink>[], 'encounter', event.id, 'friend');
+                        if (friendIds.isEmpty) return const SizedBox.shrink();
+                        return StreamBuilder<List<FriendRecord>>(
+                          stream: db.friendDao.watchAllActive(),
+                          builder: (context, friendSnapshot) {
+                            final friends = friendSnapshot.data ?? const <FriendRecord>[];
+                            final selected = friends.where((f) => friendIds.contains(f.id)).toList(growable: false);
+                            if (selected.isEmpty) return const SizedBox.shrink();
+                            final display = selected.take(4).toList(growable: false);
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 12),
+                              child: Row(
+                                children: [
+                                  for (final f in display) ...[
+                                    _AvatarCircle(name: f.name, imagePath: f.avatarPath),
+                                    const SizedBox(width: 8),
+                                  ],
+                                  if (selected.length > 4)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      decoration: BoxDecoration(color: const Color(0xFFE5E7EB), borderRadius: BorderRadius.circular(999)),
+                                      child: Text('+${selected.length - 4}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF6B7280))),
+                                    ),
+                                ],
+                              ),
+                            );
+                          },
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -788,48 +758,6 @@ class _EncounterRow extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _Avatar extends StatelessWidget {
-  const _Avatar({required this.image, this.badge});
-
-  final String image;
-  final String? badge;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 32,
-      height: 32,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2),
-              image: DecorationImage(image: NetworkImage(image), fit: BoxFit.cover),
-              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2))],
-            ),
-          ),
-          if (badge != null)
-            Positioned(
-              right: -4,
-              bottom: -4,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2BCDEE),
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: Colors.white, width: 1),
-                ),
-                child: Text(badge!, style: const TextStyle(fontSize: 8, color: Colors.white, fontWeight: FontWeight.w900)),
-              ),
-            ),
-        ],
-      ),
     );
   }
 }
@@ -1181,7 +1109,8 @@ class _FriendMemorySliverState extends ConsumerState<_FriendMemorySliver> {
 
   List<_FriendMemoryItem> _parseEvents(List<TimelineEvent> events) {
     return events.map((e) {
-      String place = '';
+      String place = (e.poiName ?? '').trim();
+      String address = (e.poiAddress ?? '').trim();
       String content = '';
       List<String> images = [];
 
@@ -1189,7 +1118,9 @@ class _FriendMemorySliverState extends ConsumerState<_FriendMemorySliver> {
         final lines = e.note!.split('\n');
         for (final line in lines) {
           if (line.startsWith('地点：')) {
-            place = line.substring(3).trim();
+            if (place.isEmpty && address.isEmpty) {
+              place = line.substring(3).trim();
+            }
           } else if (line.startsWith('心情分享：')) {
             content = line.substring(5).trim();
           } else if (line.startsWith('图片：')) {
@@ -1202,13 +1133,18 @@ class _FriendMemorySliverState extends ConsumerState<_FriendMemorySliver> {
         }
       }
 
+      final placeDisplay = place.isNotEmpty && address.isNotEmpty && !place.contains(address) ? '$place · $address' : (place.isNotEmpty ? place : address);
       return _FriendMemoryItem(
         date: '${e.recordDate.year}年 ${e.recordDate.month}月 ${e.recordDate.day}日',
         typeLabel: '遭遇', // 暂时统一
         typeIcon: Icons.diversity_3,
         title: e.title,
         content: content,
-        place: place,
+        place: placeDisplay,
+        poiName: place,
+        poiAddress: address,
+        latitude: e.latitude,
+        longitude: e.longitude,
         images: images,
       );
     }).toList();
@@ -1335,6 +1271,10 @@ class _FriendMemoryItem {
     required this.title,
     required this.content,
     required this.place,
+    required this.poiName,
+    required this.poiAddress,
+    required this.latitude,
+    required this.longitude,
     required this.images,
   });
 
@@ -1344,6 +1284,10 @@ class _FriendMemoryItem {
   final String title;
   final String content;
   final String place;
+  final String poiName;
+  final String poiAddress;
+  final double? latitude;
+  final double? longitude;
   final List<String> images;
 }
 
@@ -1481,10 +1425,34 @@ class _SingleImageMemoryCard extends StatelessWidget {
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        const Icon(Icons.place, size: 16, color: Color(0xFF9CA3AF)),
-                        const SizedBox(width: 6),
                         Expanded(
-                          child: Text(item.place, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: item.poiName.trim().isNotEmpty || item.poiAddress.trim().isNotEmpty
+                                ? () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => AmapLocationPage.preview(
+                                          title: '地点',
+                                          poiName: item.poiName,
+                                          address: item.poiAddress,
+                                          latitude: item.latitude,
+                                          longitude: item.longitude,
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                : null,
+                            child: Row(
+                              children: [
+                                const Icon(Icons.place, size: 16, color: Color(0xFF9CA3AF)),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(item.place, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                         IconButton(onPressed: () {}, icon: const Icon(Icons.favorite_border), color: const Color(0xFF9CA3AF)),
                       ],
@@ -1587,10 +1555,34 @@ class _MultiImageMemoryCard extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
                 child: Row(
                   children: [
-                    const Icon(Icons.place, size: 16, color: Color(0xFF9CA3AF)),
-                    const SizedBox(width: 6),
                     Expanded(
-                      child: Text(item.place, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: item.poiName.trim().isNotEmpty || item.poiAddress.trim().isNotEmpty
+                            ? () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => AmapLocationPage.preview(
+                                      title: '地点',
+                                      poiName: item.poiName,
+                                      address: item.poiAddress,
+                                      latitude: item.latitude,
+                                      longitude: item.longitude,
+                                    ),
+                                  ),
+                                );
+                              }
+                            : null,
+                        child: Row(
+                          children: [
+                            const Icon(Icons.place, size: 16, color: Color(0xFF9CA3AF)),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(item.place, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                     IconButton(onPressed: () {}, icon: const Icon(Icons.favorite_border), color: const Color(0xFF9CA3AF)),
                   ],
@@ -1632,11 +1624,36 @@ class _NoImageMemoryCard extends StatelessWidget {
                   Expanded(
                     child: Text(item.title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
                   ),
-                  if (item.place.isNotEmpty) ...[
-                    const Icon(Icons.place, size: 14, color: Color(0xFF9CA3AF)),
-                    const SizedBox(width: 4),
-                    Text(item.place, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
-                  ],
+                  if (item.place.isNotEmpty)
+                    InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: item.poiName.trim().isNotEmpty || item.poiAddress.trim().isNotEmpty
+                          ? () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => AmapLocationPage.preview(
+                                    title: '地点',
+                                    poiName: item.poiName,
+                                    address: item.poiAddress,
+                                    latitude: item.latitude,
+                                    longitude: item.longitude,
+                                  ),
+                                ),
+                              );
+                            }
+                          : null,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.place, size: 14, color: Color(0xFF9CA3AF)),
+                            const SizedBox(width: 4),
+                            Text(item.place, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+                          ],
+                        ),
+                      ),
+                    ),
                 ],
               ),
               const SizedBox(height: 8),
@@ -2325,7 +2342,10 @@ class _EncounterCreatePageState extends ConsumerState<EncounterCreatePage> {
 
   final _titleController = TextEditingController();
   final _moodController = TextEditingController();
-  final _placeController = TextEditingController();
+  String _poiName = '';
+  String _poiAddress = '';
+  double? _latitude;
+  double? _longitude;
 
   DateTime _date = DateTime.now();
   final List<String> _imageUrls = [];
@@ -2339,7 +2359,6 @@ class _EncounterCreatePageState extends ConsumerState<EncounterCreatePage> {
   void dispose() {
     _titleController.dispose();
     _moodController.dispose();
-    _placeController.dispose();
     super.dispose();
   }
 
@@ -2454,6 +2473,27 @@ class _EncounterCreatePageState extends ConsumerState<EncounterCreatePage> {
     });
   }
 
+  Future<void> _selectLocation() async {
+    final result = await Navigator.of(context).push<AmapLocationPickResult>(
+      MaterialPageRoute(
+        builder: (_) => AmapLocationPage.pick(
+          initialPoiName: _poiName,
+          initialAddress: _poiAddress,
+          initialLatitude: _latitude,
+          initialLongitude: _longitude,
+        ),
+      ),
+    );
+    if (result == null) return;
+    if (!mounted) return;
+    setState(() {
+      _poiName = result.poiName;
+      _poiAddress = result.address;
+      _latitude = result.latitude;
+      _longitude = result.longitude;
+    });
+  }
+
   Future<void> _save() async {
     final title = _titleController.text.trim();
     if (title.isEmpty) {
@@ -2467,7 +2507,9 @@ class _EncounterCreatePageState extends ConsumerState<EncounterCreatePage> {
     final encounterId = _uuid.v4();
     final recordDate = DateTime(_date.year, _date.month, _date.day);
 
-    final place = _placeController.text.trim();
+    final place = _poiName.trim().isNotEmpty
+        ? _poiName.trim()
+        : (_poiAddress.trim().isNotEmpty ? _poiAddress.trim() : '');
     final mood = _moodController.text.trim();
     final noteParts = <String>[];
     if (place.isNotEmpty) noteParts.add('地点：$place');
@@ -2483,6 +2525,10 @@ class _EncounterCreatePageState extends ConsumerState<EncounterCreatePage> {
             startAt: Value(_date),
             endAt: const Value(null),
             note: Value(note),
+            poiName: Value(_poiName.trim().isEmpty ? null : _poiName.trim()),
+            poiAddress: Value(_poiAddress.trim().isEmpty ? null : _poiAddress.trim()),
+            latitude: Value(_latitude),
+            longitude: Value(_longitude),
             recordDate: recordDate,
             createdAt: now,
             updatedAt: now,
@@ -2601,10 +2647,37 @@ class _EncounterCreatePageState extends ConsumerState<EncounterCreatePage> {
                           label: '地点',
                           icon: Icons.location_on,
                           iconColor: const Color(0xFF0095FF),
-                          child: TextField(
-                            controller: _placeController,
-                            decoration: const InputDecoration(hintText: '在哪里相遇?', border: InputBorder.none),
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: _selectLocation,
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    _poiName.trim().isNotEmpty
+                                        ? _poiName.trim()
+                                        : (_poiAddress.trim().isNotEmpty ? _poiAddress.trim() : '在哪里相遇?'),
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w900,
+                                      color: _poiName.trim().isNotEmpty || _poiAddress.trim().isNotEmpty ? const Color(0xFF111827) : const Color(0xFF94A3B8),
+                                    ),
+                                  ),
+                                ),
+                                if (_poiName.trim().isNotEmpty || _poiAddress.trim().isNotEmpty)
+                                  IconButton(
+                                    onPressed: () => setState(() {
+                                      _poiName = '';
+                                      _poiAddress = '';
+                                      _latitude = null;
+                                      _longitude = null;
+                                    }),
+                                    icon: const Icon(Icons.close, size: 18, color: Color(0xFF94A3B8)),
+                                  )
+                                else
+                                  const Icon(Icons.edit, size: 18, color: Color(0xFF94A3B8)),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -2964,6 +3037,86 @@ String _formatBirthday(DateTime? date) {
 String _formatOrFallback(String? value, String fallback) {
   final trimmed = (value ?? '').trim();
   return trimmed.isEmpty ? fallback : trimmed;
+}
+
+class _EncounterNoteParts {
+  const _EncounterNoteParts({
+    required this.placeFromNote,
+    required this.content,
+    required this.images,
+  });
+
+  final String placeFromNote;
+  final String content;
+  final List<String> images;
+}
+
+_EncounterNoteParts _parseEncounterNoteParts(String? note) {
+  final raw = (note ?? '').trim();
+  if (raw.isEmpty) {
+    return const _EncounterNoteParts(placeFromNote: '', content: '', images: <String>[]);
+  }
+  String placeFromNote = '';
+  final contentLines = <String>[];
+  List<String> images = const <String>[];
+
+  for (final line in raw.split('\n')) {
+    final trimmed = line.trim();
+    if (trimmed.isEmpty) continue;
+    if (trimmed.startsWith('地点：')) {
+      if (placeFromNote.isEmpty) {
+        placeFromNote = trimmed.substring(3).trim();
+      }
+      continue;
+    }
+    if (trimmed.startsWith('图片：')) {
+      try {
+        final jsonStr = trimmed.substring(3).trim();
+        final list = jsonDecode(jsonStr) as List;
+        images = list.map((e) => e.toString()).toList(growable: false);
+      } catch (_) {}
+      continue;
+    }
+    if (trimmed.startsWith('心情分享：')) {
+      contentLines.add(trimmed.substring(5).trim());
+      continue;
+    }
+    contentLines.add(trimmed);
+  }
+
+  return _EncounterNoteParts(
+    placeFromNote: placeFromNote,
+    content: contentLines.join('\n'),
+    images: images,
+  );
+}
+
+String _eventLocationDisplay(TimelineEvent event, {String? fallbackPlace}) {
+  final poiName = (event.poiName ?? '').trim();
+  final poiAddress = (event.poiAddress ?? '').trim();
+  if (poiName.isEmpty && poiAddress.isEmpty) {
+    return (fallbackPlace ?? '').trim();
+  }
+  if (poiName.isEmpty) return poiAddress;
+  if (poiAddress.isEmpty) return poiName;
+  return !poiName.contains(poiAddress) ? '$poiName · $poiAddress' : poiName;
+}
+
+Set<String> _collectLinkIds(
+  List<EntityLink> links,
+  String entityType,
+  String entityId,
+  String targetType,
+) {
+  final result = <String>{};
+  for (final link in links) {
+    final isSource = link.sourceType == entityType && link.sourceId == entityId;
+    final otherType = isSource ? link.targetType : link.sourceType;
+    if (otherType != targetType) continue;
+    final otherId = isSource ? link.targetId : link.sourceId;
+    result.add(otherId);
+  }
+  return result;
 }
 
 class _LinkToggleRow extends StatelessWidget {
@@ -3554,136 +3707,269 @@ class _SelectedAvatarsRow extends ConsumerWidget {
   }
 }
 
-class _EncounterDetailPage extends StatelessWidget {
-  const _EncounterDetailPage({required this.item});
+class _EncounterDetailPage extends ConsumerWidget {
+  const _EncounterDetailPage({required this.encounterId});
 
-  final _EncounterItem item;
+  final String encounterId;
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF6F6F6),
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            pinned: true,
-            backgroundColor: Colors.white.withValues(alpha: 0.9),
-            leading: IconButton(onPressed: () => Navigator.of(context).pop(), icon: const Icon(Icons.arrow_back)),
-            title: const Text('相遇详情', style: TextStyle(fontWeight: FontWeight.w900)),
-            actions: [
-              IconButton(onPressed: () {}, icon: const Icon(Icons.more_horiz)),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final db = ref.watch(appDatabaseProvider);
+
+    Stream<TimelineEvent?> watchEvent() {
+      return (db.select(db.timelineEvents)
+            ..where((t) => t.isDeleted.equals(false))
+            ..where((t) => t.id.equals(encounterId))
+            ..limit(1))
+          .watchSingleOrNull();
+    }
+
+    return StreamBuilder<TimelineEvent?>(
+      stream: watchEvent(),
+      builder: (context, snapshot) {
+        final event = snapshot.data;
+
+        final title = (event?.title ?? '').trim().isEmpty ? '相遇详情' : event!.title;
+        final recordAt = event?.startAt ?? event?.recordDate;
+        final dateText = recordAt == null ? '' : '${recordAt.year}年${recordAt.month}月${recordAt.day}日';
+        final noteParts = _parseEncounterNoteParts(event?.note);
+        final locationDisplay = event == null ? '' : _eventLocationDisplay(event, fallbackPlace: noteParts.placeFromNote);
+
+        void openMapPreview() {
+          if (event == null) return;
+          final poiName = (event.poiName ?? '').trim();
+          final poiAddress = (event.poiAddress ?? '').trim();
+          if (poiName.isEmpty && poiAddress.isEmpty) return;
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => AmapLocationPage.preview(
+                title: title,
+                poiName: poiName,
+                address: poiAddress,
+                latitude: event.latitude,
+                longitude: event.longitude,
+              ),
+            ),
+          );
+        }
+
+        return Scaffold(
+          backgroundColor: const Color(0xFFF6F6F6),
+          body: CustomScrollView(
+            slivers: [
+              SliverAppBar(
+                pinned: true,
+                backgroundColor: Colors.white.withValues(alpha: 0.9),
+                leading: IconButton(onPressed: () => Navigator.of(context).pop(), icon: const Icon(Icons.arrow_back)),
+                title: const Text('相遇详情', style: TextStyle(fontWeight: FontWeight.w900)),
+                actions: [
+                  IconButton(onPressed: () {}, icon: const Icon(Icons.more_horiz)),
+                ],
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 140),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: const Color(0xFFF3F4F6)),
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 16, offset: const Offset(0, 6))],
+                        ),
+                        child: event == null
+                            ? const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 20),
+                                child: Center(
+                                  child: Text('记录不存在或已删除', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+                                ),
+                              )
+                            : Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        width: 36,
+                                        height: 36,
+                                        decoration: BoxDecoration(color: const Color(0x1A2BCDEE), borderRadius: BorderRadius.circular(12)),
+                                        child: const Icon(Icons.diversity_3, color: Color(0xFF2BCDEE)),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          dateText.isEmpty ? '${event.recordDate.year}年${event.recordDate.month}月${event.recordDate.day}日' : dateText,
+                                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF2BCDEE)),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827), height: 1.2)),
+                                  if (noteParts.content.trim().isNotEmpty) ...[
+                                    const SizedBox(height: 10),
+                                    Text(noteParts.content.trim(), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B), height: 1.5)),
+                                  ],
+                                  if (noteParts.images.isNotEmpty) ...[
+                                    const SizedBox(height: 14),
+                                    SizedBox(
+                                      height: 88,
+                                      child: ListView.separated(
+                                        scrollDirection: Axis.horizontal,
+                                        itemCount: noteParts.images.length,
+                                        separatorBuilder: (_, __) => const SizedBox(width: 10),
+                                        itemBuilder: (context, index) {
+                                          return ClipRRect(
+                                            borderRadius: BorderRadius.circular(16),
+                                            child: SizedBox(
+                                              width: 88,
+                                              height: 88,
+                                              child: _buildLocalImage(noteParts.images[index], fit: BoxFit.cover),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                  if (locationDisplay.isNotEmpty) ...[
+                                    const SizedBox(height: 14),
+                                    InkWell(
+                                      borderRadius: BorderRadius.circular(14),
+                                      onTap: openMapPreview,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF8FAFC),
+                                          borderRadius: BorderRadius.circular(14),
+                                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            const Icon(Icons.place, size: 18, color: Color(0xFF2BCDEE)),
+                                            const SizedBox(width: 10),
+                                            Expanded(
+                                              child: Text(
+                                                locationDisplay,
+                                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            const Icon(Icons.chevron_right, size: 18, color: Color(0xFF94A3B8)),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                  const SizedBox(height: 14),
+                                  const Text('参与者', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                                  const SizedBox(height: 10),
+                                  StreamBuilder<List<EntityLink>>(
+                                    stream: db.linkDao.watchLinksForEntity(entityType: 'encounter', entityId: encounterId),
+                                    builder: (context, linkSnapshot) {
+                                      final friendIds = _collectLinkIds(linkSnapshot.data ?? const <EntityLink>[], 'encounter', encounterId, 'friend');
+                                      if (friendIds.isEmpty) {
+                                        return const Text('暂无参与者', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)));
+                                      }
+                                      return StreamBuilder<List<FriendRecord>>(
+                                        stream: db.friendDao.watchAllActive(),
+                                        builder: (context, friendSnapshot) {
+                                          final friends = friendSnapshot.data ?? const <FriendRecord>[];
+                                          final selected = friends.where((f) => friendIds.contains(f.id)).toList(growable: false);
+                                          if (selected.isEmpty) {
+                                            return const Text('暂无参与者', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)));
+                                          }
+                                          return Wrap(
+                                            spacing: 10,
+                                            runSpacing: 10,
+                                            children: [
+                                              for (final f in selected)
+                                                Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    _AvatarCircle(name: f.name, imagePath: f.avatarPath),
+                                                    const SizedBox(width: 8),
+                                                    Text(f.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF334155))),
+                                                  ],
+                                                ),
+                                            ],
+                                          );
+                                        },
+                                      );
+                                    },
+                                  ),
+                                  const SizedBox(height: 14),
+                                  const Text('万物互联', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                                  const SizedBox(height: 10),
+                                  StreamBuilder<List<EntityLink>>(
+                                    stream: db.linkDao.watchLinksForEntity(entityType: 'encounter', entityId: encounterId),
+                                    builder: (context, linkSnapshot) {
+                                      final links = linkSnapshot.data ?? const <EntityLink>[];
+                                      final foodIds = _collectLinkIds(links, 'encounter', encounterId, 'food');
+                                      final travelIds = _collectLinkIds(links, 'encounter', encounterId, 'travel');
+                                      final momentIds = _collectLinkIds(links, 'encounter', encounterId, 'moment');
+                                      final goalIds = _collectLinkIds(links, 'encounter', encounterId, 'goal');
+                                      final chips = <Widget>[];
+                                      if (foodIds.isNotEmpty) chips.add(_ChipPill(text: '美食 ${foodIds.length}'));
+                                      if (travelIds.isNotEmpty) chips.add(_ChipPill(text: '旅行 ${travelIds.length}'));
+                                      if (momentIds.isNotEmpty) chips.add(_ChipPill(text: '小确幸 ${momentIds.length}'));
+                                      if (goalIds.isNotEmpty) chips.add(_ChipPill(text: '目标 ${goalIds.length}'));
+                                      if (chips.isEmpty) {
+                                        return const Text('暂无关联内容', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)));
+                                      }
+                                      return Wrap(spacing: 8, runSpacing: 8, children: chips);
+                                    },
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
-          SliverToBoxAdapter(
+          bottomNavigationBar: SafeArea(
+            top: false,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 140),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              child: Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: const Color(0xFFF3F4F6)),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 16, offset: const Offset(0, 6))],
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFFE5E7EB)),
+                        foregroundColor: const Color(0xFF111827),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        backgroundColor: Colors.white,
+                      ),
+                      onPressed: () {},
+                      child: const Text('编辑', style: TextStyle(fontWeight: FontWeight.w900)),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(color: const Color(0x1A2BCDEE), borderRadius: BorderRadius.circular(12)),
-                              child: Icon(item.icon, color: const Color(0xFF2BCDEE)),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(item.date, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF2BCDEE))),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Text(item.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827), height: 1.2)),
-                        const SizedBox(height: 10),
-                        Text(item.content, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B), height: 1.5)),
-                        const SizedBox(height: 14),
-                        const Text('参与者', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            for (final a in item.avatars) ...[
-                              _Avatar(image: a.image, badge: a.badge),
-                              const SizedBox(width: 8),
-                            ],
-                            if (item.extraChip != null)
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(999)),
-                                child: Text(item.extraChip!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        const Text('万物互联', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: const [
-                            _ChipPill(text: '关联美食'),
-                            _ChipPill(text: '关联旅行'),
-                            _ChipPill(text: '关联小确幸'),
-                          ],
-                        ),
-                      ],
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2BCDEE),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        elevation: 0,
+                      ),
+                      onPressed: () {},
+                      child: const Text('关联', style: TextStyle(fontWeight: FontWeight.w900)),
                     ),
                   ),
                 ],
               ),
             ),
           ),
-        ],
-      ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-          child: Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFFE5E7EB)),
-                    foregroundColor: const Color(0xFF111827),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    backgroundColor: Colors.white,
-                  ),
-                  onPressed: () {},
-                  child: const Text('编辑', style: TextStyle(fontWeight: FontWeight.w900)),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2BCDEE),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    elevation: 0,
-                  ),
-                  onPressed: () {},
-                  child: const Text('关联', style: TextStyle(fontWeight: FontWeight.w900)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

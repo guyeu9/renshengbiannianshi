@@ -11,6 +11,7 @@ import 'package:uuid/uuid.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/utils/media_storage.dart';
+import '../../../core/widgets/amap_location_page.dart';
 
 class TravelPage extends StatefulWidget {
   const TravelPage({super.key});
@@ -966,6 +967,45 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
   final _hotelLinkController = TextEditingController();
   final TextEditingController _dateRangeController = TextEditingController(text: '2023年12月24日 - 12月28日');
 
+  String _poiName = '';
+  String _poiAddress = '';
+  double? _latitude;
+  double? _longitude;
+
+  String get _locationDisplay {
+    final name = _poiName.trim();
+    final address = _poiAddress.trim();
+    if (name.isEmpty && address.isEmpty) return '';
+    if (name.isEmpty) return address;
+    if (address.isEmpty) return name;
+    return '$name · $address';
+  }
+
+  Future<void> _pickDestinationLocation() async {
+    final result = await Navigator.of(context).push<AmapLocationPickResult>(
+      MaterialPageRoute(
+        builder: (_) => AmapLocationPage.pick(
+          initialPoiName: _poiName.trim().isNotEmpty ? _poiName.trim() : _destinationController.text.trim(),
+          initialAddress: _poiAddress,
+          initialLatitude: _latitude,
+          initialLongitude: _longitude,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    if (result == null) return;
+    setState(() {
+      _poiName = result.poiName;
+      _poiAddress = result.address;
+      _latitude = result.latitude;
+      _longitude = result.longitude;
+      final text = result.poiName.trim().isNotEmpty ? result.poiName.trim() : result.address.trim();
+      if (text.isNotEmpty) {
+        _destinationController.text = text;
+      }
+    });
+  }
+
   Future<void> _selectLinkedFriends() async {
     final db = ref.read(appDatabaseProvider);
     final selected = await showModalBottomSheet<Set<String>>(
@@ -1056,6 +1096,8 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
     final travelId = uuid.v4();
 
     final destination = _destinationController.text.trim();
+    final poiName = _poiName.trim();
+    final poiAddress = _poiAddress.trim();
     final budget = double.tryParse(_budgetController.text.trim());
     final note = _noteController.text.trim();
     final flightLink = _flightLinkController.text.trim();
@@ -1090,10 +1132,35 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
             content: Value(content),
             images: Value(cover),
             destination: Value(destination.isEmpty ? null : destination),
+            poiName: Value(poiName.isEmpty ? null : poiName),
+            poiAddress: Value(poiAddress.isEmpty ? null : poiAddress),
+            city: Value(poiAddress.isEmpty ? null : poiAddress),
+            latitude: Value(_latitude),
+            longitude: Value(_longitude),
             isWishlist: Value(_addToWishlist),
             wishlistDone: const Value(false),
             planDate: Value(startDate),
             recordDate: recordDate,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+
+    final eventStart = startDate ?? recordDate;
+    final eventRecordDate = DateTime(eventStart.year, eventStart.month, eventStart.day);
+    await db.into(db.timelineEvents).insertOnConflictUpdate(
+          TimelineEventsCompanion.insert(
+            id: travelId,
+            title: title,
+            eventType: 'travel',
+            startAt: Value(eventStart),
+            endAt: Value(endDate),
+            note: Value(content),
+            poiName: Value(poiName.isEmpty ? null : poiName),
+            poiAddress: Value(poiAddress.isEmpty ? null : poiAddress),
+            latitude: Value(_latitude),
+            longitude: Value(_longitude),
+            recordDate: eventRecordDate,
             createdAt: now,
             updatedAt: now,
           ),
@@ -1266,7 +1333,18 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
                     _InfoRow(
                       icon: Icons.place,
                       label: '目的地',
-                      child: _PlainTextField(controller: _destinationController, hintText: '例如：京都, 日本'),
+                      trailing: const Icon(Icons.chevron_right, color: Color(0xFFCBD5E1), size: 18),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: _pickDestinationLocation,
+                        child: AbsorbPointer(
+                          child: _PlainTextField(
+                            controller: _destinationController,
+                            readOnly: true,
+                            hintText: _locationDisplay.isEmpty ? '选择目的地' : _locationDisplay,
+                          ),
+                        ),
+                      ),
                     ),
                     Divider(height: 1, color: Colors.black.withValues(alpha: 0.05)),
                     _InfoRow(
@@ -1498,6 +1576,45 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
   final _contentController = TextEditingController();
   final _imageUrls = <String>[];
 
+  String _poiName = '';
+  String _poiAddress = '';
+  double? _latitude;
+  double? _longitude;
+
+  String get _locationTitle {
+    final name = _poiName.trim();
+    final address = _poiAddress.trim();
+    if (name.isNotEmpty) return name;
+    if (address.isNotEmpty) return address;
+    return '添加地点';
+  }
+
+  String? get _locationSubtitle {
+    final address = _poiAddress.trim();
+    return address.isEmpty ? null : address;
+  }
+
+  Future<void> _pickLocation() async {
+    final result = await Navigator.of(context).push<AmapLocationPickResult>(
+      MaterialPageRoute(
+        builder: (_) => AmapLocationPage.pick(
+          initialPoiName: _poiName,
+          initialAddress: _poiAddress,
+          initialLatitude: _latitude,
+          initialLongitude: _longitude,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    if (result == null) return;
+    setState(() {
+      _poiName = result.poiName;
+      _poiAddress = result.address;
+      _latitude = result.latitude;
+      _longitude = result.longitude;
+    });
+  }
+
   Future<void> _pickImages() async {
     final picker = ImagePicker();
     final files = await picker.pickMultiImage();
@@ -1594,7 +1711,9 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
     final tripId = uuid.v4();
     final travelId = uuid.v4();
 
-    const destination = '京都, 清水寺';
+    final poiName = _poiName.trim();
+    final poiAddress = _poiAddress.trim();
+    final destination = poiName.isNotEmpty ? poiName : (poiAddress.isNotEmpty ? poiAddress : '');
     final images = _imageUrls.isEmpty ? null : jsonEncode(_imageUrls);
     final content = _contentController.text.trim();
     final mood = _moods[_selectedMoodIndex].label;
@@ -1605,7 +1724,7 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
             name: title,
             startDate: Value(recordDate),
             endDate: Value(recordDate),
-            destinations: Value(jsonEncode([destination])),
+            destinations: Value(destination.isEmpty ? null : jsonEncode([destination])),
             totalExpense: const Value(null),
             createdAt: now,
             updatedAt: now,
@@ -1619,7 +1738,12 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
             title: Value(title),
             content: Value(content.isEmpty ? null : content),
             images: Value(images),
-            destination: const Value(destination),
+            destination: Value(destination.isEmpty ? null : destination),
+            poiName: Value(poiName.isEmpty ? null : poiName),
+            poiAddress: Value(poiAddress.isEmpty ? null : poiAddress),
+            city: Value(poiAddress.isEmpty ? null : poiAddress),
+            latitude: Value(_latitude),
+            longitude: Value(_longitude),
             mood: Value(mood),
             isWishlist: const Value(false),
             wishlistDone: const Value(false),
@@ -1759,9 +1883,10 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
                   iconBg: const Color(0xFF2BCDEE).withValues(alpha: 0.10),
                   iconColor: const Color(0xFF2BCDEE),
                   icon: Icons.place,
-                  title: '京都, 清水寺',
-                  subtitle: '自动定位中...',
+                  title: _locationTitle,
+                  subtitle: _locationSubtitle,
                   trailing: const Icon(Icons.chevron_right, color: Color(0xFFCBD5E1)),
+                  onTap: _pickLocation,
                 ),
                 Divider(height: 1, color: Colors.black.withValues(alpha: 0.05)),
                 Padding(
