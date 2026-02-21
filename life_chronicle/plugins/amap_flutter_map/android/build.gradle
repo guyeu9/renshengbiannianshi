@@ -16,6 +16,20 @@ rootProject.allprojects {
     repositories {
         google()
         jcenter()
+        mavenCentral()
+        maven { url 'https://maven.aliyun.com/repository/public' }
+        maven {
+            url 'https://maven.aliyun.com/repository/gaode'
+            def aliyunUser = System.getenv('ALIYUN_MAVEN_USERNAME')
+            def aliyunPassword = System.getenv('ALIYUN_MAVEN_PASSWORD')
+            if (aliyunUser && aliyunPassword) {
+                credentials {
+                    username aliyunUser
+                    password aliyunPassword
+                }
+            }
+        }
+        maven { url 'https://repo.amap.com/repository/maven-public' }
     }
 }
 

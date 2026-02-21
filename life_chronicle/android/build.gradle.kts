@@ -3,7 +3,17 @@ allprojects {
         google()
         mavenCentral()
         maven { url = uri("https://maven.aliyun.com/repository/public") }
-        maven { url = uri("https://maven.aliyun.com/repository/gaode") }
+        maven {
+            url = uri("https://maven.aliyun.com/repository/gaode")
+            val aliyunUser = System.getenv("ALIYUN_MAVEN_USERNAME")
+            val aliyunPassword = System.getenv("ALIYUN_MAVEN_PASSWORD")
+            if (!aliyunUser.isNullOrBlank() && !aliyunPassword.isNullOrBlank()) {
+                credentials {
+                    username = aliyunUser
+                    password = aliyunPassword
+                }
+            }
+        }
         maven { url = uri("https://repo.amap.com/repository/maven-public") }
     }
 }
