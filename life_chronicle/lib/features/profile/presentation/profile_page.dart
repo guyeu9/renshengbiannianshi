@@ -8,7 +8,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:epubx/epubx.dart' as epub;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:drift/drift.dart' hide Column;

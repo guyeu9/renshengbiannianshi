@@ -23,7 +23,6 @@ dependencies:
   share_plus: ^12.0.1
   url_launcher: ^6.3.0
   pdf: ^3.8.4
-  printing: ^5.9.3
   epubx: ^3.0.0
   amap_flutter_base:
     path: plugins/amap_flutter_base
