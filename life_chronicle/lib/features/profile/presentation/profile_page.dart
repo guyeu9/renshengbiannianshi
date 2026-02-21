@@ -1724,18 +1724,22 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
                                           ),
                                           const SizedBox(height: 12),
                                         ],
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                },
-              );
-            },
-          );
-        },
-      );
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            );
+          },
+        );
   }
 }
 
