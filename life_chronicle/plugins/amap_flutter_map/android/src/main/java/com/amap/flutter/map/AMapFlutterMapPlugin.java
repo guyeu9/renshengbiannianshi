@@ -1,11 +1,8 @@
 package com.amap.flutter.map;
 
-import android.app.Activity;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.Lifecycle;
-import androidx.lifecycle.LifecycleOwner;
 
 import com.amap.flutter.map.utils.LogUtil;
 
