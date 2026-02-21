@@ -11,15 +11,12 @@ import io.flutter.embedding.engine.plugins.activity.ActivityAware;
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding;
 import io.flutter.embedding.engine.plugins.lifecycle.FlutterLifecycleAdapter;
 
-/**
- * AmapFlutterMapPlugin
- */
 public class AMapFlutterMapPlugin implements FlutterPlugin, ActivityAware {
     private static final String CLASS_NAME = "AMapFlutterMapPlugin";
+    private static final String VIEW_TYPE = "com.amap.flutter.map";
+
     private FlutterPluginBinding pluginBinding;
     private Lifecycle lifecycle;
-
-    private static final String VIEW_TYPE = "com.amap.flutter.map";
 
     public AMapFlutterMapPlugin() {
     }
@@ -70,6 +67,6 @@ public class AMapFlutterMapPlugin implements FlutterPlugin, ActivityAware {
     @Override
     public void onDetachedFromActivityForConfigChanges() {
         LogUtil.i(CLASS_NAME, "onDetachedFromActivityForConfigChanges==>");
-        this.onDetachedFromActivity();
+        onDetachedFromActivity();
     }
 }
