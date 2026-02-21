@@ -43,6 +43,7 @@ flutter:
       android:
         package: com.amap.flutter.map
         pluginClass: AMapFlutterMapPlugin
+        androidEmbedding: v2
       ios:
         pluginClass: AMapFlutterMapPlugin
 
