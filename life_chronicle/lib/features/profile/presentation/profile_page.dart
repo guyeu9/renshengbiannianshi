@@ -1234,7 +1234,7 @@ class FavoritesCenterPage extends ConsumerStatefulWidget {
 }
 
 class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
-  static const _categories = ['全部', '美食', '旅行', '小确幸', '羁绊', '相遇'];
+  static const _categories = ['全部', '美食', '旅行', '小确幸', '目标', '羁绊', '相遇'];
   static const _fallbackImageUrl =
       'https://lh3.googleusercontent.com/aida-public/AB6AXuAKyf0mNiZ0TAc0cDBuDh729VN8zm8R-lF-JlOBczemlVSfDxlTXyG9D-4CqGvj4VGLsjyH_nyxHz36t5YCWIUdFilyoKvFftQ0lxzt6pmOkOgpBI_gvBZAInqTnxhG3lNNaOqRyxJCT-lzLS3lmLEkNBMXJ6LnIbYkBwU51lRvY0DqIG10oPqPfaoC12BgWZPmW74AWxyipq5A_nuiETA3saO846Avvh5KoAF7C0KINcR5Dmp2orHJWlVQTu97pn9w2S1O1IDzigGp';
 
@@ -1295,11 +1295,44 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
     return '${text.substring(0, 12)}…';
   }
 
+  String _goalTagFromNote(String? note) {
+    final raw = (note ?? '').trim();
+    if (raw.isEmpty) return '目标';
+    for (final line in raw.split('\n')) {
+      final trimmed = line.trim();
+      if (trimmed.startsWith('分类：')) {
+        final value = trimmed.substring(3).trim();
+        if (value.isNotEmpty) return value;
+      }
+    }
+    return '目标';
+  }
+
+  String _encounterTagFromRecord(TimelineEvent record) {
+    final poiName = (record.poiName ?? '').trim();
+    if (poiName.isNotEmpty) return poiName;
+    final poiAddress = (record.poiAddress ?? '').trim();
+    if (poiAddress.isNotEmpty) return poiAddress;
+    final note = (record.note ?? '').trim();
+    if (note.isNotEmpty) {
+      for (final line in note.split('\n')) {
+        final trimmed = line.trim();
+        if (trimmed.startsWith('地点：')) {
+          final value = trimmed.substring(3).trim();
+          if (value.isNotEmpty) return value;
+        }
+      }
+    }
+    return '相遇';
+  }
+
   List<_FavoriteItem> _buildItems({
     required List<FoodRecord> foods,
     required List<MomentRecord> moments,
     required List<TravelRecord> travels,
     required List<FriendRecord> friends,
+    required List<TimelineEvent> goals,
+    required List<TimelineEvent> encounters,
   }) {
     final items = <_FavoriteItem>[];
     for (final record in foods) {
@@ -1372,6 +1405,36 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
         ),
       );
     }
+    for (final record in goals) {
+      final title = record.title.trim();
+      items.add(
+        _FavoriteItem(
+          id: 'goal-${record.id}',
+          title: title.isNotEmpty ? title : '人生目标',
+          category: '目标',
+          date: record.recordDate,
+          tag: _goalTagFromNote(record.note),
+          tagColor: const Color(0xFFF3E8FF),
+          tagTextColor: const Color(0xFF9333EA),
+          imageUrl: _fallbackImageUrl,
+        ),
+      );
+    }
+    for (final record in encounters) {
+      final title = record.title.trim();
+      items.add(
+        _FavoriteItem(
+          id: 'encounter-${record.id}',
+          title: title.isNotEmpty ? title : '相遇记录',
+          category: '相遇',
+          date: record.recordDate,
+          tag: _encounterTagFromRecord(record),
+          tagColor: const Color(0xFFE0F2FE),
+          tagTextColor: const Color(0xFF0284C7),
+          imageUrl: _fallbackImageUrl,
+        ),
+      );
+    }
     items.sort((a, b) => b.date.compareTo(a.date));
     return items;
   }
@@ -1397,215 +1460,252 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
                     stream: db.friendDao.watchAllActive(),
                     builder: (context, friendSnapshot) {
                       final friends = friendSnapshot.data ?? const <FriendRecord>[];
-                      final allItems = _buildItems(
-                        foods: foods,
-                        moments: moments,
-                        travels: travels,
-                        friends: friends,
-                      );
-                      final items = _filterItems(allItems);
-                      final foodCount = allItems.where((item) => item.category == '美食').length;
-                      final travelCount = allItems.where((item) => item.category == '旅行').length;
-                      final momentCount = allItems.where((item) => item.category == '小确幸').length;
-                      final encounterCount = allItems.where((item) => item.category == '相遇').length;
-                      final visibleIds = items.map((item) => item.id).toSet();
-                      final selectedCount = _selectedIds.where(visibleIds.contains).length;
-                      final allSelected = selectedCount == items.length && items.isNotEmpty;
-                      return Scaffold(
-                        backgroundColor: background,
-                        appBar: AppBar(
-                          backgroundColor: Colors.white.withValues(alpha: 0.7),
-                          title: const Text('收藏中心', style: TextStyle(fontWeight: FontWeight.w800)),
-                          actions: [
-                            TextButton(
-                              onPressed: _toggleSelectionMode,
-                              style: TextButton.styleFrom(foregroundColor: primary, textStyle: const TextStyle(fontWeight: FontWeight.w900)),
-                              child: Text(_selectionMode ? '取消' : '选择'),
-                            ),
-                          ],
-                        ),
-                        bottomNavigationBar: _selectionMode
-                            ? SafeArea(
-                                top: false,
-                                child: Container(
-                                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    border: Border(top: BorderSide(color: Colors.black.withValues(alpha: 0.06))),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      InkWell(
-                                        onTap: () => _toggleSelectAll(items),
-                                        borderRadius: BorderRadius.circular(12),
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                      final goalsStream = (db.select(db.timelineEvents)
+                            ..where((t) => t.eventType.equals('goal'))
+                            ..where((t) => t.isDeleted.equals(false))
+                            ..orderBy([(t) => OrderingTerm(expression: t.recordDate, mode: OrderingMode.desc)]))
+                          .watch();
+                      final encountersStream = db.watchEncounterEvents();
+                      return StreamBuilder<List<TimelineEvent>>(
+                        stream: goalsStream,
+                        builder: (context, goalSnapshot) {
+                          final goals = goalSnapshot.data ?? const <TimelineEvent>[];
+                          return StreamBuilder<List<TimelineEvent>>(
+                            stream: encountersStream,
+                            builder: (context, encounterSnapshot) {
+                              final encounters = encounterSnapshot.data ?? const <TimelineEvent>[];
+                              final allItems = _buildItems(
+                                foods: foods,
+                                moments: moments,
+                                travels: travels,
+                                friends: friends,
+                                goals: goals,
+                                encounters: encounters,
+                              );
+                              final items = _filterItems(allItems);
+                              final foodCount = allItems.where((item) => item.category == '美食').length;
+                              final travelCount = allItems.where((item) => item.category == '旅行').length;
+                              final momentCount = allItems.where((item) => item.category == '小确幸').length;
+                              final goalCount = allItems.where((item) => item.category == '目标').length;
+                              final encounterCount = allItems.where((item) => item.category == '相遇').length;
+                              final visibleIds = items.map((item) => item.id).toSet();
+                              final selectedCount = _selectedIds.where(visibleIds.contains).length;
+                              final allSelected = selectedCount == items.length && items.isNotEmpty;
+                              return Scaffold(
+                                backgroundColor: background,
+                                appBar: AppBar(
+                                  backgroundColor: Colors.white.withValues(alpha: 0.7),
+                                  title: const Text('收藏中心', style: TextStyle(fontWeight: FontWeight.w800)),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: _toggleSelectionMode,
+                                      style: TextButton.styleFrom(foregroundColor: primary, textStyle: const TextStyle(fontWeight: FontWeight.w900)),
+                                      child: Text(_selectionMode ? '取消' : '选择'),
+                                    ),
+                                  ],
+                                ),
+                                bottomNavigationBar: _selectionMode
+                                    ? SafeArea(
+                                        top: false,
+                                        child: Container(
+                                          padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            border: Border(top: BorderSide(color: Colors.black.withValues(alpha: 0.06))),
+                                          ),
                                           child: Row(
                                             children: [
-                                              Container(
-                                                width: 18,
-                                                height: 18,
-                                                decoration: BoxDecoration(
-                                                  color: allSelected ? primary : Colors.transparent,
-                                                  borderRadius: BorderRadius.circular(6),
-                                                  border: Border.all(color: const Color(0xFFCBD5F5)),
+                                              InkWell(
+                                                onTap: () => _toggleSelectAll(items),
+                                                borderRadius: BorderRadius.circular(12),
+                                                child: Padding(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                                                  child: Row(
+                                                    children: [
+                                                      Container(
+                                                        width: 18,
+                                                        height: 18,
+                                                        decoration: BoxDecoration(
+                                                          color: allSelected ? primary : Colors.transparent,
+                                                          borderRadius: BorderRadius.circular(6),
+                                                          border: Border.all(color: const Color(0xFFCBD5F5)),
+                                                        ),
+                                                        child: allSelected ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
+                                                      ),
+                                                      const SizedBox(width: 8),
+                                                      Text(
+                                                        allSelected ? '取消全选' : '全选',
+                                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF475569)),
+                                                      ),
+                                                    ],
+                                                  ),
                                                 ),
-                                                child: allSelected ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
+                                              ),
+                                              const Spacer(),
+                                              TextButton.icon(
+                                                onPressed: selectedCount == 0 ? null : () {},
+                                                style: TextButton.styleFrom(foregroundColor: const Color(0xFF64748B), textStyle: const TextStyle(fontWeight: FontWeight.w800)),
+                                                icon: const Icon(Icons.ios_share, size: 18),
+                                                label: Text('批量导出${selectedCount == 0 ? '' : ' ($selectedCount)'}'),
                                               ),
                                               const SizedBox(width: 8),
-                                              Text(
-                                                allSelected ? '取消全选' : '全选',
-                                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF475569)),
+                                              TextButton.icon(
+                                                onPressed: selectedCount == 0 ? null : () {},
+                                                style: TextButton.styleFrom(foregroundColor: const Color(0xFFF43F5E), textStyle: const TextStyle(fontWeight: FontWeight.w800)),
+                                                icon: const Icon(Icons.delete, size: 18),
+                                                label: const Text('删除'),
                                               ),
                                             ],
                                           ),
                                         ),
+                                      )
+                                    : null,
+                                body: SafeArea(
+                                  child: ListView(
+                                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(16),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(18),
+                                          border: Border.all(color: const Color(0xFFF3F4F6)),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            const Text('收藏概览', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                                            const SizedBox(height: 10),
+                                            LayoutBuilder(
+                                              builder: (context, constraints) {
+                                                const spacing = 10.0;
+                                                final itemWidth = (constraints.maxWidth - spacing) / 2;
+                                                return Wrap(
+                                                  spacing: spacing,
+                                                  runSpacing: spacing,
+                                                  children: [
+                                                    _FavoriteSummaryChip(
+                                                      width: itemWidth,
+                                                      label: '美食',
+                                                      count: foodCount.toString(),
+                                                      color: const Color(0xFFFFEDD5),
+                                                      textColor: const Color(0xFFFB923C),
+                                                      onTap: () => setState(() {
+                                                        _selectedCategoryIndex = 1;
+                                                        _selectedIds.clear();
+                                                      }),
+                                                    ),
+                                                    _FavoriteSummaryChip(
+                                                      width: itemWidth,
+                                                      label: '旅行',
+                                                      count: travelCount.toString(),
+                                                      color: const Color(0xFFDBEAFE),
+                                                      textColor: const Color(0xFF3B82F6),
+                                                      onTap: () => setState(() {
+                                                        _selectedCategoryIndex = 2;
+                                                        _selectedIds.clear();
+                                                      }),
+                                                    ),
+                                                    _FavoriteSummaryChip(
+                                                      width: itemWidth,
+                                                      label: '小确幸',
+                                                      count: momentCount.toString(),
+                                                      color: const Color(0xFFFCE7F3),
+                                                      textColor: const Color(0xFFEC4899),
+                                                      onTap: () => setState(() {
+                                                        _selectedCategoryIndex = 3;
+                                                        _selectedIds.clear();
+                                                      }),
+                                                    ),
+                                                    _FavoriteSummaryChip(
+                                                      width: itemWidth,
+                                                      label: '目标',
+                                                      count: goalCount.toString(),
+                                                      color: const Color(0xFFF3E8FF),
+                                                      textColor: const Color(0xFF9333EA),
+                                                      onTap: () => setState(() {
+                                                        _selectedCategoryIndex = 4;
+                                                        _selectedIds.clear();
+                                                      }),
+                                                    ),
+                                                    _FavoriteSummaryChip(
+                                                      width: itemWidth,
+                                                      label: '相遇',
+                                                      count: encounterCount.toString(),
+                                                      color: const Color(0xFFE0F2FE),
+                                                      textColor: const Color(0xFF0284C7),
+                                                      onTap: () => setState(() {
+                                                        _selectedCategoryIndex = 6;
+                                                        _selectedIds.clear();
+                                                      }),
+                                                    ),
+                                                  ],
+                                                );
+                                              },
+                                            ),
+                                            const SizedBox(height: 12),
+                                            SizedBox(
+                                              height: 36,
+                                              child: ListView.separated(
+                                                scrollDirection: Axis.horizontal,
+                                                itemBuilder: (context, index) {
+                                                  final label = _categories[index];
+                                                  final selected = index == _selectedCategoryIndex;
+                                                  return _CategoryChip(
+                                                    label: label,
+                                                    selected: selected,
+                                                    onTap: () => setState(() {
+                                                      _selectedCategoryIndex = index;
+                                                      _selectedIds.clear();
+                                                    }),
+                                                  );
+                                                },
+                                                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                                                itemCount: _categories.length,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                      const Spacer(),
-                                      TextButton.icon(
-                                        onPressed: selectedCount == 0 ? null : () {},
-                                        style: TextButton.styleFrom(foregroundColor: const Color(0xFF64748B), textStyle: const TextStyle(fontWeight: FontWeight.w800)),
-                                        icon: const Icon(Icons.ios_share, size: 18),
-                                        label: Text('批量导出${selectedCount == 0 ? '' : ' ($selectedCount)'}'),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      TextButton.icon(
-                                        onPressed: selectedCount == 0 ? null : () {},
-                                        style: TextButton.styleFrom(foregroundColor: const Color(0xFFF43F5E), textStyle: const TextStyle(fontWeight: FontWeight.w800)),
-                                        icon: const Icon(Icons.delete, size: 18),
-                                        label: const Text('删除'),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              )
-                            : null,
-                        body: SafeArea(
-                          child: ListView(
-                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(18),
-                                  border: Border.all(color: const Color(0xFFF3F4F6)),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text('收藏概览', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                                    const SizedBox(height: 10),
-                                    Row(
-                                      children: [
-                                        _FavoriteSummaryChip(
-                                          label: '美食',
-                                          count: foodCount.toString(),
-                                          color: const Color(0xFFFFEDD5),
-                                          textColor: const Color(0xFFFB923C),
-                                          onTap: () => setState(() {
-                                            _selectedCategoryIndex = 1;
-                                            _selectedIds.clear();
-                                          }),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        _FavoriteSummaryChip(
-                                          label: '旅行',
-                                          count: travelCount.toString(),
-                                          color: const Color(0xFFDBEAFE),
-                                          textColor: const Color(0xFF3B82F6),
-                                          onTap: () => setState(() {
-                                            _selectedCategoryIndex = 2;
-                                            _selectedIds.clear();
-                                          }),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        _FavoriteSummaryChip(
-                                          label: '小确幸',
-                                          count: momentCount.toString(),
-                                          color: const Color(0xFFFCE7F3),
-                                          textColor: const Color(0xFFEC4899),
-                                          onTap: () => setState(() {
-                                            _selectedCategoryIndex = 3;
-                                            _selectedIds.clear();
-                                          }),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        _FavoriteSummaryChip(
-                                          label: '相遇',
-                                          count: encounterCount.toString(),
-                                          color: const Color(0xFFE0F2FE),
-                                          textColor: const Color(0xFF0284C7),
-                                          onTap: () => setState(() {
-                                            _selectedCategoryIndex = 5;
-                                            _selectedIds.clear();
-                                          }),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 12),
-                                    SizedBox(
-                                      height: 36,
-                                      child: ListView.separated(
-                                        scrollDirection: Axis.horizontal,
-                                        itemBuilder: (context, index) {
-                                          final label = _categories[index];
-                                          final selected = index == _selectedCategoryIndex;
-                                          return _CategoryChip(
-                                            label: label,
-                                            selected: selected,
-                                            onTap: () => setState(() {
-                                              _selectedCategoryIndex = index;
+                                      const SizedBox(height: 14),
+                                      Row(
+                                        children: [
+                                          Text('最近收藏', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                                          const Spacer(),
+                                          TextButton(
+                                            onPressed: () => setState(() {
+                                              _selectedCategoryIndex = 0;
                                               _selectedIds.clear();
                                             }),
-                                          );
-                                        },
-                                        separatorBuilder: (_, __) => const SizedBox(width: 8),
-                                        itemCount: _categories.length,
+                                            style: TextButton.styleFrom(foregroundColor: primary, textStyle: const TextStyle(fontWeight: FontWeight.w900)),
+                                            child: const Text('查看全部'),
+                                          ),
+                                        ],
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 14),
-                              Row(
-                                children: [
-                                  Text('最近收藏', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                                  const Spacer(),
-                                  TextButton(
-                                    onPressed: () => setState(() {
-                                      _selectedCategoryIndex = 0;
-                                      _selectedIds.clear();
-                                    }),
-                                    style: TextButton.styleFrom(foregroundColor: primary, textStyle: const TextStyle(fontWeight: FontWeight.w900)),
-                                    child: const Text('查看全部'),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              if (items.isEmpty)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 40),
-                                  alignment: Alignment.center,
-                                  child: const Text('暂无收藏记录', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
-                                )
-                              else
-                                for (final item in items) ...[
-                                  _FavoriteItemCard(
-                                    title: item.title,
-                                    subtitle: '${item.category} · ${_formatDate(item.date)}',
-                                    tag: item.tag,
-                                    tagColor: item.tagColor,
-                                    tagTextColor: item.tagTextColor,
-                                    imageUrl: item.imageUrl,
-                                    selectable: _selectionMode,
-                                    selected: _selectedIds.contains(item.id),
-                                    onSelect: () {
-                                      if (!_selectionMode) return;
-                                      setState(() {
-                                        if (_selectedIds.contains(item.id)) {
-                                          _selectedIds.remove(item.id);
-                                        } else {
+                                      const SizedBox(height: 8),
+                                      if (items.isEmpty)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(vertical: 40),
+                                          alignment: Alignment.center,
+                                          child: const Text('暂无收藏记录', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                                        )
+                                      else
+                                        for (final item in items) ...[
+                                          _FavoriteItemCard(
+                                            title: item.title,
+                                            subtitle: '${item.category} · ${_formatDate(item.date)}',
+                                            tag: item.tag,
+                                            tagColor: item.tagColor,
+                                            tagTextColor: item.tagTextColor,
+                                            imageUrl: item.imageUrl,
+                                            selectable: _selectionMode,
+                                            selected: _selectedIds.contains(item.id),
+                                            onSelect: () {
+                                              if (!_selectionMode) return;
+                                              setState(() {
+                                                if (_selectedIds.contains(item.id)) {
+                                                  _selectedIds.remove(item.id);
+                                                } else {
                                           _selectedIds.add(item.id);
                                         }
                                       });
@@ -1716,6 +1816,7 @@ class _FavoriteSummaryChip extends StatelessWidget {
     required this.count,
     required this.color,
     required this.textColor,
+    this.width,
     this.onTap,
   });
 
@@ -1723,11 +1824,13 @@ class _FavoriteSummaryChip extends StatelessWidget {
   final String count;
   final Color color;
   final Color textColor;
+  final double? width;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
+    return SizedBox(
+      width: width,
       child: InkWell(
         onTap: () {
           FocusManager.instance.primaryFocus?.unfocus();

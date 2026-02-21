@@ -7,6 +7,7 @@
 
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:drift/native.dart';
 import 'package:flutter/services.dart';
@@ -128,6 +129,11 @@ class FakeAppDatabase extends Fake implements AppDatabase {
   Stream<List<TravelRecord>> watchAllActiveTravelRecords() {
     return Stream.value([]);
   }
+
+  @override
+  Stream<List<TravelRecord>> watchTravelRecordsByRange(DateTime start, DateTime end) {
+    return Stream.value([]);
+  }
   
   @override
   FriendDao get friendDao => FakeFriendDao();
@@ -157,11 +163,21 @@ class FakeMomentDao extends Fake implements MomentDao {
   Stream<List<MomentRecord>> watchAllActive() {
     return Stream.value([]);
   }
+
+  @override
+  Stream<List<MomentRecord>> watchByRecordDateRange(DateTime start, DateTime end) {
+    return Stream.value([]);
+  }
 }
 
 class FakeFoodDao extends Fake implements FoodDao {
   @override
   Stream<List<FoodRecord>> watchAllActive() {
+    return Stream.value([]);
+  }
+
+  @override
+  Stream<List<FoodRecord>> watchByRecordDateRange(DateTime start, DateTime end) {
     return Stream.value([]);
   }
 }

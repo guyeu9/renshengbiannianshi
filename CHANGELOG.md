@@ -19,3 +19,5 @@
 - 修复了 `widget_test.dart` 中因缺少 `watchEventsForMonth` 实现导致的 `NoSuchMethodError`。
 - 修复了测试环境中 `getApplicationDocumentsDirectory` 未 mock 导致的问题。
 - 修复了高德地图依赖 `com.amap.api:3dmap:10.1.200` 在 release 构建中无法解析的问题（补充高德 Maven 仓库）。
+- 修复收藏中心缺失“目标/相遇”卡片样式与真实统计数量的问题，新增目标/相遇收藏渲染与概览计数。
+- 修复 `widget_test.dart` 中缺少日期范围订阅方法导致的启动测试失败，并补齐图片字节类型导入。
