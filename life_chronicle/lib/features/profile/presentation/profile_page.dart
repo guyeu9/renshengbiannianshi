@@ -5,8 +5,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:epubx/epubx.dart';
-import 'package:pdf/google_fonts.dart';
+import 'package:epubx/epubx.dart' as epub;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -1513,7 +1512,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
     final endExclusive = DateTime(range.end.year, range.end.month, range.end.day).add(const Duration(days: 1));
     final summaries = <ChronicleModuleSummary>[];
 
-    Future<List<FoodRecord>> _foods() {
+    Future<List<FoodRecord>> foods() {
       return (db.select(db.foodRecords)
             ..where((t) => t.isDeleted.equals(false))
             ..where((t) => t.recordDate.isBiggerOrEqualValue(start))
@@ -1521,7 +1520,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
           .get();
     }
 
-    Future<List<TravelRecord>> _travels() {
+    Future<List<TravelRecord>> travels() {
       return (db.select(db.travelRecords)
             ..where((t) => t.isDeleted.equals(false))
             ..where((t) => t.recordDate.isBiggerOrEqualValue(start))
@@ -1529,7 +1528,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
           .get();
     }
 
-    Future<List<MomentRecord>> _moments() {
+    Future<List<MomentRecord>> moments() {
       return (db.select(db.momentRecords)
             ..where((t) => t.isDeleted.equals(false))
             ..where((t) => t.recordDate.isBiggerOrEqualValue(start))
@@ -1537,7 +1536,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
           .get();
     }
 
-    Future<List<FriendRecord>> _friends() {
+    Future<List<FriendRecord>> friends() {
       return (db.select(db.friendRecords)
             ..where((t) => t.isDeleted.equals(false))
             ..where((t) => t.updatedAt.isBiggerOrEqualValue(start))
@@ -1545,7 +1544,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
           .get();
     }
 
-    Future<List<TimelineEvent>> _events(String type) {
+    Future<List<TimelineEvent>> events(String type) {
       return (db.select(db.timelineEvents)
             ..where((t) => t.isDeleted.equals(false))
             ..where((t) => t.eventType.equals(type))
@@ -1555,7 +1554,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
     }
 
     if (modules.contains('food')) {
-      final records = await _foods();
+      final records = await foods();
       summaries.add(
         ChronicleModuleSummary(
           key: 'food',
@@ -1566,7 +1565,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
       );
     }
     if (modules.contains('travel')) {
-      final records = await _travels();
+      final records = await travels();
       summaries.add(
         ChronicleModuleSummary(
           key: 'travel',
@@ -1581,7 +1580,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
       );
     }
     if (modules.contains('moment')) {
-      final records = await _moments();
+      final records = await moments();
       summaries.add(
         ChronicleModuleSummary(
           key: 'moment',
@@ -1592,7 +1591,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
       );
     }
     if (modules.contains('bond')) {
-      final records = await _friends();
+      final records = await friends();
       summaries.add(
         ChronicleModuleSummary(
           key: 'bond',
@@ -1603,7 +1602,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
       );
     }
     if (modules.contains('goal')) {
-      final records = await _events('goal');
+      final records = await events('goal');
       summaries.add(
         ChronicleModuleSummary(
           key: 'goal',
@@ -1614,7 +1613,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
       );
     }
     if (modules.contains('encounter')) {
-      final records = await _events('encounter');
+      final records = await events('encounter');
       summaries.add(
         ChronicleModuleSummary(
           key: 'encounter',
@@ -1678,13 +1677,10 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
     String userSummary,
     List<ChronicleModuleSummary> summaries,
   ) async {
-    final baseFont = await PdfGoogleFonts.notoSansSCRegular();
-    final boldFont = await PdfGoogleFonts.notoSansSCBold();
     final doc = pw.Document();
     doc.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
-        theme: pw.ThemeData.withFont(base: baseFont, bold: boldFont),
         build: (context) {
           final widgets = <pw.Widget>[
             pw.Text(title, style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
@@ -1752,15 +1748,15 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
         buffer.writeln('</ul>');
       }
     }
-    final book = EpubBook()
+    final book = epub.EpubBook()
       ..Title = title
       ..Author = '人生编年史'
       ..Chapters = [
-        EpubChapter()
+        epub.EpubChapter()
           ..Title = '编年史'
           ..HtmlContent = buffer.toString()
       ];
-    return EpubWriter().writeBook(book);
+    return epub.EpubWriter.writeBook(book) ?? <int>[];
   }
 
   String _escapeHtml(String input) {
