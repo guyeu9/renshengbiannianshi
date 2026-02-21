@@ -1706,24 +1706,24 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
                                                 if (_selectedIds.contains(item.id)) {
                                                   _selectedIds.remove(item.id);
                                                 } else {
-                                          _selectedIds.add(item.id);
-                                        }
-                                      });
-                                    },
-                                    onTap: () {
-                                      if (_selectionMode) {
-                                        setState(() {
-                                          if (_selectedIds.contains(item.id)) {
-                                            _selectedIds.remove(item.id);
-                                          } else {
-                                            _selectedIds.add(item.id);
-                                          }
-                                        });
-                                      }
-                                    },
-                                  ),
-                                  const SizedBox(height: 12),
-                                ],
+                                                  _selectedIds.add(item.id);
+                                                }
+                                              });
+                                            },
+                                            onTap: () {
+                                              if (_selectionMode) {
+                                                setState(() {
+                                                  if (_selectedIds.contains(item.id)) {
+                                                    _selectedIds.remove(item.id);
+                                                  } else {
+                                                    _selectedIds.add(item.id);
+                                                  }
+                                                });
+                                              }
+                                            },
+                                          ),
+                                          const SizedBox(height: 12),
+                                        ],
                             ],
                           ),
                         ),
