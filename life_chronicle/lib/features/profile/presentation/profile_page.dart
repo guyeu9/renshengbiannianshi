@@ -14,6 +14,292 @@ import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/utils/media_storage.dart';
 
+const Map<String, IconData> moduleIconRegistry = {
+  'restaurant': Icons.restaurant,
+  'flight_takeoff': Icons.flight_takeoff,
+  'auto_awesome': Icons.auto_awesome,
+  'diversity_3': Icons.diversity_3,
+  'flag': Icons.flag,
+  'star': Icons.star,
+  'card_giftcard': Icons.card_giftcard,
+  'sunny': Icons.sunny,
+  'local_florist': Icons.local_florist,
+  'coffee': Icons.coffee,
+  'beach_access': Icons.beach_access,
+  'pets': Icons.pets,
+  'music_note': Icons.music_note,
+  'nightlife': Icons.nightlife,
+  'sports_soccer': Icons.sports_soccer,
+  'movie': Icons.movie,
+  'cake': Icons.cake,
+  'celebration': Icons.celebration,
+  'favorite': Icons.favorite,
+  'self_improvement': Icons.self_improvement,
+  'camera_alt': Icons.camera_alt,
+  'directions_walk': Icons.directions_walk,
+};
+
+IconData iconFromName(String name) {
+  return moduleIconRegistry[name] ?? Icons.star;
+}
+
+class ModuleTag {
+  const ModuleTag({
+    required this.id,
+    required this.name,
+    this.iconName,
+    this.showOnCalendar = true,
+  });
+
+  final String id;
+  final String name;
+  final String? iconName;
+  final bool showOnCalendar;
+
+  ModuleTag copyWith({
+    String? id,
+    String? name,
+    String? iconName,
+    bool? showOnCalendar,
+  }) {
+    return ModuleTag(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      iconName: iconName ?? this.iconName,
+      showOnCalendar: showOnCalendar ?? this.showOnCalendar,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'iconName': iconName,
+      'showOnCalendar': showOnCalendar,
+    };
+  }
+
+  factory ModuleTag.fromJson(Map<String, dynamic> json) {
+    return ModuleTag(
+      id: (json['id'] ?? '').toString(),
+      name: (json['name'] ?? '').toString(),
+      iconName: (json['iconName'] ?? '').toString().isEmpty ? null : json['iconName'].toString(),
+      showOnCalendar: json['showOnCalendar'] == null ? true : json['showOnCalendar'] == true,
+    );
+  }
+}
+
+class ModuleConfig {
+  const ModuleConfig({
+    required this.key,
+    required this.title,
+    required this.iconName,
+    required this.tagTitle,
+    required this.showOnCalendar,
+    required this.tags,
+  });
+
+  final String key;
+  final String title;
+  final String iconName;
+  final String tagTitle;
+  final bool showOnCalendar;
+  final List<ModuleTag> tags;
+
+  ModuleConfig copyWith({
+    String? title,
+    String? iconName,
+    String? tagTitle,
+    bool? showOnCalendar,
+    List<ModuleTag>? tags,
+  }) {
+    return ModuleConfig(
+      key: key,
+      title: title ?? this.title,
+      iconName: iconName ?? this.iconName,
+      tagTitle: tagTitle ?? this.tagTitle,
+      showOnCalendar: showOnCalendar ?? this.showOnCalendar,
+      tags: tags ?? this.tags,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'key': key,
+      'title': title,
+      'iconName': iconName,
+      'tagTitle': tagTitle,
+      'showOnCalendar': showOnCalendar,
+      'tags': tags.map((t) => t.toJson()).toList(growable: false),
+    };
+  }
+
+  factory ModuleConfig.fromJson(Map<String, dynamic> json) {
+    final tagsRaw = json['tags'];
+    final tags = <ModuleTag>[];
+    if (tagsRaw is List) {
+      for (final item in tagsRaw) {
+        if (item is Map<String, dynamic>) {
+          tags.add(ModuleTag.fromJson(item));
+        } else if (item is Map) {
+          tags.add(ModuleTag.fromJson(Map<String, dynamic>.from(item)));
+        }
+      }
+    }
+    return ModuleConfig(
+      key: (json['key'] ?? '').toString(),
+      title: (json['title'] ?? '').toString(),
+      iconName: (json['iconName'] ?? '').toString(),
+      tagTitle: (json['tagTitle'] ?? '').toString(),
+      showOnCalendar: json['showOnCalendar'] == null ? true : json['showOnCalendar'] == true,
+      tags: tags,
+    );
+  }
+}
+
+class ModuleManagementConfig {
+  const ModuleManagementConfig({required this.modules});
+
+  final Map<String, ModuleConfig> modules;
+
+  ModuleConfig moduleOf(String key) {
+    return modules[key] ?? ModuleManagementConfig.defaults().modules[key]!;
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'modules': {
+        for (final entry in modules.entries) entry.key: entry.value.toJson(),
+      },
+    };
+  }
+
+  factory ModuleManagementConfig.fromJson(Map<String, dynamic> json) {
+    final modulesRaw = json['modules'];
+    final modules = <String, ModuleConfig>{};
+    if (modulesRaw is Map) {
+      for (final entry in modulesRaw.entries) {
+        if (entry.value is Map<String, dynamic>) {
+          modules[entry.key.toString()] = ModuleConfig.fromJson(entry.value as Map<String, dynamic>);
+        } else if (entry.value is Map) {
+          modules[entry.key.toString()] = ModuleConfig.fromJson(Map<String, dynamic>.from(entry.value as Map));
+        }
+      }
+    }
+    final defaults = ModuleManagementConfig.defaults();
+    for (final entry in defaults.modules.entries) {
+      modules.putIfAbsent(entry.key, () => entry.value);
+    }
+    return ModuleManagementConfig(modules: modules);
+  }
+
+  static ModuleManagementConfig defaults() {
+    return ModuleManagementConfig(
+      modules: {
+        'food': ModuleConfig(
+          key: 'food',
+          title: '美食',
+          iconName: 'restaurant',
+          tagTitle: '菜系标签管理',
+          showOnCalendar: true,
+          tags: const [
+            ModuleTag(id: 'food-1', name: '火锅'),
+            ModuleTag(id: 'food-2', name: '日料'),
+            ModuleTag(id: 'food-3', name: '川菜'),
+            ModuleTag(id: 'food-4', name: '西餐'),
+          ],
+        ),
+        'travel': ModuleConfig(
+          key: 'travel',
+          title: '旅行',
+          iconName: 'flight_takeoff',
+          tagTitle: '目的地标签管理',
+          showOnCalendar: true,
+          tags: const [
+            ModuleTag(id: 'travel-1', name: '国内游'),
+            ModuleTag(id: 'travel-2', name: '露营'),
+            ModuleTag(id: 'travel-3', name: '海岛'),
+            ModuleTag(id: 'travel-4', name: '城市漫游'),
+          ],
+        ),
+        'moment': ModuleConfig(
+          key: 'moment',
+          title: '小确幸',
+          iconName: 'auto_awesome',
+          tagTitle: '个性化标签管理 (支持自定义图标)',
+          showOnCalendar: true,
+          tags: const [
+            ModuleTag(id: 'moment-1', name: '礼物', iconName: 'card_giftcard', showOnCalendar: true),
+            ModuleTag(id: 'moment-2', name: '夕阳', iconName: 'sunny', showOnCalendar: false),
+            ModuleTag(id: 'moment-3', name: '散步', iconName: 'directions_walk', showOnCalendar: true),
+            ModuleTag(id: 'moment-4', name: '花束', iconName: 'local_florist', showOnCalendar: true),
+          ],
+        ),
+        'bond': ModuleConfig(
+          key: 'bond',
+          title: '羁绊',
+          iconName: 'diversity_3',
+          tagTitle: '印象标签管理',
+          showOnCalendar: true,
+          tags: const [
+            ModuleTag(id: 'bond-1', name: '死党'),
+            ModuleTag(id: 'bond-2', name: '家人'),
+            ModuleTag(id: 'bond-3', name: '同事'),
+          ],
+        ),
+        'goal': ModuleConfig(
+          key: 'goal',
+          title: '目标',
+          iconName: 'flag',
+          tagTitle: '目标分类管理',
+          showOnCalendar: true,
+          tags: const [
+            ModuleTag(id: 'goal-1', name: '年度目标'),
+            ModuleTag(id: 'goal-2', name: '习惯养成'),
+            ModuleTag(id: 'goal-3', name: '职业发展'),
+          ],
+        ),
+      },
+    );
+  }
+}
+
+Future<File?> moduleManagementConfigFile() async {
+  if (kIsWeb) return null;
+  final dir = await getApplicationDocumentsDirectory();
+  final profileDir = Directory(p.join(dir.path, 'profile'));
+  await profileDir.create(recursive: true);
+  return File(p.join(profileDir.path, 'module_management.json'));
+}
+
+Future<ModuleManagementConfig> loadModuleManagementConfig() async {
+  if (kIsWeb) return ModuleManagementConfig.defaults();
+  final file = await moduleManagementConfigFile();
+  if (file == null) return ModuleManagementConfig.defaults();
+  if (!await file.exists()) {
+    final defaults = ModuleManagementConfig.defaults();
+    await file.writeAsString(jsonEncode(defaults.toJson()));
+    return defaults;
+  }
+  try {
+    final raw = await file.readAsString();
+    final decoded = jsonDecode(raw);
+    if (decoded is Map) {
+      return ModuleManagementConfig.fromJson(Map<String, dynamic>.from(decoded));
+    }
+  } catch (_) {}
+  final fallback = ModuleManagementConfig.defaults();
+  await file.writeAsString(jsonEncode(fallback.toJson()));
+  return fallback;
+}
+
+Future<void> saveModuleManagementConfig(ModuleManagementConfig config) async {
+  if (kIsWeb) return;
+  final file = await moduleManagementConfigFile();
+  if (file == null) return;
+  await file.writeAsString(jsonEncode(config.toJson()));
+}
+
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
@@ -3055,13 +3341,568 @@ class _PersonalProfilePageState extends ConsumerState<PersonalProfilePage> {
   }
 }
 
-class ModuleManagementPage extends StatelessWidget {
+class ModuleManagementPage extends ConsumerStatefulWidget {
   const ModuleManagementPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const _PlaceholderPage(title: '个人中心-模块管理');
+  ConsumerState<ModuleManagementPage> createState() => _ModuleManagementPageState();
+}
+
+class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
+  ModuleManagementConfig? _config;
+  bool _loading = true;
+
+  static const _bg = Color(0xFFF2F4F6);
+  static const _accentBg = Color(0xFFE0F2F1);
+  static const _accentFg = Color(0xFF00695C);
+  static const _cardBorder = Color(0xFFF3F4F6);
+  static const _mutedText = Color(0xFF94A3B8);
+
+  final List<_ModuleIconOption> _momentIconOptions = const [
+    _ModuleIconOption(name: 'card_giftcard', icon: Icons.card_giftcard),
+    _ModuleIconOption(name: 'sunny', icon: Icons.sunny),
+    _ModuleIconOption(name: 'directions_walk', icon: Icons.directions_walk),
+    _ModuleIconOption(name: 'local_florist', icon: Icons.local_florist),
+    _ModuleIconOption(name: 'coffee', icon: Icons.coffee),
+    _ModuleIconOption(name: 'beach_access', icon: Icons.beach_access),
+    _ModuleIconOption(name: 'pets', icon: Icons.pets),
+    _ModuleIconOption(name: 'music_note', icon: Icons.music_note),
+    _ModuleIconOption(name: 'nightlife', icon: Icons.nightlife),
+    _ModuleIconOption(name: 'movie', icon: Icons.movie),
+    _ModuleIconOption(name: 'celebration', icon: Icons.celebration),
+    _ModuleIconOption(name: 'camera_alt', icon: Icons.camera_alt),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadConfig();
   }
+
+  Future<void> _loadConfig() async {
+    final config = await loadModuleManagementConfig();
+    if (!mounted) return;
+    setState(() {
+      _config = config;
+      _loading = false;
+    });
+  }
+
+  Future<void> _saveConfig(ModuleManagementConfig config) async {
+    setState(() => _config = config);
+    await saveModuleManagementConfig(config);
+    if (!mounted) return;
+    ref.read(moduleManagementRevisionProvider.notifier).state += 1;
+  }
+
+  ModuleManagementConfig _updateModule(ModuleConfig module) {
+    final modules = Map<String, ModuleConfig>.from(_config?.modules ?? {});
+    modules[module.key] = module;
+    return ModuleManagementConfig(modules: modules);
+  }
+
+  List<String> _parseStringList(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return const [];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is List) {
+        return decoded.whereType<String>().toList(growable: false);
+      }
+    } catch (_) {}
+    return const [];
+  }
+
+  Map<String, int> _countFoodTags(List<FoodRecord> foods) {
+    final counts = <String, int>{};
+    for (final record in foods) {
+      final tags = _parseStringList(record.tags);
+      for (final tag in tags) {
+        final key = tag.trim();
+        if (key.isEmpty) continue;
+        counts.update(key, (v) => v + 1, ifAbsent: () => 1);
+      }
+    }
+    return counts;
+  }
+
+  Map<String, int> _countMomentTags(List<MomentRecord> moments) {
+    final counts = <String, int>{};
+    for (final record in moments) {
+      final tag = (record.sceneTag ?? '').trim();
+      if (tag.isEmpty) continue;
+      counts.update(tag, (v) => v + 1, ifAbsent: () => 1);
+    }
+    return counts;
+  }
+
+  Map<String, int> _countTravelTags(List<TravelRecord> travels) {
+    final counts = <String, int>{};
+    for (final record in travels) {
+      final candidates = [
+        record.destination,
+        record.mood,
+      ];
+      for (final raw in candidates) {
+        final tag = (raw ?? '').trim();
+        if (tag.isEmpty) continue;
+        counts.update(tag, (v) => v + 1, ifAbsent: () => 1);
+      }
+    }
+    return counts;
+  }
+
+  Map<String, int> _countBondTags(List<FriendRecord> friends) {
+    final counts = <String, int>{};
+    for (final record in friends) {
+      final tags = _parseStringList(record.impressionTags);
+      for (final tag in tags) {
+        final key = tag.trim();
+        if (key.isEmpty) continue;
+        counts.update(key, (v) => v + 1, ifAbsent: () => 1);
+      }
+    }
+    return counts;
+  }
+
+  Map<String, int> _countGoalTags(List<TimelineEvent> goals) {
+    final counts = <String, int>{};
+    for (final record in goals) {
+      final note = (record.note ?? '').trim();
+      if (note.isEmpty) continue;
+      for (final line in note.split('\n')) {
+        if (line.startsWith('分类：')) {
+          final tag = line.replaceFirst('分类：', '').trim();
+          if (tag.isNotEmpty) {
+            counts.update(tag, (v) => v + 1, ifAbsent: () => 1);
+          }
+        }
+      }
+    }
+    return counts;
+  }
+
+  String _newTagId(String moduleKey) {
+    return '$moduleKey-${DateTime.now().millisecondsSinceEpoch}';
+  }
+
+  Future<void> _openTagEditor({
+    required ModuleConfig module,
+    ModuleTag? tag,
+  }) async {
+    final controller = TextEditingController(text: tag?.name ?? '');
+    String selectedIcon = tag?.iconName ?? _momentIconOptions.first.name;
+    bool showOnCalendar = tag?.showOnCalendar ?? true;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+                child: Material(
+                  color: Colors.white,
+                  child: SafeArea(
+                    top: false,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(18, 16, 18, 20),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                tag == null ? '新增标签' : '编辑标签',
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
+                              ),
+                              const Spacer(),
+                              IconButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                icon: const Icon(Icons.close, color: Color(0xFF9CA3AF)),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          TextField(
+                            controller: controller,
+                            decoration: const InputDecoration(
+                              hintText: '输入标签名称',
+                              border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(14))),
+                              isDense: true,
+                            ),
+                          ),
+                          if (module.key == 'moment') ...[
+                            const SizedBox(height: 16),
+                            const Text('选择图标', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 10,
+                              runSpacing: 10,
+                              children: [
+                                for (final option in _momentIconOptions)
+                                  InkWell(
+                                    borderRadius: BorderRadius.circular(12),
+                                    onTap: () => setSheetState(() => selectedIcon = option.name),
+                                    child: Container(
+                                      width: 44,
+                                      height: 44,
+                                      decoration: BoxDecoration(
+                                        color: option.name == selectedIcon ? const Color(0xFFE0F2F1) : const Color(0xFFF8FAFC),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: option.name == selectedIcon ? const Color(0xFF2BCDEE) : const Color(0xFFE5E7EB),
+                                        ),
+                                      ),
+                                      child: Icon(option.icon, color: option.name == selectedIcon ? const Color(0xFF0F766E) : const Color(0xFF6B7280), size: 20),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            Row(
+                              children: [
+                                const Text('首页日程展示', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF6B7280))),
+                                const Spacer(),
+                                Switch(
+                                  value: showOnCalendar,
+                                  activeColor: const Color(0xFF2BCDEE),
+                                  activeTrackColor: const Color(0xFFBAE6FD),
+                                  onChanged: (v) => setSheetState(() => showOnCalendar = v),
+                                ),
+                              ],
+                            ),
+                          ],
+                          const SizedBox(height: 16),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: ProfilePage._primary,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                textStyle: const TextStyle(fontWeight: FontWeight.w900),
+                              ),
+                              onPressed: () {
+                                final name = controller.text.trim();
+                                if (name.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请输入标签名称')));
+                                  return;
+                                }
+                                final current = _config?.moduleOf(module.key) ?? module;
+                                final updatedTags = [...current.tags];
+                                if (tag == null) {
+                                  updatedTags.add(
+                                    ModuleTag(
+                                      id: _newTagId(module.key),
+                                      name: name,
+                                      iconName: module.key == 'moment' ? selectedIcon : null,
+                                      showOnCalendar: module.key == 'moment' ? showOnCalendar : true,
+                                    ),
+                                  );
+                                } else {
+                                  final index = updatedTags.indexWhere((t) => t.id == tag.id);
+                                  if (index != -1) {
+                                    updatedTags[index] = tag.copyWith(
+                                      name: name,
+                                      iconName: module.key == 'moment' ? selectedIcon : tag.iconName,
+                                      showOnCalendar: module.key == 'moment' ? showOnCalendar : tag.showOnCalendar,
+                                    );
+                                  }
+                                }
+                                _saveConfig(_updateModule(current.copyWith(tags: updatedTags)));
+                                Navigator.of(context).pop();
+                              },
+                              child: const Text('保存'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _confirmDeleteTag({
+    required ModuleConfig module,
+    required ModuleTag tag,
+  }) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('确认删除'),
+          content: Text('确定要删除“${tag.name}”吗？'),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('取消')),
+            TextButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('删除')),
+          ],
+        );
+      },
+    );
+    if (confirmed != true) return;
+    final current = _config?.moduleOf(module.key) ?? module;
+    final updatedTags = current.tags.where((t) => t.id != tag.id).toList(growable: false);
+    await _saveConfig(_updateModule(current.copyWith(tags: updatedTags)));
+  }
+
+  Widget _buildTagRow({
+    required ModuleConfig module,
+    required ModuleTag tag,
+    required int count,
+  }) {
+    final isMoment = module.key == 'moment';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(14)),
+      child: Row(
+        children: [
+          if (isMoment)
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 2))]),
+              child: Icon(iconFromName(tag.iconName ?? module.iconName), size: 16, color: _accentFg),
+            ),
+          if (isMoment) const SizedBox(width: 10),
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                text: tag.name,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF111827)),
+                children: [
+                  TextSpan(text: ' ($count)', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                ],
+              ),
+            ),
+          ),
+          if (isMoment)
+            Row(
+              children: [
+                const Text('首页展示', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+                const SizedBox(width: 4),
+                Transform.scale(
+                  scale: 0.8,
+                  child: Switch(
+                    value: tag.showOnCalendar,
+                    activeColor: const Color(0xFF2BCDEE),
+                    activeTrackColor: const Color(0xFFBAE6FD),
+                    onChanged: (v) {
+                      final current = _config?.moduleOf(module.key) ?? module;
+                      final updatedTags = current.tags
+                          .map((t) => t.id == tag.id ? t.copyWith(showOnCalendar: v) : t)
+                          .toList(growable: false);
+                      _saveConfig(_updateModule(current.copyWith(tags: updatedTags)));
+                    },
+                  ),
+                ),
+              ],
+            ),
+          IconButton(
+            icon: const Icon(Icons.edit, size: 18, color: Color(0xFF94A3B8)),
+            onPressed: () => _openTagEditor(module: module, tag: tag),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete, size: 18, color: Color(0xFFEF4444)),
+            onPressed: () => _confirmDeleteTag(module: module, tag: tag),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModuleCard({
+    required ModuleConfig module,
+    required Map<String, int> tagCounts,
+  }) {
+    final tags = module.tags;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: _cardBorder)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(color: _accentBg, borderRadius: BorderRadius.circular(12)),
+                child: Icon(iconFromName(module.iconName), color: _accentFg),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(module.title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  const Text('首页日程展示', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+                  Switch(
+                    value: module.showOnCalendar,
+                    activeColor: const Color(0xFF2BCDEE),
+                    activeTrackColor: const Color(0xFFBAE6FD),
+                    onChanged: (v) => _saveConfig(_updateModule(module.copyWith(showOnCalendar: v))),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 6),
+              Opacity(
+                opacity: 0.5,
+                child: OutlinedButton.icon(
+                  onPressed: null,
+                  icon: Icon(iconFromName(module.iconName), size: 16, color: _accentFg),
+                  label: const Text('图标', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFFE5E7EB)),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(module.tagTitle, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF94A3B8))),
+          const SizedBox(height: 10),
+          Column(
+            children: [
+              for (final tag in tags) ...[
+                _buildTagRow(
+                  module: module,
+                  tag: tag,
+                  count: tagCounts[tag.name] ?? 0,
+                ),
+                const SizedBox(height: 8),
+              ],
+              InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () => _openTagEditor(module: module),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFE5E7EB), style: BorderStyle.solid),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.add, size: 16, color: Color(0xFF94A3B8)),
+                      const SizedBox(width: 6),
+                      Text('新增${module.title == '羁绊' ? '印象' : module.title == '目标' ? '分类' : module.title == '旅行' ? '目的地' : module.title == '美食' ? '菜系' : '标签'}',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return Scaffold(
+        backgroundColor: _bg,
+        appBar: AppBar(
+          backgroundColor: Colors.white.withValues(alpha: 0.8),
+          title: const Text('模块管理', style: TextStyle(fontWeight: FontWeight.w900)),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+    final config = _config ?? ModuleManagementConfig.defaults();
+    final db = ref.watch(appDatabaseProvider);
+    return Scaffold(
+      backgroundColor: _bg,
+      appBar: AppBar(
+        backgroundColor: Colors.white.withValues(alpha: 0.85),
+        title: const Text('模块管理', style: TextStyle(fontWeight: FontWeight.w900)),
+      ),
+      body: StreamBuilder<List<FoodRecord>>(
+        stream: db.foodDao.watchAllActive(),
+        builder: (context, foodSnapshot) {
+          final foodCounts = _countFoodTags(foodSnapshot.data ?? const <FoodRecord>[]);
+          return StreamBuilder<List<MomentRecord>>(
+            stream: db.momentDao.watchAllActive(),
+            builder: (context, momentSnapshot) {
+              final momentCounts = _countMomentTags(momentSnapshot.data ?? const <MomentRecord>[]);
+              return StreamBuilder<List<TravelRecord>>(
+                stream: db.watchAllActiveTravelRecords(),
+                builder: (context, travelSnapshot) {
+                  final travelCounts = _countTravelTags(travelSnapshot.data ?? const <TravelRecord>[]);
+                  return StreamBuilder<List<FriendRecord>>(
+                    stream: db.friendDao.watchAllActive(),
+                    builder: (context, friendSnapshot) {
+                      final bondCounts = _countBondTags(friendSnapshot.data ?? const <FriendRecord>[]);
+                      return StreamBuilder<List<TimelineEvent>>(
+                        stream: (db.select(db.timelineEvents)
+                              ..where((t) => t.isDeleted.equals(false))
+                              ..where((t) => t.eventType.equals('goal')))
+                            .watch(),
+                        builder: (context, goalSnapshot) {
+                          final goalCounts = _countGoalTags(goalSnapshot.data ?? const <TimelineEvent>[]);
+                          return ListView(
+                            padding: const EdgeInsets.fromLTRB(18, 14, 18, 40),
+                            children: [
+                              const Text(
+                                '自定义您的首页日历图标，管理各模块深度标签及数据统计。',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)),
+                              ),
+                              const SizedBox(height: 16),
+                              _buildModuleCard(module: config.moduleOf('food'), tagCounts: foodCounts),
+                              const SizedBox(height: 14),
+                              _buildModuleCard(module: config.moduleOf('travel'), tagCounts: travelCounts),
+                              const SizedBox(height: 14),
+                              _buildModuleCard(module: config.moduleOf('moment'), tagCounts: momentCounts),
+                              const SizedBox(height: 14),
+                              _buildModuleCard(module: config.moduleOf('bond'), tagCounts: bondCounts),
+                              const SizedBox(height: 14),
+                              _buildModuleCard(module: config.moduleOf('goal'), tagCounts: goalCounts),
+                              const SizedBox(height: 20),
+                              Center(
+                                child: TextButton.icon(
+                                  onPressed: () => _saveConfig(ModuleManagementConfig.defaults()),
+                                  icon: const Icon(Icons.settings_backup_restore, color: _mutedText),
+                                  label: const Text('恢复默认设置', style: TextStyle(fontWeight: FontWeight.w700, color: _mutedText)),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ModuleIconOption {
+  const _ModuleIconOption({required this.name, required this.icon});
+
+  final String name;
+  final IconData icon;
 }
 
 class YearReportPage extends StatelessWidget {

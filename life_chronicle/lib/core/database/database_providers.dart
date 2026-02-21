@@ -9,6 +9,7 @@ final appDatabaseProvider = Provider<AppDatabase>((ref) {
 });
 
 final profileRevisionProvider = StateProvider<int>((ref) => 0);
+final moduleManagementRevisionProvider = StateProvider<int>((ref) => 0);
 
 final userDisplayNameProvider = FutureProvider<String>((ref) async {
   ref.watch(profileRevisionProvider);

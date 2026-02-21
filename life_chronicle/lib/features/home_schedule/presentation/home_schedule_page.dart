@@ -557,49 +557,80 @@ class _CalendarCardState extends ConsumerState<_CalendarCard> {
   @override
   Widget build(BuildContext context) {
     final db = ref.watch(appDatabaseProvider);
-    return StreamBuilder<List<TimelineEvent>>(
-      stream: db.watchEventsForMonth(_focusMonth),
-      builder: (context, snapshot) {
-        final events = snapshot.data ?? [];
-        return Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x1A2BCDEE),
-                blurRadius: 20,
-                offset: Offset(0, 4),
-              ),
-              BoxShadow(
-                color: Color(0x0A000000),
-                blurRadius: 10,
-                offset: Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _CalendarHeader(
-                month: _focusMonth.month,
-                year: _focusMonth.year,
-                onPrev: _goPrevMonth,
-                onNext: _goNextMonth,
-                onPick: _openMonthPicker,
-              ),
-              const SizedBox(height: 14),
-              const _WeekdayRow(),
-              const SizedBox(height: 10),
-              _CalendarGrid(
-                focusMonth: _focusMonth,
-                selectedDay: widget.selectedDay,
-                onSelectDay: widget.onSelectDay,
-                events: events,
-              ),
-            ],
-          ),
+    ref.watch(moduleManagementRevisionProvider);
+    final monthStart = DateTime(_focusMonth.year, _focusMonth.month, 1);
+    final monthEnd = DateTime(_focusMonth.year, _focusMonth.month + 1, 1);
+    return FutureBuilder<ModuleManagementConfig>(
+      future: loadModuleManagementConfig(),
+      builder: (context, configSnapshot) {
+        final config = configSnapshot.data ?? ModuleManagementConfig.defaults();
+        return StreamBuilder<List<FoodRecord>>(
+          stream: db.foodDao.watchByRecordDateRange(monthStart, monthEnd),
+          builder: (context, foodSnapshot) {
+            final foods = foodSnapshot.data ?? const <FoodRecord>[];
+            return StreamBuilder<List<MomentRecord>>(
+              stream: db.momentDao.watchByRecordDateRange(monthStart, monthEnd),
+              builder: (context, momentSnapshot) {
+                final moments = momentSnapshot.data ?? const <MomentRecord>[];
+                return StreamBuilder<List<TravelRecord>>(
+                  stream: db.watchTravelRecordsByRange(monthStart, monthEnd),
+                  builder: (context, travelSnapshot) {
+                    final travels = travelSnapshot.data ?? const <TravelRecord>[];
+                    return StreamBuilder<List<TimelineEvent>>(
+                      stream: db.watchEventsForMonth(_focusMonth),
+                      builder: (context, snapshot) {
+                        final events = snapshot.data ?? [];
+                        return Container(
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x1A2BCDEE),
+                                blurRadius: 20,
+                                offset: Offset(0, 4),
+                              ),
+                              BoxShadow(
+                                color: Color(0x0A000000),
+                                blurRadius: 10,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _CalendarHeader(
+                                month: _focusMonth.month,
+                                year: _focusMonth.year,
+                                onPrev: _goPrevMonth,
+                                onNext: _goNextMonth,
+                                onPick: _openMonthPicker,
+                              ),
+                              const SizedBox(height: 14),
+                              const _WeekdayRow(),
+                              const SizedBox(height: 10),
+                              _CalendarGrid(
+                                focusMonth: _focusMonth,
+                                selectedDay: widget.selectedDay,
+                                onSelectDay: widget.onSelectDay,
+                                events: events,
+                                foods: foods,
+                                moments: moments,
+                                travels: travels,
+                                config: config,
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            );
+          },
         );
       },
     );
@@ -679,12 +710,20 @@ class _CalendarGrid extends StatelessWidget {
     required this.selectedDay,
     required this.onSelectDay,
     required this.events,
+    required this.foods,
+    required this.moments,
+    required this.travels,
+    required this.config,
   });
 
   final DateTime focusMonth;
   final DateTime selectedDay;
   final ValueChanged<DateTime> onSelectDay;
   final List<TimelineEvent> events;
+  final List<FoodRecord> foods;
+  final List<MomentRecord> moments;
+  final List<TravelRecord> travels;
+  final ModuleManagementConfig config;
 
   List<_CalendarCellData> _buildCells() {
     final year = focusMonth.year;
@@ -696,6 +735,71 @@ class _CalendarGrid extends StatelessWidget {
 
     const dotBlue = Color(0xFF60A5FA);
     const dotOrange = Color(0xFFFB923C);
+
+    final iconsByDay = <int, Set<IconData>>{};
+
+    void addIcon(int day, IconData icon) {
+      iconsByDay.putIfAbsent(day, () => <IconData>{}).add(icon);
+    }
+
+    final foodModule = config.moduleOf('food');
+    final travelModule = config.moduleOf('travel');
+    final momentModule = config.moduleOf('moment');
+    final bondModule = config.moduleOf('bond');
+    final goalModule = config.moduleOf('goal');
+
+    if (foodModule.showOnCalendar) {
+      for (final record in foods) {
+        final date = record.recordDate;
+        if (date.year == year && date.month == month) {
+          addIcon(date.day, iconFromName(foodModule.iconName));
+        }
+      }
+    }
+
+    if (travelModule.showOnCalendar) {
+      for (final record in travels) {
+        final date = record.recordDate;
+        if (date.year == year && date.month == month) {
+          addIcon(date.day, iconFromName(travelModule.iconName));
+        }
+      }
+    }
+
+    if (goalModule.showOnCalendar || bondModule.showOnCalendar) {
+      for (final event in events) {
+        final date = event.recordDate;
+        if (date.year != year || date.month != month) continue;
+        if (event.eventType == 'goal' && goalModule.showOnCalendar) {
+          addIcon(date.day, iconFromName(goalModule.iconName));
+        }
+        if (event.eventType == 'encounter' && bondModule.showOnCalendar) {
+          addIcon(date.day, iconFromName(bondModule.iconName));
+        }
+      }
+    }
+
+    if (momentModule.showOnCalendar) {
+      for (final record in moments) {
+        final date = record.recordDate;
+        if (date.year != year || date.month != month) continue;
+        final tagName = (record.sceneTag ?? '').trim();
+        ModuleTag? match;
+        if (tagName.isNotEmpty) {
+          for (final tag in momentModule.tags) {
+            if (tag.name == tagName) {
+              match = tag;
+              break;
+            }
+          }
+        }
+        if (match != null && !match.showOnCalendar) {
+          continue;
+        }
+        final iconName = match?.iconName ?? momentModule.iconName;
+        addIcon(date.day, iconFromName(iconName));
+      }
+    }
 
     return List.generate(42, (index) {
       final dayOffset = index - leadingDays + 1;
@@ -729,21 +833,13 @@ class _CalendarGrid extends StatelessWidget {
         if (hasNote) dots.add(dotOrange);
       }
 
-      // Keep hardcoded examples for demonstration if no real events, 
-      // but prioritize real events if available.
-      // Actually, let's mix them or just use real events. 
-      // Given the user wants "notes to show", let's rely on real events primarily.
-      // But to preserve the "demo" look if database is empty, we might keep the logic?
-      // No, better to be clean. But I will keep the special icons logic if it was based on specific dates?
-      // The previous code had hardcoded logic for day 1, 2, 4, 6, 9, 13.
-      // I will remove the hardcoded logic to fully switch to dynamic data, 
-      // as requested "ensure TimelineEvent note content displays".
-
+      final icons = iconsByDay[displayDay]?.toList(growable: false) ?? const <IconData>[];
       return _CalendarCellData(
-        day: '$displayDay', 
-        date: date, 
-        selected: selected, 
+        day: '$displayDay',
+        date: date,
+        selected: selected,
         dots: dots,
+        icons: icons.length > 3 ? icons.take(3).toList(growable: false) : icons,
       );
     });
   }
@@ -777,6 +873,7 @@ class _CalendarCellData {
     this.muted = false,
     this.selected = false,
     this.dots = const [],
+    this.icons = const [],
   });
 
   final String day;
@@ -784,6 +881,7 @@ class _CalendarCellData {
   final bool muted;
   final bool selected;
   final List<Color> dots;
+  final List<IconData> icons;
 }
 
 class _CalendarCell extends StatelessWidget {
@@ -843,7 +941,26 @@ class _CalendarCell extends StatelessWidget {
             ],
           )
         else
-          const SizedBox(height: 12),
+          const SizedBox(height: 6),
+        if (data.icons.isNotEmpty)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (final icon in data.icons)
+                Container(
+                  width: 18,
+                  height: 18,
+                  margin: const EdgeInsets.symmetric(horizontal: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE0F2F1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Icon(icon, size: 12, color: const Color(0xFF0F766E)),
+                ),
+            ],
+          )
+        else
+          const SizedBox(height: 18),
       ],
     );
     if (data.muted || onTap == null) {
