@@ -1435,7 +1435,7 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
                     Switch.adaptive(
                       value: _addToWishlist,
                       activeTrackColor: const Color(0xFF2BCDEE),
-                      activeThumbColor: Colors.white,
+                      activeColor: Colors.white,
                       onChanged: (v) => setState(() => _addToWishlist = v),
                     ),
                   ],

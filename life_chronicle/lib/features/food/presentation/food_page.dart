@@ -2942,7 +2942,7 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
               ),
               Switch(
                 value: _isWishlist,
-                activeThumbColor: _primary,
+                activeColor: _primary,
                 activeTrackColor: _primary.withValues(alpha: 0.35),
                 onChanged: (v) => setState(() => _isWishlist = v),
               ),

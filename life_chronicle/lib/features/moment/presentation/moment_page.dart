@@ -1723,7 +1723,7 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
         content: Value(mergedContent.isEmpty ? null : mergedContent),
         images: Value(_imageUrls.isEmpty ? null : jsonEncode(_imageUrls)),
         mood: mood.label,
-        moodColor: Value('#${mood.color.toARGB32().toRadixString(16).padLeft(8, '0')}'),
+        moodColor: Value('#${mood.color.value.toRadixString(16).padLeft(8, '0')}'),
         sceneTag: Value(tag),
         poiName: Value(locationName.isEmpty ? null : locationName),
         poiAddress: Value(locationAddress.isEmpty ? null : locationAddress),
