@@ -5,6 +5,12 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:epubx/epubx.dart';
+import 'package:pdf/google_fonts.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'package:drift/drift.dart' hide Column;
 import 'package:path/path.dart' as p;
@@ -298,6 +304,207 @@ Future<void> saveModuleManagementConfig(ModuleManagementConfig config) async {
   final file = await moduleManagementConfigFile();
   if (file == null) return;
   await file.writeAsString(jsonEncode(config.toJson()));
+}
+
+class ChronicleRecord {
+  const ChronicleRecord({
+    required this.id,
+    required this.title,
+    required this.rangeStart,
+    required this.rangeEnd,
+    required this.createdAt,
+    required this.modules,
+    required this.stats,
+    required this.aiSummary,
+    required this.userSummary,
+    required this.pdfPath,
+    required this.epubPath,
+    required this.isFeatured,
+  });
+
+  final String id;
+  final String title;
+  final DateTime rangeStart;
+  final DateTime rangeEnd;
+  final DateTime createdAt;
+  final List<String> modules;
+  final Map<String, int> stats;
+  final String aiSummary;
+  final String userSummary;
+  final String pdfPath;
+  final String epubPath;
+  final bool isFeatured;
+
+  String rangeLabel() {
+    return '${_formatChronicleDate(rangeStart)} - ${_formatChronicleDate(rangeEnd)}';
+  }
+
+  List<String> tags() {
+    final tags = <String>[...modules];
+    if (isFeatured) tags.add('精选');
+    return tags;
+  }
+
+  ChronicleRecord copyWith({
+    String? id,
+    String? title,
+    DateTime? rangeStart,
+    DateTime? rangeEnd,
+    DateTime? createdAt,
+    List<String>? modules,
+    Map<String, int>? stats,
+    String? aiSummary,
+    String? userSummary,
+    String? pdfPath,
+    String? epubPath,
+    bool? isFeatured,
+  }) {
+    return ChronicleRecord(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      rangeStart: rangeStart ?? this.rangeStart,
+      rangeEnd: rangeEnd ?? this.rangeEnd,
+      createdAt: createdAt ?? this.createdAt,
+      modules: modules ?? this.modules,
+      stats: stats ?? this.stats,
+      aiSummary: aiSummary ?? this.aiSummary,
+      userSummary: userSummary ?? this.userSummary,
+      pdfPath: pdfPath ?? this.pdfPath,
+      epubPath: epubPath ?? this.epubPath,
+      isFeatured: isFeatured ?? this.isFeatured,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'rangeStart': rangeStart.toIso8601String(),
+      'rangeEnd': rangeEnd.toIso8601String(),
+      'createdAt': createdAt.toIso8601String(),
+      'modules': modules,
+      'stats': stats,
+      'aiSummary': aiSummary,
+      'userSummary': userSummary,
+      'pdfPath': pdfPath,
+      'epubPath': epubPath,
+      'isFeatured': isFeatured,
+    };
+  }
+
+  factory ChronicleRecord.fromJson(Map<String, dynamic> json) {
+    final rawModules = json['modules'];
+    final modules = <String>[];
+    if (rawModules is List) {
+      modules.addAll(rawModules.map((e) => e.toString()));
+    }
+    final rawStats = json['stats'];
+    final stats = <String, int>{};
+    if (rawStats is Map) {
+      for (final entry in rawStats.entries) {
+        final value = entry.value;
+        stats[entry.key.toString()] = value is num ? value.toInt() : int.tryParse(value.toString()) ?? 0;
+      }
+    }
+    return ChronicleRecord(
+      id: (json['id'] ?? '').toString(),
+      title: (json['title'] ?? '').toString(),
+      rangeStart: DateTime.tryParse(json['rangeStart']?.toString() ?? '') ?? DateTime.now(),
+      rangeEnd: DateTime.tryParse(json['rangeEnd']?.toString() ?? '') ?? DateTime.now(),
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
+      modules: modules,
+      stats: stats,
+      aiSummary: (json['aiSummary'] ?? '').toString(),
+      userSummary: (json['userSummary'] ?? '').toString(),
+      pdfPath: (json['pdfPath'] ?? '').toString(),
+      epubPath: (json['epubPath'] ?? '').toString(),
+      isFeatured: json['isFeatured'] == true,
+    );
+  }
+}
+
+class ChronicleModuleSummary {
+  const ChronicleModuleSummary({
+    required this.key,
+    required this.title,
+    required this.count,
+    required this.highlights,
+  });
+
+  final String key;
+  final String title;
+  final int count;
+  final List<String> highlights;
+}
+
+class ChronicleGeneratedContent {
+  const ChronicleGeneratedContent({
+    required this.rangeStart,
+    required this.rangeEnd,
+    required this.moduleSummaries,
+    required this.aiSummary,
+  });
+
+  final DateTime rangeStart;
+  final DateTime rangeEnd;
+  final List<ChronicleModuleSummary> moduleSummaries;
+  final String aiSummary;
+}
+
+Future<File?> chronicleStoreFile() async {
+  if (kIsWeb) return null;
+  final dir = await getApplicationDocumentsDirectory();
+  final chronicleDir = Directory(p.join(dir.path, 'chronicle'));
+  await chronicleDir.create(recursive: true);
+  return File(p.join(chronicleDir.path, 'chronicles.json'));
+}
+
+Future<Directory?> chronicleExportDir() async {
+  if (kIsWeb) return null;
+  final dir = await getApplicationDocumentsDirectory();
+  final exportDir = Directory(p.join(dir.path, 'chronicle', 'exports'));
+  await exportDir.create(recursive: true);
+  return exportDir;
+}
+
+Future<List<ChronicleRecord>> loadChronicleRecords() async {
+  if (kIsWeb) return const <ChronicleRecord>[];
+  final file = await chronicleStoreFile();
+  if (file == null) return const <ChronicleRecord>[];
+  if (!await file.exists()) {
+    await file.writeAsString('[]');
+    return const <ChronicleRecord>[];
+  }
+  try {
+    final raw = await file.readAsString();
+    final decoded = jsonDecode(raw);
+    if (decoded is List) {
+      return decoded
+          .whereType<Map>()
+          .map((e) => ChronicleRecord.fromJson(Map<String, dynamic>.from(e)))
+          .toList(growable: false);
+    }
+  } catch (_) {}
+  await file.writeAsString('[]');
+  return const <ChronicleRecord>[];
+}
+
+Future<void> saveChronicleRecords(List<ChronicleRecord> records) async {
+  if (kIsWeb) return;
+  final file = await chronicleStoreFile();
+  if (file == null) return;
+  final payload = jsonEncode(records.map((e) => e.toJson()).toList(growable: false));
+  await file.writeAsString(payload);
+}
+
+String _formatChronicleDate(DateTime date) {
+  String two(int v) => v.toString().padLeft(2, '0');
+  return '${date.year}.${two(date.month)}.${two(date.day)}';
+}
+
+String _safeFileName(String input) {
+  final replaced = input.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_').trim();
+  return replaced.isEmpty ? 'chronicle' : replaced;
 }
 
 class ProfilePage extends StatelessWidget {
@@ -1195,12 +1402,667 @@ class _FrostedCircleButton extends StatelessWidget {
   }
 }
 
-class ChronicleGenerateConfigPage extends StatelessWidget {
+class ChronicleGenerateConfigPage extends ConsumerStatefulWidget {
   const ChronicleGenerateConfigPage({super.key});
 
   @override
+  ConsumerState<ChronicleGenerateConfigPage> createState() => _ChronicleGenerateConfigPageState();
+}
+
+class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateConfigPage> {
+  static const _rangeOptions = ['近7天', '近30天', '近90天', '自定义'];
+  static const _moduleTitles = {
+    'food': '美食',
+    'travel': '旅行',
+    'moment': '小确幸',
+    'bond': '羁绊',
+    'goal': '目标',
+    'encounter': '相遇',
+  };
+
+  final _titleController = TextEditingController();
+  final _aiController = TextEditingController();
+  final _userController = TextEditingController();
+
+  int _rangeIndex = 1;
+  DateTimeRange? _customRange;
+  bool _loadingSummary = true;
+  bool _aiEdited = false;
+  bool _generating = false;
+  List<ChronicleModuleSummary> _summaries = const [];
+  Map<String, bool> _moduleSelection = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _moduleSelection = {for (final key in _moduleTitles.keys) key: true};
+    _refreshSummary(forceAi: true);
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _aiController.dispose();
+    _userController.dispose();
+    super.dispose();
+  }
+
+  DateTimeRange _currentRange() {
+    final now = DateTime.now();
+    if (_rangeIndex == 3 && _customRange != null) {
+      return _customRange!;
+    }
+    final days = _rangeIndex == 0 ? 7 : (_rangeIndex == 1 ? 30 : 90);
+    final end = DateTime(now.year, now.month, now.day);
+    final start = end.subtract(Duration(days: days - 1));
+    return DateTimeRange(start: start, end: end);
+  }
+
+  String _rangeLabel() {
+    final range = _currentRange();
+    return '${_formatChronicleDate(range.start)} - ${_formatChronicleDate(range.end)}';
+  }
+
+  Set<String> _selectedModules() {
+    return _moduleSelection.entries.where((e) => e.value).map((e) => e.key).toSet();
+  }
+
+  Future<void> _pickCustomRange() async {
+    final initial = _customRange ??
+        DateTimeRange(
+          start: DateTime.now().subtract(const Duration(days: 7)),
+          end: DateTime.now(),
+        );
+    final picked = await showDateRangePicker(
+      context: context,
+      initialDateRange: initial,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+      locale: const Locale('zh', 'CN'),
+    );
+    if (picked == null) return;
+    setState(() {
+      _customRange = picked;
+      _rangeIndex = 3;
+    });
+    _refreshSummary();
+  }
+
+  Future<void> _refreshSummary({bool forceAi = false}) async {
+    setState(() => _loadingSummary = true);
+    final range = _currentRange();
+    final db = ref.read(appDatabaseProvider);
+    final content = await _collectChronicleData(db, range, _selectedModules());
+    if (!mounted) return;
+    setState(() {
+      _summaries = content.moduleSummaries;
+      _loadingSummary = false;
+      if (!_aiEdited || forceAi) {
+        _aiController.text = content.aiSummary;
+        _aiEdited = false;
+      }
+    });
+  }
+
+  Future<ChronicleGeneratedContent> _collectChronicleData(
+    AppDatabase db,
+    DateTimeRange range,
+    Set<String> modules,
+  ) async {
+    final start = DateTime(range.start.year, range.start.month, range.start.day);
+    final endExclusive = DateTime(range.end.year, range.end.month, range.end.day).add(const Duration(days: 1));
+    final summaries = <ChronicleModuleSummary>[];
+
+    Future<List<FoodRecord>> _foods() {
+      return (db.select(db.foodRecords)
+            ..where((t) => t.isDeleted.equals(false))
+            ..where((t) => t.recordDate.isBiggerOrEqualValue(start))
+            ..where((t) => t.recordDate.isSmallerThanValue(endExclusive)))
+          .get();
+    }
+
+    Future<List<TravelRecord>> _travels() {
+      return (db.select(db.travelRecords)
+            ..where((t) => t.isDeleted.equals(false))
+            ..where((t) => t.recordDate.isBiggerOrEqualValue(start))
+            ..where((t) => t.recordDate.isSmallerThanValue(endExclusive)))
+          .get();
+    }
+
+    Future<List<MomentRecord>> _moments() {
+      return (db.select(db.momentRecords)
+            ..where((t) => t.isDeleted.equals(false))
+            ..where((t) => t.recordDate.isBiggerOrEqualValue(start))
+            ..where((t) => t.recordDate.isSmallerThanValue(endExclusive)))
+          .get();
+    }
+
+    Future<List<FriendRecord>> _friends() {
+      return (db.select(db.friendRecords)
+            ..where((t) => t.isDeleted.equals(false))
+            ..where((t) => t.updatedAt.isBiggerOrEqualValue(start))
+            ..where((t) => t.updatedAt.isSmallerThanValue(endExclusive)))
+          .get();
+    }
+
+    Future<List<TimelineEvent>> _events(String type) {
+      return (db.select(db.timelineEvents)
+            ..where((t) => t.isDeleted.equals(false))
+            ..where((t) => t.eventType.equals(type))
+            ..where((t) => t.recordDate.isBiggerOrEqualValue(start))
+            ..where((t) => t.recordDate.isSmallerThanValue(endExclusive)))
+          .get();
+    }
+
+    if (modules.contains('food')) {
+      final records = await _foods();
+      summaries.add(
+        ChronicleModuleSummary(
+          key: 'food',
+          title: '美食',
+          count: records.length,
+          highlights: records.map((e) => e.title).where((e) => e.trim().isNotEmpty).take(3).toList(),
+        ),
+      );
+    }
+    if (modules.contains('travel')) {
+      final records = await _travels();
+      summaries.add(
+        ChronicleModuleSummary(
+          key: 'travel',
+          title: '旅行',
+          count: records.length,
+          highlights: records
+              .map((e) => (e.title ?? '').trim().isNotEmpty ? (e.title ?? '').trim() : (e.destination ?? '').trim())
+              .where((e) => e.trim().isNotEmpty)
+              .take(3)
+              .toList(),
+        ),
+      );
+    }
+    if (modules.contains('moment')) {
+      final records = await _moments();
+      summaries.add(
+        ChronicleModuleSummary(
+          key: 'moment',
+          title: '小确幸',
+          count: records.length,
+          highlights: records.map((e) => (e.content ?? '').trim()).where((e) => e.isNotEmpty).take(3).toList(),
+        ),
+      );
+    }
+    if (modules.contains('bond')) {
+      final records = await _friends();
+      summaries.add(
+        ChronicleModuleSummary(
+          key: 'bond',
+          title: '羁绊',
+          count: records.length,
+          highlights: records.map((e) => e.name).where((e) => e.trim().isNotEmpty).take(3).toList(),
+        ),
+      );
+    }
+    if (modules.contains('goal')) {
+      final records = await _events('goal');
+      summaries.add(
+        ChronicleModuleSummary(
+          key: 'goal',
+          title: '目标',
+          count: records.length,
+          highlights: records.map((e) => e.title.trim()).where((e) => e.isNotEmpty).take(3).toList(),
+        ),
+      );
+    }
+    if (modules.contains('encounter')) {
+      final records = await _events('encounter');
+      summaries.add(
+        ChronicleModuleSummary(
+          key: 'encounter',
+          title: '相遇',
+          count: records.length,
+          highlights: records.map((e) => e.title.trim()).where((e) => e.isNotEmpty).take(3).toList(),
+        ),
+      );
+    }
+    final aiSummary = _buildAiSummary(range, summaries);
+    return ChronicleGeneratedContent(
+      rangeStart: range.start,
+      rangeEnd: range.end,
+      moduleSummaries: summaries,
+      aiSummary: aiSummary,
+    );
+  }
+
+  String _buildAiSummary(DateTimeRange range, List<ChronicleModuleSummary> summaries) {
+    final total = summaries.fold<int>(0, (prev, e) => prev + e.count);
+    final summaryLines = <String>[
+      '时间范围：${_formatChronicleDate(range.start)} - ${_formatChronicleDate(range.end)}',
+      '共整理 $total 条记录，覆盖 ${summaries.length} 个模块。',
+    ];
+    for (final item in summaries) {
+      final highlights = item.highlights.isEmpty ? '暂无代表内容' : '代表内容：${item.highlights.join('、')}';
+      summaryLines.add('${item.title}：${item.count} 条，$highlights');
+    }
+    return summaryLines.join('\n');
+  }
+
+  Future<_ChronicleExportResult> _exportChronicle(
+    String title,
+    DateTimeRange range,
+    String aiSummary,
+    String userSummary,
+    List<ChronicleModuleSummary> summaries,
+  ) async {
+    final exportDir = await chronicleExportDir();
+    if (exportDir == null) {
+      return const _ChronicleExportResult(pdfPath: '', epubPath: '');
+    }
+    final safeTitle = _safeFileName(title);
+    final stamp = DateTime.now().millisecondsSinceEpoch;
+    final pdfPath = p.join(exportDir.path, '$safeTitle-$stamp.pdf');
+    final epubPath = p.join(exportDir.path, '$safeTitle-$stamp.epub');
+
+    final pdfBytes = await _buildPdfBytes(title, range, aiSummary, userSummary, summaries);
+    await File(pdfPath).writeAsBytes(pdfBytes, flush: true);
+
+    final epubBytes = await _buildEpubBytes(title, range, aiSummary, userSummary, summaries);
+    await File(epubPath).writeAsBytes(epubBytes, flush: true);
+
+    return _ChronicleExportResult(pdfPath: pdfPath, epubPath: epubPath);
+  }
+
+  Future<List<int>> _buildPdfBytes(
+    String title,
+    DateTimeRange range,
+    String aiSummary,
+    String userSummary,
+    List<ChronicleModuleSummary> summaries,
+  ) async {
+    final baseFont = await PdfGoogleFonts.notoSansSCRegular();
+    final boldFont = await PdfGoogleFonts.notoSansSCBold();
+    final doc = pw.Document();
+    doc.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        theme: pw.ThemeData.withFont(base: baseFont, bold: boldFont),
+        build: (context) {
+          final widgets = <pw.Widget>[
+            pw.Text(title, style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+            pw.SizedBox(height: 6),
+            pw.Text('时间范围：${_formatChronicleDate(range.start)} - ${_formatChronicleDate(range.end)}'),
+            pw.SizedBox(height: 14),
+            pw.Text('AI 初步分析', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+            pw.SizedBox(height: 6),
+            pw.Text(aiSummary.isEmpty ? '暂无内容' : aiSummary),
+            if (userSummary.trim().isNotEmpty) ...[
+              pw.SizedBox(height: 14),
+              pw.Text('我的补充', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 6),
+              pw.Text(userSummary),
+            ],
+            pw.SizedBox(height: 14),
+            pw.Text('模块汇总', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+          ];
+          for (final summary in summaries) {
+            widgets.addAll([
+              pw.SizedBox(height: 8),
+              pw.Text('${summary.title}（${summary.count} 条）', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              if (summary.highlights.isEmpty)
+                pw.Text('暂无代表内容')
+              else
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: summary.highlights.map((e) => pw.Bullet(text: e)).toList(),
+                ),
+            ]);
+          }
+          return widgets;
+        },
+      ),
+    );
+    return doc.save();
+  }
+
+  Future<List<int>> _buildEpubBytes(
+    String title,
+    DateTimeRange range,
+    String aiSummary,
+    String userSummary,
+    List<ChronicleModuleSummary> summaries,
+  ) async {
+    final buffer = StringBuffer();
+    buffer.writeln('<h1>${_escapeHtml(title)}</h1>');
+    buffer.writeln('<p>时间范围：${_escapeHtml(_formatChronicleDate(range.start))} - ${_escapeHtml(_formatChronicleDate(range.end))}</p>');
+    buffer.writeln('<h2>AI 初步分析</h2>');
+    buffer.writeln('<p>${_escapeHtml(aiSummary.isEmpty ? '暂无内容' : aiSummary).replaceAll('\n', '<br/>')}</p>');
+    if (userSummary.trim().isNotEmpty) {
+      buffer.writeln('<h2>我的补充</h2>');
+      buffer.writeln('<p>${_escapeHtml(userSummary).replaceAll('\n', '<br/>')}</p>');
+    }
+    buffer.writeln('<h2>模块汇总</h2>');
+    for (final summary in summaries) {
+      buffer.writeln('<h3>${_escapeHtml(summary.title)}（${summary.count} 条）</h3>');
+      if (summary.highlights.isEmpty) {
+        buffer.writeln('<p>暂无代表内容</p>');
+      } else {
+        buffer.writeln('<ul>');
+        for (final item in summary.highlights) {
+          buffer.writeln('<li>${_escapeHtml(item)}</li>');
+        }
+        buffer.writeln('</ul>');
+      }
+    }
+    final book = EpubBook()
+      ..Title = title
+      ..Author = '人生编年史'
+      ..Chapters = [
+        EpubChapter()
+          ..Title = '编年史'
+          ..HtmlContent = buffer.toString()
+      ];
+    return EpubWriter().writeBook(book);
+  }
+
+  String _escapeHtml(String input) {
+    return input
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+  }
+
+  Future<void> _generateChronicle() async {
+    if (_generating) return;
+    final selected = _selectedModules();
+    if (selected.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('至少选择一个模块')));
+      return;
+    }
+    setState(() => _generating = true);
+    final range = _currentRange();
+    final db = ref.read(appDatabaseProvider);
+    final content = await _collectChronicleData(db, range, selected);
+    final title = _titleController.text.trim().isEmpty
+        ? '${_formatChronicleDate(range.start)}-${_formatChronicleDate(range.end)} 编年史'
+        : _titleController.text.trim();
+    final aiSummary = _aiController.text.trim().isEmpty ? content.aiSummary : _aiController.text.trim();
+    final userSummary = _userController.text.trim();
+    final exportResult = await _exportChronicle(title, range, aiSummary, userSummary, content.moduleSummaries);
+    final stats = {for (final item in content.moduleSummaries) item.title: item.count};
+    final record = ChronicleRecord(
+      id: '${DateTime.now().millisecondsSinceEpoch}',
+      title: title,
+      rangeStart: range.start,
+      rangeEnd: range.end,
+      createdAt: DateTime.now(),
+      modules: [for (final key in selected) _moduleTitles[key] ?? key],
+      stats: stats,
+      aiSummary: aiSummary,
+      userSummary: userSummary,
+      pdfPath: exportResult.pdfPath,
+      epubPath: exportResult.epubPath,
+      isFeatured: false,
+    );
+    final records = await loadChronicleRecords();
+    final updated = [record, ...records];
+    await saveChronicleRecords(updated);
+    if (!mounted) return;
+    setState(() => _generating = false);
+    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const ChronicleManagePage()));
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return const _PlaceholderPage(title: '编年史生成配置');
+    const background = Color(0xFFF2F4F6);
+    const primary = Color(0xFF2563EB);
+    return Scaffold(
+      backgroundColor: background,
+      appBar: AppBar(
+        backgroundColor: Colors.white.withValues(alpha: 0.7),
+        title: const Text('编年史生成配置', style: TextStyle(fontWeight: FontWeight.w800)),
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+          children: [
+            _ChronicleSection(
+              title: '时间范围',
+              child: Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  for (var i = 0; i < _rangeOptions.length; i++)
+                    _ChronicleChip(
+                      label: _rangeOptions[i],
+                      selected: _rangeIndex == i,
+                      onTap: () {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                        if (i == 3) {
+                          _pickCustomRange();
+                        } else {
+                          setState(() => _rangeIndex = i);
+                          _refreshSummary();
+                        }
+                      },
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            _ChronicleSection(
+              title: '当前范围',
+              child: Text(_rangeLabel(), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF475569))),
+            ),
+            const SizedBox(height: 12),
+            _ChronicleSection(
+              title: '模块汇总',
+              child: Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  for (final entry in _moduleTitles.entries)
+                    _ChronicleChip(
+                      label: entry.value,
+                      selected: _moduleSelection[entry.key] ?? false,
+                      onTap: () {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                        setState(() => _moduleSelection[entry.key] = !(_moduleSelection[entry.key] ?? false));
+                        _refreshSummary();
+                      },
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            _ChronicleSection(
+              title: '数据概览',
+              child: _loadingSummary
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (final summary in _summaries)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: const Color(0xFFF3F4F6)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('${summary.title} · ${summary.count} 条',
+                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF111827))),
+                                  if (summary.highlights.isNotEmpty) ...[
+                                    const SizedBox(height: 6),
+                                    Text(summary.highlights.join('、'),
+                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B))),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ),
+                        if (_summaries.isEmpty)
+                          const Text('当前范围暂无记录', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                      ],
+                    ),
+            ),
+            const SizedBox(height: 12),
+            _ChronicleSection(
+              title: 'AI 初步分析',
+              trailing: TextButton(
+                onPressed: () {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                  _aiEdited = false;
+                  _refreshSummary(forceAi: true);
+                },
+                style: TextButton.styleFrom(foregroundColor: primary, textStyle: const TextStyle(fontWeight: FontWeight.w800)),
+                child: const Text('重新生成'),
+              ),
+              child: TextField(
+                controller: _aiController,
+                maxLines: 6,
+                onChanged: (_) => _aiEdited = true,
+                decoration: InputDecoration(
+                  hintText: '生成 AI 初步分析...',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                ),
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF334155), height: 1.4),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _ChronicleSection(
+              title: '我的补充',
+              child: TextField(
+                controller: _userController,
+                maxLines: 4,
+                decoration: InputDecoration(
+                  hintText: '补充你的感受或修正 AI 分析...',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                ),
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF334155), height: 1.4),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _ChronicleSection(
+              title: '编年史命名',
+              child: TextField(
+                controller: _titleController,
+                decoration: InputDecoration(
+                  hintText: '例如：2024 上半年精选',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                ),
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
+              ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          decoration: BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: Colors.black.withValues(alpha: 0.05)))),
+          child: ElevatedButton(
+            onPressed: _generating ? null : _generateChronicle,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+            ),
+            child: _generating
+                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Text('生成编年史'),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChronicleExportResult {
+  const _ChronicleExportResult({required this.pdfPath, required this.epubPath});
+
+  final String pdfPath;
+  final String epubPath;
+}
+
+class _ChronicleSection extends StatelessWidget {
+  const _ChronicleSection({required this.title, required this.child, this.trailing});
+
+  final String title;
+  final Widget child;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFF3F4F6)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+              if (trailing != null) ...[
+                const Spacer(),
+                trailing!,
+              ],
+            ],
+          ),
+          const SizedBox(height: 10),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _ChronicleChip extends StatelessWidget {
+  const _ChronicleChip({required this.label, required this.selected, required this.onTap});
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFFDBEAFE) : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: selected ? const Color(0xFF93C5FD) : const Color(0xFFE2E8F0)),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: selected ? const Color(0xFF2563EB) : const Color(0xFF64748B)),
+        ),
+      ),
+    );
   }
 }
 
@@ -1743,13 +2605,91 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
   }
 }
 
-class ChronicleManagePage extends StatelessWidget {
+class ChronicleManagePage extends ConsumerStatefulWidget {
   const ChronicleManagePage({super.key});
+
+  @override
+  ConsumerState<ChronicleManagePage> createState() => _ChronicleManagePageState();
+}
+
+class _ChronicleManagePageState extends ConsumerState<ChronicleManagePage> {
+  Future<void> _toggleFeatured(ChronicleRecord record) async {
+    final records = await loadChronicleRecords();
+    final updated = [
+      for (final item in records)
+        if (item.id == record.id)
+          item.copyWith(isFeatured: !item.isFeatured)
+        else
+          item,
+    ];
+    await saveChronicleRecords(updated);
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> _shareFile(String path, String fallbackName) async {
+    final file = File(path);
+    if (!await file.exists()) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('文件不存在或尚未生成')));
+      }
+      return;
+    }
+    await Share.shareXFiles([XFile(file.path)], text: fallbackName);
+  }
+
+  Future<void> _exportRecord(ChronicleRecord record) async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    await showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 36, height: 4, decoration: BoxDecoration(color: const Color(0xFFE5E7EB), borderRadius: BorderRadius.circular(999))),
+              const SizedBox(height: 16),
+              Text('导出 ${record.title}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                  await _shareFile(record.pdfPath, '${record.title}.pdf');
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2563EB),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                child: const Text('导出 PDF'),
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton(
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                  await _shareFile(record.epubPath, '${record.title}.epub');
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF334155),
+                  side: const BorderSide(color: Color(0xFFE2E8F0)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                child: const Text('导出 EPUB'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     const background = Color(0xFFF2F4F6);
-    const primary = Color(0xFF8AB4F8);
+    const primary = Color(0xFF2563EB);
     return Scaffold(
       backgroundColor: background,
       appBar: AppBar(
@@ -1757,16 +2697,119 @@ class ChronicleManagePage extends StatelessWidget {
         title: const Text('编年史管理', style: TextStyle(fontWeight: FontWeight.w800)),
         actions: [
           TextButton(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ChronicleGenerateConfigPage()));
+            },
             style: TextButton.styleFrom(foregroundColor: primary, textStyle: const TextStyle(fontWeight: FontWeight.w900)),
             child: const Text('生成新版本'),
           ),
         ],
       ),
       body: SafeArea(
+        child: FutureBuilder<List<ChronicleRecord>>(
+          future: loadChronicleRecords(),
+          builder: (context, snapshot) {
+            final records = snapshot.data ?? const [];
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFFF3F4F6)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text('版本说明', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                      SizedBox(height: 8),
+                      Text('系统会保留每次生成的编年史版本，支持预览、导出与标记为精选。', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B), height: 1.5)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (records.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Center(child: Text('暂无编年史版本，请先生成。', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)))),
+                  )
+                else
+                  for (final record in records) ...[
+                    _ChronicleVersionCard(
+                      record: record,
+                      onPreview: () {
+                        Navigator.of(context).push(MaterialPageRoute(builder: (_) => ChroniclePreviewPage(record: record)));
+                      },
+                      onExport: () => _exportRecord(record),
+                      onFeatureToggle: () => _toggleFeatured(record),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class ChroniclePreviewPage extends StatelessWidget {
+  const ChroniclePreviewPage({super.key, required this.record});
+
+  final ChronicleRecord record;
+
+  @override
+  Widget build(BuildContext context) {
+    final range = '${_formatChronicleDate(record.rangeStart)} - ${_formatChronicleDate(record.rangeEnd)}';
+    return Scaffold(
+      backgroundColor: const Color(0xFFF2F4F6),
+      appBar: AppBar(
+        backgroundColor: Colors.white.withValues(alpha: 0.7),
+        title: const Text('编年史预览', style: TextStyle(fontWeight: FontWeight.w800)),
+      ),
+      body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
           children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFF3F4F6)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(record.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                  const SizedBox(height: 6),
+                  Text(range, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: [
+                      for (final tag in record.modules)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(999)),
+                          child: Text(tag, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF3B82F6))),
+                        ),
+                      if (record.isFeatured)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(color: const Color(0xFFFFF7ED), borderRadius: BorderRadius.circular(999)),
+                          child: const Text('精选', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFFF97316))),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
@@ -1776,36 +2819,54 @@ class ChronicleManagePage extends StatelessWidget {
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text('版本说明', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                  SizedBox(height: 8),
-                  Text('系统会保留每次生成的编年史版本，支持预览、导出与标记为精选。', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B), height: 1.5)),
+                children: [
+                  const Text('AI 初步分析', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                  const SizedBox(height: 8),
+                  Text(record.aiSummary.isEmpty ? '暂无内容' : record.aiSummary,
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155), height: 1.5)),
                 ],
               ),
             ),
+            if (record.userSummary.trim().isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: const Color(0xFFF3F4F6)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('我的补充', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                    const SizedBox(height: 8),
+                    Text(record.userSummary, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155), height: 1.5)),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
-            _ChronicleVersionCard(
-              title: '2024 年度编年史',
-              range: '2024.01.01 - 2024.12.31',
-              tags: const ['年度', '精选'],
-              primaryAction: '预览',
-              secondaryAction: '导出',
-            ),
-            const SizedBox(height: 12),
-            _ChronicleVersionCard(
-              title: '2024 上半年精选',
-              range: '2024.01.01 - 2024.06.30',
-              tags: const ['专题'],
-              primaryAction: '预览',
-              secondaryAction: '导出',
-            ),
-            const SizedBox(height: 12),
-            _ChronicleVersionCard(
-              title: '旅行主题合集',
-              range: '2023.05.01 - 2024.03.31',
-              tags: const ['旅行', '专题'],
-              primaryAction: '预览',
-              secondaryAction: '导出',
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFF3F4F6)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('模块统计', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                  const SizedBox(height: 8),
+                  for (final entry in record.stats.entries)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Text('${entry.key} · ${entry.value} 条',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                    ),
+                ],
+              ),
             ),
           ],
         ),
@@ -1984,21 +3045,20 @@ class _FavoriteItemCard extends StatelessWidget {
 
 class _ChronicleVersionCard extends StatelessWidget {
   const _ChronicleVersionCard({
-    required this.title,
-    required this.range,
-    required this.tags,
-    required this.primaryAction,
-    required this.secondaryAction,
+    required this.record,
+    required this.onPreview,
+    required this.onExport,
+    required this.onFeatureToggle,
   });
 
-  final String title;
-  final String range;
-  final List<String> tags;
-  final String primaryAction;
-  final String secondaryAction;
+  final ChronicleRecord record;
+  final VoidCallback onPreview;
+  final VoidCallback onExport;
+  final VoidCallback onFeatureToggle;
 
   @override
   Widget build(BuildContext context) {
+    final range = '${_formatChronicleDate(record.rangeStart)} - ${_formatChronicleDate(record.rangeEnd)}';
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -2012,9 +3072,16 @@ class _ChronicleVersionCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                child: Text(record.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
               ),
-              const Icon(Icons.auto_stories, size: 18, color: Color(0xFF8AB4F8)),
+              TextButton(
+                onPressed: onFeatureToggle,
+                style: TextButton.styleFrom(
+                  foregroundColor: record.isFeatured ? const Color(0xFFF97316) : const Color(0xFF64748B),
+                  textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
+                ),
+                child: Text(record.isFeatured ? '取消精选' : '设为精选'),
+              ),
             ],
           ),
           const SizedBox(height: 6),
@@ -2024,11 +3091,17 @@ class _ChronicleVersionCard extends StatelessWidget {
             spacing: 8,
             runSpacing: 6,
             children: [
-              for (final tag in tags)
+              for (final tag in record.modules)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(999)),
                   child: Text(tag, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF3B82F6))),
+                ),
+              if (record.isFeatured)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(color: const Color(0xFFFFF7ED), borderRadius: BorderRadius.circular(999)),
+                  child: const Text('精选', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFFF97316))),
                 ),
             ],
           ),
@@ -2038,13 +3111,13 @@ class _ChronicleVersionCard extends StatelessWidget {
               Expanded(
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF8AB4F8),
+                    backgroundColor: const Color(0xFF2563EB),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     textStyle: const TextStyle(fontWeight: FontWeight.w900),
                   ),
-                  onPressed: () {},
-                  child: Text(primaryAction),
+                  onPressed: onPreview,
+                  child: const Text('预览'),
                 ),
               ),
               const SizedBox(width: 10),
@@ -2056,8 +3129,8 @@ class _ChronicleVersionCard extends StatelessWidget {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     textStyle: const TextStyle(fontWeight: FontWeight.w900),
                   ),
-                  onPressed: () {},
-                  child: Text(secondaryAction),
+                  onPressed: onExport,
+                  child: const Text('导出'),
                 ),
               ),
             ],
