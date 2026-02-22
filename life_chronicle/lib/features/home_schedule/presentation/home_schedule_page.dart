@@ -13,6 +13,7 @@ import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../ai_historian/presentation/ai_historian_chat_page.dart';
 import '../../food/presentation/food_page.dart';
+import '../../goal/presentation/goal_page.dart';
 import '../../profile/presentation/profile_page.dart';
 
 class HomeSchedulePage extends StatefulWidget {
@@ -1159,7 +1160,11 @@ class _EventStream extends ConsumerWidget {
                   title: e.title,
                   subtitle: e.note,
                   type: e.eventType,
-                  onTap: null,
+                  onTap: e.eventType == 'goal'
+                      ? () {
+                          _openGoalDetail(context, ref, e.id);
+                        }
+                      : null,
                 ),
               for (final f in foods)
                 (
@@ -1250,6 +1255,8 @@ class _EventStream extends ConsumerWidget {
         return Icons.restaurant;
       case 'encounter':
         return Icons.people;
+      case 'goal':
+        return Icons.outlined_flag;
       default:
         return Icons.event;
     }
@@ -1267,9 +1274,26 @@ class _EventStream extends ConsumerWidget {
         return Colors.orange;
       case 'encounter':
         return Colors.pink;
+      case 'goal':
+        return const Color(0xFFA855F7);
       default:
         return Colors.grey;
     }
+  }
+
+  Future<void> _openGoalDetail(BuildContext context, WidgetRef ref, String goalId) async {
+    final db = ref.read(appDatabaseProvider);
+    final record = await (db.select(db.goalRecords)
+          ..where((t) => t.id.equals(goalId))
+          ..where((t) => t.isDeleted.equals(false))
+          ..limit(1))
+        .getSingleOrNull();
+    if (!context.mounted) return;
+    if (record == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('未找到目标记录')));
+      return;
+    }
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => GoalDetailPage(record: record)));
   }
 }
 

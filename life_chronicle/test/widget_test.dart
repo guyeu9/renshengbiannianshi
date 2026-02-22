@@ -113,6 +113,44 @@ void main() {
 
     await dir.delete(recursive: true);
   });
+
+  test('Goal records persist to disk', () async {
+    final dir = await Directory.systemTemp.createTemp('life_chronicle_goal_persist_');
+    final file = File('${dir.path}/life_chronicle_goal.sqlite');
+    final now = DateTime(2026, 2, 23, 10, 0);
+
+    final db1 = AppDatabase.connect(NativeDatabase(file));
+    await db1.into(db1.goalRecords).insert(
+          GoalRecordsCompanion.insert(
+            id: 'g1',
+            level: 'year',
+            title: '年度目标',
+            recordDate: now,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+    await db1.into(db1.timelineEvents).insert(
+          TimelineEventsCompanion.insert(
+            id: 'g1',
+            title: '年度目标',
+            eventType: 'goal',
+            recordDate: now,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+    await db1.close();
+
+    final db2 = AppDatabase.connect(NativeDatabase(file));
+    final goal = await (db2.select(db2.goalRecords)..where((t) => t.id.equals('g1'))).getSingleOrNull();
+    final event = await (db2.select(db2.timelineEvents)..where((t) => t.id.equals('g1'))).getSingleOrNull();
+    expect(goal, isNotNull);
+    expect(event, isNotNull);
+    await db2.close();
+
+    await dir.delete(recursive: true);
+  });
 }
 
 class _TestHttpOverrides extends HttpOverrides {
