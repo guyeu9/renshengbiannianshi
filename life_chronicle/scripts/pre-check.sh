@@ -10,7 +10,8 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+BLUE='\033[0;34m'
+NC='\033[0m'
 
 ERRORS=0
 WARNINGS=0
@@ -33,6 +34,23 @@ check_fail() {
 check_warn() {
     echo -e "${YELLOW}⚠️  $1${NC}"
     WARNINGS=$((WARNINGS + 1))
+}
+
+check_info() {
+    echo -e "${BLUE}ℹ️  $1${NC}"
+}
+
+# Check if Flutter is available
+check_flutter() {
+    if command -v flutter &> /dev/null; then
+        return 0
+    elif [ -n "$FLUTTER_ROOT" ]; then
+        export PATH="$FLUTTER_ROOT/bin:$PATH"
+        if command -v flutter &> /dev/null; then
+            return 0
+        fi
+    fi
+    return 1
 }
 
 # Check 1: Namespace in all local plugins
@@ -83,7 +101,7 @@ else
 fi
 echo ""
 
-# Check 4: AMap SDK Version
+# Check 4: AMap SDK Configuration
 echo "--- Check 4: AMap SDK Configuration ---"
 AMAP_VERSIONS=$(grep -rh "com.amap.api:3dmap" "$PROJECT_DIR"/android "$PROJECT_DIR"/plugins --include="*.gradle*" 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | sort -u)
 AMAP_COUNT=$(echo "$AMAP_VERSIONS" | wc -l | tr -d ' ')
@@ -93,7 +111,6 @@ else
     check_pass "AMap SDK version: $(echo $AMAP_VERSIONS)"
 fi
 
-# Check for location SDK conflict
 if grep -rq "com.amap.api:location" "$PROJECT_DIR"/android --include="*.gradle*" 2>/dev/null; then
     check_fail "location SDK conflicts with 3dmap (3dmap includes location classes)"
 else
@@ -122,10 +139,10 @@ else
 fi
 echo ""
 
-# Check 6: pubspec.yaml SDK compatibility
+# Check 6: Dart SDK Compatibility
 echo "--- Check 6: Dart SDK Compatibility ---"
 MAIN_SDK=$(grep "sdk:" "$PROJECT_DIR"/pubspec.yaml | head -1 | sed 's/.*sdk: *//')
-echo "Main project SDK: $MAIN_SDK"
+check_info "Main project SDK: $MAIN_SDK"
 
 for pubspec in "$PROJECT_DIR"/plugins/*/pubspec.yaml; do
     if [ -f "$pubspec" ]; then
@@ -140,7 +157,7 @@ for pubspec in "$PROJECT_DIR"/plugins/*/pubspec.yaml; do
 done
 echo ""
 
-# Check 7: Local plugin overrides
+# Check 7: Local Plugin Overrides
 echo "--- Check 7: Local Plugin Overrides ---"
 if [ -f "$PROJECT_DIR"/.dart_tool/package_config.json ]; then
     for plugin in amap_flutter_base amap_flutter_map amap_flutter_location; do
@@ -152,6 +169,30 @@ if [ -f "$PROJECT_DIR"/.dart_tool/package_config.json ]; then
     done
 else
     check_warn "package_config.json not found (run flutter pub get)"
+fi
+echo ""
+
+# Check 8: Flutter Analyze (if Flutter is available)
+echo "--- Check 8: Flutter Analyze ---"
+if check_flutter; then
+    check_info "Running flutter analyze..."
+    cd "$PROJECT_DIR"
+    
+    # Run flutter pub get first if needed
+    if [ ! -f ".dart_tool/package_config.json" ]; then
+        check_info "Running flutter pub get..."
+        flutter pub get 2>&1 | tail -5
+    fi
+    
+    # Run flutter analyze
+    if flutter analyze 2>&1; then
+        check_pass "Flutter analyze passed"
+    else
+        check_fail "Flutter analyze found issues (see above)"
+    fi
+else
+    check_warn "Flutter not found in PATH - skipping flutter analyze"
+    check_info "Install Flutter or set FLUTTER_ROOT environment variable"
 fi
 echo ""
 
