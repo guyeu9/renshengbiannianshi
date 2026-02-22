@@ -63,7 +63,7 @@ flutter {
     source = "../.."
 }
 
-val amapSdkVersion = providers.gradleProperty("AMAP_SDK_VERSION").orElse("10.1.200").get()
+val amapSdkVersion = providers.gradleProperty("AMAP_SDK_VERSION").orElse("10.0.600").get()
 
 dependencies {
     implementation("com.amap.api:3dmap:$amapSdkVersion")
