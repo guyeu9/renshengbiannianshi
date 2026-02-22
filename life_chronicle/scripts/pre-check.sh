@@ -172,8 +172,43 @@ else
 fi
 echo ""
 
-# Check 8: Flutter Analyze (if Flutter is available)
-echo "--- Check 8: Flutter Analyze ---"
+# Check 8: Plugin Files Git Tracking
+echo "--- Check 8: Plugin Files Git Tracking ---"
+if command -v git &> /dev/null; then
+    cd "$PROJECT_DIR"
+    for pubspec in plugins/*/pubspec.yaml; do
+        if [ -f "$pubspec" ]; then
+            plugin_name=$(dirname "$pubspec" | xargs basename)
+            plugin_class=$(grep "pluginClass:" "$pubspec" | sed 's/.*pluginClass: *//' | tr -d ' ')
+            
+            if [ -n "$plugin_class" ]; then
+                plugin_suffix=$(echo "$plugin_name" | sed 's/amap_flutter_//')
+                java_file="plugins/$plugin_name/android/src/main/java/com/amap/flutter/$plugin_suffix/$plugin_class.java"
+                kotlin_file="plugins/$plugin_name/android/src/main/kotlin/com/amap/flutter/$plugin_suffix/$plugin_class.kt"
+                
+                if [ -f "$java_file" ]; then
+                    if git ls-files --error-unmatch "$java_file" &>/dev/null; then
+                        check_pass "$plugin_name: $plugin_class.java tracked by Git"
+                    else
+                        check_fail "$plugin_name: $plugin_class.java exists but NOT tracked by Git!"
+                    fi
+                elif [ -f "$kotlin_file" ]; then
+                    if git ls-files --error-unmatch "$kotlin_file" &>/dev/null; then
+                        check_pass "$plugin_name: $plugin_class.kt tracked by Git"
+                    else
+                        check_fail "$plugin_name: $plugin_class.kt exists but NOT tracked by Git!"
+                    fi
+                fi
+            fi
+        fi
+    done
+else
+    check_warn "Git not available - skipping Git tracking check"
+fi
+echo ""
+
+# Check 9: Flutter Analyze (if Flutter is available)
+echo "--- Check 9: Flutter Analyze ---"
 if check_flutter; then
     check_info "Running flutter analyze..."
     cd "$PROJECT_DIR"

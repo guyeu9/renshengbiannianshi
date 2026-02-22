@@ -188,8 +188,54 @@ if (Test-Path $packageConfig) {
 }
 Write-Host ""
 
-# Check 8: Flutter Analyze
-Write-Host "--- Check 8: Flutter Analyze ---"
+# Check 8: Plugin Main Class Files Tracked by Git
+Write-Host "--- Check 8: Plugin Files Git Tracking ---"
+$gitAvailable = Get-Command git -ErrorAction SilentlyContinue
+if ($gitAvailable) {
+    Push-Location $ProjectDir
+    $pluginPubspecs = Get-ChildItem -Path "plugins\*\pubspec.yaml" -ErrorAction SilentlyContinue
+    foreach ($pubspec in $pluginPubspecs) {
+        $pluginName = $pubspec.Directory.Name
+        $content = Get-Content $pubspec.FullName -Raw
+        
+        # Extract pluginClass from pubspec.yaml
+        if ($content -match "pluginClass:\s*(\w+)") {
+            $pluginClass = $Matches[1]
+            
+            # Check if the main class file exists and is tracked
+            $javaFile = "plugins/$pluginName/android/src/main/java/com/amap/flutter/$($pluginName -replace 'amap_flutter_','')/$pluginClass.java"
+            $kotlinFile = "plugins/$pluginName/android/src/main/kotlin/com/amap/flutter/$($pluginName -replace 'amap_flutter_','')/$pluginClass.kt"
+            
+            $tracked = $false
+            $fileExists = $false
+            
+            if (Test-Path $javaFile) {
+                $fileExists = $true
+                $tracked = (git ls-files --error-unmatch $javaFile 2>$null) -ne $null
+                if (-not $tracked) {
+                    Write-Fail "$pluginName`: $pluginClass.java exists but NOT tracked by Git!"
+                } else {
+                    Write-Pass "$pluginName`: $pluginClass.java tracked by Git"
+                }
+            } elseif (Test-Path $kotlinFile) {
+                $fileExists = $true
+                $tracked = (git ls-files --error-unmatch $kotlinFile 2>$null) -ne $null
+                if (-not $tracked) {
+                    Write-Fail "$pluginName`: $pluginClass.kt exists but NOT tracked by Git!"
+                } else {
+                    Write-Pass "$pluginName`: $pluginClass.kt tracked by Git"
+                }
+            }
+        }
+    }
+    Pop-Location
+} else {
+    Write-Warn "Git not available - skipping Git tracking check"
+}
+Write-Host ""
+
+# Check 9: Flutter Analyze
+Write-Host "--- Check 9: Flutter Analyze ---"
 if ($SkipAnalyze) {
     Write-Info "Skipping flutter analyze (use without -SkipAnalyze to run)"
 } else {
