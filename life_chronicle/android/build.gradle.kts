@@ -34,10 +34,12 @@ subprojects {
 subprojects {
     project.evaluationDependsOn(":app")
 }
-subprojects {
-    afterEvaluate {
-        if (plugins.hasPlugin("com.android.library") && !plugins.hasPlugin("org.jetbrains.kotlin.android")) {
-            plugins.apply("org.jetbrains.kotlin.android")
+gradle.beforeProject {
+    if (project != rootProject && project.name != "app") {
+        project.plugins.withId("com.android.library") {
+            if (!project.plugins.hasPlugin("org.jetbrains.kotlin.android")) {
+                project.plugins.apply("org.jetbrains.kotlin.android")
+            }
         }
     }
 }
