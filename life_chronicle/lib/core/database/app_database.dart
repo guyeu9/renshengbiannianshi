@@ -11,7 +11,7 @@ part 'daos/friend_dao.dart';
 part 'daos/link_dao.dart';
 
 @DriftDatabase(
-  tables: [FoodRecords, MomentRecords, FriendRecords, TravelRecords, Trips, TimelineEvents, EntityLinks, LinkLogs, UserProfiles],
+  tables: [FoodRecords, MomentRecords, FriendRecords, TravelRecords, Trips, GoalRecords, TimelineEvents, EntityLinks, LinkLogs, UserProfiles],
   daos: [FoodDao, MomentDao, FriendDao, LinkDao],
 )
 class AppDatabase extends _$AppDatabase {
@@ -19,7 +19,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.connect(super.executor);
 
   @override
-  int get schemaVersion => 7; // 升级到 7，触发全量检查
+  int get schemaVersion => 8; // 升级到 8，新增目标拆解表
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -64,6 +64,7 @@ class AppDatabase extends _$AppDatabase {
           await ensureTable(friendRecords);
           await ensureTable(travelRecords);
           await ensureTable(trips);
+          await ensureTable(goalRecords);
           await ensureTable(timelineEvents);
           await ensureTable(entityLinks);
           await ensureTable(linkLogs);

@@ -114,6 +114,31 @@ class Trips extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class GoalRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get parentId => text().nullable()();
+  TextColumn get level => text()();
+  TextColumn get title => text()();
+  TextColumn get note => text().nullable()();
+  TextColumn get summary => text().nullable()();
+  TextColumn get category => text().nullable()();
+  RealColumn get progress => real().withDefault(const Constant(0))();
+  BoolColumn get isCompleted => boolean().withDefault(const Constant(false))();
+  BoolColumn get isPostponed => boolean().withDefault(const Constant(false))();
+  TextColumn get remindFrequency => text().nullable()();
+  IntColumn get targetYear => integer().nullable()();
+  IntColumn get targetQuarter => integer().nullable()();
+  IntColumn get targetMonth => integer().nullable()();
+  DateTimeColumn get dueDate => dateTime().nullable()();
+  DateTimeColumn get recordDate => dateTime()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 class TimelineEvents extends Table {
   TextColumn get id => text()();
   TextColumn get title => text()();

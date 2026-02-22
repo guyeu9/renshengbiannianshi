@@ -17,7 +17,7 @@ import 'package:life_chronicle/core/database/app_database.dart';
 import 'package:life_chronicle/core/database/database_providers.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
+  LiveTestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() {
     HttpOverrides.global = _TestHttpOverrides();
@@ -41,7 +41,10 @@ void main() {
   });
 
   testWidgets('App boots with bottom navigation', (WidgetTester tester) async {
-    final db = FakeAppDatabase();
+    final db = AppDatabase.connect(NativeDatabase.memory());
+    addTearDown(() async {
+      await db.close();
+    });
     
     await tester.pumpWidget(
       ProviderScope(
@@ -110,77 +113,6 @@ void main() {
 
     await dir.delete(recursive: true);
   });
-}
-
-class FakeAppDatabase extends Fake implements AppDatabase {
-  @override
-  Stream<List<TimelineEvent>> watchEventsForDate(DateTime date) {
-    return Stream.value([]);
-  }
-
-  @override
-  Stream<List<TimelineEvent>> watchEventsForMonth(DateTime month) {
-    return Stream.value([]);
-  }
-
-  @override
-  Stream<List<TravelRecord>> watchAllActiveTravelRecords() {
-    return Stream.value([]);
-  }
-
-  @override
-  Stream<List<TravelRecord>> watchTravelRecordsByRange(DateTime start, DateTime end) {
-    return Stream.value([]);
-  }
-  
-  @override
-  FriendDao get friendDao => FakeFriendDao();
-
-  @override
-  MomentDao get momentDao => FakeMomentDao();
-
-  @override
-  FoodDao get foodDao => FakeFoodDao();
-
-  @override
-  LinkDao get linkDao => FakeLinkDao();
-  
-  @override
-  Future<void> close() async {}
-}
-
-class FakeFriendDao extends Fake implements FriendDao {
-  @override
-  Stream<List<FriendRecord>> watchAllActive() {
-    return Stream.value([]);
-  }
-}
-
-class FakeMomentDao extends Fake implements MomentDao {
-  @override
-  Stream<List<MomentRecord>> watchAllActive() {
-    return Stream.value([]);
-  }
-
-  @override
-  Stream<List<MomentRecord>> watchByRecordDateRange(DateTime start, DateTime end) {
-    return Stream.value([]);
-  }
-}
-
-class FakeFoodDao extends Fake implements FoodDao {
-  @override
-  Stream<List<FoodRecord>> watchAllActive() {
-    return Stream.value([]);
-  }
-
-  @override
-  Stream<List<FoodRecord>> watchByRecordDateRange(DateTime start, DateTime end) {
-    return Stream.value([]);
-  }
-}
-
-class FakeLinkDao extends Fake implements LinkDao {
 }
 
 class _TestHttpOverrides extends HttpOverrides {

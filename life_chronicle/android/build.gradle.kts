@@ -34,6 +34,13 @@ subprojects {
 subprojects {
     project.evaluationDependsOn(":app")
 }
+subprojects {
+    afterEvaluate {
+        if (plugins.hasPlugin("com.android.library") && !plugins.hasPlugin("org.jetbrains.kotlin.android")) {
+            plugins.apply("org.jetbrains.kotlin.android")
+        }
+    }
+}
 gradle.afterProject {
     if (!plugins.hasPlugin("com.android.library")) return@afterProject
     val androidExtension = extensions.findByName("android") ?: return@afterProject

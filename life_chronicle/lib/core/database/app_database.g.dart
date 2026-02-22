@@ -4018,6 +4018,900 @@ class TripsCompanion extends UpdateCompanion<Trip> {
   }
 }
 
+class $GoalRecordsTable extends GoalRecords
+    with TableInfo<$GoalRecordsTable, GoalRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $GoalRecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _parentIdMeta =
+      const VerificationMeta('parentId');
+  @override
+  late final GeneratedColumn<String> parentId = GeneratedColumn<String>(
+      'parent_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _levelMeta = const VerificationMeta('level');
+  @override
+  late final GeneratedColumn<String> level = GeneratedColumn<String>(
+      'level', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+      'title', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+      'note', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _summaryMeta =
+      const VerificationMeta('summary');
+  @override
+  late final GeneratedColumn<String> summary = GeneratedColumn<String>(
+      'summary', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _categoryMeta =
+      const VerificationMeta('category');
+  @override
+  late final GeneratedColumn<String> category = GeneratedColumn<String>(
+      'category', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _progressMeta =
+      const VerificationMeta('progress');
+  @override
+  late final GeneratedColumn<double> progress = GeneratedColumn<double>(
+      'progress', aliasedName, false,
+      type: DriftSqlType.double,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _isCompletedMeta =
+      const VerificationMeta('isCompleted');
+  @override
+  late final GeneratedColumn<bool> isCompleted = GeneratedColumn<bool>(
+      'is_completed', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_completed" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _isPostponedMeta =
+      const VerificationMeta('isPostponed');
+  @override
+  late final GeneratedColumn<bool> isPostponed = GeneratedColumn<bool>(
+      'is_postponed', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_postponed" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _remindFrequencyMeta =
+      const VerificationMeta('remindFrequency');
+  @override
+  late final GeneratedColumn<String> remindFrequency = GeneratedColumn<String>(
+      'remind_frequency', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _targetYearMeta =
+      const VerificationMeta('targetYear');
+  @override
+  late final GeneratedColumn<int> targetYear = GeneratedColumn<int>(
+      'target_year', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _targetQuarterMeta =
+      const VerificationMeta('targetQuarter');
+  @override
+  late final GeneratedColumn<int> targetQuarter = GeneratedColumn<int>(
+      'target_quarter', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _targetMonthMeta =
+      const VerificationMeta('targetMonth');
+  @override
+  late final GeneratedColumn<int> targetMonth = GeneratedColumn<int>(
+      'target_month', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _dueDateMeta =
+      const VerificationMeta('dueDate');
+  @override
+  late final GeneratedColumn<DateTime> dueDate = GeneratedColumn<DateTime>(
+      'due_date', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _recordDateMeta =
+      const VerificationMeta('recordDate');
+  @override
+  late final GeneratedColumn<DateTime> recordDate = GeneratedColumn<DateTime>(
+      'record_date', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _isDeletedMeta =
+      const VerificationMeta('isDeleted');
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+      'is_deleted', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_deleted" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        parentId,
+        level,
+        title,
+        note,
+        summary,
+        category,
+        progress,
+        isCompleted,
+        isPostponed,
+        remindFrequency,
+        targetYear,
+        targetQuarter,
+        targetMonth,
+        dueDate,
+        recordDate,
+        createdAt,
+        updatedAt,
+        isDeleted
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'goal_records';
+  @override
+  VerificationContext validateIntegrity(Insertable<GoalRecord> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('parent_id')) {
+      context.handle(_parentIdMeta,
+          parentId.isAcceptableOrUnknown(data['parent_id']!, _parentIdMeta));
+    }
+    if (data.containsKey('level')) {
+      context.handle(
+          _levelMeta, level.isAcceptableOrUnknown(data['level']!, _levelMeta));
+    } else if (isInserting) {
+      context.missing(_levelMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+          _titleMeta, title.isAcceptableOrUnknown(data['title']!, _titleMeta));
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+          _noteMeta, note.isAcceptableOrUnknown(data['note']!, _noteMeta));
+    }
+    if (data.containsKey('summary')) {
+      context.handle(_summaryMeta,
+          summary.isAcceptableOrUnknown(data['summary']!, _summaryMeta));
+    }
+    if (data.containsKey('category')) {
+      context.handle(_categoryMeta,
+          category.isAcceptableOrUnknown(data['category']!, _categoryMeta));
+    }
+    if (data.containsKey('progress')) {
+      context.handle(_progressMeta,
+          progress.isAcceptableOrUnknown(data['progress']!, _progressMeta));
+    }
+    if (data.containsKey('is_completed')) {
+      context.handle(
+          _isCompletedMeta,
+          isCompleted.isAcceptableOrUnknown(
+              data['is_completed']!, _isCompletedMeta));
+    }
+    if (data.containsKey('is_postponed')) {
+      context.handle(
+          _isPostponedMeta,
+          isPostponed.isAcceptableOrUnknown(
+              data['is_postponed']!, _isPostponedMeta));
+    }
+    if (data.containsKey('remind_frequency')) {
+      context.handle(
+          _remindFrequencyMeta,
+          remindFrequency.isAcceptableOrUnknown(
+              data['remind_frequency']!, _remindFrequencyMeta));
+    }
+    if (data.containsKey('target_year')) {
+      context.handle(_targetYearMeta,
+          targetYear.isAcceptableOrUnknown(data['target_year']!, _targetYearMeta));
+    }
+    if (data.containsKey('target_quarter')) {
+      context.handle(
+          _targetQuarterMeta,
+          targetQuarter.isAcceptableOrUnknown(
+              data['target_quarter']!, _targetQuarterMeta));
+    }
+    if (data.containsKey('target_month')) {
+      context.handle(
+          _targetMonthMeta,
+          targetMonth.isAcceptableOrUnknown(
+              data['target_month']!, _targetMonthMeta));
+    }
+    if (data.containsKey('due_date')) {
+      context.handle(_dueDateMeta,
+          dueDate.isAcceptableOrUnknown(data['due_date']!, _dueDateMeta));
+    }
+    if (data.containsKey('record_date')) {
+      context.handle(
+          _recordDateMeta,
+          recordDate.isAcceptableOrUnknown(
+              data['record_date']!, _recordDateMeta));
+    } else if (isInserting) {
+      context.missing(_recordDateMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(_isDeletedMeta,
+          isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  GoalRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return GoalRecord(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      parentId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}parent_id']),
+      level: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}level'])!,
+      title: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}title'])!,
+      note: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}note']),
+      summary: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}summary']),
+      category: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}category']),
+      progress: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}progress'])!,
+      isCompleted: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_completed'])!,
+      isPostponed: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_postponed'])!,
+      remindFrequency: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}remind_frequency']),
+      targetYear: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}target_year']),
+      targetQuarter: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}target_quarter']),
+      targetMonth: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}target_month']),
+      dueDate: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}due_date']),
+      recordDate: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}record_date'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+      isDeleted: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
+    );
+  }
+
+  @override
+  $GoalRecordsTable createAlias(String alias) {
+    return $GoalRecordsTable(attachedDatabase, alias);
+  }
+}
+
+class GoalRecord extends DataClass implements Insertable<GoalRecord> {
+  final String id;
+  final String? parentId;
+  final String level;
+  final String title;
+  final String? note;
+  final String? summary;
+  final String? category;
+  final double progress;
+  final bool isCompleted;
+  final bool isPostponed;
+  final String? remindFrequency;
+  final int? targetYear;
+  final int? targetQuarter;
+  final int? targetMonth;
+  final DateTime? dueDate;
+  final DateTime recordDate;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final bool isDeleted;
+  const GoalRecord(
+      {required this.id,
+      this.parentId,
+      required this.level,
+      required this.title,
+      this.note,
+      this.summary,
+      this.category,
+      required this.progress,
+      required this.isCompleted,
+      required this.isPostponed,
+      this.remindFrequency,
+      this.targetYear,
+      this.targetQuarter,
+      this.targetMonth,
+      this.dueDate,
+      required this.recordDate,
+      required this.createdAt,
+      required this.updatedAt,
+      required this.isDeleted});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    if (!nullToAbsent || parentId != null) {
+      map['parent_id'] = Variable<String>(parentId);
+    }
+    map['level'] = Variable<String>(level);
+    map['title'] = Variable<String>(title);
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
+    if (!nullToAbsent || summary != null) {
+      map['summary'] = Variable<String>(summary);
+    }
+    if (!nullToAbsent || category != null) {
+      map['category'] = Variable<String>(category);
+    }
+    map['progress'] = Variable<double>(progress);
+    map['is_completed'] = Variable<bool>(isCompleted);
+    map['is_postponed'] = Variable<bool>(isPostponed);
+    if (!nullToAbsent || remindFrequency != null) {
+      map['remind_frequency'] = Variable<String>(remindFrequency);
+    }
+    if (!nullToAbsent || targetYear != null) {
+      map['target_year'] = Variable<int>(targetYear);
+    }
+    if (!nullToAbsent || targetQuarter != null) {
+      map['target_quarter'] = Variable<int>(targetQuarter);
+    }
+    if (!nullToAbsent || targetMonth != null) {
+      map['target_month'] = Variable<int>(targetMonth);
+    }
+    if (!nullToAbsent || dueDate != null) {
+      map['due_date'] = Variable<DateTime>(dueDate);
+    }
+    map['record_date'] = Variable<DateTime>(recordDate);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    return map;
+  }
+
+  GoalRecordsCompanion toCompanion(bool nullToAbsent) {
+    return GoalRecordsCompanion(
+      id: Value(id),
+      parentId: parentId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(parentId),
+      level: Value(level),
+      title: Value(title),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      summary:
+          summary == null && nullToAbsent ? const Value.absent() : Value(summary),
+      category: category == null && nullToAbsent
+          ? const Value.absent()
+          : Value(category),
+      progress: Value(progress),
+      isCompleted: Value(isCompleted),
+      isPostponed: Value(isPostponed),
+      remindFrequency: remindFrequency == null && nullToAbsent
+          ? const Value.absent()
+          : Value(remindFrequency),
+      targetYear: targetYear == null && nullToAbsent
+          ? const Value.absent()
+          : Value(targetYear),
+      targetQuarter: targetQuarter == null && nullToAbsent
+          ? const Value.absent()
+          : Value(targetQuarter),
+      targetMonth: targetMonth == null && nullToAbsent
+          ? const Value.absent()
+          : Value(targetMonth),
+      dueDate:
+          dueDate == null && nullToAbsent ? const Value.absent() : Value(dueDate),
+      recordDate: Value(recordDate),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      isDeleted: Value(isDeleted),
+    );
+  }
+
+  factory GoalRecord.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return GoalRecord(
+      id: serializer.fromJson<String>(json['id']),
+      parentId: serializer.fromJson<String?>(json['parentId']),
+      level: serializer.fromJson<String>(json['level']),
+      title: serializer.fromJson<String>(json['title']),
+      note: serializer.fromJson<String?>(json['note']),
+      summary: serializer.fromJson<String?>(json['summary']),
+      category: serializer.fromJson<String?>(json['category']),
+      progress: serializer.fromJson<double>(json['progress']),
+      isCompleted: serializer.fromJson<bool>(json['isCompleted']),
+      isPostponed: serializer.fromJson<bool>(json['isPostponed']),
+      remindFrequency: serializer.fromJson<String?>(json['remindFrequency']),
+      targetYear: serializer.fromJson<int?>(json['targetYear']),
+      targetQuarter: serializer.fromJson<int?>(json['targetQuarter']),
+      targetMonth: serializer.fromJson<int?>(json['targetMonth']),
+      dueDate: serializer.fromJson<DateTime?>(json['dueDate']),
+      recordDate: serializer.fromJson<DateTime>(json['recordDate']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'parentId': serializer.toJson<String?>(parentId),
+      'level': serializer.toJson<String>(level),
+      'title': serializer.toJson<String>(title),
+      'note': serializer.toJson<String?>(note),
+      'summary': serializer.toJson<String?>(summary),
+      'category': serializer.toJson<String?>(category),
+      'progress': serializer.toJson<double>(progress),
+      'isCompleted': serializer.toJson<bool>(isCompleted),
+      'isPostponed': serializer.toJson<bool>(isPostponed),
+      'remindFrequency': serializer.toJson<String?>(remindFrequency),
+      'targetYear': serializer.toJson<int?>(targetYear),
+      'targetQuarter': serializer.toJson<int?>(targetQuarter),
+      'targetMonth': serializer.toJson<int?>(targetMonth),
+      'dueDate': serializer.toJson<DateTime?>(dueDate),
+      'recordDate': serializer.toJson<DateTime>(recordDate),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+    };
+  }
+
+  GoalRecord copyWith(
+          {String? id,
+          Value<String?> parentId = const Value.absent(),
+          String? level,
+          String? title,
+          Value<String?> note = const Value.absent(),
+          Value<String?> summary = const Value.absent(),
+          Value<String?> category = const Value.absent(),
+          double? progress,
+          bool? isCompleted,
+          bool? isPostponed,
+          Value<String?> remindFrequency = const Value.absent(),
+          Value<int?> targetYear = const Value.absent(),
+          Value<int?> targetQuarter = const Value.absent(),
+          Value<int?> targetMonth = const Value.absent(),
+          Value<DateTime?> dueDate = const Value.absent(),
+          DateTime? recordDate,
+          DateTime? createdAt,
+          DateTime? updatedAt,
+          bool? isDeleted}) =>
+      GoalRecord(
+        id: id ?? this.id,
+        parentId: parentId.present ? parentId.value : this.parentId,
+        level: level ?? this.level,
+        title: title ?? this.title,
+        note: note.present ? note.value : this.note,
+        summary: summary.present ? summary.value : this.summary,
+        category: category.present ? category.value : this.category,
+        progress: progress ?? this.progress,
+        isCompleted: isCompleted ?? this.isCompleted,
+        isPostponed: isPostponed ?? this.isPostponed,
+        remindFrequency: remindFrequency.present
+            ? remindFrequency.value
+            : this.remindFrequency,
+        targetYear: targetYear.present ? targetYear.value : this.targetYear,
+        targetQuarter:
+            targetQuarter.present ? targetQuarter.value : this.targetQuarter,
+        targetMonth: targetMonth.present ? targetMonth.value : this.targetMonth,
+        dueDate: dueDate.present ? dueDate.value : this.dueDate,
+        recordDate: recordDate ?? this.recordDate,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+        isDeleted: isDeleted ?? this.isDeleted,
+      );
+  GoalRecord copyWithCompanion(GoalRecordsCompanion data) {
+    return GoalRecord(
+      id: data.id.present ? data.id.value : this.id,
+      parentId: data.parentId.present ? data.parentId.value : this.parentId,
+      level: data.level.present ? data.level.value : this.level,
+      title: data.title.present ? data.title.value : this.title,
+      note: data.note.present ? data.note.value : this.note,
+      summary: data.summary.present ? data.summary.value : this.summary,
+      category: data.category.present ? data.category.value : this.category,
+      progress: data.progress.present ? data.progress.value : this.progress,
+      isCompleted:
+          data.isCompleted.present ? data.isCompleted.value : this.isCompleted,
+      isPostponed:
+          data.isPostponed.present ? data.isPostponed.value : this.isPostponed,
+      remindFrequency: data.remindFrequency.present
+          ? data.remindFrequency.value
+          : this.remindFrequency,
+      targetYear:
+          data.targetYear.present ? data.targetYear.value : this.targetYear,
+      targetQuarter: data.targetQuarter.present
+          ? data.targetQuarter.value
+          : this.targetQuarter,
+      targetMonth: data.targetMonth.present
+          ? data.targetMonth.value
+          : this.targetMonth,
+      dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
+      recordDate:
+          data.recordDate.present ? data.recordDate.value : this.recordDate,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GoalRecord(')
+          ..write('id: $id, ')
+          ..write('parentId: $parentId, ')
+          ..write('level: $level, ')
+          ..write('title: $title, ')
+          ..write('note: $note, ')
+          ..write('summary: $summary, ')
+          ..write('category: $category, ')
+          ..write('progress: $progress, ')
+          ..write('isCompleted: $isCompleted, ')
+          ..write('isPostponed: $isPostponed, ')
+          ..write('remindFrequency: $remindFrequency, ')
+          ..write('targetYear: $targetYear, ')
+          ..write('targetQuarter: $targetQuarter, ')
+          ..write('targetMonth: $targetMonth, ')
+          ..write('dueDate: $dueDate, ')
+          ..write('recordDate: $recordDate, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('isDeleted: $isDeleted')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id,
+      parentId,
+      level,
+      title,
+      note,
+      summary,
+      category,
+      progress,
+      isCompleted,
+      isPostponed,
+      remindFrequency,
+      targetYear,
+      targetQuarter,
+      targetMonth,
+      dueDate,
+      recordDate,
+      createdAt,
+      updatedAt,
+      isDeleted);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is GoalRecord &&
+          other.id == this.id &&
+          other.parentId == this.parentId &&
+          other.level == this.level &&
+          other.title == this.title &&
+          other.note == this.note &&
+          other.summary == this.summary &&
+          other.category == this.category &&
+          other.progress == this.progress &&
+          other.isCompleted == this.isCompleted &&
+          other.isPostponed == this.isPostponed &&
+          other.remindFrequency == this.remindFrequency &&
+          other.targetYear == this.targetYear &&
+          other.targetQuarter == this.targetQuarter &&
+          other.targetMonth == this.targetMonth &&
+          other.dueDate == this.dueDate &&
+          other.recordDate == this.recordDate &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.isDeleted == this.isDeleted);
+}
+
+class GoalRecordsCompanion extends UpdateCompanion<GoalRecord> {
+  final Value<String> id;
+  final Value<String?> parentId;
+  final Value<String> level;
+  final Value<String> title;
+  final Value<String?> note;
+  final Value<String?> summary;
+  final Value<String?> category;
+  final Value<double> progress;
+  final Value<bool> isCompleted;
+  final Value<bool> isPostponed;
+  final Value<String?> remindFrequency;
+  final Value<int?> targetYear;
+  final Value<int?> targetQuarter;
+  final Value<int?> targetMonth;
+  final Value<DateTime?> dueDate;
+  final Value<DateTime> recordDate;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<bool> isDeleted;
+  final Value<int> rowid;
+  const GoalRecordsCompanion({
+    this.id = const Value.absent(),
+    this.parentId = const Value.absent(),
+    this.level = const Value.absent(),
+    this.title = const Value.absent(),
+    this.note = const Value.absent(),
+    this.summary = const Value.absent(),
+    this.category = const Value.absent(),
+    this.progress = const Value.absent(),
+    this.isCompleted = const Value.absent(),
+    this.isPostponed = const Value.absent(),
+    this.remindFrequency = const Value.absent(),
+    this.targetYear = const Value.absent(),
+    this.targetQuarter = const Value.absent(),
+    this.targetMonth = const Value.absent(),
+    this.dueDate = const Value.absent(),
+    this.recordDate = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  GoalRecordsCompanion.insert({
+    required String id,
+    this.parentId = const Value.absent(),
+    required String level,
+    required String title,
+    this.note = const Value.absent(),
+    this.summary = const Value.absent(),
+    this.category = const Value.absent(),
+    this.progress = const Value.absent(),
+    this.isCompleted = const Value.absent(),
+    this.isPostponed = const Value.absent(),
+    this.remindFrequency = const Value.absent(),
+    this.targetYear = const Value.absent(),
+    this.targetQuarter = const Value.absent(),
+    this.targetMonth = const Value.absent(),
+    this.dueDate = const Value.absent(),
+    required DateTime recordDate,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.isDeleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        level = Value(level),
+        title = Value(title),
+        recordDate = Value(recordDate),
+        createdAt = Value(createdAt),
+        updatedAt = Value(updatedAt);
+  static Insertable<GoalRecord> custom({
+    Expression<String>? id,
+    Expression<String>? parentId,
+    Expression<String>? level,
+    Expression<String>? title,
+    Expression<String>? note,
+    Expression<String>? summary,
+    Expression<String>? category,
+    Expression<double>? progress,
+    Expression<bool>? isCompleted,
+    Expression<bool>? isPostponed,
+    Expression<String>? remindFrequency,
+    Expression<int>? targetYear,
+    Expression<int>? targetQuarter,
+    Expression<int>? targetMonth,
+    Expression<DateTime>? dueDate,
+    Expression<DateTime>? recordDate,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<bool>? isDeleted,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (parentId != null) 'parent_id': parentId,
+      if (level != null) 'level': level,
+      if (title != null) 'title': title,
+      if (note != null) 'note': note,
+      if (summary != null) 'summary': summary,
+      if (category != null) 'category': category,
+      if (progress != null) 'progress': progress,
+      if (isCompleted != null) 'is_completed': isCompleted,
+      if (isPostponed != null) 'is_postponed': isPostponed,
+      if (remindFrequency != null) 'remind_frequency': remindFrequency,
+      if (targetYear != null) 'target_year': targetYear,
+      if (targetQuarter != null) 'target_quarter': targetQuarter,
+      if (targetMonth != null) 'target_month': targetMonth,
+      if (dueDate != null) 'due_date': dueDate,
+      if (recordDate != null) 'record_date': recordDate,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  GoalRecordsCompanion copyWith(
+      {Value<String>? id,
+      Value<String?>? parentId,
+      Value<String>? level,
+      Value<String>? title,
+      Value<String?>? note,
+      Value<String?>? summary,
+      Value<String?>? category,
+      Value<double>? progress,
+      Value<bool>? isCompleted,
+      Value<bool>? isPostponed,
+      Value<String?>? remindFrequency,
+      Value<int?>? targetYear,
+      Value<int?>? targetQuarter,
+      Value<int?>? targetMonth,
+      Value<DateTime?>? dueDate,
+      Value<DateTime>? recordDate,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<bool>? isDeleted,
+      Value<int>? rowid}) {
+    return GoalRecordsCompanion(
+      id: id ?? this.id,
+      parentId: parentId ?? this.parentId,
+      level: level ?? this.level,
+      title: title ?? this.title,
+      note: note ?? this.note,
+      summary: summary ?? this.summary,
+      category: category ?? this.category,
+      progress: progress ?? this.progress,
+      isCompleted: isCompleted ?? this.isCompleted,
+      isPostponed: isPostponed ?? this.isPostponed,
+      remindFrequency: remindFrequency ?? this.remindFrequency,
+      targetYear: targetYear ?? this.targetYear,
+      targetQuarter: targetQuarter ?? this.targetQuarter,
+      targetMonth: targetMonth ?? this.targetMonth,
+      dueDate: dueDate ?? this.dueDate,
+      recordDate: recordDate ?? this.recordDate,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isDeleted: isDeleted ?? this.isDeleted,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (parentId.present) {
+      map['parent_id'] = Variable<String>(parentId.value);
+    }
+    if (level.present) {
+      map['level'] = Variable<String>(level.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (summary.present) {
+      map['summary'] = Variable<String>(summary.value);
+    }
+    if (category.present) {
+      map['category'] = Variable<String>(category.value);
+    }
+    if (progress.present) {
+      map['progress'] = Variable<double>(progress.value);
+    }
+    if (isCompleted.present) {
+      map['is_completed'] = Variable<bool>(isCompleted.value);
+    }
+    if (isPostponed.present) {
+      map['is_postponed'] = Variable<bool>(isPostponed.value);
+    }
+    if (remindFrequency.present) {
+      map['remind_frequency'] = Variable<String>(remindFrequency.value);
+    }
+    if (targetYear.present) {
+      map['target_year'] = Variable<int>(targetYear.value);
+    }
+    if (targetQuarter.present) {
+      map['target_quarter'] = Variable<int>(targetQuarter.value);
+    }
+    if (targetMonth.present) {
+      map['target_month'] = Variable<int>(targetMonth.value);
+    }
+    if (dueDate.present) {
+      map['due_date'] = Variable<DateTime>(dueDate.value);
+    }
+    if (recordDate.present) {
+      map['record_date'] = Variable<DateTime>(recordDate.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GoalRecordsCompanion(')
+          ..write('id: $id, ')
+          ..write('parentId: $parentId, ')
+          ..write('level: $level, ')
+          ..write('title: $title, ')
+          ..write('note: $note, ')
+          ..write('summary: $summary, ')
+          ..write('category: $category, ')
+          ..write('progress: $progress, ')
+          ..write('isCompleted: $isCompleted, ')
+          ..write('isPostponed: $isPostponed, ')
+          ..write('remindFrequency: $remindFrequency, ')
+          ..write('targetYear: $targetYear, ')
+          ..write('targetQuarter: $targetQuarter, ')
+          ..write('targetMonth: $targetMonth, ')
+          ..write('dueDate: $dueDate, ')
+          ..write('recordDate: $recordDate, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $TimelineEventsTable extends TimelineEvents
     with TableInfo<$TimelineEventsTable, TimelineEvent> {
   @override
@@ -5974,6 +6868,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $FriendRecordsTable friendRecords = $FriendRecordsTable(this);
   late final $TravelRecordsTable travelRecords = $TravelRecordsTable(this);
   late final $TripsTable trips = $TripsTable(this);
+  late final $GoalRecordsTable goalRecords = $GoalRecordsTable(this);
   late final $TimelineEventsTable timelineEvents = $TimelineEventsTable(this);
   late final $EntityLinksTable entityLinks = $EntityLinksTable(this);
   late final $LinkLogsTable linkLogs = $LinkLogsTable(this);
@@ -5992,6 +6887,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         friendRecords,
         travelRecords,
         trips,
+        goalRecords,
         timelineEvents,
         entityLinks,
         linkLogs,
