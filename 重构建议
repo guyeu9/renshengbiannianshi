@@ -1,321 +1,193 @@
-# 1. 问题
-
-LinkDao 类中使用了静态 Uuid 实例来生成 ID，这违反了依赖注入原则，导致代码难以测试和扩展。
-
-## 1.1. **静态依赖导致测试困难**
-
-LinkDao 在第 7 行声明了一个静态的 Uuid 实例：
-
-```dart
-static final Uuid _uuid = Uuid();
-```
-
-这个静态实例在 `createLink` 方法（第 33、34 行）和 `deleteLink` 方法（第 73 行）中被用来生成 ID。
-
-**为什么这是问题：**
-
-* 静态实例在整个应用生命周期中共享，无法在单元测试中替换为 mock 对象
-
-* 当编写 LinkDao 的单元测试时，无法控制生成的 UUID 值，导致测试结果不可预测
-
-* 无法验证 UUID 生成逻辑是否被正确调用（例如验证是否生成了两次 UUID）
-
-**问题代码片段：**
-
-```dart
-static final Uuid _uuid = Uuid();
-
-Future<void> createLink({...}) async {
-  final linkId = _uuid.v4();  // 无法 mock 的静态调用
-  final logId = _uuid.v4();  // 无法 mock 的静态调用
-  // ...
-}
-```
-
-## 1.2. **与具体实现强耦合**
-
-LinkDao 直接依赖 `Uuid` 类的具体实现，而不是依赖一个抽象接口。
-
-**为什么这是问题：**
-
-* 违反了依赖倒置原则（DIP），高层模块（DAO）不应依赖低层模块（Uuid 实现）
-
-* 如果将来需要切换 UUID 生成策略（例如使用数据库自增 ID、雪花算法、或自定义的 ID 生成器），需要修改 LinkDao 的代码
-
-* 无法通过配置来改变 ID 生成行为，所有使用 LinkDao 的地方都会受到相同策略的约束
-
-**影响范围：**
-
-* 文件：`life_chronicle/lib/core/database/daos/link_dao.dart`
-
-* 受影响的方法：`createLink`（第 25-62 行）、`deleteLink`（第 65-96 行）
-
-# 2. 收益
-
-通过将 Uuid 作为依赖注入到 LinkDao 中，可以显著提升代码的可测试性和可扩展性。
-
-## 2.1. **提升可测试性**
-
-将 Uuid 实例通过构造函数注入后，可以在单元测试中传入 mock 对象，完全控制 UUID 的生成行为。
-
-* 可以预测测试中的 UUID 值，使测试结果稳定可靠
-
-* 可以验证 UUID 生成方法被调用的次数和参数
-
-* 可以模拟 UUID 生成失败等异常场景
-
-**预期改进：** 单元测试的编写成本降低约 **40%**，测试覆盖率和稳定性显著提升。
-
-## 2.2. **增强可扩展性**
-
-通过依赖注入，LinkDao 不再与具体的 Uuid 实现绑定，可以灵活替换 ID 生成策略。
-
-* 可以轻松切换到不同的 UUID 生成器（如 UUID v1、自定义格式等）
-
-* 可以在测试和生产环境使用不同的 ID 生成策略
-
-* 未来如果需要支持分布式 ID 生成（如雪花算法），只需提供新的实现类，无需修改 LinkDao 代码
-
-## 2.3. **符合依赖倒置原则**
-
-重构后的代码遵循 SOLID 原则中的依赖倒置原则，高层模块（DAO）依赖抽象而非具体实现。
-
-* 代码结构更清晰，职责更单一
-
-* 降低模块间的耦合度，提升代码的可维护性
-
-* 为后续的架构优化（如引入 ID 生成器接口）奠定基础
-
-# 3. 方案
-
-通过构造函数注入 Uuid 实例，移除静态依赖，使 LinkDao 的 ID 生成行为可配置、可测试。
-
-## 3.1. **修改构造函数：解决 "静态依赖导致测试困难"**
-
-**实现步骤：**
-
-1. 移除静态的 `_uuid` 字段声明
-2. 在 LinkDao 构造函数中添加 `Uuid` 参数
-3. 将 `_uuid` 改为实例字段
-4. 更新所有使用 `_uuid` 的地方
-
-**修改前的代码：**
-
-```dart
-@DriftAccessor(tables: [EntityLinks, LinkLogs])
-class LinkDao extends DatabaseAccessor<AppDatabase> with _$LinkDaoMixin {
-  LinkDao(super.db);
-
-  static final Uuid _uuid = Uuid();  // 静态依赖
-
-  Future<void> createLink({...}) async {
-    final linkId = _uuid.v4();  // 无法 mock
-    final logId = _uuid.v4();  // 无法 mock
-    // ...
-  }
-}
-```
-
-**修改后的代码：**
-
-```dart
-@DriftAccessor(tables: [EntityLinks, LinkLogs])
-class LinkDao extends DatabaseAccessor<AppDatabase> with _$LinkDaoMixin {
-  final Uuid _uuid;  // 实例字段，通过构造函数注入
-
-  LinkDao(super.db, {Uuid? uuid}) : _uuid = uuid ?? const Uuid();
-
-  Future<void> createLink({...}) async {
-    final linkId = _uuid.v4();  // 可以在测试中 mock
-    final logId = _uuid.v4();  // 可以在测试中 mock
-    // ...
-  }
-}
-```
-
-**改进说明：**
-
-* 使用命名参数 `{Uuid? uuid}` 并提供默认值，确保向后兼容
-
-* 如果调用方不传入 Uuid 实例，自动使用默认的 `Uuid()` 实现
-
-* 在单元测试中，可以传入 mock 的 Uuid 对象来控制 ID 生成
-
-**单元测试示例：**
-
-```dart
-class MockUuid implements Uuid {
-  final String _fixedValue;
+Run flutter build apk --release
   
-  MockUuid(this._fixedValue);
-  
-  @override
-  String v4() => _fixedValue;
-}
-
-void main() {
-  test('createLink should use injected Uuid', () async {
-    final mockUuid = MockUuid('test-uuid-123');
-    final db = AppDatabase.inMemory();
-    final dao = LinkDao(db, uuid: mockUuid);
-    
-    await dao.createLink(
-      sourceType: 'test',
-      sourceId: '1',
-      targetType: 'test',
-      targetId: '2',
-      now: DateTime.now(),
-    );
-    
-    // 验证生成的 ID 是预期的值
-    final links = await dao.listLinksForEntity(entityType: 'test', entityId: '1');
-    expect(links.first.id, equals('test-uuid-123'));
-  });
-}
-```
-
-## 3.2. **引入 ID 生成器抽象：解决 "与具体实现强耦合"**
-
-为了进一步提升可扩展性，可以引入一个 ID 生成器接口，使 LinkDao 依赖抽象而非具体实现。
-
-**实现步骤：**
-
-1. 创建 `IdGenerator` 接口
-2. 实现 `UuidIdGenerator` 适配器
-3. 修改 LinkDao 依赖 `IdGenerator` 而非 `Uuid`
-
-**接口定义：**
-
-```dart
-abstract class IdGenerator {
-  String generate();
-}
-```
-
-**Uuid 适配器实现：**
-
-```dart
-class UuidIdGenerator implements IdGenerator {
-  final Uuid _uuid;
-  
-  UuidIdGenerator({Uuid? uuid}) : _uuid = uuid ?? const Uuid();
-  
-  @override
-  String generate() => _uuid.v4();
-}
-```
-
-**修改后的 LinkDao：**
-
-```dart
-@DriftAccessor(tables: [EntityLinks, LinkLogs])
-class LinkDao extends DatabaseAccessor<AppDatabase> with _$LinkDaoMixin {
-  final IdGenerator _idGenerator;
-
-  LinkDao(super.db, {IdGenerator? idGenerator}) 
-      : _idGenerator = idGenerator ?? UuidIdGenerator();
-
-  Future<void> createLink({...}) async {
-    final linkId = _idGenerator.generate();
-    final logId = _idGenerator.generate();
-    // ...
-  }
-}
-```
-
-**扩展性示例：**
-
-如果将来需要支持雪花算法 ID 生成，只需实现新的生成器：
-
-```dart
-class SnowflakeIdGenerator implements IdGenerator {
-  final Snowflake _snowflake;
-  
-  SnowflakeIdGenerator(this._snowflake);
-  
-  @override
-  String generate() => _snowflake.nextId().toString();
-}
-
-// 使用时只需传入不同的生成器
-final dao = LinkDao(db, idGenerator: SnowflakeIdGenerator(snowflake));
-```
-
-**方案对比：**
-
-| 方案                | 优点          | 缺点       | 适用场景   |
-| ----------------- | ----------- | -------- | ------ |
-| 直接注入 Uuid         | 实现简单，改动最小   | 仍依赖具体实现  | 短期快速重构 |
-| 引入 IdGenerator 接口 | 符合 DIP，扩展性强 | 需要额外定义接口 | 长期架构优化 |
-
-**推荐方案：** 先采用方案 3.1（直接注入 Uuid）进行快速重构，降低测试成本。如果未来确实需要支持多种 ID 生成策略，再引入 IdGenerator 接口进行二次重构。
-
-# 4. 回归范围
-
-本次重构主要影响 LinkDao 的 ID 生成逻辑，需要重点测试链接创建和删除功能。
-
-## 4.1. 主链路
-
-**创建实体关联：**
-
-1. 用户在界面中创建两个实体之间的关联（如将 encounter 关联到 friend）
-2. 系统调用 `LinkDao.createLink` 方法
-3. 验证 `entityLinks` 表中成功插入一条记录，且 ID 格式正确
-4. 验证 `linkLogs` 表中成功插入一条日志记录，且 ID 格式正确
-5. 验证两个 ID 值不相同（UUID 唯一性）
-
-**删除实体关联：**
-
-1. 用户在界面中删除两个实体之间的关联
-2. 系统调用 `LinkDao.deleteLink` 方法
-3. 验证 `entityLinks` 表中对应记录被删除
-4. 验证 `linkLogs` 表中成功插入一条删除日志记录，且 ID 格式正确
-
-**查询实体关联：**
-
-1. 用户查看某个实体的所有关联
-2. 系统调用 `LinkDao.watchLinksForEntity` 或 `LinkDao.listLinksForEntity` 方法
-3. 验证返回的关联列表正确且完整
-
-## 4.2. 边界情况
-
-**并发创建关联：**
-
-* 多个操作同时创建相同的关联（sourceType、sourceId、targetType、targetId 相同）
-
-* 验证数据库的 `insertOrIgnore` 策略正确生效，不会产生重复记录
-
-* 验证每次操作都会生成独立的日志记录
-
-**事务回滚场景：**
-
-* 创建关联时，`entityLinks` 插入成功但 `linkLogs` 插入失败
-
-* 验证整个事务正确回滚，数据库中不会残留部分数据
-
-* 验证回滚后再次创建关联可以成功
-
-**ID 唯一性验证：**
-
-* 在短时间内连续创建多个关联
-
-* 验证所有生成的 ID 都是唯一的
-
-* 验证 ID 格式符合 UUID v4 标准（36 字符，包含 4 个连字符）
-
-**空值和边界输入：**
-
-* sourceType、sourceId、targetType、targetId 为空字符串
-
-* 验证系统能够正确处理或拒绝这些非法输入
-
-* 验证不会因为非法输入导致 ID 生成失败
-
-**迁移兼容性：**
-
-* 验证现有数据库中的数据可以正常读取
-
-* 验证升级后的应用可以继续使用旧数据创建新关联
-
-* 验证不会因为重构导致数据丢失或损坏
-
+Note: Some input files use unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+Running Gradle task 'assembleRelease'...                        
+Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 15596 bytes (99.1% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
+e: Incompatible classes were found in dependencies. Remove them from the classpath or use '-Xskip-metadata-version-check' to suppress errors
+e: file:///home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/META-INF/kotlin-stdlib-jdk7.kotlin_moduleModule was compiled with an incompatible version of Kotlin. The binary version of its metadata is 2.2.0, expected version is 1.9.0.
+e: file:///home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/META-INF/kotlin-stdlib-jdk8.kotlin_moduleModule was compiled with an incompatible version of Kotlin. The binary version of its metadata is 2.2.0, expected version is 1.9.0.
+e: file:///home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/META-INF/kotlin-stdlib.kotlin_moduleModule was compiled with an incompatible version of Kotlin. The binary version of its metadata is 2.2.0, expected version is 1.9.0.
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/MethodCallHandler.kt:14:9 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/MethodCallHandler.kt:21:21 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/MethodCallHandler.kt:23:9 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/MethodCallHandler.kt:24:13 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/MethodCallHandler.kt:26:27 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/MethodCallHandler.kt:30:21 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/MethodCallHandler.kt:32:32 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/MethodCallHandler.kt:35:21 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/MethodCallHandler.kt:36:20 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/MethodCallHandler.kt:45:20 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/MethodCallHandler.kt:49:6 Class 'kotlin.jvm.Throws' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/jvm/Throws.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/MethodCallHandler.kt:51:9 Unresolved reference: require
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:24:46 Unresolved reference: lazy
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:34:49 Unresolved reference: lazy
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:55:14 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:58:6 Class 'kotlin.jvm.Throws' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/jvm/Throws.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:60:9 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:66:55 Unresolved reference: filterIsInstance
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:67:63 Unresolved reference: filterIsInstance
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:73:25 Unresolved reference: apply
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:74:17 Unresolved reference: action
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:75:17 Unresolved reference: type
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:76:17 Unresolved reference: putExtra
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:77:30 Unresolved reference: isNullOrBlank
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:77:47 Unresolved reference: putExtra
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:78:28 Unresolved reference: isNullOrBlank
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:78:45 Unresolved reference: putExtra
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:92:33 Unresolved reference: apply
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:93:25 Unresolved reference: action
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:94:25 Unresolved reference: type
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:95:25 Unresolved reference: putExtra
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:100:33 Unresolved reference: apply
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:101:25 Unresolved reference: action
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:102:25 Unresolved reference: type
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:103:25 Unresolved reference: putParcelableArrayListExtra
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:108:25 Unresolved reference: apply
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:109:27 Unresolved reference: isNullOrBlank
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:109:44 Unresolved reference: putExtra
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:110:30 Unresolved reference: isNullOrBlank
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:110:47 Unresolved reference: putExtra
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:111:28 Unresolved reference: isNullOrBlank
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:111:45 Unresolved reference: putExtra
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:112:17 Unresolved reference: addFlags
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:126:71 Unresolved reference: java
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:139:25 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:141:36 Cannot infer a type for this parameter. Please specify it explicitly.
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:142:34 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:152:9 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:156:9 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:157:13 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:158:28 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:160:28 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:166:25 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:168:21 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:172:6 Class 'kotlin.jvm.Throws' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/jvm/Throws.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:173:55 Unresolved reference: ArrayList
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:174:20 Unresolved reference: ArrayList
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:175:15 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:193:51 Expression 'first' of type 'String!' cannot be invoked as a function. The function 'invoke()' is not found
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:195:40 Expression 'first' of type 'String!' cannot be invoked as a function. The function 'invoke()' is not found
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:196:19 Class 'kotlin.collections.IntIterator' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/collections/IntIterator.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:196:20 Class 'kotlin.ranges.IntRange' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/ranges/IntRange.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:196:32 Unresolved reference: lastIndex
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:198:17 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:213:50 Unresolved reference: contains
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:216:22 Unresolved reference: substring
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:216:44 Unresolved reference: indexOf
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:223:22 Unresolved reference: startsWith
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:232:39 Unresolved reference: isNullOrEmpty
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:233:19 Unresolved reference: forEach
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:233:29 Unresolved reference: it
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:238:6 Class 'kotlin.jvm.Throws' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/jvm/Throws.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/Share.kt:245:14 Unresolved reference: copyTo
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/SharePlusPendingIntent.kt:30:20 Not enough information to infer type variable T
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/SharePlusPendingIntent.kt:30:91 Unresolved reference: java
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/SharePlusPendingIntent.kt:33:14 Class 'kotlin.Suppress' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Suppress.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/SharePlusPendingIntent.kt:34:20 Not enough information to infer type variable T
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/SharePlusPendingIntent.kt:39:13 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/SharePlusPlugin.kt:16:9 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/SharePlusPlugin.kt:17:9 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/SharePlusPlugin.kt:18:9 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/SharePlusPlugin.kt:20:23 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/SharePlusPlugin.kt:24:23 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/SharePlusPlugin.kt:28:17 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/SharePlusPlugin.kt:29:15 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/SharePlusPlugin.kt:33:15 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/SharePlusPlugin.kt:37:9 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/SharePlusPlugin.kt:41:9 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/ShareSuccessManager.kt:21:16 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/ShareSuccessManager.kt:23:36 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/ShareSuccessManager.kt:24:26 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/ShareSuccessManager.kt:25:18 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/ShareSuccessManager.kt:30:28 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/ShareSuccessManager.kt:33:36 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/ShareSuccessManager.kt:34:26 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/ShareSuccessManager.kt:35:18 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/ShareSuccessManager.kt:43:9 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/ShareSuccessManager.kt:50:22 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/ShareSuccessManager.kt:51:9 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/ShareSuccessManager.kt:59:24 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/ShareSuccessManager.kt:60:13 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+e: file:///home/runner/.pub-cache/hosted/pub.dev/share_plus-12.0.1/android/src/main/kotlin/dev/fluttercommunity/plus/share/ShareSuccessManager.kt:70:13 Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read versions up to 2.0.0.
+The class is loaded from /home/runner/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.0/fdfc65fbc42fda253a26f61dac3c0aca335fae96/kotlin-stdlib-2.2.0.jar!/kotlin/Unit.class
+FAILURE: Build failed with an exception.
+* What went wrong:
+Execution failed for task ':share_plus:compileReleaseKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+BUILD FAILED in 1m 34s
+Running Gradle task 'assembleRelease'...                           94.7s
+┌─ Flutter Fix ────────────────────────────────────────────────────────────────────────────────────┐
+│ [!] Your project requires a newer version of the Kotlin Gradle plugin.                           │
+│ Find the latest version on https://kotlinlang.org/docs/releases.html#release-details, then       │
+│ update the                                                                                       │
+│ version number of the plugin with id "org.jetbrains.kotlin.android" in the plugins block of      │
+│ /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/android/settings.gradle │
+│ .                                                                                                │
+│                                                                                                  │
+│ Alternatively (if your project was created before Flutter 3.19), update                          │
+│ /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/android/build.gradle    │
+│ ext.kotlin_version = '<latest-version>'                                                          │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+Gradle task assembleRelease failed with exit code 1
+Error: Process completed with exit code 1.
