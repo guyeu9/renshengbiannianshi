@@ -58,23 +58,22 @@ subprojects {
 subprojects {
     project.evaluationDependsOn(":app")
 }
-subprojects {
-    plugins.withId("com.android.library") {
-        val libraryExtension =
-            extensions.findByType(com.android.build.gradle.LibraryExtension::class.java)
-        if (libraryExtension != null) {
-            libraryExtension.compileSdk = 35
-            if (libraryExtension.namespace.isNullOrBlank()) {
-                val manifestFile = file("src/main/AndroidManifest.xml")
-                if (manifestFile.exists()) {
-                    val manifestText = manifestFile.readText()
-                    val match =
-                        Regex("package\\s*=\\s*\"([^\"]+)\"").find(manifestText)
-                    val manifestPackage = match?.groupValues?.getOrNull(1)
-                    if (!manifestPackage.isNullOrBlank()) {
-                        libraryExtension.namespace = manifestPackage
-                    }
-                }
+gradle.afterProject {
+    if (!plugins.hasPlugin("com.android.library")) return@afterProject
+    val libraryExtension =
+        extensions.findByType(com.android.build.gradle.LibraryExtension::class.java) ?: return@afterProject
+
+    libraryExtension.compileSdk = 35
+
+    if (libraryExtension.namespace.isNullOrBlank()) {
+        val manifestFile = file("src/main/AndroidManifest.xml")
+        if (manifestFile.exists()) {
+            val manifestText = manifestFile.readText()
+            val match =
+                Regex("package\\s*=\\s*\"([^\"]+)\"").find(manifestText)
+            val manifestPackage = match?.groupValues?.getOrNull(1)
+            if (!manifestPackage.isNullOrBlank()) {
+                libraryExtension.namespace = manifestPackage
             }
         }
     }
