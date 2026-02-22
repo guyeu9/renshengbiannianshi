@@ -74,6 +74,8 @@ jobs:
         working-directory: life_chronicle
       - name: Print Android plugin config
         run: |
+          chmod +x gradlew
+          sed -i 's/\r$//' gradlew
           ./gradlew -v
           ./gradlew -q :app:tasks --all > /dev/null
           ./gradlew :amap_flutter_location:properties | head -n 200
