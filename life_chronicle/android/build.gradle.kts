@@ -60,12 +60,26 @@ subprojects {
 }
 gradle.afterProject {
     if (!plugins.hasPlugin("com.android.library")) return@afterProject
-    val libraryExtension =
-        extensions.findByType(com.android.build.gradle.LibraryExtension::class.java) ?: return@afterProject
+    val androidExtension = extensions.findByName("android") ?: return@afterProject
 
-    libraryExtension.compileSdk = 35
+    run {
+        val method =
+            androidExtension.javaClass.methods.firstOrNull { m ->
+                (m.name == "compileSdkVersion" || m.name == "setCompileSdkVersion" || m.name == "setCompileSdk") &&
+                    m.parameterTypes.size == 1 &&
+                    (m.parameterTypes[0] == Int::class.javaPrimitiveType || m.parameterTypes[0] == Int::class.java)
+            }
+        if (method != null) {
+            method.invoke(androidExtension, 35)
+        }
+    }
 
-    if (libraryExtension.namespace.isNullOrBlank()) {
+    val currentNamespace =
+        androidExtension.javaClass.methods
+            .firstOrNull { it.name == "getNamespace" && it.parameterTypes.isEmpty() && it.returnType == String::class.java }
+            ?.invoke(androidExtension) as? String
+
+    if (currentNamespace.isNullOrBlank()) {
         val manifestFile = file("src/main/AndroidManifest.xml")
         if (manifestFile.exists()) {
             val manifestText = manifestFile.readText()
@@ -73,7 +87,13 @@ gradle.afterProject {
                 Regex("package\\s*=\\s*\"([^\"]+)\"").find(manifestText)
             val manifestPackage = match?.groupValues?.getOrNull(1)
             if (!manifestPackage.isNullOrBlank()) {
-                libraryExtension.namespace = manifestPackage
+                val setNamespace =
+                    androidExtension.javaClass.methods.firstOrNull { m ->
+                        (m.name == "setNamespace" || m.name == "namespace") &&
+                            m.parameterTypes.size == 1 &&
+                            m.parameterTypes[0] == String::class.java
+                    }
+                setNamespace?.invoke(androidExtension, manifestPackage)
             }
         }
     }
