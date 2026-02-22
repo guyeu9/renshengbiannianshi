@@ -283,77 +283,61 @@ class _TravelModePill extends StatelessWidget {
   }
 }
 
-class _TravelOnTheRoadView extends StatelessWidget {
+class _TravelOnTheRoadView extends ConsumerWidget {
   const _TravelOnTheRoadView();
 
-  static const _entries = <_TravelOnTheRoadEntry>[
-    _TravelOnTheRoadEntry(
-      year: 2023,
-      dateRange: '10月12日 - 20日',
-      durationDays: 8,
-      place: '圣托里尼，希腊',
-      imageUrl:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuAiYeR0YcCn1tfLzR2C2qW7pWwiTIIzX5y9HcELMdQlsNCZvTqnJ41-B1ywijjoYzk_kaGbsMNndOTvAGoPUk9OIdsfsainDuqObiaIAJ1ggBT2W_sadXiE3WlCdjh5JHOSptSe6uIHLP9jUHWc1LU6_TIwZcj6Qz14mI7QoVIrSDXJUMfVfMU0rGHzPTzcMJRaZBBLmmGcbMzlO2zr5R5SveBseZ7IY2suW8zTiFnU1s_9_fH1swq0ZImopSmXI3-V_iTjIqb-uT3m',
-      companions: [
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuDheb26Erh0AoCNYUAzET6_o8v9xUPTMWh6Q9SGAFRPh5HFsel2frUzRgzn48nFaBr7PEW-7Kl2ZyjGyhT6kDi9lRHpO1eKfzAkcY9hPDqcDzhRNf3ztVNFQCzZVg830hNXqqczCFl68ofVW-h6HvhlBm8Gn1Vj58A-_vaMjQSR2e1RYf58WTBWmiZEcsPEUf9kkPPaLaTBx8E8bXdIkXInXI59qk9YFmGjux7vyNd93fG3tGaYnw57l61XWl3rs1H_iVjkumddEf8D',
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuCCxSAYevaHZ7JD7Vr88wgLQ586JK1FVk8irLktZlZGU64GlbD4ReClmeF_I7xrFp1GhUDOk8vKriMhjGtAyotUDE8aaiCWewP2UQXAEiO5U8srBg5Wbqgn4_PortiR1thtfHH0GNXdACchU-NFrQtR-YcJI7rdbI97kftf5TN4_GIZv57LwWjpgXVFpLd8Rc0zfbUvHwQzAdc7Y-k_EgkBICQFS7Ec0dB5cEqByYyKziJzfXE_1PUxc_hePIvm7ge0VDhlEp9xvHcY',
-      ],
-      item: TravelItem(
-        date: '2023年10月12日',
-        title: '圣托里尼之旅',
-        subtitle: '海风 · 白墙蓝顶 · 日落',
-        imageUrl:
-            'https://lh3.googleusercontent.com/aida-public/AB6AXuAiYeR0YcCn1tfLzR2C2qW7pWwiTIIzX5y9HcELMdQlsNCZvTqnJ41-B1ywijjoYzk_kaGbsMNndOTvAGoPUk9OIdsfsainDuqObiaIAJ1ggBT2W_sadXiE3WlCdjh5JHOSptSe6uIHLP9jUHWc1LU6_TIwZcj6Qz14mI7QoVIrSDXJUMfVfMU0rGHzPTzcMJRaZBBLmmGcbMzlO2zr5R5SveBseZ7IY2suW8zTiFnU1s_9_fH1swq0ZImopSmXI3-V_iTjIqb-uT3m',
-      ),
-    ),
-    _TravelOnTheRoadEntry(
-      year: 2023,
-      dateRange: '6月05日 - 15日',
-      durationDays: 10,
-      place: '京都，日本',
-      imageUrl:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuArjODPnhetd9mNC97Lhyyqrqsau8zb2mpHZIUajs_y80A4ktyrbZdDW3aWe7YbHT6D80VUeRr-NAuvPHauC8Dg2fdZ5vPeKcHPC8zwEXC7b38nqgcHpHHJfcHIO8ZvXsb_71H0ZjFXXtutdVPzOQ4y-smnWPuVutfwhttAEPWMW-b5u774LkHpWlfpa3-IUGorIG5AVqKV38wB5_7apJTYX8IwButUW2sZkX8RfRe412n0XRr2clKf-HALs50dk5x75Knr98dA1_2X',
-      companions: [
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuCfJm-B09qhEbr3vJn2M3vUPot7kay2p8neQCm92azpcqsnHkR7JnBfCP5vk0HXEJB62jQ1iameH0ufpMWMlYHzdDQHJlfhSXFvZc-Irzu6lgJn1zijr95QFrwnsB4CpAPmWWnhnoDengr_FyFpQ3soqu8bZI_m58E7dJ8sBEx__UIHIR_r1qSx3FfLDILNZEIPA53dCknUoqHrrG7ODojjBdw8N8wAXue95OJOMvAfa6H8jZF2pqq9XQpaNUosJduEKNFh73tNC6fa',
-      ],
-      item: TravelItem(
-        date: '2023年6月05日',
-        title: '京都之旅',
-        subtitle: '清水寺 · 伏见稻荷 · 岚山',
-        imageUrl:
-            'https://lh3.googleusercontent.com/aida-public/AB6AXuArjODPnhetd9mNC97Lhyyqrqsau8zb2mpHZIUajs_y80A4ktyrbZdDW3aWe7YbHT6D80VUeRr-NAuvPHauC8Dg2fdZ5vPeKcHPC8zwEXC7b38nqgcHpHHJfcHIO8ZvXsb_71H0ZjFXXtutdVPzOQ4y-smnWPuVutfwhttAEPWMW-b5u774LkHpWlfpa3-IUGorIG5AVqKV38wB5_7apJTYX8IwButUW2sZkX8RfRe412n0XRr2clKf-HALs50dk5x75Knr98dA1_2X',
-      ),
-    ),
-    _TravelOnTheRoadEntry(
-      year: 2022,
-      dateRange: '12月20日 - 1月02日',
-      durationDays: 14,
-      place: '纽约，美国',
-      imageUrl:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuCIwfpW5Tw0aDH8j4GZsg6k8FIlBRSJUtHA4f7L6yrfWBpRLCDTOhZgzzrAKFJ3J9FIskGAxsxAdu-x9YQKnDLlgp3LoSxHMZwn5DGjM5fxSH7kzTJFHm0JBX5TFA9tT-vFLjiymDxURBRk-FVsNeqO8kxGN1XruPsskE9ifqfleFfLdyYuHUymhXxWwa6rsuZZ_vJ0WBopAwdMZ0CfzOODrQ_bxIDAgeBu0XUGvPsL2y77MghcQGM-3AwN-BZFeIezMTC07H0vywMH',
-      companions: [
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuDZMMw16OOA9fm8LwncB97oR_-QJZWtJH-IOCdVyI90IlfGWUEgqwPaa9v_kr1Fi9tpOYsfheaiqN1HcrwM7qGT8F66SyDZ3U5gXhqlaKH4kjiDYUAwqIFJG37P2T6LzpdYESLfTcV3TYL-GagWJGvyepFGppyamqycMv9oSvyitfrGexYXsAv6e2tupUPRdSHlnsMtxvyzYoX71MCcJKGjXvy87-GVBGZgWYgVp6uLcP_C0cZwVSHmejagxyVQ381CJONzCAuulPfS',
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuAD673M_-uyjr4Qk4esD99qxnHgR6uH_hcUpUiZVpfb6P2mG-OQOtU13LuH6zY6Uy_pW5jgCFu66ol_AKjvG8S2icbnyrRbaatZLv7InpY_qlZJ0rBv5JIzqVkWVjwANAFpwoM2ePl0YgsONFeH63QtYAIXLkj-9NQeLp4hkcPAKdK869h9SS26NYwwBGm58fTWeyyfnSk2eGE_c3QFM1QHDEp-HRPOtQNE-RzYsC72_WD6DEOwtObn_3TPxfTQpD4D-VIzUi6WIUyt',
-      ],
-      item: TravelItem(
-        date: '2022年12月20日',
-        title: '纽约跨年',
-        subtitle: '摩天大楼 · 冬夜 · 人潮',
-        imageUrl:
-            'https://lh3.googleusercontent.com/aida-public/AB6AXuCIwfpW5Tw0aDH8j4GZsg6k8FIlBRSJUtHA4f7L6yrfWBpRLCDTOhZgzzrAKFJ3J9FIskGAxsxAdu-x9YQKnDLlgp3LoSxHMZwn5DGjM5fxSH7kzTJFHm0JBX5TFA9tT-vFLjiymDxURBRk-FVsNeqO8kxGN1XruPsskE9ifqfleFfLdyYuHUymhXxWwa6rsuZZ_vJ0WBopAwdMZ0CfzOODrQ_bxIDAgeBu0XUGvPsL2y77MghcQGM-3AwN-BZFeIezMTC07H0vywMH',
-      ),
-    ),
-  ];
-
   @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _TravelFootprintCard(onTap: () {}),
-        const SizedBox(height: 18),
-        _TravelOnTheRoadTimeline(entries: _entries),
-      ],
+  Widget build(BuildContext context, WidgetRef ref) {
+    final db = ref.watch(appDatabaseProvider);
+    return StreamBuilder<List<TravelRecord>>(
+      stream: db.watchAllActiveTravelRecords(),
+      builder: (context, snapshot) {
+        final records = snapshot.data ?? const <TravelRecord>[];
+        final onTheRoad = records.where((r) => !r.isWishlist).toList(growable: false);
+        if (onTheRoad.isEmpty) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              _TravelFootprintCard(onTap: null),
+              SizedBox(height: 18),
+              _EmptyTravelState(label: '暂无旅行记录，去添加第一段旅程吧'),
+            ],
+          );
+        }
+        final tripIds = onTheRoad.map((e) => e.tripId).toSet().toList();
+        return StreamBuilder<List<Trip>>(
+          stream: _watchTripsByIds(db, tripIds),
+          builder: (context, tripSnapshot) {
+            final trips = tripSnapshot.data ?? const <Trip>[];
+            return StreamBuilder<List<EntityLink>>(
+              stream: db.select(db.entityLinks).watch(),
+              builder: (context, linkSnapshot) {
+                final links = linkSnapshot.data ?? const <EntityLink>[];
+                return StreamBuilder<List<FriendRecord>>(
+                  stream: db.friendDao.watchAllActive(),
+                  builder: (context, friendSnapshot) {
+                    final friends = friendSnapshot.data ?? const <FriendRecord>[];
+                    final entries = _buildTravelEntries(
+                      records: onTheRoad,
+                      trips: trips,
+                      friends: friends,
+                      links: links,
+                    );
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _TravelFootprintCard(onTap: () {}),
+                        const SizedBox(height: 18),
+                        _TravelOnTheRoadTimeline(entries: entries),
+                      ],
+                    );
+                  },
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -374,14 +358,14 @@ class _TravelOnTheRoadEntry {
   final int durationDays;
   final String place;
   final String imageUrl;
-  final List<String> companions;
+  final List<_CompanionInfo> companions;
   final TravelItem item;
 }
 
 class _TravelFootprintCard extends StatelessWidget {
   const _TravelFootprintCard({required this.onTap});
 
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -566,9 +550,14 @@ class _TimelineTripEntry extends StatelessWidget {
       child: Stack(
         children: [
           Positioned(
-            left: -21,
+            left: -15,
             top: 26,
             child: Container(width: 10, height: 10, decoration: const BoxDecoration(color: Color(0xFFD1D5DB), shape: BoxShape.circle)),
+          ),
+          const Positioned(
+            left: -10,
+            top: 30,
+            child: SizedBox(width: 10, height: 2, child: DecoratedBox(decoration: BoxDecoration(color: Color(0xFFE5E7EB)))),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -662,15 +651,7 @@ class _TravelOnRoadCard extends StatelessWidget {
                                 for (var i = 0; i < entry.companions.length && i < 2; i++)
                                   Positioned(
                                     left: i * 14.0,
-                                    child: Container(
-                                      width: 24,
-                                      height: 24,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: Colors.white, width: 2),
-                                      ),
-                                      child: ClipOval(child: _buildLocalImage(entry.companions[i], fit: BoxFit.cover)),
-                                    ),
+                                    child: _CompanionAvatar(info: entry.companions[i]),
                                   ),
                                 if (entry.companions.length > 2)
                                   Positioned(
@@ -724,37 +705,39 @@ class _TravelOnRoadCard extends StatelessWidget {
   }
 }
 
-class _TravelWishlistView extends StatelessWidget {
+class _TravelWishlistView extends ConsumerWidget {
   const _TravelWishlistView();
 
-  static const _items = <TravelItem>[
-    TravelItem(
-      date: '计划：2026年4月',
-      title: '冰岛追极光',
-      subtitle: '雷克雅未克 · 蓝湖 · 黑沙滩',
-      imageUrl:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuBfQmXlW4U0l2F2s7p5c1Y',
-    ),
-    TravelItem(
-      date: '计划：2026年6月',
-      title: '新疆伊犁',
-      subtitle: '草原 · 花海 · 日落',
-      imageUrl:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuA0l2F2s7p5c1Yq9',
-    ),
-  ];
-
   @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (final item in _items) ...[
-          _TravelWishlistCard(item: item),
-          const SizedBox(height: 14),
-        ],
-      ],
+  Widget build(BuildContext context, WidgetRef ref) {
+    final db = ref.watch(appDatabaseProvider);
+    return StreamBuilder<List<TravelRecord>>(
+      stream: db.watchAllActiveTravelRecords(),
+      builder: (context, snapshot) {
+        final records = snapshot.data ?? const <TravelRecord>[];
+        final wishlist = records.where((r) => r.isWishlist).toList(growable: false);
+        if (wishlist.isEmpty) {
+          return const _EmptyTravelState(label: '暂无心愿清单，去添加目的地吧');
+        }
+        final tripIds = wishlist.map((e) => e.tripId).toSet().toList();
+        return StreamBuilder<List<Trip>>(
+          stream: _watchTripsByIds(db, tripIds),
+          builder: (context, tripSnapshot) {
+            final trips = tripSnapshot.data ?? const <Trip>[];
+            final tripById = {for (final t in trips) t.id: t};
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final record in wishlist) ...[
+                  _TravelWishlistCard(item: _buildWishlistItem(record, tripById[record.tripId])),
+                  const SizedBox(height: 14),
+                ],
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }

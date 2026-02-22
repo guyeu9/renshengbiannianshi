@@ -18,28 +18,8 @@ rootProject.allprojects {
         jcenter()
         mavenCentral()
         maven { url 'https://maven.aliyun.com/repository/public' }
-        maven {
-            url 'https://maven.aliyun.com/repository/gaode'
-            def amapUser = System.getenv('AMAP_MAVEN_USERNAME') ?: System.getenv('ALIYUN_MAVEN_USERNAME') ?: project.findProperty('AMAP_MAVEN_USERNAME') ?: project.findProperty('ALIYUN_MAVEN_USERNAME')
-            def amapPassword = System.getenv('AMAP_MAVEN_PASSWORD') ?: System.getenv('ALIYUN_MAVEN_PASSWORD') ?: project.findProperty('AMAP_MAVEN_PASSWORD') ?: project.findProperty('ALIYUN_MAVEN_PASSWORD')
-            if (amapUser && amapPassword) {
-                credentials {
-                    username amapUser
-                    password amapPassword
-                }
-            }
-        }
-        maven {
-            url 'https://repo.amap.com/repository/maven-public'
-            def amapUser = System.getenv('AMAP_MAVEN_USERNAME') ?: System.getenv('ALIYUN_MAVEN_USERNAME') ?: project.findProperty('AMAP_MAVEN_USERNAME') ?: project.findProperty('ALIYUN_MAVEN_USERNAME')
-            def amapPassword = System.getenv('AMAP_MAVEN_PASSWORD') ?: System.getenv('ALIYUN_MAVEN_PASSWORD') ?: project.findProperty('AMAP_MAVEN_PASSWORD') ?: project.findProperty('ALIYUN_MAVEN_PASSWORD')
-            if (amapUser && amapPassword) {
-                credentials {
-                    username amapUser
-                    password amapPassword
-                }
-            }
-        }
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/central' }
     }
 }
 
@@ -58,6 +38,6 @@ android {
 }
 
 dependencies {
-    def amapSdkVersion = project.findProperty('AMAP_SDK_VERSION') ?: '10.1.200'
+    def amapSdkVersion = project.findProperty('AMAP_SDK_VERSION') ?: '10.0.600'
     compileOnly "com.amap.api:3dmap:${amapSdkVersion}"
 }
