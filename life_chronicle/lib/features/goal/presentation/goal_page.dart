@@ -1,11 +1,19 @@
+import 'dart:io';
+import 'dart:ui' as ui;
+
 import 'package:drift/drift.dart' show OrderingMode, OrderingTerm, Value;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../app/app_theme.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
+import '../../../core/utils/media_storage.dart';
 
 class _GoalTypeOption {
   const _GoalTypeOption({
@@ -61,6 +69,39 @@ Color _goalAccentFor(String? value) {
 
 String _goalLabelFor(String? value) {
   return _goalTypeFor(value)?.label ?? (value?.isNotEmpty == true ? value! : '未分类');
+}
+
+_GoalTypeOption _goalMetaForLabel(String label) {
+  for (final option in _goalTypeOptions) {
+    if (option.label == label || option.value == label) {
+      return option;
+    }
+  }
+  return _GoalTypeOption(
+    value: label,
+    label: label.isEmpty ? '未分类' : label,
+    icon: Icons.flag,
+    accent: AppTheme.primary,
+    background: const Color(0xFFEFF6FF),
+  );
+}
+
+String _formatYearMonth(DateTime date) {
+  final month = date.month.toString().padLeft(2, '0');
+  return '${date.year}年$month月';
+}
+
+String _goalDeadlineLabel(GoalRecord record) {
+  if (record.dueDate != null) {
+    return '截止: ${_formatYearMonth(record.dueDate!)}';
+  }
+  if (record.targetYear != null && record.targetMonth != null) {
+    return '截止: ${record.targetYear}年${record.targetMonth}月';
+  }
+  if (record.targetYear != null) {
+    return '截止: ${record.targetYear}年';
+  }
+  return '截止: 未设置';
 }
 
 class _RemindOption {
@@ -190,103 +231,363 @@ class _CircleButton extends StatelessWidget {
   }
 }
 
-class _GoalHomeBody extends ConsumerWidget {
+class _GoalHomeBody extends ConsumerStatefulWidget {
   const _GoalHomeBody();
 
-  Stream<List<GoalRecord>> _watchYearGoals(AppDatabase db, {required bool completed}) {
+  @override
+  ConsumerState<_GoalHomeBody> createState() => _GoalHomeBodyState();
+}
+
+class _GoalHomeBodyState extends ConsumerState<_GoalHomeBody> {
+  int _selectedYear = DateTime.now().year;
+
+  Stream<List<GoalRecord>> _watchYearGoals(AppDatabase db) {
     final query = db.select(db.goalRecords)
       ..where((t) => t.level.equals('year'))
       ..where((t) => t.isDeleted.equals(false))
-      ..where((t) => completed ? t.isCompleted.equals(true) : t.isCompleted.equals(false))
       ..orderBy([
         (t) => OrderingTerm(expression: t.recordDate, mode: OrderingMode.desc),
       ]);
     return query.watch();
   }
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final db = ref.watch(appDatabaseProvider);
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 140),
-      children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(colors: [Color(0xFF0F172A), Color(0xFF334155)]),
-            borderRadius: BorderRadius.circular(22),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 30, offset: const Offset(0, 10))],
+  int _goalYear(GoalRecord record) {
+    return record.targetYear ?? record.recordDate.year;
+  }
+
+  Future<void> _pickYear(List<int> years, int activeYear) async {
+    if (years.isEmpty) return;
+    final selected = await showModalBottomSheet<int>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return SafeArea(
+          child: ListView.separated(
+            shrinkWrap: true,
+            itemCount: years.length,
+            separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF3F4F6)),
+            itemBuilder: (context, index) {
+              final year = years[index];
+              final isActive = year == activeYear;
+              return ListTile(
+                title: Text('$year年', style: TextStyle(fontWeight: FontWeight.w800, color: isActive ? const Color(0xFF2BCDEE) : const Color(0xFF111827))),
+                trailing: isActive ? const Icon(Icons.check, color: Color(0xFF2BCDEE)) : null,
+                onTap: () => Navigator.of(context).pop(year),
+              );
+            },
           ),
-          child: Row(
+        );
+      },
+    );
+    if (selected == null || !mounted) return;
+    setState(() => _selectedYear = selected);
+  }
+
+  void _shiftYear(List<int> years, int activeYear, int delta) {
+    if (years.isEmpty) return;
+    final index = years.indexOf(activeYear);
+    if (index == -1) return;
+    final nextIndex = index + delta;
+    if (nextIndex < 0 || nextIndex >= years.length) return;
+    setState(() => _selectedYear = years[nextIndex]);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final db = ref.watch(appDatabaseProvider);
+    return StreamBuilder<List<GoalRecord>>(
+      stream: _watchYearGoals(db),
+      builder: (context, snapshot) {
+        final records = snapshot.data ?? const <GoalRecord>[];
+        final years = records.map(_goalYear).toSet().toList()..sort((a, b) => b.compareTo(a));
+        final activeYear = years.contains(_selectedYear) ? _selectedYear : (years.isNotEmpty ? years.first : _selectedYear);
+        final yearGoals = records.where((r) => _goalYear(r) == activeYear).toList(growable: false);
+        final inProgress = yearGoals.where((r) => !r.isCompleted).length;
+        final completed = yearGoals.where((r) => r.isCompleted).length;
+        final total = yearGoals.length;
+        final completionRate = total == 0 ? 0 : (completed / total);
+        final grouped = <String, List<GoalRecord>>{};
+        for (final goal in yearGoals) {
+          final label = _goalLabelFor(goal.category);
+          grouped.putIfAbsent(label, () => []).add(goal);
+        }
+        final orderedLabels = <String>[
+          for (final option in _goalTypeOptions)
+            if (grouped.containsKey(option.label)) option.label,
+          for (final label in grouped.keys)
+            if (!_goalTypeOptions.any((o) => o.label == label)) label,
+        ];
+
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(16, 6, 16, 140),
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text('年度目标', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => AnnualGoalSummaryPage(initialYear: activeYear, availableYears: years)),
+                  ),
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF3B82F6),
+                    textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+                  ),
+                  child: const Text('历史年度总结'),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                IconButton(
+                  onPressed: () => _shiftYear(years, activeYear, 1),
+                  icon: Icon(Icons.chevron_left, color: years.indexOf(activeYear) < years.length - 1 ? const Color(0xFF94A3B8) : const Color(0xFFE2E8F0)),
+                ),
+                InkWell(
+                  borderRadius: BorderRadius.circular(999),
+                  onTap: () => _pickYear(years, activeYear),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    child: Row(
+                      children: [
+                        Text('$activeYear年', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF2BCDEE))),
+                        const Icon(Icons.keyboard_arrow_down, size: 18, color: Color(0xFF2BCDEE)),
+                      ],
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => _shiftYear(years, activeYear, -1),
+                  icon: Icon(Icons.chevron_right, color: years.indexOf(activeYear) > 0 ? const Color(0xFF94A3B8) : const Color(0xFFE2E8F0)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _YearOverviewCard(
+                    value: '$inProgress',
+                    label: '进行中',
+                    valueColor: const Color(0xFFA855F7),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _YearOverviewCard(
+                    value: '$completed',
+                    label: '已完成',
+                    valueColor: const Color(0xFFA855F7),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _YearOverviewCard(
+                    value: '${(completionRate * 100).round()}%',
+                    label: '完成率',
+                    valueColor: const Color(0xFFA855F7),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (yearGoals.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFF3F4F6))),
+                child: const Text('暂无年度目标', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF9CA3AF))),
+              )
+            else
+              for (final label in orderedLabels) ...[
+                _GoalCategorySection(
+                  label: label,
+                  goals: grouped[label] ?? const [],
+                  db: db,
+                ),
+                const SizedBox(height: 18),
+              ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _YearOverviewCard extends StatelessWidget {
+  const _YearOverviewCard({required this.value, required this.label, required this.valueColor});
+
+  final String value;
+  final String label;
+  final Color valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFF3F4F6)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 12, offset: const Offset(0, 4))],
+      ),
+      child: Column(
+        children: [
+          Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: valueColor)),
+          const SizedBox(height: 6),
+          Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+        ],
+      ),
+    );
+  }
+}
+
+class _GoalCategorySection extends StatelessWidget {
+  const _GoalCategorySection({required this.label, required this.goals, required this.db});
+
+  final String label;
+  final List<GoalRecord> goals;
+  final AppDatabase db;
+
+  @override
+  Widget build(BuildContext context) {
+    final meta = _goalMetaForLabel(label);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(color: meta.background, borderRadius: BorderRadius.circular(10)),
+              child: Icon(meta.icon, size: 16, color: meta.accent),
+            ),
+            const SizedBox(width: 8),
+            Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Column(
+          children: [
+            for (final goal in goals) ...[
+              _AnnualGoalCard(record: goal, db: db),
+              const SizedBox(height: 12),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _AnnualGoalCard extends StatelessWidget {
+  const _AnnualGoalCard({required this.record, required this.db});
+
+  final GoalRecord record;
+  final AppDatabase db;
+
+  Stream<List<GoalRecord>> _watchQuarters() {
+    final query = db.select(db.goalRecords)
+      ..where((t) => t.parentId.equals(record.id))
+      ..where((t) => t.level.equals('quarter'))
+      ..where((t) => t.isDeleted.equals(false));
+    return query.watch();
+  }
+
+  Stream<List<GoalRecord>> _watchDailyTasks(List<String> quarterIds) {
+    if (quarterIds.isEmpty) {
+      return Stream.value(const <GoalRecord>[]);
+    }
+    final query = db.select(db.goalRecords)
+      ..where((t) => t.parentId.isIn(quarterIds))
+      ..where((t) => t.level.equals('daily'))
+      ..where((t) => t.isDeleted.equals(false));
+    return query.watch();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = _goalAccentFor(record.category);
+    final progress = record.progress.clamp(0, 1).toDouble();
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => GoalDetailPage(record: record))),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFF3F4F6))),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('人生目标看板', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white)),
-                    SizedBox(height: 6),
-                    Text('年度进度 · 专注当下', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFFE2E8F0))),
-                  ],
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(record.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                  ),
+                  Text('${(progress * 100).round()}%', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: accent)),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(_goalDeadlineLabel(record), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 6,
+                  backgroundColor: const Color(0xFFF1F5F9),
+                  valueColor: AlwaysStoppedAnimation(accent),
                 ),
               ),
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(16)),
-                child: const Icon(Icons.flag, color: Colors.white),
+              const SizedBox(height: 10),
+              StreamBuilder<List<GoalRecord>>(
+                stream: _watchQuarters(),
+                builder: (context, quarterSnapshot) {
+                  final quarters = quarterSnapshot.data ?? const <GoalRecord>[];
+                  final quarterIds = quarters.map((q) => q.id).toList(growable: false);
+                  return StreamBuilder<List<GoalRecord>>(
+                    stream: _watchDailyTasks(quarterIds),
+                    builder: (context, taskSnapshot) {
+                      final tasks = (taskSnapshot.data ?? const <GoalRecord>[]).take(3).toList(growable: false);
+                      if (tasks.isEmpty) {
+                        return const Text('暂无阶段任务', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFFCBD5F5)));
+                      }
+                      return Column(
+                        children: [
+                          for (final task in tasks) ...[
+                            Row(
+                              children: [
+                                Icon(task.isCompleted ? Icons.check_circle : Icons.radio_button_unchecked, size: 18, color: task.isCompleted ? accent : const Color(0xFFCBD5F5)),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    task.title,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w800,
+                                      color: task.isCompleted ? const Color(0xFF64748B) : const Color(0xFF111827),
+                                      decoration: task.isCompleted ? TextDecoration.lineThrough : TextDecoration.none,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                          ],
+                        ],
+                      );
+                    },
+                  );
+                },
               ),
             ],
           ),
         ),
-        const SizedBox(height: 14),
-        const Text('进行中', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-        const SizedBox(height: 12),
-        StreamBuilder<List<GoalRecord>>(
-          stream: _watchYearGoals(db, completed: false),
-          builder: (context, snapshot) {
-            final goals = snapshot.data ?? const <GoalRecord>[];
-            if (goals.isEmpty) {
-              return Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFF3F4F6))),
-                child: const Text('暂无进行中的目标', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF9CA3AF))),
-              );
-            }
-            return Column(
-              children: [
-                for (final goal in goals) ...[
-                  _GoalCard(record: goal),
-                  const SizedBox(height: 12),
-                ],
-              ],
-            );
-          },
-        ),
-        const SizedBox(height: 6),
-        const Text('已完成', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-        const SizedBox(height: 12),
-        StreamBuilder<List<GoalRecord>>(
-          stream: _watchYearGoals(db, completed: true),
-          builder: (context, snapshot) {
-            final goals = snapshot.data ?? const <GoalRecord>[];
-            if (goals.isEmpty) {
-              return Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFF3F4F6))),
-                child: const Text('暂无已完成的目标', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF9CA3AF))),
-              );
-            }
-            return Column(
-              children: [
-                for (final goal in goals) ...[
-                  _GoalCard(record: goal),
-                  const SizedBox(height: 12),
-                ],
-              ],
-            );
-          },
-        ),
-      ],
+      ),
     );
   }
 }
@@ -338,6 +639,459 @@ class _GoalCard extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class AnnualGoalSummaryPage extends ConsumerStatefulWidget {
+  const AnnualGoalSummaryPage({super.key, required this.initialYear, required this.availableYears});
+
+  final int initialYear;
+  final List<int> availableYears;
+
+  @override
+  ConsumerState<AnnualGoalSummaryPage> createState() => _AnnualGoalSummaryPageState();
+}
+
+class _AnnualGoalSummaryPageState extends ConsumerState<AnnualGoalSummaryPage> {
+  final GlobalKey _shareKey = GlobalKey();
+  final TextEditingController _reviewController = TextEditingController();
+  final List<String> _reviewImages = [];
+  late int _selectedYear = widget.initialYear;
+
+  @override
+  void dispose() {
+    _reviewController.dispose();
+    super.dispose();
+  }
+
+  List<int> _resolveYears(List<GoalRecord> records) {
+    final years = <int>{...widget.availableYears};
+    for (final record in records) {
+      years.add(record.targetYear ?? record.recordDate.year);
+    }
+    if (years.isEmpty) {
+      final now = DateTime.now().year;
+      return List<int>.generate(6, (index) => now - index);
+    }
+    final sorted = years.toList()..sort((a, b) => b.compareTo(a));
+    return sorted;
+  }
+
+  Future<void> _pickYear(List<int> years, int activeYear) async {
+    if (years.isEmpty) return;
+    final selected = await showModalBottomSheet<int>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return SafeArea(
+          child: ListView.separated(
+            shrinkWrap: true,
+            itemCount: years.length,
+            separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF3F4F6)),
+            itemBuilder: (context, index) {
+              final year = years[index];
+              final isActive = year == activeYear;
+              return ListTile(
+                title: Text('$year年', style: TextStyle(fontWeight: FontWeight.w800, color: isActive ? const Color(0xFF2BCDEE) : const Color(0xFF111827))),
+                trailing: isActive ? const Icon(Icons.check, color: Color(0xFF2BCDEE)) : null,
+                onTap: () => Navigator.of(context).pop(year),
+              );
+            },
+          ),
+        );
+      },
+    );
+    if (selected == null || !mounted) return;
+    setState(() => _selectedYear = selected);
+  }
+
+  void _shiftYear(List<int> years, int activeYear, int delta) {
+    if (years.isEmpty) return;
+    final index = years.indexOf(activeYear);
+    if (index == -1) return;
+    final nextIndex = index + delta;
+    if (nextIndex < 0 || nextIndex >= years.length) return;
+    setState(() => _selectedYear = years[nextIndex]);
+  }
+
+  void _handleYearSwipe(List<int> years, int activeYear, DragEndDetails details) {
+    final velocity = details.primaryVelocity ?? 0;
+    if (velocity == 0) return;
+    if (velocity > 0) {
+      _shiftYear(years, activeYear, 1);
+    } else {
+      _shiftYear(years, activeYear, -1);
+    }
+  }
+
+  Future<void> _pickReviewImages() async {
+    final picker = ImagePicker();
+    final files = await picker.pickMultiImage();
+    if (files.isEmpty) return;
+    final stored = await persistImageFiles(files, folder: 'goal_review', prefix: 'goal_review');
+    if (stored.isEmpty) return;
+    if (!mounted) return;
+    setState(() => _reviewImages.addAll(stored));
+  }
+
+  Future<void> _shareLongImage() async {
+    final boundary = _shareKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+    if (boundary == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('当前页面无法导出分享图片')));
+      return;
+    }
+    try {
+      final image = await boundary.toImage(pixelRatio: 3);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) return;
+      final bytes = byteData.buffer.asUint8List();
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/goal_summary_${DateTime.now().millisecondsSinceEpoch}.png');
+      await file.writeAsBytes(bytes);
+      await Share.shareXFiles([XFile(file.path)]);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('导出失败，请稍后重试')));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final db = ref.watch(appDatabaseProvider);
+    return Scaffold(
+      backgroundColor: const Color(0xFFF6F8F8),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: () => Navigator.of(context).maybePop(),
+                    icon: const Icon(Icons.arrow_back),
+                    color: const Color(0xFF111827),
+                  ),
+                  const Expanded(
+                    child: Text('年度目标总结', textAlign: TextAlign.center, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                  ),
+                  IconButton(
+                    onPressed: _shareLongImage,
+                    icon: const Icon(Icons.share),
+                    color: const Color(0xFF8B5CF6),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: StreamBuilder<List<GoalRecord>>(
+                stream: db.goalRecords
+                    .select()
+                    .where((t) => t.level.equals('year') & t.isDeleted.equals(false))
+                    .watch(),
+                builder: (context, snapshot) {
+                  final records = snapshot.data ?? const <GoalRecord>[];
+                  final years = _resolveYears(records);
+                  final activeYear = years.contains(_selectedYear) ? _selectedYear : years.first;
+                  final yearGoals = records.where((r) => (r.targetYear ?? r.recordDate.year) == activeYear).toList(growable: false);
+                  final inProgress = yearGoals.where((r) => !r.isCompleted).length;
+                  final completed = yearGoals.where((r) => r.isCompleted).length;
+                  final total = yearGoals.length;
+                  final completionRate = total == 0 ? 0 : completed / total;
+                  final grouped = <String, List<GoalRecord>>{};
+                  for (final goal in yearGoals) {
+                    final label = _goalLabelFor(goal.category);
+                    grouped.putIfAbsent(label, () => []).add(goal);
+                  }
+                  final orderedLabels = <String>[
+                    for (final option in _goalTypeOptions)
+                      if (grouped.containsKey(option.label)) option.label,
+                    for (final label in grouped.keys)
+                      if (!_goalTypeOptions.any((o) => o.label == label)) label,
+                  ];
+
+                  return RepaintBoundary(
+                    key: _shareKey,
+                    child: Container(
+                      color: const Color(0xFFF6F8F8),
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(16, 6, 16, 120),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            GestureDetector(
+                              onHorizontalDragEnd: (details) => _handleYearSwipe(years, activeYear, details),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  IconButton(
+                                    onPressed: () => _shiftYear(years, activeYear, 1),
+                                    icon: Icon(Icons.chevron_left, color: years.indexOf(activeYear) < years.length - 1 ? const Color(0xFF94A3B8) : const Color(0xFFE2E8F0)),
+                                  ),
+                                  InkWell(
+                                    borderRadius: BorderRadius.circular(999),
+                                    onTap: () => _pickYear(years, activeYear),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                      child: Column(
+                                        children: [
+                                          const Text('人生编年史', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF8B5CF6))),
+                                          Text(
+                                            '$activeYear',
+                                            style: const TextStyle(
+                                              fontSize: 28,
+                                              fontWeight: FontWeight.w900,
+                                              color: Color(0xFF8B5CF6),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: () => _shiftYear(years, activeYear, -1),
+                                    icon: Icon(Icons.chevron_right, color: years.indexOf(activeYear) > 0 ? const Color(0xFF94A3B8) : const Color(0xFFE2E8F0)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _YearOverviewCard(
+                                    value: '$inProgress',
+                                    label: '进行中',
+                                    valueColor: const Color(0xFF8B5CF6),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: _YearOverviewCard(
+                                    value: '$completed',
+                                    label: '已完成',
+                                    valueColor: const Color(0xFFD946EF),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: _YearOverviewCard(
+                                    value: '${(completionRate * 100).round()}%',
+                                    label: '总达成率',
+                                    valueColor: const Color(0xFF8B5CF6),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 18),
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(colors: [Color(0xFF60A5FA), Color(0xFF6366F1)]),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(Icons.auto_awesome, size: 16, color: Colors.white),
+                                ),
+                                const SizedBox(width: 8),
+                                const Text('AI 年度洞察', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: const Color(0xFFF3F4F6)),
+                                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 16, offset: const Offset(0, 6))],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '基于本年度数据分析，你在职业发展领域表现尤为优异，提前完成了关键认证。建议下半年在保持职业冲劲的同时，加强健康投入。',
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF475569), height: 1.6),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    children: [
+                                      const Text('Life Museum AI', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                                      const Spacer(),
+                                      TextButton(
+                                        onPressed: () {},
+                                        style: TextButton.styleFrom(
+                                          foregroundColor: const Color(0xFF8B5CF6),
+                                          textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
+                                        ),
+                                        child: const Text('查看完整分析'),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 18),
+                            if (yearGoals.isEmpty)
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFF3F4F6))),
+                                child: const Text('暂无年度目标', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF9CA3AF))),
+                              )
+                            else
+                              for (final label in orderedLabels) ...[
+                                _GoalCategorySection(label: label, goals: grouped[label] ?? const [], db: db),
+                                const SizedBox(height: 18),
+                              ],
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF3E8FF),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(Icons.edit_note, size: 16, color: Color(0xFFD946EF)),
+                                ),
+                                const SizedBox(width: 8),
+                                const Text('个人复盘', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                                const Spacer(),
+                                const Text('记录你的心得', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: const Color(0xFFF3F4F6)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  TextField(
+                                    controller: _reviewController,
+                                    minLines: 4,
+                                    maxLines: null,
+                                    decoration: const InputDecoration(
+                                      hintText: '在这里写下你的年度经验教训、高光时刻或是遗憾...',
+                                      border: InputBorder.none,
+                                    ),
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF475569), height: 1.6),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  if (_reviewImages.isNotEmpty)
+                                    GridView.builder(
+                                      shrinkWrap: true,
+                                      physics: const NeverScrollableScrollPhysics(),
+                                      itemCount: _reviewImages.length + 1,
+                                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 4,
+                                        mainAxisSpacing: 8,
+                                        crossAxisSpacing: 8,
+                                      ),
+                                      itemBuilder: (context, index) {
+                                        if (index == _reviewImages.length) {
+                                          return InkWell(
+                                            onTap: _pickReviewImages,
+                                            borderRadius: BorderRadius.circular(12),
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFF8FAFC),
+                                                borderRadius: BorderRadius.circular(12),
+                                                border: Border.all(color: const Color(0xFFE2E8F0)),
+                                              ),
+                                              child: const Icon(Icons.add, color: Color(0xFF94A3B8)),
+                                            ),
+                                          );
+                                        }
+                                        final imageUrl = _reviewImages[index];
+                                        return ClipRRect(
+                                          borderRadius: BorderRadius.circular(12),
+                                          child: Stack(
+                                            children: [
+                                              Positioned.fill(child: _buildLocalImage(imageUrl, fit: BoxFit.cover)),
+                                              Positioned(
+                                                top: 4,
+                                                right: 4,
+                                                child: InkWell(
+                                                  onTap: () => setState(() => _reviewImages.removeAt(index)),
+                                                  child: Container(
+                                                    padding: const EdgeInsets.all(4),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.black.withValues(alpha: 0.5),
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                    child: const Icon(Icons.close, size: 12, color: Colors.white),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    )
+                                  else
+                                    InkWell(
+                                      onTap: _pickReviewImages,
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Container(
+                                        height: 44,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF8FAFC),
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                                        ),
+                                        child: const Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.image, size: 16, color: Color(0xFF94A3B8)),
+                                            SizedBox(width: 8),
+                                            Text('添加图片', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  const SizedBox(height: 10),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: ElevatedButton(
+                                      onPressed: () {
+                                        FocusManager.instance.primaryFocus?.unfocus();
+                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('已保存年度复盘')));
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF8B5CF6),
+                                        foregroundColor: Colors.white,
+                                        elevation: 0,
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
+                                      ),
+                                      child: const Text('保存记录'),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
