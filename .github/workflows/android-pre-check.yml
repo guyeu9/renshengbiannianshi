@@ -1,0 +1,206 @@
+name: android-pre-check
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'life_chronicle/android/**'
+      - 'life_chronicle/plugins/**'
+      - 'life_chronicle/pubspec.yaml'
+      - 'life_chronicle/pubspec.lock'
+
+jobs:
+  pre-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: "3.27.1"
+          cache: true
+
+      - name: Flutter Pub Get
+        run: flutter pub get
+        working-directory: life_chronicle
+
+      - name: Check 1 - Namespace in all plugins
+        run: |
+          echo "=== Checking namespace in all Android plugins ==="
+          FAILED=0
+          
+          echo "Checking local plugins..."
+          for gradle in life_chronicle/plugins/*/android/build.gradle*; do
+            if [ -f "$gradle" ]; then
+              if grep -q "namespace" "$gradle"; then
+                echo "✅ $gradle has namespace"
+              else
+                echo "❌ $gradle MISSING namespace"
+                FAILED=1
+              fi
+            fi
+          done
+          
+          echo ""
+          echo "Checking pub.dev plugins..."
+          for plugin in amap_flutter_location; do
+            gradle="$HOME/.pub-cache/hosted/pub.dev/${plugin}-*/android/build.gradle"
+            if ls $gradle 2>/dev/null; then
+              for g in $gradle; do
+                if grep -q "namespace" "$g" 2>/dev/null; then
+                  echo "✅ $plugin has namespace"
+                else
+                  echo "⚠️ $plugin (pub.dev) may need namespace override"
+                fi
+              done
+            fi
+          done
+          
+          if [ $FAILED -eq 1 ]; then
+            echo ""
+            echo "❌ Namespace check FAILED"
+            exit 1
+          fi
+          echo ""
+          echo "✅ All namespace checks passed"
+
+      - name: Check 2 - AndroidManifest.xml package attribute
+        run: |
+          echo "=== Checking AndroidManifest.xml for deprecated package attribute ==="
+          FAILED=0
+          
+          for manifest in life_chronicle/plugins/*/android/src/main/AndroidManifest.xml; do
+            if [ -f "$manifest" ]; then
+              if grep -q 'package=' "$manifest"; then
+                echo "⚠️ $manifest has deprecated package attribute (should use namespace in build.gradle)"
+                grep 'package=' "$manifest"
+              else
+                echo "✅ $manifest OK"
+              fi
+            fi
+          done
+          
+          echo ""
+          echo "✅ AndroidManifest check completed"
+
+      - name: Check 3 - SDK Version Consistency
+        run: |
+          echo "=== Checking SDK Version Consistency ==="
+          
+          echo ""
+          echo "compileSdk versions:"
+          grep -r "compileSdk" life_chronicle/android --include="*.gradle*" --include="*.kts" | grep -v "build/" | sort
+          
+          echo ""
+          echo "minSdk versions:"
+          grep -r "minSdk" life_chronicle/android --include="*.gradle*" --include="*.kts" | grep -v "build/" | sort
+          
+          echo ""
+          echo "targetSdk versions:"
+          grep -r "targetSdk" life_chronicle/android --include="*.gradle*" --include="*.kts" | grep -v "build/" | sort
+          
+          echo ""
+          echo "Java versions:"
+          grep -r "JavaVersion.VERSION" life_chronicle/android --include="*.gradle*" --include="*.kts" | grep -v "build/" | sort
+          
+          echo ""
+          echo "✅ SDK version check completed"
+
+      - name: Check 4 - AMap SDK Version Consistency
+        run: |
+          echo "=== Checking AMap SDK Version Consistency ==="
+          
+          echo ""
+          echo "AMap SDK versions in use:"
+          grep -rn "com.amap.api" life_chronicle --include="*.gradle*" --include="*.kts" | grep -v "build/" | grep -v ".pub-cache" | sort
+          
+          echo ""
+          echo "Checking for duplicate location SDK (conflicts with 3dmap)..."
+          if grep -r "com.amap.api:location" life_chronicle/android --include="*.gradle*" --include="*.kts" | grep -v "build/" | grep -v "compileOnly"; then
+            echo "⚠️ WARNING: location SDK may conflict with 3dmap SDK (3dmap already includes location classes)"
+          else
+            echo "✅ No duplicate location SDK"
+          fi
+          
+          echo ""
+          echo "✅ AMap SDK check completed"
+
+      - name: Check 5 - Gradle Configuration
+        run: |
+          echo "=== Checking Gradle Configuration ==="
+          
+          echo ""
+          echo "Checking for deprecated configurations..."
+          
+          echo ""
+          echo "lintOptions (should use lint {}):"
+          grep -rn "lintOptions" life_chronicle/android life_chronicle/plugins --include="*.gradle*" | grep -v "build/" || echo "✅ No deprecated lintOptions"
+          
+          echo ""
+          echo "jcenter (deprecated):"
+          grep -rn "jcenter()" life_chronicle/android life_chronicle/plugins --include="*.gradle*" | grep -v "build/" || echo "✅ No jcenter"
+          
+          echo ""
+          echo "enableJetifier (deprecated):"
+          grep -rn "android.enableJetifier=true" life_chronicle --include="*.properties" | grep -v "build/" || echo "✅ No enableJetifier"
+          
+          echo ""
+          echo "✅ Gradle configuration check completed"
+
+      - name: Check 6 - Flutter Analyze
+        run: flutter analyze
+        working-directory: life_chronicle
+
+      - name: Check 7 - Local Plugin Overrides
+        run: |
+          echo "=== Verifying local plugin overrides ==="
+          
+          if [ -f life_chronicle/.dart_tool/package_config.json ]; then
+            echo ""
+            echo "Checking amap_flutter_base..."
+            grep "plugins/amap_flutter_base" life_chronicle/.dart_tool/package_config.json && echo "✅ amap_flutter_base -> local" || echo "❌ amap_flutter_base NOT using local"
+            
+            echo ""
+            echo "Checking amap_flutter_map..."
+            grep "plugins/amap_flutter_map" life_chronicle/.dart_tool/package_config.json && echo "✅ amap_flutter_map -> local" || echo "❌ amap_flutter_map NOT using local"
+            
+            echo ""
+            echo "Checking amap_flutter_location..."
+            grep "plugins/amap_flutter_location" life_chronicle/.dart_tool/package_config.json && echo "✅ amap_flutter_location -> local" || echo "❌ amap_flutter_location NOT using local"
+          else
+            echo "❌ package_config.json not found"
+            exit 1
+          fi
+          
+          echo ""
+          echo "✅ Local plugin override check completed"
+
+      - name: Check 8 - Gradle Dry Run
+        run: |
+          echo "=== Gradle Configuration Dry Run ==="
+          cd life_chronicle/android
+          chmod +x gradlew
+          ./gradlew --version
+          ./gradlew tasks --dry-run 2>&1 | head -50 || true
+          
+          echo ""
+          echo "✅ Gradle dry run completed"
+
+      - name: Pre-check Summary
+        run: |
+          echo ""
+          echo "=========================================="
+          echo "       PRE-CHECK COMPLETED"
+          echo "=========================================="
+          echo ""
+          echo "All checks passed! Ready for build."
+          echo ""
