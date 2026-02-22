@@ -11,6 +11,14 @@ allprojects {
             url = uri("https://maven.aliyun.com/repository/central")
         }
     }
+
+    configurations.all {
+        resolutionStrategy {
+            // 强制约束 androidx.core 版本以兼容 Android Gradle Plugin 8.2.2
+            force("androidx.core:core:1.13.1")
+            force("androidx.core:core-ktx:1.13.1")
+        }
+    }
 }
 
 val newBuildDir: Directory =
