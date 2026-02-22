@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:drift/drift.dart' show OrderingMode, OrderingTerm, Value;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -293,6 +294,16 @@ class _GoalHomeBodyState extends ConsumerState<_GoalHomeBody> {
     setState(() => _selectedYear = years[nextIndex]);
   }
 
+  void _handleYearSwipe(List<int> years, int activeYear, DragEndDetails details) {
+    final velocity = details.primaryVelocity ?? 0;
+    if (velocity == 0) return;
+    if (velocity > 0) {
+      _shiftYear(years, activeYear, 1);
+    } else {
+      _shiftYear(years, activeYear, -1);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final db = ref.watch(appDatabaseProvider);
@@ -319,6 +330,10 @@ class _GoalHomeBodyState extends ConsumerState<_GoalHomeBody> {
             if (!_goalTypeOptions.any((o) => o.label == label)) label,
         ];
 
+        final yearIndex = years.indexOf(activeYear);
+        final canPrev = yearIndex >= 0 && yearIndex < years.length - 1;
+        final canNext = yearIndex > 0;
+
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 6, 16, 140),
           children: [
@@ -339,30 +354,33 @@ class _GoalHomeBodyState extends ConsumerState<_GoalHomeBody> {
                 ),
               ],
             ),
-            Row(
-              children: [
-                IconButton(
-                  onPressed: () => _shiftYear(years, activeYear, 1),
-                  icon: Icon(Icons.chevron_left, color: years.indexOf(activeYear) < years.length - 1 ? const Color(0xFF94A3B8) : const Color(0xFFE2E8F0)),
-                ),
-                InkWell(
-                  borderRadius: BorderRadius.circular(999),
-                  onTap: () => _pickYear(years, activeYear),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    child: Row(
-                      children: [
-                        Text('$activeYear年', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF2BCDEE))),
-                        const Icon(Icons.keyboard_arrow_down, size: 18, color: Color(0xFF2BCDEE)),
-                      ],
+            GestureDetector(
+              onHorizontalDragEnd: (details) => _handleYearSwipe(years, activeYear, details),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: () => _shiftYear(years, activeYear, 1),
+                    icon: Icon(Icons.chevron_left, color: canPrev ? const Color(0xFF94A3B8) : const Color(0xFFE2E8F0)),
+                  ),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(999),
+                    onTap: () => _pickYear(years, activeYear),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      child: Row(
+                        children: [
+                          Text('$activeYear年', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF2BCDEE))),
+                          const Icon(Icons.keyboard_arrow_down, size: 18, color: Color(0xFF2BCDEE)),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                IconButton(
-                  onPressed: () => _shiftYear(years, activeYear, -1),
-                  icon: Icon(Icons.chevron_right, color: years.indexOf(activeYear) > 0 ? const Color(0xFF94A3B8) : const Color(0xFFE2E8F0)),
-                ),
-              ],
+                  IconButton(
+                    onPressed: () => _shiftYear(years, activeYear, -1),
+                    icon: Icon(Icons.chevron_right, color: canNext ? const Color(0xFF94A3B8) : const Color(0xFFE2E8F0)),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 12),
             Row(
@@ -2061,6 +2079,18 @@ String _formatDotDate(DateTime date) {
   final month = date.month.toString().padLeft(2, '0');
   final day = date.day.toString().padLeft(2, '0');
   return '${date.year}.$month.$day';
+}
+
+Widget _buildLocalImage(String path, {BoxFit fit = BoxFit.cover}) {
+  final trimmed = path.trim();
+  if (trimmed.isEmpty) {
+    return const SizedBox.shrink();
+  }
+  final isNetwork = trimmed.startsWith('http://') || trimmed.startsWith('https://');
+  if (isNetwork || kIsWeb) {
+    return Image.network(trimmed, fit: fit, gaplessPlayback: true);
+  }
+  return Image.file(File(trimmed), fit: fit, gaplessPlayback: true);
 }
 
 _DayTaskStyle _taskStyleFor(GoalRecord task) {

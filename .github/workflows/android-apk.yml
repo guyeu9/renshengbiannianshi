@@ -6,9 +6,25 @@ on:
     branches:
       - main
       - master
+  pull_request:
+    branches:
+      - main
+      - master
 
 jobs:
+  pre-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Pre-check Script
+        run: |
+          chmod +x life_chronicle/scripts/pre-check.sh
+          ./life_chronicle/scripts/pre-check.sh
+
   build:
+    needs: pre-check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -29,13 +45,6 @@ jobs:
       - name: Install Android SDK platforms
         run: |
           sdkmanager "platforms;android-35" "platforms;android-31" "platforms;android-29" "build-tools;35.0.0"
-      - name: Android SDK Info
-        run: |
-          echo "ANDROID_HOME=${ANDROID_HOME}"
-          echo "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT}"
-          which sdkmanager || true
-          sdkmanager --version
-          ls -la "${ANDROID_SDK_ROOT}/platforms" || true
       - name: Cache Pub
         uses: actions/cache@v4
         with:
@@ -73,14 +82,6 @@ jobs:
       - name: Test
         run: flutter test
         working-directory: life_chronicle
-      - name: Print Android plugin config
-        run: |
-          chmod +x gradlew
-          sed -i 's/\r$//' gradlew
-          ./gradlew -v
-          ./gradlew -q :app:tasks --all > /dev/null
-          ./gradlew :amap_flutter_location:properties | head -n 200
-        working-directory: life_chronicle/android
       - name: Build APK
         run: flutter build apk --release
         working-directory: life_chronicle
