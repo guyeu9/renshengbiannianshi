@@ -22,9 +22,37 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: "3.27.1"
           cache: true
+      - name: Cache Pub
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            ~/.dartServer
+          key: ${{ runner.os }}-pub-${{ hashFiles('life_chronicle/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', 'life_chronicle/android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+      - name: Flutter Version
+        run: flutter --version
+        working-directory: life_chronicle
       - name: Pub get
         run: flutter pub get
+        working-directory: life_chronicle
+      - name: Verify local overrides
+        run: |
+          test -f .dart_tool/package_config.json
+          grep -R "plugins/amap_flutter_base" .dart_tool/package_config.json
+          grep -R "plugins/amap_flutter_map" .dart_tool/package_config.json
         working-directory: life_chronicle
       - name: Analyze
         run: flutter analyze
