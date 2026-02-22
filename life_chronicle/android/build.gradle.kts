@@ -9,8 +9,6 @@ allprojects {
     }
 }
 
-rootProject.buildDirectory = file("../../build")
-
 tasks.register<Delete>("clean") {
-    delete(rootProject.buildDir)
+    delete(rootProject.layout.buildDirectory)
 }

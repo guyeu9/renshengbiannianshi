@@ -278,6 +278,30 @@ if ($SkipAnalyze) {
 }
 Write-Host ""
 
+# Check 10: Gradle Configuration
+Write-Host "--- Check 10: Gradle Configuration ---"
+$gradlewPath = Join-Path $ProjectDir "android\gradlew.bat"
+if (Test-Path $gradlewPath) {
+    Push-Location (Join-Path $ProjectDir "android")
+    
+    Write-Info "Running Gradle configuration check..."
+    
+    $gradleOutput = & $gradlewPath tasks --dry-run 2>&1
+    $gradleExitCode = $LASTEXITCODE
+    
+    Pop-Location
+    
+    if ($gradleExitCode -eq 0 -and $gradleOutput -notmatch "FAILURE|error") {
+        Write-Pass "Gradle configuration OK"
+    } else {
+        Write-Host $gradleOutput | Select-Object -First 20
+        Write-Fail "Gradle configuration has errors (see above)"
+    }
+} else {
+    Write-Warn "Gradle wrapper not found - skipping Gradle check"
+}
+Write-Host ""
+
 # Summary
 Write-Host "=========================================="
 Write-Host "  Summary"

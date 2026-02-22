@@ -17,3 +17,4 @@ flutter:
       android:
         package: com.amap.flutter.location
         pluginClass: AMapFlutterLocationPlugin
+        androidEmbedding: v2

@@ -231,6 +231,29 @@ else
 fi
 echo ""
 
+# Check 10: Gradle Configuration (if Gradle is available)
+echo "--- Check 10: Gradle Configuration ---"
+if [ -f "$PROJECT_DIR/android/gradlew" ]; then
+    cd "$PROJECT_DIR/android"
+    chmod +x gradlew
+    
+    check_info "Running Gradle configuration check..."
+    
+    # Try to run Gradle tasks to check for syntax errors
+    if ./gradlew --version 2>&1 | grep -q "Gradle"; then
+        if ./gradlew tasks --dry-run 2>&1 | grep -qi "FAILURE\|error"; then
+            check_fail "Gradle configuration has errors (run './gradlew tasks' for details)"
+        else
+            check_pass "Gradle configuration OK"
+        fi
+    else
+        check_warn "Gradle wrapper not working - skipping Gradle check"
+    fi
+else
+    check_warn "Gradle wrapper not found - skipping Gradle check"
+fi
+echo ""
+
 # Summary
 echo "=========================================="
 echo "  Summary"
