@@ -67,6 +67,5 @@ val amapSdkVersion = providers.gradleProperty("AMAP_SDK_VERSION").orElse("10.0.6
 
 dependencies {
     implementation("com.amap.api:3dmap:$amapSdkVersion")
-    implementation("com.amap.api:location:6.4.9")
     implementation("com.amap.api:search:9.7.1")
 }

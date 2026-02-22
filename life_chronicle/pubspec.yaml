@@ -40,6 +40,8 @@ dependency_overrides:
     path: plugins/amap_flutter_base
   amap_flutter_map:
     path: plugins/amap_flutter_map
+  amap_flutter_location:
+    path: plugins/amap_flutter_location
 
 flutter:
   uses-material-design: true

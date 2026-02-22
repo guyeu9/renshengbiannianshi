@@ -1,0 +1,19 @@
+name: amap_flutter_location
+description: AMap location plugin for Flutter (local patched version)
+version: 3.0.1
+publish_to: none
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.amap.flutter.location
+        pluginClass: AMapFlutterLocationPlugin

@@ -65,6 +65,7 @@ jobs:
           test -f .dart_tool/package_config.json
           grep -R "plugins/amap_flutter_base" .dart_tool/package_config.json
           grep -R "plugins/amap_flutter_map" .dart_tool/package_config.json
+          grep -R "plugins/amap_flutter_location" .dart_tool/package_config.json
         working-directory: life_chronicle
       - name: Analyze
         run: flutter analyze
