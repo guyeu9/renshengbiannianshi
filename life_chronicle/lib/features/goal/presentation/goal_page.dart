@@ -610,59 +610,6 @@ class _AnnualGoalCard extends StatelessWidget {
   }
 }
 
-class _GoalCard extends StatelessWidget {
-  const _GoalCard({required this.record});
-
-  final GoalRecord record;
-
-  @override
-  Widget build(BuildContext context) {
-    final accent = _goalAccentFor(record.category);
-    final label = _goalLabelFor(record.category);
-    final progress = record.progress.clamp(0, 1).toDouble();
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => GoalDetailPage(record: record))),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFF3F4F6))),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(color: accent.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999)),
-                    child: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: accent)),
-                  ),
-                  const Spacer(),
-                  Text('${(progress * 100).round()}%', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: accent)),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Text(record.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-              const SizedBox(height: 12),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(999),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 8,
-                  backgroundColor: const Color(0xFFF1F5F9),
-                  valueColor: AlwaysStoppedAnimation(accent),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class AnnualGoalSummaryPage extends ConsumerStatefulWidget {
   const AnnualGoalSummaryPage({super.key, required this.initialYear, required this.availableYears});
 
