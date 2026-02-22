@@ -2,7 +2,8 @@
 # Run this before committing to catch configuration issues early
 
 param(
-    [switch]$Verbose
+    [switch]$Verbose,
+    [switch]$SkipAnalyze
 )
 
 $ErrorActionPreference = "Continue"
@@ -15,6 +16,7 @@ $Warnings = 0
 function Write-Pass { param($msg) Write-Host "✅ $msg" -ForegroundColor Green }
 function Write-Fail { param($msg) Write-Host "❌ $msg" -ForegroundColor Red; $script:Errors++ }
 function Write-Warn { param($msg) Write-Host "⚠️  $msg" -ForegroundColor Yellow; $script:Warnings++ }
+function Write-Info { param($msg) Write-Host "ℹ️  $msg" -ForegroundColor Cyan }
 
 Write-Host ""
 Write-Host "=========================================="
@@ -28,8 +30,8 @@ $pluginGradles = Get-ChildItem -Path "$ProjectDir\plugins\*\android\build.gradle
 foreach ($gradle in $pluginGradles) {
     $pluginName = $gradle.Directory.Parent.Name
     $content = Get-Content $gradle.FullName -Raw
-    if ($content -match "namespace") {
-        Write-Pass "$pluginName`: has namespace"
+    if ($content -match "namespace\s*[=:]\s*['`"]([^'`"]+)['`"]") {
+        Write-Pass "$pluginName`: namespace='$($Matches[1])'"
     } else {
         Write-Fail "$pluginName`: MISSING namespace in $($gradle.Name)"
     }
@@ -149,7 +151,7 @@ Write-Host "--- Check 6: Dart SDK Compatibility ---"
 $mainPubspec = Get-Content "$ProjectDir\pubspec.yaml" -Raw
 if ($mainPubspec -match "sdk:\s*[""']?(>=?[0-9.]+\s*<?[0-9.]+)[""']?") {
     $mainSdk = $Matches[1]
-    Write-Host "Main project SDK: $mainSdk"
+    Write-Info "Main project SDK: $mainSdk"
 }
 
 $pluginPubspecs = Get-ChildItem -Path "$ProjectDir\plugins\*\pubspec.yaml" -ErrorAction SilentlyContinue
@@ -181,6 +183,50 @@ if (Test-Path $packageConfig) {
     }
 } else {
     Write-Warn "package_config.json not found (run flutter pub get)"
+}
+Write-Host ""
+
+# Check 8: Flutter Analyze
+Write-Host "--- Check 8: Flutter Analyze ---"
+if ($SkipAnalyze) {
+    Write-Info "Skipping flutter analyze (use without -SkipAnalyze to run)"
+} else {
+    $flutterCmd = $null
+    if (Get-Command flutter -ErrorAction SilentlyContinue) {
+        $flutterCmd = "flutter"
+    } elseif ($env:FLUTTER_ROOT) {
+        $flutterExe = Join-Path $env:FLUTTER_ROOT "bin\flutter.bat"
+        if (Test-Path $flutterExe) {
+            $flutterCmd = $flutterExe
+        }
+    }
+    
+    if ($flutterCmd) {
+        Write-Info "Running flutter analyze..."
+        Push-Location $ProjectDir
+        
+        # Run flutter pub get first if needed
+        if (-not (Test-Path ".dart_tool\package_config.json")) {
+            Write-Info "Running flutter pub get..."
+            & $flutterCmd pub get 2>&1 | Select-Object -Last 5
+        }
+        
+        # Run flutter analyze
+        $analyzeOutput = & $flutterCmd analyze 2>&1
+        $analyzeExitCode = $LASTEXITCODE
+        
+        Pop-Location
+        
+        if ($analyzeExitCode -eq 0) {
+            Write-Pass "Flutter analyze passed"
+        } else {
+            Write-Host $analyzeOutput
+            Write-Fail "Flutter analyze found issues (see above)"
+        }
+    } else {
+        Write-Warn "Flutter not found in PATH - skipping flutter analyze"
+        Write-Info "Install Flutter or set FLUTTER_ROOT environment variable"
+    }
 }
 Write-Host ""
 
