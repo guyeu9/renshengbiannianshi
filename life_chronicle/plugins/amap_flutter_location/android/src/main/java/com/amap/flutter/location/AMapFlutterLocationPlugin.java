@@ -110,7 +110,7 @@ public class AMapFlutterLocationPlugin implements FlutterPlugin, MethodCallHandl
         boolean hasContains = (boolean) privacyShowMap.get("hasContains");
         boolean hasShow = (boolean) privacyShowMap.get("hasShow");
         try {
-          Method showMethod = locationClazz.getMethod("updatePrivacyShow", Context.class, boolean.class, boolean.class);;
+          Method showMethod = locationClazz.getMethod("updatePrivacyShow", Context.class, boolean.class, boolean.class);
           showMethod.invoke(null, mContext, hasContains, hasShow);
         } catch (Throwable e) {
         }

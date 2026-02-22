@@ -30,7 +30,9 @@ $pluginGradles = Get-ChildItem -Path "$ProjectDir\plugins\*\android\build.gradle
 foreach ($gradle in $pluginGradles) {
     $pluginName = $gradle.Directory.Parent.Name
     $content = Get-Content $gradle.FullName -Raw
-    if ($content -match "namespace\s*[=:]\s*['`"]([^'`"]+)['`"]") {
+    if ($content -match "namespace\s*[=:]*\s*['`"]([^'`"]+)['`"]") {
+        Write-Pass "$pluginName`: namespace='$($Matches[1])'"
+    } elseif ($content -match "namespace\s+[`"']([^`"']+)[`"']") {
         Write-Pass "$pluginName`: namespace='$($Matches[1])'"
     } else {
         Write-Fail "$pluginName`: MISSING namespace in $($gradle.Name)"
