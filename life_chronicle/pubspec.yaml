@@ -34,8 +34,12 @@ dev_dependencies:
   flutter_lints: ^5.0.0
   build_runner: ^2.4.11
   drift_dev: ^2.20.0
-
-dependency_overrides: {}
+ 
+dependency_overrides:
+  amap_flutter_base:
+    path: plugins/amap_flutter_base
+  amap_flutter_map:
+    path: plugins/amap_flutter_map
 
 flutter:
   uses-material-design: true
