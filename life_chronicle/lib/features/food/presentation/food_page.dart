@@ -3779,6 +3779,20 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
       );
     }
 
+    final links = await db.linkDao.listLinksForEntity(entityType: 'food', entityId: foodId);
+    final goalIds = <String>{};
+    for (final link in links) {
+      final isSource = link.sourceType == 'food' && link.sourceId == foodId;
+      final otherType = isSource ? link.targetType : link.sourceType;
+      final otherId = isSource ? link.targetId : link.sourceId;
+      if (otherType == 'goal') {
+        goalIds.add(otherId);
+      }
+    }
+    for (final id in goalIds) {
+      await db.linkDao.syncGoalProgress(goalId: id, now: now);
+    }
+
     if (!mounted) return;
     if (widget.popWithResultOnPublish) {
       Navigator.of(context).pop(true);

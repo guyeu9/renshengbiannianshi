@@ -365,6 +365,151 @@ class _GoalBreakdownDetailPage extends ConsumerStatefulWidget {
 }
 
 class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPage> {
+  DateTime _addMonths(DateTime base, int months) {
+    final totalMonths = base.month - 1 + months;
+    final year = base.year + totalMonths ~/ 12;
+    final month = totalMonths % 12 + 1;
+    final lastDay = DateTime(year, month + 1, 0).day;
+    final day = base.day > lastDay ? lastDay : base.day;
+    return DateTime(year, month, day);
+  }
+
+  Future<void> _showPostponePlan(GoalRecord record) async {
+    final now = DateTime.now();
+    final baseDate = record.dueDate ?? DateTime(now.year, now.month, now.day);
+    final selection = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return _BottomSheetShell(
+          title: '顺延计划',
+          actionText: '关闭',
+          onAction: () => Navigator.of(context).pop(),
+          child: ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
+            children: [
+              ListTile(
+                title: const Text('顺延一个月', style: TextStyle(fontWeight: FontWeight.w900)),
+                subtitle: Text('新的目标日期：${_formatDotDate(_addMonths(baseDate, 1))}'),
+                onTap: () => Navigator.of(context).pop('month'),
+              ),
+              ListTile(
+                title: const Text('顺延一个季度', style: TextStyle(fontWeight: FontWeight.w900)),
+                subtitle: Text('新的目标日期：${_formatDotDate(_addMonths(baseDate, 3))}'),
+                onTap: () => Navigator.of(context).pop('quarter'),
+              ),
+              ListTile(
+                title: const Text('顺延一年', style: TextStyle(fontWeight: FontWeight.w900)),
+                subtitle: Text('新的目标日期：${_formatDotDate(_addMonths(baseDate, 12))}'),
+                onTap: () => Navigator.of(context).pop('year'),
+              ),
+              ListTile(
+                title: const Text('自定义日期', style: TextStyle(fontWeight: FontWeight.w900)),
+                subtitle: const Text('选择新的目标截止日'),
+                onTap: () => Navigator.of(context).pop('custom'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (selection == null) return;
+
+    DateTime? newDate;
+    if (selection == 'custom') {
+      newDate = await showDatePicker(
+        context: context,
+        initialDate: baseDate,
+        firstDate: DateTime(2000),
+        lastDate: DateTime(2100),
+      );
+      if (newDate == null) return;
+    } else if (selection == 'month') {
+      newDate = _addMonths(baseDate, 1);
+    } else if (selection == 'quarter') {
+      newDate = _addMonths(baseDate, 3);
+    } else if (selection == 'year') {
+      newDate = _addMonths(baseDate, 12);
+    }
+    if (newDate == null) return;
+
+    final db = ref.read(appDatabaseProvider);
+    final targetQuarter = ((newDate.month - 1) ~/ 3) + 1;
+    await (db.update(db.goalRecords)..where((t) => t.id.equals(record.id))).write(
+      GoalRecordsCompanion(
+        dueDate: Value(newDate),
+        targetYear: Value(newDate.year),
+        targetQuarter: Value(targetQuarter),
+        targetMonth: Value(newDate.month),
+        isPostponed: const Value(true),
+        updatedAt: Value(now),
+      ),
+    );
+    await (db.update(db.timelineEvents)..where((t) => t.id.equals(record.id))).write(
+      TimelineEventsCompanion(
+        startAt: Value(newDate),
+        updatedAt: Value(now),
+      ),
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('顺延计划已更新')));
+  }
+
+  Future<void> _showStageReview(GoalRecord record) async {
+    final summaryController = TextEditingController(text: record.summary ?? '');
+    final noteController = TextEditingController(text: record.note ?? '');
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('阶段复盘'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: summaryController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: '总结',
+                  border: OutlineInputBorder(borderSide: BorderSide(color: Color(0xFFE5E7EB))),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: noteController,
+                maxLines: 4,
+                decoration: const InputDecoration(
+                  labelText: '复盘',
+                  border: OutlineInputBorder(borderSide: BorderSide(color: Color(0xFFE5E7EB))),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('取消')),
+            TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('保存')),
+          ],
+        );
+      },
+    );
+    if (confirmed != true) return;
+
+    final summary = summaryController.text.trim();
+    final note = noteController.text.trim();
+    final db = ref.read(appDatabaseProvider);
+    final now = DateTime.now();
+    await (db.update(db.goalRecords)..where((t) => t.id.equals(record.id))).write(
+      GoalRecordsCompanion(
+        summary: Value(summary.isEmpty ? null : summary),
+        note: Value(note.isEmpty ? null : note),
+        updatedAt: Value(now),
+      ),
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('阶段复盘已保存')));
+  }
+
   Stream<List<GoalRecord>> _watchChildren(AppDatabase db, String parentId, String level) {
     final query = db.select(db.goalRecords)
       ..where((t) => t.parentId.equals(parentId))
@@ -622,7 +767,7 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () {},
+                      onPressed: () => _showPostponePlan(record),
                       icon: const Icon(Icons.update, size: 18),
                       label: const Text('顺延计划'),
                       style: OutlinedButton.styleFrom(
@@ -638,7 +783,7 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
                   Expanded(
                     flex: 2,
                     child: ElevatedButton.icon(
-                      onPressed: () {},
+                      onPressed: () => _showStageReview(record),
                       icon: const Icon(Icons.rate_review, size: 18),
                       label: const Text('阶段复盘'),
                       style: ElevatedButton.styleFrom(
