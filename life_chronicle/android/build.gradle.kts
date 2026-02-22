@@ -5,16 +5,42 @@ allprojects {
         maven { url = uri("https://maven.aliyun.com/repository/public") }
         maven {
             url = uri("https://maven.aliyun.com/repository/gaode")
-            val aliyunUser = System.getenv("ALIYUN_MAVEN_USERNAME")
-            val aliyunPassword = System.getenv("ALIYUN_MAVEN_PASSWORD")
-            if (!aliyunUser.isNullOrBlank() && !aliyunPassword.isNullOrBlank()) {
+            val amapUser =
+                System.getenv("AMAP_MAVEN_USERNAME")
+                    ?: System.getenv("ALIYUN_MAVEN_USERNAME")
+                    ?: providers.gradleProperty("AMAP_MAVEN_USERNAME").orNull
+                    ?: providers.gradleProperty("ALIYUN_MAVEN_USERNAME").orNull
+            val amapPassword =
+                System.getenv("AMAP_MAVEN_PASSWORD")
+                    ?: System.getenv("ALIYUN_MAVEN_PASSWORD")
+                    ?: providers.gradleProperty("AMAP_MAVEN_PASSWORD").orNull
+                    ?: providers.gradleProperty("ALIYUN_MAVEN_PASSWORD").orNull
+            if (!amapUser.isNullOrBlank() && !amapPassword.isNullOrBlank()) {
                 credentials {
-                    username = aliyunUser
-                    password = aliyunPassword
+                    username = amapUser
+                    password = amapPassword
                 }
             }
         }
-        maven { url = uri("https://repo.amap.com/repository/maven-public") }
+        maven {
+            url = uri("https://repo.amap.com/repository/maven-public")
+            val amapUser =
+                System.getenv("AMAP_MAVEN_USERNAME")
+                    ?: System.getenv("ALIYUN_MAVEN_USERNAME")
+                    ?: providers.gradleProperty("AMAP_MAVEN_USERNAME").orNull
+                    ?: providers.gradleProperty("ALIYUN_MAVEN_USERNAME").orNull
+            val amapPassword =
+                System.getenv("AMAP_MAVEN_PASSWORD")
+                    ?: System.getenv("ALIYUN_MAVEN_PASSWORD")
+                    ?: providers.gradleProperty("AMAP_MAVEN_PASSWORD").orNull
+                    ?: providers.gradleProperty("ALIYUN_MAVEN_PASSWORD").orNull
+            if (!amapUser.isNullOrBlank() && !amapPassword.isNullOrBlank()) {
+                credentials {
+                    username = amapUser
+                    password = amapPassword
+                }
+            }
+        }
     }
 }
 

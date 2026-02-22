@@ -8,7 +8,7 @@ plugins {
 android {
     namespace = "com.suliuzhe.lifechronicle"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -43,6 +43,8 @@ flutter {
     source = "../.."
 }
 
+val amapSdkVersion = providers.gradleProperty("AMAP_SDK_VERSION").orElse("10.1.200").get()
+
 dependencies {
-    implementation("com.amap.api:3dmap:10.1.200")
+    implementation("com.amap.api:3dmap:$amapSdkVersion")
 }
