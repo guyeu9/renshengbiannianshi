@@ -1555,6 +1555,8 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
 
   final Set<String> _linkedFriendIds = {};
   final Set<String> _linkedFoodIds = {};
+  String? _linkedTripId;
+  String? _linkedTripTitle;
 
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
@@ -1680,6 +1682,82 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
     });
   }
 
+  Future<void> _selectLinkedTrip() async {
+    final db = ref.read(appDatabaseProvider);
+    final selected = await showModalBottomSheet<_TripPickResult>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StreamBuilder<List<Trip>>(
+          stream: db.select(db.trips).watch(),
+          builder: (context, snapshot) {
+            final trips = snapshot.data ?? const <Trip>[];
+            return _BottomSheetShell(
+              title: '关联行程',
+              actionText: '清除',
+              onAction: () => Navigator.of(context).pop(const _TripPickResult.empty()),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.65),
+                child: trips.isEmpty
+                    ? const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 18),
+                        child: Center(
+                          child: Text('暂无行程', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+                        ),
+                      )
+                    : ListView.separated(
+                        shrinkWrap: true,
+                        padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
+                        itemCount: trips.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        itemBuilder: (context, index) {
+                          final trip = trips[index];
+                          final selectedId = _linkedTripId ?? '';
+                          final checked = selectedId == trip.id;
+                          return InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () => Navigator.of(context).pop(_TripPickResult(trip.id, trip.name)),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: checked ? const Color(0xFF2BCDEE).withValues(alpha: 0.08) : const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: checked ? const Color(0xFF2BCDEE).withValues(alpha: 0.22) : const Color(0xFFF1F5F9)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const _IconSquare(color: Color(0xFFE0F2FE), icon: Icons.flight_takeoff, iconColor: Color(0xFF0EA5E9)),
+                                  const SizedBox(width: 10),
+                                  Expanded(child: Text(trip.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF111827)))),
+                                  Icon(checked ? Icons.check_circle : Icons.radio_button_unchecked, color: checked ? const Color(0xFF2BCDEE) : const Color(0xFFCBD5E1)),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            );
+          },
+        );
+      },
+    );
+    if (selected == null) return;
+    if (!mounted) return;
+    if (selected.isEmpty) {
+      setState(() {
+        _linkedTripId = null;
+        _linkedTripTitle = null;
+      });
+      return;
+    }
+    setState(() {
+      _linkedTripId = selected.id;
+      _linkedTripTitle = selected.name;
+    });
+  }
+
   Future<void> _publish() async {
     final title = _titleController.text.trim();
     if (title.isEmpty) {
@@ -1692,7 +1770,7 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
     const uuid = Uuid();
     final now = DateTime.now();
     final recordDate = DateTime(now.year, now.month, now.day);
-    final tripId = uuid.v4();
+    final tripId = _linkedTripId ?? uuid.v4();
     final travelId = uuid.v4();
 
     final poiName = _poiName.trim();
@@ -1702,18 +1780,20 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
     final content = _contentController.text.trim();
     final mood = _moods[_selectedMoodIndex].label;
 
-    await db.into(db.trips).insertOnConflictUpdate(
-          TripsCompanion.insert(
-            id: tripId,
-            name: title,
-            startDate: Value(recordDate),
-            endDate: Value(recordDate),
-            destinations: Value(destination.isEmpty ? null : jsonEncode([destination])),
-            totalExpense: const Value(null),
-            createdAt: now,
-            updatedAt: now,
-          ),
-        );
+    if (_linkedTripId == null) {
+      await db.into(db.trips).insertOnConflictUpdate(
+            TripsCompanion.insert(
+              id: tripId,
+              name: title,
+              startDate: Value(recordDate),
+              endDate: Value(recordDate),
+              destinations: Value(destination.isEmpty ? null : jsonEncode([destination])),
+              totalExpense: const Value(null),
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+    }
 
     await db.into(db.travelRecords).insertOnConflictUpdate(
           TravelRecordsCompanion.insert(
@@ -2052,21 +2132,28 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
             ),
           ),
           const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.60),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(width: 8, height: 8, child: DecoratedBox(decoration: BoxDecoration(color: Color(0xFF2BCDEE), shape: BoxShape.circle))),
-                SizedBox(width: 10),
-                Text('正在关联行程：', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
-                Text('关西秋日之旅 (Day 3)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF334155))),
-              ],
+          InkWell(
+            borderRadius: BorderRadius.circular(999),
+            onTap: _selectLinkedTrip,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.60),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(width: 8, height: 8, child: DecoratedBox(decoration: BoxDecoration(color: Color(0xFF2BCDEE), shape: BoxShape.circle))),
+                  const SizedBox(width: 10),
+                  const Text('正在关联行程：', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
+                  Text(
+                    (_linkedTripTitle ?? '').trim().isEmpty ? '未关联行程' : _linkedTripTitle!,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF334155)),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -2922,6 +3009,223 @@ Future<List<String>> _persistPickedImages(List<XFile> files, String folder) asyn
 
 Future<String?> _persistSingleImage(XFile file, String folder) async {
   return persistImageFile(file, folder: folder, prefix: folder);
+}
+
+class _CompanionInfo {
+  const _CompanionInfo({required this.name, this.avatarPath});
+
+  final String name;
+  final String? avatarPath;
+}
+
+class _CompanionAvatar extends StatelessWidget {
+  const _CompanionAvatar({required this.info});
+
+  final _CompanionInfo info;
+
+  @override
+  Widget build(BuildContext context) {
+    final avatar = (info.avatarPath ?? '').trim();
+    final hasAvatar = avatar.isNotEmpty;
+    return Container(
+      width: 24,
+      height: 24,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 2),
+        color: const Color(0xFFE2E8F0),
+      ),
+      child: hasAvatar
+          ? ClipOval(child: _buildLocalImage(avatar, fit: BoxFit.cover))
+          : Center(
+              child: Text(
+                info.name.trim().isEmpty ? '?' : info.name.trim().characters.first,
+                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF64748B)),
+              ),
+            ),
+    );
+  }
+}
+
+class _EmptyTravelState extends StatelessWidget {
+  const _EmptyTravelState({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 28),
+      alignment: Alignment.center,
+      child: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+    );
+  }
+}
+
+class _TripPickResult {
+  const _TripPickResult(this.id, this.name);
+  const _TripPickResult.empty()
+      : id = '',
+        name = '';
+
+  final String id;
+  final String name;
+
+  bool get isEmpty => id.isEmpty;
+}
+
+Stream<List<Trip>> _watchTripsByIds(AppDatabase db, List<String> ids) {
+  if (ids.isEmpty) return Stream.value(const <Trip>[]);
+  return (db.select(db.trips)..where((t) => t.id.isIn(ids))).watch();
+}
+
+List<_TravelOnTheRoadEntry> _buildTravelEntries({
+  required List<TravelRecord> records,
+  required List<Trip> trips,
+  required List<FriendRecord> friends,
+  required List<EntityLink> links,
+}) {
+  final tripById = {for (final t in trips) t.id: t};
+  final friendById = {for (final f in friends) f.id: f};
+  final friendIdsByTravel = <String, Set<String>>{};
+  for (final link in links) {
+    String? travelId;
+    String? friendId;
+    if (link.sourceType == 'travel' && link.targetType == 'friend') {
+      travelId = link.sourceId;
+      friendId = link.targetId;
+    } else if (link.targetType == 'travel' && link.sourceType == 'friend') {
+      travelId = link.targetId;
+      friendId = link.sourceId;
+    }
+    if (travelId == null || friendId == null) continue;
+    final set = friendIdsByTravel.putIfAbsent(travelId, () => <String>{});
+    set.add(friendId);
+  }
+
+  return records.map((record) {
+    final trip = tripById[record.tripId];
+    final startDate = trip?.startDate ?? record.planDate ?? record.recordDate;
+    final endDate = trip?.endDate ?? record.planDate ?? record.recordDate;
+    final dateRange = _formatDateRange(startDate, endDate, record.recordDate);
+    final durationDays = _durationDays(startDate, endDate);
+    final place = _travelPlace(record, trip);
+    final imageUrl = _pickCoverImage(record);
+    final companionIds = friendIdsByTravel[record.id] ?? const <String>{};
+    final companions = [
+      for (final id in companionIds)
+        if (friendById.containsKey(id))
+          _CompanionInfo(
+            name: friendById[id]!.name,
+            avatarPath: friendById[id]!.avatarPath,
+          ),
+    ];
+    return _TravelOnTheRoadEntry(
+      year: startDate?.year ?? record.recordDate.year,
+      dateRange: dateRange,
+      durationDays: durationDays,
+      place: place,
+      imageUrl: imageUrl,
+      companions: companions,
+      item: _buildTravelItem(record, trip),
+    );
+  }).toList(growable: false);
+}
+
+TravelItem _buildTravelItem(TravelRecord record, Trip? trip) {
+  final date = _formatDateCN(trip?.startDate ?? record.recordDate);
+  final title = _travelTitle(record, trip);
+  final subtitle = _travelSubtitle(record, trip);
+  final imageUrl = _pickCoverImage(record);
+  return TravelItem(date: date, title: title, subtitle: subtitle, imageUrl: imageUrl);
+}
+
+TravelItem _buildWishlistItem(TravelRecord record, Trip? trip) {
+  final date = _formatPlanLabel(record.planDate ?? trip?.startDate);
+  final title = _travelTitle(record, trip);
+  final subtitle = _travelPlace(record, trip);
+  final imageUrl = _pickCoverImage(record);
+  return TravelItem(date: date, title: title, subtitle: subtitle, imageUrl: imageUrl);
+}
+
+String _travelTitle(TravelRecord record, Trip? trip) {
+  final title = record.title?.trim() ?? '';
+  if (title.isNotEmpty) return title;
+  final tripName = trip?.name.trim() ?? '';
+  if (tripName.isNotEmpty) return tripName;
+  final destination = record.destination?.trim() ?? '';
+  return destination.isNotEmpty ? destination : '旅行记录';
+}
+
+String _travelSubtitle(TravelRecord record, Trip? trip) {
+  final content = (record.content ?? '').trim();
+  if (content.isNotEmpty) {
+    final lines = content.split('\n').where((l) => l.trim().isNotEmpty).toList();
+    if (lines.isNotEmpty) return lines.first.trim();
+  }
+  final place = _travelPlace(record, trip);
+  return place.isNotEmpty ? place : '记录旅途的点滴';
+}
+
+String _travelPlace(TravelRecord record, Trip? trip) {
+  final destination = (record.destination ?? '').trim();
+  if (destination.isNotEmpty) return destination;
+  final poiName = (record.poiName ?? '').trim();
+  final poiAddress = (record.poiAddress ?? '').trim();
+  if (poiName.isNotEmpty && poiAddress.isNotEmpty && !poiName.contains(poiAddress)) {
+    return '$poiName · $poiAddress';
+  }
+  if (poiName.isNotEmpty) return poiName;
+  if (poiAddress.isNotEmpty) return poiAddress;
+  final tripDestinations = _decodeStringList(trip?.destinations);
+  return tripDestinations.isNotEmpty ? tripDestinations.first : '未知目的地';
+}
+
+String _pickCoverImage(TravelRecord record) {
+  final images = _decodeStringList(record.images);
+  return images.isNotEmpty ? images.first : '';
+}
+
+String _formatDateCN(DateTime date) {
+  return '${date.year}年${date.month}月${date.day}日';
+}
+
+String _formatPlanLabel(DateTime? date) {
+  if (date == null) return '计划：待定';
+  return '计划：${date.year}年${date.month}月';
+}
+
+String _formatDateRange(DateTime? start, DateTime? end, DateTime fallback) {
+  final startDate = start ?? end ?? fallback;
+  final endDate = end ?? startDate;
+  if (_isSameDay(startDate, endDate)) {
+    return '${startDate.month}月${startDate.day}日';
+  }
+  return '${startDate.month}月${startDate.day}日 - ${endDate.month}月${endDate.day}日';
+}
+
+int _durationDays(DateTime? start, DateTime? end) {
+  if (start == null && end == null) return 1;
+  final startDate = start ?? end!;
+  final endDate = end ?? startDate;
+  final diff = endDate.difference(startDate).inDays;
+  return diff.abs() + 1;
+}
+
+bool _isSameDay(DateTime a, DateTime b) {
+  return a.year == b.year && a.month == b.month && a.day == b.day;
+}
+
+List<String> _decodeStringList(String? raw) {
+  if (raw == null) return const <String>[];
+  final trimmed = raw.trim();
+  if (trimmed.isEmpty) return const <String>[];
+  try {
+    final list = jsonDecode(trimmed) as List;
+    return list.map((e) => e.toString()).toList();
+  } catch (_) {
+    return const <String>[];
+  }
 }
 
 class _AssociationRow extends StatelessWidget {
