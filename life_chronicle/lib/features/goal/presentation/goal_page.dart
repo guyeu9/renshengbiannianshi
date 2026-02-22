@@ -415,6 +415,7 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
       },
     );
     if (selection == null) return;
+    if (!mounted) return;
 
     DateTime? newDate;
     if (selection == 'custom') {
@@ -424,6 +425,7 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
         firstDate: DateTime(2000),
         lastDate: DateTime(2100),
       );
+      if (!mounted) return;
       if (newDate == null) return;
     } else if (selection == 'month') {
       newDate = _addMonths(baseDate, 1);
