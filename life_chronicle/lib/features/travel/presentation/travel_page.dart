@@ -3121,7 +3121,7 @@ List<_TravelOnTheRoadEntry> _buildTravelEntries({
           ),
     ];
     return _TravelOnTheRoadEntry(
-      year: startDate?.year ?? record.recordDate.year,
+      year: startDate.year,
       dateRange: dateRange,
       durationDays: durationDays,
       place: place,
