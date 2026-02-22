@@ -2,9 +2,9 @@ part of '../app_database.dart';
 
 @DriftAccessor(tables: [EntityLinks, LinkLogs])
 class LinkDao extends DatabaseAccessor<AppDatabase> with _$LinkDaoMixin {
-  LinkDao(super.db);
+  LinkDao(super.db, {Uuid? uuid}) : _uuid = uuid ?? const Uuid();
 
-  static final Uuid _uuid = Uuid();
+  final Uuid _uuid;
 
   Future<bool> linkExists({
     required String sourceType,
@@ -123,4 +123,3 @@ class LinkDao extends DatabaseAccessor<AppDatabase> with _$LinkDaoMixin {
     return query.get();
   }
 }
-
