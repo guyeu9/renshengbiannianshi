@@ -677,7 +677,13 @@ class _AnnualGoalSummaryPageState extends ConsumerState<AnnualGoalSummaryPage> {
   final GlobalKey _shareKey = GlobalKey();
   final TextEditingController _reviewController = TextEditingController();
   final List<String> _reviewImages = [];
-  late int _selectedYear = widget.initialYear;
+  late int _selectedYear;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedYear = widget.initialYear;
+  }
 
   @override
   void dispose() {
@@ -809,9 +815,9 @@ class _AnnualGoalSummaryPageState extends ConsumerState<AnnualGoalSummaryPage> {
             ),
             Expanded(
               child: StreamBuilder<List<GoalRecord>>(
-                stream: db.goalRecords
-                    .select()
-                    .where((t) => t.level.equals('year') & t.isDeleted.equals(false))
+                stream: (db.select(db.goalRecords)
+                      ..where((t) => t.level.equals('year'))
+                      ..where((t) => t.isDeleted.equals(false)))
                     .watch(),
                 builder: (context, snapshot) {
                   final records = snapshot.data ?? const <GoalRecord>[];
@@ -822,6 +828,9 @@ class _AnnualGoalSummaryPageState extends ConsumerState<AnnualGoalSummaryPage> {
                   final completed = yearGoals.where((r) => r.isCompleted).length;
                   final total = yearGoals.length;
                   final completionRate = total == 0 ? 0 : completed / total;
+                  final yearIndex = years.indexOf(activeYear);
+                  final canPrev = yearIndex >= 0 && yearIndex < years.length - 1;
+                  final canNext = yearIndex > 0;
                   final grouped = <String, List<GoalRecord>>{};
                   for (final goal in yearGoals) {
                     final label = _goalLabelFor(goal.category);
@@ -834,12 +843,12 @@ class _AnnualGoalSummaryPageState extends ConsumerState<AnnualGoalSummaryPage> {
                       if (!_goalTypeOptions.any((o) => o.label == label)) label,
                   ];
 
-                  return RepaintBoundary(
-                    key: _shareKey,
-                    child: Container(
-                      color: const Color(0xFFF6F8F8),
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(16, 6, 16, 120),
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(16, 6, 16, 120),
+                    child: RepaintBoundary(
+                      key: _shareKey,
+                      child: Container(
+                        color: const Color(0xFFF6F8F8),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -850,7 +859,7 @@ class _AnnualGoalSummaryPageState extends ConsumerState<AnnualGoalSummaryPage> {
                                 children: [
                                   IconButton(
                                     onPressed: () => _shiftYear(years, activeYear, 1),
-                                    icon: Icon(Icons.chevron_left, color: years.indexOf(activeYear) < years.length - 1 ? const Color(0xFF94A3B8) : const Color(0xFFE2E8F0)),
+                                    icon: Icon(Icons.chevron_left, color: canPrev ? const Color(0xFF94A3B8) : const Color(0xFFE2E8F0)),
                                   ),
                                   InkWell(
                                     borderRadius: BorderRadius.circular(999),
@@ -874,7 +883,7 @@ class _AnnualGoalSummaryPageState extends ConsumerState<AnnualGoalSummaryPage> {
                                   ),
                                   IconButton(
                                     onPressed: () => _shiftYear(years, activeYear, -1),
-                                    icon: Icon(Icons.chevron_right, color: years.indexOf(activeYear) > 0 ? const Color(0xFF94A3B8) : const Color(0xFFE2E8F0)),
+                                    icon: Icon(Icons.chevron_right, color: canNext ? const Color(0xFF94A3B8) : const Color(0xFFE2E8F0)),
                                   ),
                                 ],
                               ),
