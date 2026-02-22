@@ -59,7 +59,7 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 subprojects {
-    afterEvaluate {
+    plugins.withId("com.android.library") {
         val libraryExtension =
             extensions.findByType(com.android.build.gradle.LibraryExtension::class.java)
         if (libraryExtension != null && libraryExtension.namespace.isNullOrBlank()) {
