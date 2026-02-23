@@ -19,7 +19,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.connect(super.executor);
 
   @override
-  int get schemaVersion => 8; // 升级到 8，新增目标拆解表
+  int get schemaVersion => 9; // 升级到 9，新增 travel_records.tags 和 timeline_events.tags 字段
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -104,6 +104,25 @@ class AppDatabase extends _$AppDatabase {
           }
           if (await columnExists('travel_records', 'poi_name') && await columnExists('travel_records', 'destination')) {
             await customStatement('UPDATE travel_records SET poi_name = destination WHERE poi_name IS NULL AND destination IS NOT NULL');
+          }
+
+          await ensureColumn(table: travelRecords, column: travelRecords.tags);
+          await ensureColumn(table: timelineEvents, column: timelineEvents.tags);
+
+          if (await columnExists('travel_records', 'tags') && await columnExists('travel_records', 'destination')) {
+            await customStatement(
+              "UPDATE travel_records SET tags = json_array(destination) WHERE tags IS NULL AND destination IS NOT NULL AND destination != ''",
+            );
+          }
+          if (await columnExists('timeline_events', 'tags') && await columnExists('timeline_events', 'note')) {
+            await customStatement(
+              "UPDATE timeline_events SET tags = json_array(substr(note, instr(note, '分类：') + 9)) WHERE tags IS NULL AND note LIKE '%分类：%'",
+            );
+          }
+          if (await columnExists('moment_records', 'scene_tag')) {
+            await customStatement(
+              "UPDATE moment_records SET scene_tag = json_array(scene_tag) WHERE scene_tag IS NOT NULL AND scene_tag != '' AND json_valid(scene_tag) = 0",
+            );
           }
         },
       );

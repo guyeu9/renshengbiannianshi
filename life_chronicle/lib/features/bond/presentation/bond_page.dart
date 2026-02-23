@@ -1238,6 +1238,7 @@ class _FriendMemorySliverState extends ConsumerState<_FriendMemorySliver> {
         place: placeDisplay,
         poiName: place,
         poiAddress: address,
+        city: '',
         latitude: e.latitude,
         longitude: e.longitude,
         images: images,
@@ -1264,6 +1265,7 @@ class _FriendMemorySliverState extends ConsumerState<_FriendMemorySliver> {
         place: place,
         poiName: poiName,
         poiAddress: poiAddress,
+        city: city,
         latitude: r.latitude,
         longitude: r.longitude,
         images: _decodeStringList(r.images),
@@ -1287,6 +1289,7 @@ class _FriendMemorySliverState extends ConsumerState<_FriendMemorySliver> {
         place: place,
         poiName: poiName,
         poiAddress: poiAddress,
+        city: (r.city ?? '').trim(),
         latitude: r.latitude,
         longitude: r.longitude,
         images: _decodeStringList(r.images),
@@ -1310,6 +1313,7 @@ class _FriendMemorySliverState extends ConsumerState<_FriendMemorySliver> {
         place: place,
         poiName: poiName,
         poiAddress: poiAddress,
+        city: (r.destination ?? '').trim(),
         latitude: r.latitude,
         longitude: r.longitude,
         images: _decodeStringList(r.images),
@@ -1489,6 +1493,7 @@ class _FriendMemoryItem {
     required this.place,
     required this.poiName,
     required this.poiAddress,
+    required this.city,
     required this.latitude,
     required this.longitude,
     required this.images,
@@ -1504,6 +1509,7 @@ class _FriendMemoryItem {
   final String place;
   final String poiName;
   final String poiAddress;
+  final String city;
   final double? latitude;
   final double? longitude;
   final List<String> images;
@@ -1654,6 +1660,7 @@ class _SingleImageMemoryCard extends StatelessWidget {
                                           title: '地点',
                                           poiName: item.poiName,
                                           address: item.poiAddress,
+                                          city: item.city,
                                           latitude: item.latitude,
                                           longitude: item.longitude,
                                         ),
@@ -1784,6 +1791,7 @@ class _MultiImageMemoryCard extends StatelessWidget {
                                       title: '地点',
                                       poiName: item.poiName,
                                       address: item.poiAddress,
+                                      city: item.city,
                                       latitude: item.latitude,
                                       longitude: item.longitude,
                                     ),
@@ -1853,6 +1861,7 @@ class _NoImageMemoryCard extends StatelessWidget {
                                     title: '地点',
                                     poiName: item.poiName,
                                     address: item.poiAddress,
+                                    city: item.city,
                                     latitude: item.latitude,
                                     longitude: item.longitude,
                                   ),
@@ -3956,6 +3965,7 @@ class _EncounterDetailPage extends ConsumerWidget {
                 title: title,
                 poiName: poiName,
                 address: poiAddress,
+                city: '',
                 latitude: event.latitude,
                 longitude: event.longitude,
               ),

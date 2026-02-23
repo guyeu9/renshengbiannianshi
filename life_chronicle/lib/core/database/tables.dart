@@ -83,6 +83,7 @@ class TravelRecords extends Table {
   RealColumn get longitude => real().nullable()();
   TextColumn get city => text().nullable()();
   TextColumn get mood => text().nullable()();
+  TextColumn get tags => text().nullable()();
   RealColumn get expenseTransport => real().nullable()();
   RealColumn get expenseHotel => real().nullable()();
   RealColumn get expenseFood => real().nullable()();
@@ -146,6 +147,7 @@ class TimelineEvents extends Table {
   DateTimeColumn get startAt => dateTime().nullable()();
   DateTimeColumn get endAt => dateTime().nullable()();
   TextColumn get note => text().nullable()();
+  TextColumn get tags => text().nullable()();
   TextColumn get poiName => text().nullable()();
   TextColumn get poiAddress => text().nullable()();
   RealColumn get latitude => real().nullable()();

@@ -2542,6 +2542,11 @@ class $TravelRecordsTable extends TravelRecords
   late final GeneratedColumn<String> mood = GeneratedColumn<String>(
       'mood', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _tagsMeta = const VerificationMeta('tags');
+  @override
+  late final GeneratedColumn<String> tags = GeneratedColumn<String>(
+      'tags', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _expenseTransportMeta =
       const VerificationMeta('expenseTransport');
   @override
@@ -2644,6 +2649,7 @@ class $TravelRecordsTable extends TravelRecords
         longitude,
         city,
         mood,
+        tags,
         expenseTransport,
         expenseHotel,
         expenseFood,
@@ -2721,6 +2727,10 @@ class $TravelRecordsTable extends TravelRecords
     if (data.containsKey('mood')) {
       context.handle(
           _moodMeta, mood.isAcceptableOrUnknown(data['mood']!, _moodMeta));
+    }
+    if (data.containsKey('tags')) {
+      context.handle(
+          _tagsMeta, tags.isAcceptableOrUnknown(data['tags']!, _tagsMeta));
     }
     if (data.containsKey('expense_transport')) {
       context.handle(
@@ -2825,6 +2835,8 @@ class $TravelRecordsTable extends TravelRecords
           .read(DriftSqlType.string, data['${effectivePrefix}city']),
       mood: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}mood']),
+      tags: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}tags']),
       expenseTransport: attachedDatabase.typeMapping.read(
           DriftSqlType.double, data['${effectivePrefix}expense_transport']),
       expenseHotel: attachedDatabase.typeMapping
@@ -2871,6 +2883,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
   final double? longitude;
   final String? city;
   final String? mood;
+  final String? tags;
   final double? expenseTransport;
   final double? expenseHotel;
   final double? expenseFood;
@@ -2896,6 +2909,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
       this.longitude,
       this.city,
       this.mood,
+      this.tags,
       this.expenseTransport,
       this.expenseHotel,
       this.expenseFood,
@@ -2942,6 +2956,9 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
     }
     if (!nullToAbsent || mood != null) {
       map['mood'] = Variable<String>(mood);
+    }
+    if (!nullToAbsent || tags != null) {
+      map['tags'] = Variable<String>(tags);
     }
     if (!nullToAbsent || expenseTransport != null) {
       map['expense_transport'] = Variable<double>(expenseTransport);
@@ -2996,6 +3013,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
           : Value(longitude),
       city: city == null && nullToAbsent ? const Value.absent() : Value(city),
       mood: mood == null && nullToAbsent ? const Value.absent() : Value(mood),
+      tags: tags == null && nullToAbsent ? const Value.absent() : Value(tags),
       expenseTransport: expenseTransport == null && nullToAbsent
           ? const Value.absent()
           : Value(expenseTransport),
@@ -3037,6 +3055,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
       longitude: serializer.fromJson<double?>(json['longitude']),
       city: serializer.fromJson<String?>(json['city']),
       mood: serializer.fromJson<String?>(json['mood']),
+      tags: serializer.fromJson<String?>(json['tags']),
       expenseTransport: serializer.fromJson<double?>(json['expenseTransport']),
       expenseHotel: serializer.fromJson<double?>(json['expenseHotel']),
       expenseFood: serializer.fromJson<double?>(json['expenseFood']),
@@ -3067,6 +3086,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
       'longitude': serializer.toJson<double?>(longitude),
       'city': serializer.toJson<String?>(city),
       'mood': serializer.toJson<String?>(mood),
+      'tags': serializer.toJson<String?>(tags),
       'expenseTransport': serializer.toJson<double?>(expenseTransport),
       'expenseHotel': serializer.toJson<double?>(expenseHotel),
       'expenseFood': serializer.toJson<double?>(expenseFood),
@@ -3095,6 +3115,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
           Value<double?> longitude = const Value.absent(),
           Value<String?> city = const Value.absent(),
           Value<String?> mood = const Value.absent(),
+          Value<String?> tags = const Value.absent(),
           Value<double?> expenseTransport = const Value.absent(),
           Value<double?> expenseHotel = const Value.absent(),
           Value<double?> expenseFood = const Value.absent(),
@@ -3120,6 +3141,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
         longitude: longitude.present ? longitude.value : this.longitude,
         city: city.present ? city.value : this.city,
         mood: mood.present ? mood.value : this.mood,
+        tags: tags.present ? tags.value : this.tags,
         expenseTransport: expenseTransport.present
             ? expenseTransport.value
             : this.expenseTransport,
@@ -3153,6 +3175,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
       longitude: data.longitude.present ? data.longitude.value : this.longitude,
       city: data.city.present ? data.city.value : this.city,
       mood: data.mood.present ? data.mood.value : this.mood,
+      tags: data.tags.present ? data.tags.value : this.tags,
       expenseTransport: data.expenseTransport.present
           ? data.expenseTransport.value
           : this.expenseTransport,
@@ -3195,6 +3218,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
           ..write('longitude: $longitude, ')
           ..write('city: $city, ')
           ..write('mood: $mood, ')
+          ..write('tags: $tags, ')
           ..write('expenseTransport: $expenseTransport, ')
           ..write('expenseHotel: $expenseHotel, ')
           ..write('expenseFood: $expenseFood, ')
@@ -3225,6 +3249,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
         longitude,
         city,
         mood,
+        tags,
         expenseTransport,
         expenseHotel,
         expenseFood,
@@ -3254,6 +3279,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
           other.longitude == this.longitude &&
           other.city == this.city &&
           other.mood == this.mood &&
+          other.tags == this.tags &&
           other.expenseTransport == this.expenseTransport &&
           other.expenseHotel == this.expenseHotel &&
           other.expenseFood == this.expenseFood &&
@@ -3281,6 +3307,7 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
   final Value<double?> longitude;
   final Value<String?> city;
   final Value<String?> mood;
+  final Value<String?> tags;
   final Value<double?> expenseTransport;
   final Value<double?> expenseHotel;
   final Value<double?> expenseFood;
@@ -3307,6 +3334,7 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
     this.longitude = const Value.absent(),
     this.city = const Value.absent(),
     this.mood = const Value.absent(),
+    this.tags = const Value.absent(),
     this.expenseTransport = const Value.absent(),
     this.expenseHotel = const Value.absent(),
     this.expenseFood = const Value.absent(),
@@ -3334,6 +3362,7 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
     this.longitude = const Value.absent(),
     this.city = const Value.absent(),
     this.mood = const Value.absent(),
+    this.tags = const Value.absent(),
     this.expenseTransport = const Value.absent(),
     this.expenseHotel = const Value.absent(),
     this.expenseFood = const Value.absent(),
@@ -3365,6 +3394,7 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
     Expression<double>? longitude,
     Expression<String>? city,
     Expression<String>? mood,
+    Expression<String>? tags,
     Expression<double>? expenseTransport,
     Expression<double>? expenseHotel,
     Expression<double>? expenseFood,
@@ -3392,6 +3422,7 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
       if (longitude != null) 'longitude': longitude,
       if (city != null) 'city': city,
       if (mood != null) 'mood': mood,
+      if (tags != null) 'tags': tags,
       if (expenseTransport != null) 'expense_transport': expenseTransport,
       if (expenseHotel != null) 'expense_hotel': expenseHotel,
       if (expenseFood != null) 'expense_food': expenseFood,
@@ -3421,6 +3452,7 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
       Value<double?>? longitude,
       Value<String?>? city,
       Value<String?>? mood,
+      Value<String?>? tags,
       Value<double?>? expenseTransport,
       Value<double?>? expenseHotel,
       Value<double?>? expenseFood,
@@ -3447,6 +3479,7 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
       longitude: longitude ?? this.longitude,
       city: city ?? this.city,
       mood: mood ?? this.mood,
+      tags: tags ?? this.tags,
       expenseTransport: expenseTransport ?? this.expenseTransport,
       expenseHotel: expenseHotel ?? this.expenseHotel,
       expenseFood: expenseFood ?? this.expenseFood,
@@ -3501,6 +3534,9 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
     }
     if (mood.present) {
       map['mood'] = Variable<String>(mood.value);
+    }
+    if (tags.present) {
+      map['tags'] = Variable<String>(tags.value);
     }
     if (expenseTransport.present) {
       map['expense_transport'] = Variable<double>(expenseTransport.value);
@@ -3559,6 +3595,7 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
           ..write('longitude: $longitude, ')
           ..write('city: $city, ')
           ..write('mood: $mood, ')
+          ..write('tags: $tags, ')
           ..write('expenseTransport: $expenseTransport, ')
           ..write('expenseHotel: $expenseHotel, ')
           ..write('expenseFood: $expenseFood, ')
@@ -4077,8 +4114,8 @@ class $GoalRecordsTable extends GoalRecords
       'is_completed', aliasedName, false,
       type: DriftSqlType.bool,
       requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('CHECK ("is_completed" IN (0, 1))'),
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("is_completed" IN (0, 1))'),
       defaultValue: const Constant(false));
   static const VerificationMeta _isPostponedMeta =
       const VerificationMeta('isPostponed');
@@ -4087,8 +4124,8 @@ class $GoalRecordsTable extends GoalRecords
       'is_postponed', aliasedName, false,
       type: DriftSqlType.bool,
       requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('CHECK ("is_postponed" IN (0, 1))'),
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("is_postponed" IN (0, 1))'),
       defaultValue: const Constant(false));
   static const VerificationMeta _remindFrequencyMeta =
       const VerificationMeta('remindFrequency');
@@ -4236,8 +4273,10 @@ class $GoalRecordsTable extends GoalRecords
               data['remind_frequency']!, _remindFrequencyMeta));
     }
     if (data.containsKey('target_year')) {
-      context.handle(_targetYearMeta,
-          targetYear.isAcceptableOrUnknown(data['target_year']!, _targetYearMeta));
+      context.handle(
+          _targetYearMeta,
+          targetYear.isAcceptableOrUnknown(
+              data['target_year']!, _targetYearMeta));
     }
     if (data.containsKey('target_quarter')) {
       context.handle(
@@ -4308,8 +4347,8 @@ class $GoalRecordsTable extends GoalRecords
           .read(DriftSqlType.bool, data['${effectivePrefix}is_completed'])!,
       isPostponed: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_postponed'])!,
-      remindFrequency: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}remind_frequency']),
+      remindFrequency: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}remind_frequency']),
       targetYear: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}target_year']),
       targetQuarter: attachedDatabase.typeMapping
@@ -4427,8 +4466,9 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
       level: Value(level),
       title: Value(title),
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
-      summary:
-          summary == null && nullToAbsent ? const Value.absent() : Value(summary),
+      summary: summary == null && nullToAbsent
+          ? const Value.absent()
+          : Value(summary),
       category: category == null && nullToAbsent
           ? const Value.absent()
           : Value(category),
@@ -4447,8 +4487,9 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
       targetMonth: targetMonth == null && nullToAbsent
           ? const Value.absent()
           : Value(targetMonth),
-      dueDate:
-          dueDate == null && nullToAbsent ? const Value.absent() : Value(dueDate),
+      dueDate: dueDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dueDate),
       recordDate: Value(recordDate),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -4573,9 +4614,8 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
       targetQuarter: data.targetQuarter.present
           ? data.targetQuarter.value
           : this.targetQuarter,
-      targetMonth: data.targetMonth.present
-          ? data.targetMonth.value
-          : this.targetMonth,
+      targetMonth:
+          data.targetMonth.present ? data.targetMonth.value : this.targetMonth,
       dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
       recordDate:
           data.recordDate.present ? data.recordDate.value : this.recordDate,
@@ -4950,6 +4990,11 @@ class $TimelineEventsTable extends TimelineEvents
   late final GeneratedColumn<String> note = GeneratedColumn<String>(
       'note', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _tagsMeta = const VerificationMeta('tags');
+  @override
+  late final GeneratedColumn<String> tags = GeneratedColumn<String>(
+      'tags', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _poiNameMeta =
       const VerificationMeta('poiName');
   @override
@@ -5010,6 +5055,7 @@ class $TimelineEventsTable extends TimelineEvents
         startAt,
         endAt,
         note,
+        tags,
         poiName,
         poiAddress,
         latitude,
@@ -5057,6 +5103,10 @@ class $TimelineEventsTable extends TimelineEvents
     if (data.containsKey('note')) {
       context.handle(
           _noteMeta, note.isAcceptableOrUnknown(data['note']!, _noteMeta));
+    }
+    if (data.containsKey('tags')) {
+      context.handle(
+          _tagsMeta, tags.isAcceptableOrUnknown(data['tags']!, _tagsMeta));
     }
     if (data.containsKey('poi_name')) {
       context.handle(_poiNameMeta,
@@ -5121,6 +5171,8 @@ class $TimelineEventsTable extends TimelineEvents
           .read(DriftSqlType.dateTime, data['${effectivePrefix}end_at']),
       note: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}note']),
+      tags: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}tags']),
       poiName: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}poi_name']),
       poiAddress: attachedDatabase.typeMapping
@@ -5153,6 +5205,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
   final DateTime? startAt;
   final DateTime? endAt;
   final String? note;
+  final String? tags;
   final String? poiName;
   final String? poiAddress;
   final double? latitude;
@@ -5168,6 +5221,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
       this.startAt,
       this.endAt,
       this.note,
+      this.tags,
       this.poiName,
       this.poiAddress,
       this.latitude,
@@ -5190,6 +5244,9 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
     }
     if (!nullToAbsent || note != null) {
       map['note'] = Variable<String>(note);
+    }
+    if (!nullToAbsent || tags != null) {
+      map['tags'] = Variable<String>(tags);
     }
     if (!nullToAbsent || poiName != null) {
       map['poi_name'] = Variable<String>(poiName);
@@ -5221,6 +5278,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
       endAt:
           endAt == null && nullToAbsent ? const Value.absent() : Value(endAt),
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      tags: tags == null && nullToAbsent ? const Value.absent() : Value(tags),
       poiName: poiName == null && nullToAbsent
           ? const Value.absent()
           : Value(poiName),
@@ -5250,6 +5308,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
       startAt: serializer.fromJson<DateTime?>(json['startAt']),
       endAt: serializer.fromJson<DateTime?>(json['endAt']),
       note: serializer.fromJson<String?>(json['note']),
+      tags: serializer.fromJson<String?>(json['tags']),
       poiName: serializer.fromJson<String?>(json['poiName']),
       poiAddress: serializer.fromJson<String?>(json['poiAddress']),
       latitude: serializer.fromJson<double?>(json['latitude']),
@@ -5270,6 +5329,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
       'startAt': serializer.toJson<DateTime?>(startAt),
       'endAt': serializer.toJson<DateTime?>(endAt),
       'note': serializer.toJson<String?>(note),
+      'tags': serializer.toJson<String?>(tags),
       'poiName': serializer.toJson<String?>(poiName),
       'poiAddress': serializer.toJson<String?>(poiAddress),
       'latitude': serializer.toJson<double?>(latitude),
@@ -5288,6 +5348,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
           Value<DateTime?> startAt = const Value.absent(),
           Value<DateTime?> endAt = const Value.absent(),
           Value<String?> note = const Value.absent(),
+          Value<String?> tags = const Value.absent(),
           Value<String?> poiName = const Value.absent(),
           Value<String?> poiAddress = const Value.absent(),
           Value<double?> latitude = const Value.absent(),
@@ -5303,6 +5364,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
         startAt: startAt.present ? startAt.value : this.startAt,
         endAt: endAt.present ? endAt.value : this.endAt,
         note: note.present ? note.value : this.note,
+        tags: tags.present ? tags.value : this.tags,
         poiName: poiName.present ? poiName.value : this.poiName,
         poiAddress: poiAddress.present ? poiAddress.value : this.poiAddress,
         latitude: latitude.present ? latitude.value : this.latitude,
@@ -5320,6 +5382,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
       startAt: data.startAt.present ? data.startAt.value : this.startAt,
       endAt: data.endAt.present ? data.endAt.value : this.endAt,
       note: data.note.present ? data.note.value : this.note,
+      tags: data.tags.present ? data.tags.value : this.tags,
       poiName: data.poiName.present ? data.poiName.value : this.poiName,
       poiAddress:
           data.poiAddress.present ? data.poiAddress.value : this.poiAddress,
@@ -5342,6 +5405,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
           ..write('startAt: $startAt, ')
           ..write('endAt: $endAt, ')
           ..write('note: $note, ')
+          ..write('tags: $tags, ')
           ..write('poiName: $poiName, ')
           ..write('poiAddress: $poiAddress, ')
           ..write('latitude: $latitude, ')
@@ -5362,6 +5426,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
       startAt,
       endAt,
       note,
+      tags,
       poiName,
       poiAddress,
       latitude,
@@ -5380,6 +5445,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
           other.startAt == this.startAt &&
           other.endAt == this.endAt &&
           other.note == this.note &&
+          other.tags == this.tags &&
           other.poiName == this.poiName &&
           other.poiAddress == this.poiAddress &&
           other.latitude == this.latitude &&
@@ -5397,6 +5463,7 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
   final Value<DateTime?> startAt;
   final Value<DateTime?> endAt;
   final Value<String?> note;
+  final Value<String?> tags;
   final Value<String?> poiName;
   final Value<String?> poiAddress;
   final Value<double?> latitude;
@@ -5413,6 +5480,7 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
     this.startAt = const Value.absent(),
     this.endAt = const Value.absent(),
     this.note = const Value.absent(),
+    this.tags = const Value.absent(),
     this.poiName = const Value.absent(),
     this.poiAddress = const Value.absent(),
     this.latitude = const Value.absent(),
@@ -5430,6 +5498,7 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
     this.startAt = const Value.absent(),
     this.endAt = const Value.absent(),
     this.note = const Value.absent(),
+    this.tags = const Value.absent(),
     this.poiName = const Value.absent(),
     this.poiAddress = const Value.absent(),
     this.latitude = const Value.absent(),
@@ -5452,6 +5521,7 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
     Expression<DateTime>? startAt,
     Expression<DateTime>? endAt,
     Expression<String>? note,
+    Expression<String>? tags,
     Expression<String>? poiName,
     Expression<String>? poiAddress,
     Expression<double>? latitude,
@@ -5469,6 +5539,7 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
       if (startAt != null) 'start_at': startAt,
       if (endAt != null) 'end_at': endAt,
       if (note != null) 'note': note,
+      if (tags != null) 'tags': tags,
       if (poiName != null) 'poi_name': poiName,
       if (poiAddress != null) 'poi_address': poiAddress,
       if (latitude != null) 'latitude': latitude,
@@ -5488,6 +5559,7 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
       Value<DateTime?>? startAt,
       Value<DateTime?>? endAt,
       Value<String?>? note,
+      Value<String?>? tags,
       Value<String?>? poiName,
       Value<String?>? poiAddress,
       Value<double?>? latitude,
@@ -5504,6 +5576,7 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
       startAt: startAt ?? this.startAt,
       endAt: endAt ?? this.endAt,
       note: note ?? this.note,
+      tags: tags ?? this.tags,
       poiName: poiName ?? this.poiName,
       poiAddress: poiAddress ?? this.poiAddress,
       latitude: latitude ?? this.latitude,
@@ -5536,6 +5609,9 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
     }
     if (note.present) {
       map['note'] = Variable<String>(note.value);
+    }
+    if (tags.present) {
+      map['tags'] = Variable<String>(tags.value);
     }
     if (poiName.present) {
       map['poi_name'] = Variable<String>(poiName.value);
@@ -5576,6 +5652,7 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
           ..write('startAt: $startAt, ')
           ..write('endAt: $endAt, ')
           ..write('note: $note, ')
+          ..write('tags: $tags, ')
           ..write('poiName: $poiName, ')
           ..write('poiAddress: $poiAddress, ')
           ..write('latitude: $latitude, ')
@@ -7985,6 +8062,7 @@ typedef $$TravelRecordsTableCreateCompanionBuilder = TravelRecordsCompanion
   Value<double?> longitude,
   Value<String?> city,
   Value<String?> mood,
+  Value<String?> tags,
   Value<double?> expenseTransport,
   Value<double?> expenseHotel,
   Value<double?> expenseFood,
@@ -8013,6 +8091,7 @@ typedef $$TravelRecordsTableUpdateCompanionBuilder = TravelRecordsCompanion
   Value<double?> longitude,
   Value<String?> city,
   Value<String?> mood,
+  Value<String?> tags,
   Value<double?> expenseTransport,
   Value<double?> expenseHotel,
   Value<double?> expenseFood,
@@ -8072,6 +8151,9 @@ class $$TravelRecordsTableFilterComposer
 
   ColumnFilters<String> get mood => $composableBuilder(
       column: $table.mood, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get tags => $composableBuilder(
+      column: $table.tags, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<double> get expenseTransport => $composableBuilder(
       column: $table.expenseTransport,
@@ -8155,6 +8237,9 @@ class $$TravelRecordsTableOrderingComposer
 
   ColumnOrderings<String> get mood => $composableBuilder(
       column: $table.mood, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get tags => $composableBuilder(
+      column: $table.tags, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<double> get expenseTransport => $composableBuilder(
       column: $table.expenseTransport,
@@ -8242,6 +8327,9 @@ class $$TravelRecordsTableAnnotationComposer
   GeneratedColumn<String> get mood =>
       $composableBuilder(column: $table.mood, builder: (column) => column);
 
+  GeneratedColumn<String> get tags =>
+      $composableBuilder(column: $table.tags, builder: (column) => column);
+
   GeneratedColumn<double> get expenseTransport => $composableBuilder(
       column: $table.expenseTransport, builder: (column) => column);
 
@@ -8317,6 +8405,7 @@ class $$TravelRecordsTableTableManager extends RootTableManager<
             Value<double?> longitude = const Value.absent(),
             Value<String?> city = const Value.absent(),
             Value<String?> mood = const Value.absent(),
+            Value<String?> tags = const Value.absent(),
             Value<double?> expenseTransport = const Value.absent(),
             Value<double?> expenseHotel = const Value.absent(),
             Value<double?> expenseFood = const Value.absent(),
@@ -8344,6 +8433,7 @@ class $$TravelRecordsTableTableManager extends RootTableManager<
             longitude: longitude,
             city: city,
             mood: mood,
+            tags: tags,
             expenseTransport: expenseTransport,
             expenseHotel: expenseHotel,
             expenseFood: expenseFood,
@@ -8371,6 +8461,7 @@ class $$TravelRecordsTableTableManager extends RootTableManager<
             Value<double?> longitude = const Value.absent(),
             Value<String?> city = const Value.absent(),
             Value<String?> mood = const Value.absent(),
+            Value<String?> tags = const Value.absent(),
             Value<double?> expenseTransport = const Value.absent(),
             Value<double?> expenseHotel = const Value.absent(),
             Value<double?> expenseFood = const Value.absent(),
@@ -8398,6 +8489,7 @@ class $$TravelRecordsTableTableManager extends RootTableManager<
             longitude: longitude,
             city: city,
             mood: mood,
+            tags: tags,
             expenseTransport: expenseTransport,
             expenseHotel: expenseHotel,
             expenseFood: expenseFood,
@@ -8645,6 +8737,386 @@ typedef $$TripsTableProcessedTableManager = ProcessedTableManager<
     (Trip, BaseReferences<_$AppDatabase, $TripsTable, Trip>),
     Trip,
     PrefetchHooks Function()>;
+typedef $$GoalRecordsTableCreateCompanionBuilder = GoalRecordsCompanion
+    Function({
+  required String id,
+  Value<String?> parentId,
+  required String level,
+  required String title,
+  Value<String?> note,
+  Value<String?> summary,
+  Value<String?> category,
+  Value<double> progress,
+  Value<bool> isCompleted,
+  Value<bool> isPostponed,
+  Value<String?> remindFrequency,
+  Value<int?> targetYear,
+  Value<int?> targetQuarter,
+  Value<int?> targetMonth,
+  Value<DateTime?> dueDate,
+  required DateTime recordDate,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+  Value<bool> isDeleted,
+  Value<int> rowid,
+});
+typedef $$GoalRecordsTableUpdateCompanionBuilder = GoalRecordsCompanion
+    Function({
+  Value<String> id,
+  Value<String?> parentId,
+  Value<String> level,
+  Value<String> title,
+  Value<String?> note,
+  Value<String?> summary,
+  Value<String?> category,
+  Value<double> progress,
+  Value<bool> isCompleted,
+  Value<bool> isPostponed,
+  Value<String?> remindFrequency,
+  Value<int?> targetYear,
+  Value<int?> targetQuarter,
+  Value<int?> targetMonth,
+  Value<DateTime?> dueDate,
+  Value<DateTime> recordDate,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<bool> isDeleted,
+  Value<int> rowid,
+});
+
+class $$GoalRecordsTableFilterComposer
+    extends Composer<_$AppDatabase, $GoalRecordsTable> {
+  $$GoalRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get parentId => $composableBuilder(
+      column: $table.parentId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get level => $composableBuilder(
+      column: $table.level, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get title => $composableBuilder(
+      column: $table.title, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get note => $composableBuilder(
+      column: $table.note, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get summary => $composableBuilder(
+      column: $table.summary, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get category => $composableBuilder(
+      column: $table.category, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get progress => $composableBuilder(
+      column: $table.progress, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isCompleted => $composableBuilder(
+      column: $table.isCompleted, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isPostponed => $composableBuilder(
+      column: $table.isPostponed, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get remindFrequency => $composableBuilder(
+      column: $table.remindFrequency,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get targetYear => $composableBuilder(
+      column: $table.targetYear, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get targetQuarter => $composableBuilder(
+      column: $table.targetQuarter, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get targetMonth => $composableBuilder(
+      column: $table.targetMonth, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get dueDate => $composableBuilder(
+      column: $table.dueDate, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get recordDate => $composableBuilder(
+      column: $table.recordDate, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnFilters(column));
+}
+
+class $$GoalRecordsTableOrderingComposer
+    extends Composer<_$AppDatabase, $GoalRecordsTable> {
+  $$GoalRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get parentId => $composableBuilder(
+      column: $table.parentId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get level => $composableBuilder(
+      column: $table.level, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get title => $composableBuilder(
+      column: $table.title, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get note => $composableBuilder(
+      column: $table.note, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get summary => $composableBuilder(
+      column: $table.summary, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get category => $composableBuilder(
+      column: $table.category, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get progress => $composableBuilder(
+      column: $table.progress, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isCompleted => $composableBuilder(
+      column: $table.isCompleted, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isPostponed => $composableBuilder(
+      column: $table.isPostponed, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get remindFrequency => $composableBuilder(
+      column: $table.remindFrequency,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get targetYear => $composableBuilder(
+      column: $table.targetYear, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get targetQuarter => $composableBuilder(
+      column: $table.targetQuarter,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get targetMonth => $composableBuilder(
+      column: $table.targetMonth, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get dueDate => $composableBuilder(
+      column: $table.dueDate, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get recordDate => $composableBuilder(
+      column: $table.recordDate, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnOrderings(column));
+}
+
+class $$GoalRecordsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $GoalRecordsTable> {
+  $$GoalRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get parentId =>
+      $composableBuilder(column: $table.parentId, builder: (column) => column);
+
+  GeneratedColumn<String> get level =>
+      $composableBuilder(column: $table.level, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<String> get summary =>
+      $composableBuilder(column: $table.summary, builder: (column) => column);
+
+  GeneratedColumn<String> get category =>
+      $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<double> get progress =>
+      $composableBuilder(column: $table.progress, builder: (column) => column);
+
+  GeneratedColumn<bool> get isCompleted => $composableBuilder(
+      column: $table.isCompleted, builder: (column) => column);
+
+  GeneratedColumn<bool> get isPostponed => $composableBuilder(
+      column: $table.isPostponed, builder: (column) => column);
+
+  GeneratedColumn<String> get remindFrequency => $composableBuilder(
+      column: $table.remindFrequency, builder: (column) => column);
+
+  GeneratedColumn<int> get targetYear => $composableBuilder(
+      column: $table.targetYear, builder: (column) => column);
+
+  GeneratedColumn<int> get targetQuarter => $composableBuilder(
+      column: $table.targetQuarter, builder: (column) => column);
+
+  GeneratedColumn<int> get targetMonth => $composableBuilder(
+      column: $table.targetMonth, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get dueDate =>
+      $composableBuilder(column: $table.dueDate, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get recordDate => $composableBuilder(
+      column: $table.recordDate, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+}
+
+class $$GoalRecordsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $GoalRecordsTable,
+    GoalRecord,
+    $$GoalRecordsTableFilterComposer,
+    $$GoalRecordsTableOrderingComposer,
+    $$GoalRecordsTableAnnotationComposer,
+    $$GoalRecordsTableCreateCompanionBuilder,
+    $$GoalRecordsTableUpdateCompanionBuilder,
+    (GoalRecord, BaseReferences<_$AppDatabase, $GoalRecordsTable, GoalRecord>),
+    GoalRecord,
+    PrefetchHooks Function()> {
+  $$GoalRecordsTableTableManager(_$AppDatabase db, $GoalRecordsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$GoalRecordsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$GoalRecordsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$GoalRecordsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String?> parentId = const Value.absent(),
+            Value<String> level = const Value.absent(),
+            Value<String> title = const Value.absent(),
+            Value<String?> note = const Value.absent(),
+            Value<String?> summary = const Value.absent(),
+            Value<String?> category = const Value.absent(),
+            Value<double> progress = const Value.absent(),
+            Value<bool> isCompleted = const Value.absent(),
+            Value<bool> isPostponed = const Value.absent(),
+            Value<String?> remindFrequency = const Value.absent(),
+            Value<int?> targetYear = const Value.absent(),
+            Value<int?> targetQuarter = const Value.absent(),
+            Value<int?> targetMonth = const Value.absent(),
+            Value<DateTime?> dueDate = const Value.absent(),
+            Value<DateTime> recordDate = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              GoalRecordsCompanion(
+            id: id,
+            parentId: parentId,
+            level: level,
+            title: title,
+            note: note,
+            summary: summary,
+            category: category,
+            progress: progress,
+            isCompleted: isCompleted,
+            isPostponed: isPostponed,
+            remindFrequency: remindFrequency,
+            targetYear: targetYear,
+            targetQuarter: targetQuarter,
+            targetMonth: targetMonth,
+            dueDate: dueDate,
+            recordDate: recordDate,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            isDeleted: isDeleted,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            Value<String?> parentId = const Value.absent(),
+            required String level,
+            required String title,
+            Value<String?> note = const Value.absent(),
+            Value<String?> summary = const Value.absent(),
+            Value<String?> category = const Value.absent(),
+            Value<double> progress = const Value.absent(),
+            Value<bool> isCompleted = const Value.absent(),
+            Value<bool> isPostponed = const Value.absent(),
+            Value<String?> remindFrequency = const Value.absent(),
+            Value<int?> targetYear = const Value.absent(),
+            Value<int?> targetQuarter = const Value.absent(),
+            Value<int?> targetMonth = const Value.absent(),
+            Value<DateTime?> dueDate = const Value.absent(),
+            required DateTime recordDate,
+            required DateTime createdAt,
+            required DateTime updatedAt,
+            Value<bool> isDeleted = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              GoalRecordsCompanion.insert(
+            id: id,
+            parentId: parentId,
+            level: level,
+            title: title,
+            note: note,
+            summary: summary,
+            category: category,
+            progress: progress,
+            isCompleted: isCompleted,
+            isPostponed: isPostponed,
+            remindFrequency: remindFrequency,
+            targetYear: targetYear,
+            targetQuarter: targetQuarter,
+            targetMonth: targetMonth,
+            dueDate: dueDate,
+            recordDate: recordDate,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            isDeleted: isDeleted,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$GoalRecordsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $GoalRecordsTable,
+    GoalRecord,
+    $$GoalRecordsTableFilterComposer,
+    $$GoalRecordsTableOrderingComposer,
+    $$GoalRecordsTableAnnotationComposer,
+    $$GoalRecordsTableCreateCompanionBuilder,
+    $$GoalRecordsTableUpdateCompanionBuilder,
+    (GoalRecord, BaseReferences<_$AppDatabase, $GoalRecordsTable, GoalRecord>),
+    GoalRecord,
+    PrefetchHooks Function()>;
 typedef $$TimelineEventsTableCreateCompanionBuilder = TimelineEventsCompanion
     Function({
   required String id,
@@ -8653,6 +9125,7 @@ typedef $$TimelineEventsTableCreateCompanionBuilder = TimelineEventsCompanion
   Value<DateTime?> startAt,
   Value<DateTime?> endAt,
   Value<String?> note,
+  Value<String?> tags,
   Value<String?> poiName,
   Value<String?> poiAddress,
   Value<double?> latitude,
@@ -8671,6 +9144,7 @@ typedef $$TimelineEventsTableUpdateCompanionBuilder = TimelineEventsCompanion
   Value<DateTime?> startAt,
   Value<DateTime?> endAt,
   Value<String?> note,
+  Value<String?> tags,
   Value<String?> poiName,
   Value<String?> poiAddress,
   Value<double?> latitude,
@@ -8708,6 +9182,9 @@ class $$TimelineEventsTableFilterComposer
 
   ColumnFilters<String> get note => $composableBuilder(
       column: $table.note, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get tags => $composableBuilder(
+      column: $table.tags, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get poiName => $composableBuilder(
       column: $table.poiName, builder: (column) => ColumnFilters(column));
@@ -8761,6 +9238,9 @@ class $$TimelineEventsTableOrderingComposer
   ColumnOrderings<String> get note => $composableBuilder(
       column: $table.note, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get tags => $composableBuilder(
+      column: $table.tags, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get poiName => $composableBuilder(
       column: $table.poiName, builder: (column) => ColumnOrderings(column));
 
@@ -8812,6 +9292,9 @@ class $$TimelineEventsTableAnnotationComposer
 
   GeneratedColumn<String> get note =>
       $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<String> get tags =>
+      $composableBuilder(column: $table.tags, builder: (column) => column);
 
   GeneratedColumn<String> get poiName =>
       $composableBuilder(column: $table.poiName, builder: (column) => column);
@@ -8871,6 +9354,7 @@ class $$TimelineEventsTableTableManager extends RootTableManager<
             Value<DateTime?> startAt = const Value.absent(),
             Value<DateTime?> endAt = const Value.absent(),
             Value<String?> note = const Value.absent(),
+            Value<String?> tags = const Value.absent(),
             Value<String?> poiName = const Value.absent(),
             Value<String?> poiAddress = const Value.absent(),
             Value<double?> latitude = const Value.absent(),
@@ -8888,6 +9372,7 @@ class $$TimelineEventsTableTableManager extends RootTableManager<
             startAt: startAt,
             endAt: endAt,
             note: note,
+            tags: tags,
             poiName: poiName,
             poiAddress: poiAddress,
             latitude: latitude,
@@ -8905,6 +9390,7 @@ class $$TimelineEventsTableTableManager extends RootTableManager<
             Value<DateTime?> startAt = const Value.absent(),
             Value<DateTime?> endAt = const Value.absent(),
             Value<String?> note = const Value.absent(),
+            Value<String?> tags = const Value.absent(),
             Value<String?> poiName = const Value.absent(),
             Value<String?> poiAddress = const Value.absent(),
             Value<double?> latitude = const Value.absent(),
@@ -8922,6 +9408,7 @@ class $$TimelineEventsTableTableManager extends RootTableManager<
             startAt: startAt,
             endAt: endAt,
             note: note,
+            tags: tags,
             poiName: poiName,
             poiAddress: poiAddress,
             latitude: latitude,
@@ -9595,6 +10082,8 @@ class $AppDatabaseManager {
       $$TravelRecordsTableTableManager(_db, _db.travelRecords);
   $$TripsTableTableManager get trips =>
       $$TripsTableTableManager(_db, _db.trips);
+  $$GoalRecordsTableTableManager get goalRecords =>
+      $$GoalRecordsTableTableManager(_db, _db.goalRecords);
   $$TimelineEventsTableTableManager get timelineEvents =>
       $$TimelineEventsTableTableManager(_db, _db.timelineEvents);
   $$EntityLinksTableTableManager get entityLinks =>
@@ -9607,51 +10096,14 @@ class $AppDatabaseManager {
 
 mixin _$FoodDaoMixin on DatabaseAccessor<AppDatabase> {
   $FoodRecordsTable get foodRecords => attachedDatabase.foodRecords;
-  FoodDaoManager get managers => FoodDaoManager(this);
 }
-
-class FoodDaoManager {
-  final _$FoodDaoMixin _db;
-  FoodDaoManager(this._db);
-  $$FoodRecordsTableTableManager get foodRecords =>
-      $$FoodRecordsTableTableManager(_db.attachedDatabase, _db.foodRecords);
-}
-
 mixin _$MomentDaoMixin on DatabaseAccessor<AppDatabase> {
   $MomentRecordsTable get momentRecords => attachedDatabase.momentRecords;
-  MomentDaoManager get managers => MomentDaoManager(this);
 }
-
-class MomentDaoManager {
-  final _$MomentDaoMixin _db;
-  MomentDaoManager(this._db);
-  $$MomentRecordsTableTableManager get momentRecords =>
-      $$MomentRecordsTableTableManager(_db.attachedDatabase, _db.momentRecords);
-}
-
 mixin _$FriendDaoMixin on DatabaseAccessor<AppDatabase> {
   $FriendRecordsTable get friendRecords => attachedDatabase.friendRecords;
-  FriendDaoManager get managers => FriendDaoManager(this);
 }
-
-class FriendDaoManager {
-  final _$FriendDaoMixin _db;
-  FriendDaoManager(this._db);
-  $$FriendRecordsTableTableManager get friendRecords =>
-      $$FriendRecordsTableTableManager(_db.attachedDatabase, _db.friendRecords);
-}
-
 mixin _$LinkDaoMixin on DatabaseAccessor<AppDatabase> {
   $EntityLinksTable get entityLinks => attachedDatabase.entityLinks;
   $LinkLogsTable get linkLogs => attachedDatabase.linkLogs;
-  LinkDaoManager get managers => LinkDaoManager(this);
-}
-
-class LinkDaoManager {
-  final _$LinkDaoMixin _db;
-  LinkDaoManager(this._db);
-  $$EntityLinksTableTableManager get entityLinks =>
-      $$EntityLinksTableTableManager(_db.attachedDatabase, _db.entityLinks);
-  $$LinkLogsTableTableManager get linkLogs =>
-      $$LinkLogsTableTableManager(_db.attachedDatabase, _db.linkLogs);
 }

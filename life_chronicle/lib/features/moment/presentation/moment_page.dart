@@ -73,7 +73,6 @@ List<String> _parseSceneTags(String? raw) {
 String? _encodeSceneTags(List<String> tags) {
   final cleaned = tags.map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
   if (cleaned.isEmpty) return null;
-  if (cleaned.length == 1) return cleaned.first;
   return jsonEncode(cleaned);
 }
 
@@ -674,6 +673,7 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
         onEdit: null,
         poiName: '',
         poiAddress: '',
+        city: '',
         latitude: null,
         longitude: null,
         recordDate: DateTime.now(),
@@ -702,6 +702,7 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
             onEdit: null,
             poiName: '',
             poiAddress: '',
+            city: '',
             latitude: null,
             longitude: null,
             recordDate: DateTime.now(),
@@ -720,6 +721,7 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
         final tags = _parseSceneTags(record.sceneTag);
         final poiName = (record.poiName ?? '').trim().isNotEmpty ? record.poiName!.trim() : (record.city ?? '').trim();
         final poiAddress = (record.poiAddress ?? '').trim();
+        final city = (record.city ?? '').trim();
         final latitude = record.latitude;
         final longitude = record.longitude;
 
@@ -785,6 +787,7 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
                               },
                               poiName: poiName,
                               poiAddress: poiAddress,
+                              city: city,
                               latitude: latitude,
                               longitude: longitude,
                               recordDate: record.recordDate,
@@ -843,6 +846,7 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
     required VoidCallback? onEdit,
     required String poiName,
     required String poiAddress,
+    required String city,
     required double? latitude,
     required double? longitude,
     required DateTime recordDate,
@@ -967,6 +971,7 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
                           title: title,
                           poiName: poiName.trim(),
                           address: poiAddress.trim(),
+                          city: city.trim(),
                           latitude: latitude,
                           longitude: longitude,
                         ),

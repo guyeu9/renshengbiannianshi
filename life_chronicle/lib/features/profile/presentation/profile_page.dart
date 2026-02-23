@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -4538,6 +4538,8 @@ class ModuleManagementPage extends ConsumerStatefulWidget {
 class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
   ModuleManagementConfig? _config;
   bool _loading = true;
+  Map<String, Map<String, int>> _tagCountsCache = {};
+  bool _tagCountsCacheValid = false;
 
   static const _bg = Color(0xFFF2F4F6);
   static const _accentBg = Color(0xFFE0F2F1);
@@ -4576,6 +4578,7 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
   }
 
   Future<void> _saveConfig(ModuleManagementConfig config) async {
+    _tagCountsCacheValid = false;
     setState(() => _config = config);
     await saveModuleManagementConfig(config);
     if (!mounted) return;
@@ -4597,6 +4600,25 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
       }
     } catch (_) {}
     return const [];
+  }
+
+  Future<Map<String, Map<String, int>>> _getTagCounts({
+    required List<FoodRecord> foods,
+    required List<MomentRecord> moments,
+    required List<TravelRecord> travels,
+    required List<FriendRecord> friends,
+    required List<TimelineEvent> goals,
+  }) async {
+    if (_tagCountsCacheValid) return _tagCountsCache;
+    _tagCountsCache = {
+      'food': _countFoodTags(foods),
+      'moment': _countMomentTags(moments),
+      'travel': _countTravelTags(travels),
+      'bond': _countBondTags(friends),
+      'goal': _countGoalTags(goals),
+    };
+    _tagCountsCacheValid = true;
+    return _tagCountsCache;
   }
 
   Map<String, int> _countFoodTags(List<FoodRecord> foods) {
@@ -4638,14 +4660,11 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
   Map<String, int> _countTravelTags(List<TravelRecord> travels) {
     final counts = <String, int>{};
     for (final record in travels) {
-      final candidates = [
-        record.destination,
-        record.mood,
-      ];
-      for (final raw in candidates) {
-        final tag = (raw ?? '').trim();
-        if (tag.isEmpty) continue;
-        counts.update(tag, (v) => v + 1, ifAbsent: () => 1);
+      final tags = _parseStringList(record.tags);
+      for (final tag in tags) {
+        final key = tag.trim();
+        if (key.isEmpty) continue;
+        counts.update(key, (v) => v + 1, ifAbsent: () => 1);
       }
     }
     return counts;
@@ -4667,15 +4686,11 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
   Map<String, int> _countGoalTags(List<TimelineEvent> goals) {
     final counts = <String, int>{};
     for (final record in goals) {
-      final note = (record.note ?? '').trim();
-      if (note.isEmpty) continue;
-      for (final line in note.split('\n')) {
-        if (line.startsWith('分类：')) {
-          final tag = line.replaceFirst('分类：', '').trim();
-          if (tag.isNotEmpty) {
-            counts.update(tag, (v) => v + 1, ifAbsent: () => 1);
-          }
-        }
+      final tags = _parseStringList(record.tags);
+      for (final tag in tags) {
+        final key = tag.trim();
+        if (key.isEmpty) continue;
+        counts.update(key, (v) => v + 1, ifAbsent: () => 1);
       }
     }
     return counts;
@@ -4881,24 +4896,168 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
   Future<void> _confirmDeleteTag({
     required ModuleConfig module,
     required ModuleTag tag,
+    required int usageCount,
   }) async {
-    final confirmed = await showDialog<bool>(
+    final action = await showDialog<String>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
           title: const Text('确认删除'),
-          content: Text('确定要删除“${tag.name}”吗？'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('确定要删除"${tag.name}"吗？'),
+              if (usageCount > 0) ...[
+                const SizedBox(height: 8),
+                Text('该标签已被 $usageCount 条记录使用', style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF))),
+              ],
+            ],
+          ),
           actions: [
-            TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('取消')),
-            TextButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('删除')),
+            TextButton(onPressed: () => Navigator.of(dialogContext).pop('cancel'), child: const Text('取消')),
+            if (usageCount > 0)
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop('replace'),
+                child: const Text('替换'),
+              ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop('delete'),
+              child: Text('删除', style: TextStyle(color: usageCount > 0 ? Colors.red : null)),
+            ),
           ],
         );
       },
     );
-    if (confirmed != true) return;
+    if (action == null || action == 'cancel') return;
+    if (action == 'replace') {
+      await _showReplaceTagDialog(module: module, oldTag: tag, usageCount: usageCount);
+      return;
+    }
     final current = _config?.moduleOf(module.key) ?? module;
     final updatedTags = current.tags.where((t) => t.id != tag.id).toList(growable: false);
     await _saveConfig(_updateModule(current.copyWith(tags: updatedTags)));
+  }
+
+  Future<void> _showReplaceTagDialog({
+    required ModuleConfig module,
+    required ModuleTag oldTag,
+    required int usageCount,
+  }) async {
+    final current = _config?.moduleOf(module.key) ?? module;
+    final otherTags = current.tags.where((t) => t.id != oldTag.id).toList();
+    if (otherTags.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('没有可替换的标签，请先创建新标签')));
+      return;
+    }
+    String? selectedTagId = otherTags.first.id;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('替换标签'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('将 "${oldTag.name}" 替换为：'),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: selectedTagId,
+                    items: otherTags
+                        .map((t) => DropdownMenuItem(value: t.id, child: Text(t.name)))
+                        .toList(growable: false),
+                    onChanged: (v) => setState(() => selectedTagId = v),
+                    decoration: const InputDecoration(border: OutlineInputBorder()),
+                  ),
+                  const SizedBox(height: 8),
+                  Text('将影响 $usageCount 条记录', style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF))),
+                ],
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('取消')),
+                TextButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('确认替换')),
+              ],
+            );
+          },
+        );
+      },
+    );
+    if (confirmed != true || selectedTagId == null) return;
+    final newTag = otherTags.firstWhere((t) => t.id == selectedTagId);
+    await _replaceTagInDatabase(module: module, oldTagName: oldTag.name, newTagName: newTag.name);
+    final updatedTags = current.tags.where((t) => t.id != oldTag.id).toList(growable: false);
+    await _saveConfig(_updateModule(current.copyWith(tags: updatedTags)));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('已将 "${oldTag.name}" 替换为 "${newTag.name}"')));
+  }
+
+  Future<void> _replaceTagInDatabase({
+    required ModuleConfig module,
+    required String oldTagName,
+    required String newTagName,
+  }) async {
+    final db = ref.read(appDatabaseProvider);
+    switch (module.key) {
+      case 'food':
+        final foods = await db.select(db.foodRecords).get();
+        for (final food in foods) {
+          final tags = _parseStringList(food.tags);
+          if (tags.contains(oldTagName)) {
+            final newTags = tags.map((t) => t == oldTagName ? newTagName : t).toList();
+            await (db.update(db.foodRecords)..where((t) => t.id.equals(food.id)))
+                .write(FoodRecordsCompanion(tags: Value(jsonEncode(newTags))));
+          }
+        }
+        break;
+      case 'moment':
+        final moments = await db.select(db.momentRecords).get();
+        for (final moment in moments) {
+          final tags = _parseStringList(moment.sceneTag);
+          if (tags.contains(oldTagName)) {
+            final newTags = tags.map((t) => t == oldTagName ? newTagName : t).toList();
+            await (db.update(db.momentRecords)..where((t) => t.id.equals(moment.id)))
+                .write(MomentRecordsCompanion(sceneTag: Value(jsonEncode(newTags))));
+          }
+        }
+        break;
+      case 'travel':
+        final travels = await db.select(db.travelRecords).get();
+        for (final travel in travels) {
+          final tags = _parseStringList(travel.tags);
+          if (tags.contains(oldTagName)) {
+            final newTags = tags.map((t) => t == oldTagName ? newTagName : t).toList();
+            await (db.update(db.travelRecords)..where((t) => t.id.equals(travel.id)))
+                .write(TravelRecordsCompanion(tags: Value(jsonEncode(newTags))));
+          }
+        }
+        break;
+      case 'bond':
+        final friends = await db.select(db.friendRecords).get();
+        for (final friend in friends) {
+          final tags = _parseStringList(friend.impressionTags);
+          if (tags.contains(oldTagName)) {
+            final newTags = tags.map((t) => t == oldTagName ? newTagName : t).toList();
+            await (db.update(db.friendRecords)..where((t) => t.id.equals(friend.id)))
+                .write(FriendRecordsCompanion(impressionTags: Value(jsonEncode(newTags))));
+          }
+        }
+        break;
+      case 'goal':
+        final events = await (db.select(db.timelineEvents)..where((t) => t.eventType.equals('goal'))).get();
+        for (final event in events) {
+          final tags = _parseStringList(event.tags);
+          if (tags.contains(oldTagName)) {
+            final newTags = tags.map((t) => t == oldTagName ? newTagName : t).toList();
+            await (db.update(db.timelineEvents)..where((t) => t.id.equals(event.id)))
+                .write(TimelineEventsCompanion(tags: Value(jsonEncode(newTags))));
+          }
+        }
+        break;
+    }
   }
 
   Widget _buildTagRow({
@@ -4959,7 +5118,7 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
           ),
           IconButton(
             icon: const Icon(Icons.delete, size: 18, color: Color(0xFFEF4444)),
-            onPressed: () => _confirmDeleteTag(module: module, tag: tag),
+            onPressed: () => _confirmDeleteTag(module: module, tag: tag, usageCount: count),
           ),
         ],
       ),

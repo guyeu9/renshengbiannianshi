@@ -2700,6 +2700,7 @@ class _GoalCreatePageState extends ConsumerState<GoalCreatePage> {
     if (_dueDate != null) noteParts.add('截止：${_formatDotDate(_dueDate!)}');
     if (description.isNotEmpty) noteParts.add(description);
     final note = noteParts.isEmpty ? null : noteParts.join('\n');
+    final tagsJson = _selectedGoalType.isEmpty ? null : jsonEncode([_goalLabelFor(_selectedGoalType)]);
 
     await db.into(db.goalRecords).insert(
           GoalRecordsCompanion.insert(
@@ -2729,6 +2730,7 @@ class _GoalCreatePageState extends ConsumerState<GoalCreatePage> {
             startAt: Value(_dueDate ?? recordDate),
             endAt: const Value(null),
             note: Value(note),
+            tags: Value(tagsJson),
             recordDate: recordDate,
             createdAt: now,
             updatedAt: now,
