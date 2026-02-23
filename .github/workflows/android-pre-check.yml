@@ -29,6 +29,11 @@ jobs:
           flutter-version: "3.27.1"
           cache: true
 
+      - name: Fix Gradle Java Home (CI)
+        run: |
+          # Remove Windows-specific JDK path to allow CI to use setup-java's JDK
+          sed -i '/org.gradle.java.home/d' life_chronicle/android/gradle.properties
+
       - name: Flutter Pub Get
         run: flutter pub get
         working-directory: life_chronicle
