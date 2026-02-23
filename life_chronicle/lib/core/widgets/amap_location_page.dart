@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:amap_flutter_base/amap_flutter_base.dart' as amap_base;
 import 'package:amap_flutter_map/amap_flutter_map.dart' as amap;
@@ -414,14 +413,10 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
 
     final mapTargetLat = _pickedLatitude ?? 39.908722;
     final mapTargetLng = _pickedLongitude ?? 116.397499;
-    final androidMajor = _androidMajorVersion();
-    final isAndroid15OrAbove = androidMajor != null && androidMajor >= 15;
-    final canUseNativeMap = !kIsWeb && _hasNativeKey && !isAndroid15OrAbove;
+    final canUseNativeMap = !kIsWeb && _hasNativeKey;
     final mapUnavailableText = kIsWeb
         ? 'Web 暂不支持内嵌地图'
-        : isAndroid15OrAbove
-            ? 'Android 15+ 暂不支持内嵌高德地图\n请使用右上角“手动填写”，或用“外部导航”打开地图应用'
-            : '未配置高德 Key';
+        : '未配置高德 Key';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8F8),
@@ -583,13 +578,6 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
                 ),
               ],
             ),
-            if (isAndroid15OrAbove) ...[
-              const SizedBox(height: 10),
-              Text(
-                '提示：Android 15+ 设备上，内嵌高德地图目前存在稳定性问题，建议优先使用“手动填写”或外部地图搜索后填写城市/地址。',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFFF59E0B), height: 1.3),
-              ),
-            ],
             if (_errorText.isNotEmpty) ...[
               const SizedBox(height: 10),
               Text(_errorText, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFFEF4444))),
@@ -671,14 +659,6 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
             )
           : null,
     );
-  }
-
-  int? _androidMajorVersion() {
-    if (!Platform.isAndroid) return null;
-    final raw = Platform.operatingSystemVersion;
-    final match = RegExp(r'Android\s+(\d+)').firstMatch(raw);
-    if (match == null) return null;
-    return int.tryParse(match.group(1) ?? '');
   }
 }
 

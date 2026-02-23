@@ -6,6 +6,14 @@
 -keep class com.amap.flutter.map.AMapFlutterMapPlugin { *; }
 -keep class com.amap.flutter.location.** { *; }
 
+-keep class com.amap.api.maps.model.** { *; }
+-keep class com.amap.api.maps.utils.** { *; }
+-keep class com.amap.api.location.** { *; }
+
+-keepclassmembers class com.amap.api.** {
+    public <methods>;
+}
+
 -keepclasseswithmembernames,includedescriptorclasses class * {
     native <methods>;
 }

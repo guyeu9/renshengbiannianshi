@@ -75,7 +75,7 @@ flutter {
     source "../.."
 }
 
-def amapSdkVersion = project.findProperty("AMAP_SDK_VERSION") ?: "10.0.600"
+def amapSdkVersion = project.findProperty("AMAP_SDK_VERSION") ?: "10.0.800"
 
 dependencies {
     implementation "com.amap.api:3dmap:$amapSdkVersion"

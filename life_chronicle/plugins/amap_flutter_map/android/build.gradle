@@ -33,7 +33,7 @@ android {
 }
 
 dependencies {
-    def amapSdkVersion = project.findProperty('AMAP_SDK_VERSION') ?: '10.0.600'
+    def amapSdkVersion = project.findProperty('AMAP_SDK_VERSION') ?: '10.0.800'
     compileOnly "com.amap.api:3dmap:${amapSdkVersion}"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.0"
 }
