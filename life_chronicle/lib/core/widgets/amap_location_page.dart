@@ -39,6 +39,7 @@ class AmapLocationPage extends StatefulWidget {
         title = null,
         poiName = '',
         address = '',
+        city = '',
         latitude = null,
         longitude = null;
 
