@@ -85,5 +85,5 @@ def amapSdkVersion = project.findProperty("AMAP_SDK_VERSION") ?: "10.0.600"
 
 dependencies {
     implementation "com.amap.api:3dmap:$amapSdkVersion"
-    implementation "com.amap.api:search:9.7.1"
+    implementation "com.amap.api:search:$amapSdkVersion"
 }
