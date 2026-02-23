@@ -239,17 +239,23 @@ if [ -f "$PROJECT_DIR/android/gradlew" ]; then
     
     check_info "Running Gradle configuration check..."
     
-    # Try to run Gradle tasks to check for syntax errors
-    if ./gradlew --version 2>&1 | grep -q "Gradle"; then
-        gradle_output=$(./gradlew tasks --dry-run 2>&1)
-        if echo "$gradle_output" | grep -qi "FAILURE\|error"; then
-            check_fail "Gradle configuration has errors:"
-            echo "$gradle_output" | grep -i "FAILURE\|error" -A 20 | sed 's/^/    /'
-        else
-            check_pass "Gradle configuration OK"
-        fi
+    # Check Java availability first
+    if ! command -v java &> /dev/null; then
+        check_warn "Java not found - skipping Gradle check"
+        check_info "Gradle requires Java to run"
+    elif [ -z "$JAVA_HOME" ]; then
+        check_warn "JAVA_HOME not set - skipping Gradle check"
     else
-        check_warn "Gradle wrapper not working - skipping Gradle check"
+        # Try to run Gradle tasks to check for syntax errors
+        gradle_output=$(./gradlew tasks --dry-run 2>&1)
+        gradle_exit_code=$?
+        
+        if [ $gradle_exit_code -eq 0 ]; then
+            check_pass "Gradle configuration OK"
+        else
+            check_fail "Gradle configuration has errors:"
+            echo "$gradle_output" | tail -30 | sed 's/^/    /'
+        fi
     fi
 else
     check_warn "Gradle wrapper not found - skipping Gradle check"
