@@ -53,24 +53,32 @@ class ModuleTag {
     required this.name,
     this.iconName,
     this.showOnCalendar = true,
+    this.isCustom = false,
+    this.usageCount = 0,
   });
 
   final String id;
   final String name;
   final String? iconName;
   final bool showOnCalendar;
+  final bool isCustom;
+  final int usageCount;
 
   ModuleTag copyWith({
     String? id,
     String? name,
     String? iconName,
     bool? showOnCalendar,
+    bool? isCustom,
+    int? usageCount,
   }) {
     return ModuleTag(
       id: id ?? this.id,
       name: name ?? this.name,
       iconName: iconName ?? this.iconName,
       showOnCalendar: showOnCalendar ?? this.showOnCalendar,
+      isCustom: isCustom ?? this.isCustom,
+      usageCount: usageCount ?? this.usageCount,
     );
   }
 
@@ -80,6 +88,8 @@ class ModuleTag {
       'name': name,
       'iconName': iconName,
       'showOnCalendar': showOnCalendar,
+      'isCustom': isCustom,
+      'usageCount': usageCount,
     };
   }
 
@@ -89,6 +99,8 @@ class ModuleTag {
       name: (json['name'] ?? '').toString(),
       iconName: (json['iconName'] ?? '').toString().isEmpty ? null : json['iconName'].toString(),
       showOnCalendar: json['showOnCalendar'] == null ? true : json['showOnCalendar'] == true,
+      isCustom: json['isCustom'] == true,
+      usageCount: json['usageCount'] is int ? json['usageCount'] : 0,
     );
   }
 }
@@ -4603,9 +4615,22 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
   Map<String, int> _countMomentTags(List<MomentRecord> moments) {
     final counts = <String, int>{};
     for (final record in moments) {
-      final tag = (record.sceneTag ?? '').trim();
-      if (tag.isEmpty) continue;
-      counts.update(tag, (v) => v + 1, ifAbsent: () => 1);
+      final raw = (record.sceneTag ?? '').trim();
+      if (raw.isEmpty) continue;
+      List<String> tags;
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is List) {
+          tags = decoded.whereType<String>().map((e) => e.trim()).where((e) => e.isNotEmpty).toList(growable: false);
+        } else {
+          tags = [raw];
+        }
+      } catch (_) {
+        tags = [raw];
+      }
+      for (final tag in tags) {
+        counts.update(tag, (v) => v + 1, ifAbsent: () => 1);
+      }
     }
     return counts;
   }
@@ -4654,6 +4679,50 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
       }
     }
     return counts;
+  }
+
+  List<ModuleTag> _discoverUncategorizedTags({
+    required ModuleConfig module,
+    required Map<String, int> tagCounts,
+  }) {
+    final configuredNames = module.tags.map((t) => t.name.trim()).toSet();
+    final uncategorized = <ModuleTag>[];
+    for (final entry in tagCounts.entries) {
+      final name = entry.key.trim();
+      if (name.isEmpty) continue;
+      if (!configuredNames.contains(name)) {
+        uncategorized.add(ModuleTag(
+          id: '${module.key}-uncat-${name.hashCode}',
+          name: name,
+          isCustom: true,
+          usageCount: entry.value,
+        ));
+      }
+    }
+    uncategorized.sort((a, b) => b.usageCount.compareTo(a.usageCount));
+    return uncategorized;
+  }
+
+  Future<void> _addUncategorizedTagToConfig({
+    required ModuleConfig module,
+    required ModuleTag tag,
+  }) async {
+    final current = _config?.moduleOf(module.key) ?? module;
+    final newTag = ModuleTag(
+      id: _newTagId(module.key),
+      name: tag.name,
+      iconName: module.key == 'moment' ? 'star' : null,
+      showOnCalendar: true,
+      isCustom: false,
+      usageCount: tag.usageCount,
+    );
+    final updatedTags = [...current.tags, newTag];
+    await _saveConfig(_updateModule(current.copyWith(tags: updatedTags)));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('已将"${tag.name}"添加到标签库')),
+      );
+    }
   }
 
   String _newTagId(String moduleKey) {
@@ -4902,6 +4971,7 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
     required Map<String, int> tagCounts,
   }) {
     final tags = module.tags;
+    final uncategorizedTags = _discoverUncategorizedTags(module: module, tagCounts: tagCounts);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: _cardBorder)),
@@ -4984,6 +5054,52 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
               ),
             ],
           ),
+          if (uncategorizedTags.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF7ED),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFFED7AA)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.label_outline, size: 14, color: Color(0xFFEA580C)),
+                      const SizedBox(width: 6),
+                      Text('未分类标签 (${uncategorizedTags.length})', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFFEA580C))),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text('以下标签在数据库中存在但未在配置中定义，点击可添加到标签库', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF9A3412))),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final tag in uncategorizedTags)
+                        InkWell(
+                          borderRadius: BorderRadius.circular(999),
+                          onTap: () => _addUncategorizedTagToConfig(module: module, tag: tag),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFEDD5),
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(color: const Color(0xFFFDBA74)),
+                            ),
+                            child: Text('${tag.name} (${tag.usageCount})', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF9A3412))),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
