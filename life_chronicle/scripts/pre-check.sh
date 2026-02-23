@@ -174,7 +174,7 @@ echo ""
 
 # Check 8: Plugin Files Git Tracking
 echo "--- Check 8: Plugin Files Git Tracking ---"
-if command -v git &> /dev/null; then
+if command -v git &> /dev/null && git rev-parse --is-inside-work-tree &>/dev/null; then
     cd "$PROJECT_DIR"
     for pubspec in plugins/*/pubspec.yaml; do
         if [ -f "$pubspec" ]; then

@@ -191,7 +191,12 @@ Write-Host ""
 # Check 8: Plugin Main Class Files Tracked by Git
 Write-Host "--- Check 8: Plugin Files Git Tracking ---"
 $gitAvailable = Get-Command git -ErrorAction SilentlyContinue
+$isGitRepo = $false
 if ($gitAvailable) {
+    $isGitRepo = (git rev-parse --is-inside-work-tree 2>$null) -eq "true"
+}
+
+if ($gitAvailable -and $isGitRepo) {
     Push-Location $ProjectDir
     $pluginPubspecs = Get-ChildItem -Path "plugins\*\pubspec.yaml" -ErrorAction SilentlyContinue
     foreach ($pubspec in $pluginPubspecs) {
