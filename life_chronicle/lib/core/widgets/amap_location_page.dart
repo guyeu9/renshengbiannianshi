@@ -7,6 +7,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'amap_webview_map.dart';
+
 class AmapLocationPickResult {
   const AmapLocationPickResult({
     required this.poiName,
@@ -417,10 +419,11 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
     final androidMajor = _androidMajorVersion();
     final isAndroid15OrAbove = androidMajor != null && androidMajor >= 15;
     final canUseNativeMap = !kIsWeb && _hasNativeKey && !isAndroid15OrAbove;
+    final useWebViewMap = !kIsWeb && isAndroid15OrAbove && _hasWebKey;
     final mapUnavailableText = kIsWeb
         ? 'Web 暂不支持内嵌地图'
-        : isAndroid15OrAbove
-            ? 'Android 15+ 暂不支持内嵌高德地图\n请使用右上角"手动填写"，或用"外部导航"打开地图应用'
+        : isAndroid15OrAbove && !_hasWebKey
+            ? 'Android 15+ 需要配置高德 Web Key（AMAP_WEB_KEY）才能显示地图'
             : '未配置高德 Key';
 
     return Scaffold(
@@ -451,15 +454,8 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
             child: Container(
               height: 220,
               color: Colors.white,
-              child: !canUseNativeMap
-                  ? Center(
-                      child: Text(
-                        mapUnavailableText,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF64748B), height: 1.4),
-                      ),
-                    )
-                  : Stack(
+              child: canUseNativeMap
+                  ? Stack(
                       fit: StackFit.expand,
                       children: [
                         amap.AMapWidget(
@@ -507,7 +503,49 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
                         ),
                         if (!isPreview) Center(child: Icon(Icons.place, color: _primary, size: 32)),
                       ],
-                    ),
+                    )
+                  : useWebViewMap
+                      ? AMapWebViewMap(
+                          webKey: _amapWebKey,
+                          initialLatitude: mapTargetLat,
+                          initialLongitude: mapTargetLng,
+                          initialZoom: 15,
+                          isPreviewMode: isPreview,
+                          markerLatitude: _pickedLatitude,
+                          markerLongitude: _pickedLongitude,
+                          showLocationButton: true,
+                          enablePoiClick: !isPreview,
+                          onLocationSelected: isPreview
+                              ? null
+                              : (lat, lng) {
+                                  setState(() {
+                                    _pickedLatitude = lat;
+                                    _pickedLongitude = lng;
+                                  });
+                                },
+                          onPoiSelected: isPreview
+                              ? null
+                              : (name, address, lat, lng) {
+                                  setState(() {
+                                    _poiNameController.text = name;
+                                    _addressController.text = address;
+                                    _pickedLatitude = lat;
+                                    _pickedLongitude = lng;
+                                  });
+                                },
+                          onError: (error) {
+                            if (kDebugMode) {
+                              debugPrint('WebView Map Error: $error');
+                            }
+                          },
+                        )
+                      : Center(
+                          child: Text(
+                            mapUnavailableText,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF64748B), height: 1.4),
+                          ),
+                        ),
             ),
           ),
           const SizedBox(height: 12),
@@ -583,11 +621,11 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
                 ),
               ],
             ),
-            if (isAndroid15OrAbove) ...[
+            if (isAndroid15OrAbove && useWebViewMap) ...[
               const SizedBox(height: 10),
               Text(
-                '提示：Android 15+ 设备上，内嵌高德地图目前存在稳定性问题，建议优先使用"手动填写"或外部地图搜索后填写城市/地址。',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFFF59E0B), height: 1.3),
+                '提示：Android 15+ 使用 WebView 加载地图，部分功能可能不如原生流畅。如需更好体验，可使用"外部导航"打开地图应用。',
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF64748B), height: 1.3),
               ),
             ],
             if (_errorText.isNotEmpty) ...[
