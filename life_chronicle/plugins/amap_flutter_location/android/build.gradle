@@ -1,7 +1,9 @@
+plugins {
+    id "com.android.library"
+}
+
 group 'com.amap.flutter.location'
 version '1.0'
-
-apply plugin: 'com.android.library'
 
 android {
     namespace 'com.amap.flutter.location'
