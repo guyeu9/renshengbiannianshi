@@ -1,5 +1,7 @@
 _toolchain/
 .trae/
+.gradle_user_home/
+life_chronicle/.gradle_user_home/
 *.zip
 *.tar.gz
 .DS_Store
