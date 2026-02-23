@@ -241,8 +241,10 @@ if [ -f "$PROJECT_DIR/android/gradlew" ]; then
     
     # Try to run Gradle tasks to check for syntax errors
     if ./gradlew --version 2>&1 | grep -q "Gradle"; then
-        if ./gradlew tasks --dry-run 2>&1 | grep -qi "FAILURE\|error"; then
-            check_fail "Gradle configuration has errors (run './gradlew tasks' for details)"
+        gradle_output=$(./gradlew tasks --dry-run 2>&1)
+        if echo "$gradle_output" | grep -qi "FAILURE\|error"; then
+            check_fail "Gradle configuration has errors:"
+            echo "$gradle_output" | grep -i "FAILURE\|error" -A 20 | sed 's/^/    /'
         else
             check_pass "Gradle configuration OK"
         fi

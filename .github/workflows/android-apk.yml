@@ -32,7 +32,16 @@ jobs:
         run: |
           # Remove Windows-specific JDK path to allow CI to use setup-java's JDK
           sed -i '/org.gradle.java.home/d' life_chronicle/android/gradle.properties
+
+      - name: Flutter Pub Get (CI)
+        run: |
+          flutter doctor -v
+          flutter pub get
+        working-directory: life_chronicle
+
       - name: Pre-check Script
+        env:
+          FLUTTER_ROOT: ${{ env.FLUTTER_ROOT }}
         run: |
           chmod +x life_chronicle/scripts/pre-check.sh
           ./life_chronicle/scripts/pre-check.sh
