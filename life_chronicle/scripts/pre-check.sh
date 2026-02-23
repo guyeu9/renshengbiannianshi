@@ -247,14 +247,17 @@ if [ -f "$PROJECT_DIR/android/gradlew" ]; then
         check_warn "JAVA_HOME not set - skipping Gradle check"
     else
         # Try to run Gradle tasks to check for syntax errors
+        # Temporarily disable set -e to capture exit code
+        set +e
         gradle_output=$(./gradlew tasks --dry-run 2>&1)
         gradle_exit_code=$?
+        set -e
         
         if [ $gradle_exit_code -eq 0 ]; then
             check_pass "Gradle configuration OK"
         else
             check_fail "Gradle configuration has errors:"
-            echo "$gradle_output" | tail -30 | sed 's/^/    /'
+            echo "$gradle_output" | tail -50 | sed 's/^/    /'
         fi
     fi
 else
