@@ -70,7 +70,7 @@ android {
     }
 }
 dependencies {
-    implementation 'com.amap.api:3dmap:10.0.600'
+    implementation 'com.amap.api:3dmap:10.0.800'
 }
 
 flutter {
