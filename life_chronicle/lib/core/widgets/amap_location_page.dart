@@ -49,6 +49,7 @@ class AmapLocationPage extends StatefulWidget {
     required this.address,
     required this.latitude,
     required this.longitude,
+    this.city = '',
   })  : mode = AmapLocationPageMode.preview,
         initialPoiName = '',
         initialAddress = '',
@@ -63,6 +64,7 @@ class AmapLocationPage extends StatefulWidget {
   final String address;
   final double? latitude;
   final double? longitude;
+  final String city;
 
   final String initialPoiName;
   final String initialAddress;
@@ -133,7 +135,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
     if (widget.mode == AmapLocationPageMode.preview) {
       _poiNameController.text = widget.poiName;
       _addressController.text = widget.address;
-      _cityController.text = '';
+      _cityController.text = widget.city;
       _pickedLatitude = widget.latitude;
       _pickedLongitude = widget.longitude;
       _searchController.text = widget.poiName.trim().isNotEmpty ? widget.poiName.trim() : widget.address.trim();
@@ -714,9 +716,15 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
   int? _androidMajorVersion() {
     if (!Platform.isAndroid) return null;
     final raw = Platform.operatingSystemVersion;
-    final match = RegExp(r'Android\s+(\d+)').firstMatch(raw);
-    if (match == null) return null;
-    return int.tryParse(match.group(1) ?? '');
+    var match = RegExp(r'Android\s+(\d+)').firstMatch(raw);
+    if (match != null) {
+      return int.tryParse(match.group(1) ?? '');
+    }
+    match = RegExp(r'^(\d+)').firstMatch(raw.trim());
+    if (match != null) {
+      return int.tryParse(match.group(1) ?? '');
+    }
+    return 99;
   }
 }
 
