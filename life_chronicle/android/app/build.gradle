@@ -1,7 +1,7 @@
 plugins {
     id "com.android.application"
     id "kotlin-android"
-    // flutter-gradle-plugin 由 flutter-plugin-loader 自动应用
+    id "dev.flutter.flutter-gradle-plugin"
 }
 
 def localProperties = new Properties()
