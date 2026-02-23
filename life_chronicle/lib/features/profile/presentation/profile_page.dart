@@ -4538,8 +4538,6 @@ class ModuleManagementPage extends ConsumerStatefulWidget {
 class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
   ModuleManagementConfig? _config;
   bool _loading = true;
-  Map<String, Map<String, int>> _tagCountsCache = {};
-  bool _tagCountsCacheValid = false;
 
   static const _bg = Color(0xFFF2F4F6);
   static const _accentBg = Color(0xFFE0F2F1);
@@ -4578,7 +4576,6 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
   }
 
   Future<void> _saveConfig(ModuleManagementConfig config) async {
-    _tagCountsCacheValid = false;
     setState(() => _config = config);
     await saveModuleManagementConfig(config);
     if (!mounted) return;
@@ -4600,25 +4597,6 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
       }
     } catch (_) {}
     return const [];
-  }
-
-  Future<Map<String, Map<String, int>>> _getTagCounts({
-    required List<FoodRecord> foods,
-    required List<MomentRecord> moments,
-    required List<TravelRecord> travels,
-    required List<FriendRecord> friends,
-    required List<TimelineEvent> goals,
-  }) async {
-    if (_tagCountsCacheValid) return _tagCountsCache;
-    _tagCountsCache = {
-      'food': _countFoodTags(foods),
-      'moment': _countMomentTags(moments),
-      'travel': _countTravelTags(travels),
-      'bond': _countBondTags(friends),
-      'goal': _countGoalTags(goals),
-    };
-    _tagCountsCacheValid = true;
-    return _tagCountsCache;
   }
 
   Map<String, int> _countFoodTags(List<FoodRecord> foods) {
