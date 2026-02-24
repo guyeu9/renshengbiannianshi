@@ -1,9 +1,7 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'backup_service.dart';
 import 'webdav_config_service.dart';
 
 const String backupTaskName = 'life_chronicle_backup';

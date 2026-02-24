@@ -340,7 +340,7 @@ class _TravelOnTheRoadView extends ConsumerWidget {
           filtered = filtered.where((r) {
             final title = (r.title ?? '').toLowerCase();
             final destination = (r.destination ?? '').toLowerCase();
-            final tags = (_decodeStringList(r.tags) ?? <String>[]).join(' ').toLowerCase();
+            final tags = _decodeStringList(r.tags).join(' ').toLowerCase();
             return title.contains(searchLower) ||
                 destination.contains(searchLower) ||
                 tags.contains(searchLower);
@@ -819,7 +819,7 @@ class _TravelWishlistView extends ConsumerWidget {
           filtered = filtered.where((r) {
             final title = (r.title ?? '').toLowerCase();
             final destination = (r.destination ?? '').toLowerCase();
-            final tags = (_decodeStringList(r.tags) ?? <String>[]).join(' ').toLowerCase();
+            final tags = _decodeStringList(r.tags).join(' ').toLowerCase();
             return title.contains(searchLower) ||
                 destination.contains(searchLower) ||
                 tags.contains(searchLower);
@@ -2390,7 +2390,7 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
                           ),
                         ],
                       );
-                    }).toList(),
+                    }),
                     const SizedBox(height: 10),
                     Container(height: 1, color: Colors.black.withValues(alpha: 0.06)),
                     const SizedBox(height: 10),

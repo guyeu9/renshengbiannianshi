@@ -502,7 +502,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                 if (value) {
                   await _backgroundBackupService.registerPeriodicBackup(
                     frequency: newConfig.autoBackupFrequency ?? 'daily',
-                    wifiOnly: newConfig.backupOnWifiOnly ?? true,
+                    wifiOnly: newConfig.backupOnWifiOnly,
                   );
                 } else {
                   await _backgroundBackupService.cancelBackup();
@@ -535,7 +535,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                   if (newConfig.autoBackup) {
                     await _backgroundBackupService.registerPeriodicBackup(
                       frequency: value,
-                      wifiOnly: newConfig.backupOnWifiOnly ?? true,
+                      wifiOnly: newConfig.backupOnWifiOnly,
                     );
                   }
                   setState(() => _config = newConfig);

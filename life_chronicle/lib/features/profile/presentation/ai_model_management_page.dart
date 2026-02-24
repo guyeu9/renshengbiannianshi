@@ -7,7 +7,6 @@ import '../../../core/database/app_database.dart';
 import '../../../core/providers/ai_provider.dart';
 import '../../../core/config/ai_provider_templates.dart';
 import '../../../core/utils/api_key_masker.dart';
-import '../../../core/services/ai_service.dart';
 import '../../../core/services/providers/openai_compatible_service.dart';
 
 class AiModelManagementPage extends ConsumerStatefulWidget {

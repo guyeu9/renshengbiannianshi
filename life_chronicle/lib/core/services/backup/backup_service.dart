@@ -391,7 +391,7 @@ class BackupService {
     _emitProgress(BackupStatus.preparing, message: '准备备份...');
     
     try {
-      if (config.backupOnWifiOnly ?? false) {
+      if (config.backupOnWifiOnly) {
         await checkNetworkConstraint(wifiOnly: true);
       } else {
         await checkNetworkConstraint(wifiOnly: false);
@@ -458,7 +458,7 @@ class BackupService {
     _emitProgress(BackupStatus.preparing, message: '准备增量备份...');
     
     try {
-      if (config.backupOnWifiOnly ?? false) {
+      if (config.backupOnWifiOnly) {
         await checkNetworkConstraint(wifiOnly: true);
       } else {
         await checkNetworkConstraint(wifiOnly: false);
