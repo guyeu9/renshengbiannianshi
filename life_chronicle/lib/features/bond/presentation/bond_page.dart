@@ -8,7 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../core/config/module_tags.dart';
+import '../../../core/config/module_management_config.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/utils/media_storage.dart';
@@ -2134,19 +2134,24 @@ class _FriendCreatePageState extends ConsumerState<FriendCreatePage> {
   Widget build(BuildContext context) {
     final avatarPath = (_avatarPath ?? '').trim();
     final isEdit = widget.initialFriend != null;
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      body: Stack(
-        children: [
-          ListView(
-            padding: const EdgeInsets.fromLTRB(16, 88, 16, 120),
+    final configAsync = ref.watch(moduleManagementConfigProvider);
+    return configAsync.when(
+      data: (config) {
+        final availableTags = getTagsForModule(config, 'bond');
+        final allTags = {...availableTags, ..._selectedTags}.toList();
+        return Scaffold(
+          backgroundColor: const Color(0xFFF8FAFC),
+          body: Stack(
             children: [
-              Column(
+              ListView(
+                padding: const EdgeInsets.fromLTRB(16, 88, 16, 120),
                 children: [
-                  GestureDetector(
-                    onTap: _pickAvatar,
-                    child: Stack(
-                      clipBehavior: Clip.none,
+                  Column(
+                    children: [
+                      GestureDetector(
+                        onTap: _pickAvatar,
+                        child: Stack(
+                          clipBehavior: Clip.none,
                       children: [
                         Container(
                           width: 96,

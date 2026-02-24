@@ -11,7 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../core/config/module_tags.dart';
+import '../../../core/config/module_management_config.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/utils/media_storage.dart';
@@ -1494,7 +1494,6 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
   double? _latitude;
   double? _longitude;
 
-  final List<String> _tags = List.from(ModuleTags.moment);
   final Set<String> _selectedTags = {};
 
   final List<String> _imageUrls = [];
@@ -1525,12 +1524,7 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
         ..addAll(_parseMomentImages(record.images));
       final tags = _parseSceneTags(record.sceneTag);
       if (tags.isNotEmpty) {
-        for (final tag in tags) {
-          if (!_tags.contains(tag)) {
-            _tags.insert(0, tag);
-          }
-          _selectedTags.add(tag);
-        }
+        _selectedTags.addAll(tags);
       }
       final moodIndex = _moods.indexWhere((m) => m.label == record.mood);
       if (moodIndex >= 0) {
@@ -1662,7 +1656,7 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
     });
   }
 
-  Future<void> _addCustomTag() async {
+  Future<void> _addCustomTag(List<String> allTags) async {
     final controller = TextEditingController();
     final result = await showModalBottomSheet<String>(
       context: context,
@@ -1699,7 +1693,6 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
     final tag = result.replaceAll('#', '').trim();
     if (tag.isEmpty) return;
     setState(() {
-      _tags.insert(0, tag);
       _selectedTags.add(tag);
     });
   }
@@ -1871,7 +1864,7 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
     final mergedContent = content.isEmpty ? title : '$title\n\n$content';
 
     final mood = _moods[_selectedMoodIndex];
-    final selectedTags = _tags.where(_selectedTags.contains).toList();
+    final selectedTags = _selectedTags.toList();
     final tag = _encodeSceneTags(selectedTags);
     final locationName = _locationName.trim();
     final locationAddress = _locationAddress.trim();
@@ -1991,249 +1984,258 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
   Widget build(BuildContext context) {
     final isEditing = widget.initialRecord != null;
     final mood = _moods[_selectedMoodIndex];
+    final configAsync = ref.watch(moduleManagementConfigProvider);
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF6F8F8),
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            _CreateTopBar(
-              title: isEditing ? '编辑小确幸' : '记录小确幸',
-              onCancel: () => Navigator.of(context).maybePop(),
-              actionText: isEditing ? '保存' : '发布',
-              onAction: _publish,
-            ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: const Color(0xFFF3F4F6)),
-                    ),
-                    child: Column(
-                      children: [
-                        TextField(
-                          controller: _titleController,
-                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, height: 1.2),
-                          decoration: const InputDecoration(
-                            hintText: '给这份小确幸起个标题...',
-                            border: InputBorder.none,
-                          ),
+    return configAsync.when(
+      data: (config) {
+        final availableTags = getTagsForModule(config, 'moment');
+        final allTags = {...availableTags, ..._selectedTags}.toList();
+        return Scaffold(
+          backgroundColor: const Color(0xFFF6F8F8),
+          body: SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                _CreateTopBar(
+                  title: isEditing ? '编辑小确幸' : '记录小确幸',
+                  onCancel: () => Navigator.of(context).maybePop(),
+                  actionText: isEditing ? '保存' : '发布',
+                  onAction: _publish,
+                ),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: const Color(0xFFF3F4F6)),
                         ),
-                        const Divider(height: 18, color: Color(0xFFF3F4F6)),
-                        TextField(
-                          controller: _contentController,
-                          minLines: 5,
-                          maxLines: 12,
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, height: 1.45, color: Color(0xFF334155)),
-                          decoration: const InputDecoration(
-                            hintText: '记录此刻的美好瞬间，哪怕是微不足道的小事...',
-                            border: InputBorder.none,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: 38,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemBuilder: (context, index) {
-                        final tag = _tags[index];
-                        final selected = _selectedTags.contains(tag);
-                        return InkWell(
-                          borderRadius: BorderRadius.circular(999),
-                          onTap: () {
-                            setState(() {
-                              if (selected) {
-                                _selectedTags.remove(tag);
-                              } else {
-                                _selectedTags.add(tag);
-                              }
-                            });
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: selected ? const Color(0xFF2BCDEE).withValues(alpha: 0.12) : Colors.white,
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(color: selected ? const Color(0xFF2BCDEE).withValues(alpha: 0.25) : const Color(0xFFF3F4F6)),
-                            ),
-                            child: Text(
-                              '# $tag',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                                color: selected ? const Color(0xFF2BCDEE) : const Color(0xFF64748B),
+                        child: Column(
+                          children: [
+                            TextField(
+                              controller: _titleController,
+                              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, height: 1.2),
+                              decoration: const InputDecoration(
+                                hintText: '给这份小确幸起个标题...',
+                                border: InputBorder.none,
                               ),
                             ),
-                          ),
-                        );
-                      },
-                      separatorBuilder: (context, index) => const SizedBox(width: 10),
-                      itemCount: _tags.length,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: OutlinedButton.icon(
-                      onPressed: _addCustomTag,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFFFF9800),
-                        side: BorderSide(color: const Color(0xFFFF9800).withValues(alpha: 0.35), style: BorderStyle.solid),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      ),
-                      icon: const Icon(Icons.add, size: 18),
-                      label: const Text('自定义标签', style: TextStyle(fontWeight: FontWeight.w800)),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 4,
-                      mainAxisSpacing: 10,
-                      crossAxisSpacing: 10,
-                    ),
-                    itemCount: _imageUrls.length + 1,
-                    itemBuilder: (context, index) {
-                      if (index == _imageUrls.length) {
-                        return _PhotoAddTile(onTap: _addPlaceholderImage);
-                      }
-                      return _PhotoTile(
-                        url: _imageUrls[index],
-                        onRemove: () => _removeImageAt(index),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 18),
-                  Container(height: 1, color: const Color(0xFFE5E7EB)),
-                  const SizedBox(height: 16),
-                  Text('此刻心情', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: const Color(0xFF6B7280).withValues(alpha: 0.9))),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    height: 78,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemBuilder: (context, index) {
-                        final option = _moods[index];
-                        final selected = index == _selectedMoodIndex;
-                        return InkWell(
-                          borderRadius: BorderRadius.circular(16),
-                          onTap: () => setState(() => _selectedMoodIndex = index),
-                          child: SizedBox(
-                            width: 60,
-                            child: Column(
-                              children: [
-                                Container(
-                                  width: 44,
-                                  height: 44,
-                                  decoration: BoxDecoration(
-                                    color: selected ? option.color.withValues(alpha: 0.12) : Colors.white,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(color: selected ? option.color.withValues(alpha: 0.6) : const Color(0xFFF3F4F6)),
-                                    boxShadow: selected
-                                        ? [BoxShadow(color: option.color.withValues(alpha: 0.18), blurRadius: 16, offset: const Offset(0, 6))]
-                                        : const [],
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: Text(option.emoji, style: const TextStyle(fontSize: 20)),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  option.label,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w800,
-                                    color: selected ? option.color : const Color(0xFF64748B),
-                                  ),
-                                ),
-                              ],
+                            const Divider(height: 18, color: Color(0xFFF3F4F6)),
+                            TextField(
+                              controller: _contentController,
+                              minLines: 5,
+                              maxLines: 12,
+                              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, height: 1.45, color: Color(0xFF334155)),
+                              decoration: const InputDecoration(
+                                hintText: '记录此刻的美好瞬间，哪怕是微不足道的小事...',
+                                border: InputBorder.none,
+                              ),
                             ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 38,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemBuilder: (context, index) {
+                            final tag = allTags[index];
+                            final selected = _selectedTags.contains(tag);
+                            return InkWell(
+                              borderRadius: BorderRadius.circular(999),
+                              onTap: () {
+                                setState(() {
+                                  if (selected) {
+                                    _selectedTags.remove(tag);
+                                  } else {
+                                    _selectedTags.add(tag);
+                                  }
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: selected ? const Color(0xFF2BCDEE).withValues(alpha: 0.12) : Colors.white,
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(color: selected ? const Color(0xFF2BCDEE).withValues(alpha: 0.25) : const Color(0xFFF3F4F6)),
+                                ),
+                                child: Text(
+                                  '# $tag',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                    color: selected ? const Color(0xFF2BCDEE) : const Color(0xFF64748B),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                          separatorBuilder: (context, index) => const SizedBox(width: 10),
+                          itemCount: allTags.length,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: OutlinedButton.icon(
+                          onPressed: () => _addCustomTag(allTags),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFFFF9800),
+                            side: BorderSide(color: const Color(0xFFFF9800).withValues(alpha: 0.35), style: BorderStyle.solid),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                           ),
-                        );
-                      },
-                      separatorBuilder: (context, index) => const SizedBox(width: 12),
-                      itemCount: _moods.length,
-                    ),
+                          icon: const Icon(Icons.add, size: 18),
+                          label: const Text('自定义标签', style: TextStyle(fontWeight: FontWeight.w800)),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 4,
+                          mainAxisSpacing: 10,
+                          crossAxisSpacing: 10,
+                        ),
+                        itemCount: _imageUrls.length + 1,
+                        itemBuilder: (context, index) {
+                          if (index == _imageUrls.length) {
+                            return _PhotoAddTile(onTap: _addPlaceholderImage);
+                          }
+                          return _PhotoTile(
+                            url: _imageUrls[index],
+                            onRemove: () => _removeImageAt(index),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 18),
+                      Container(height: 1, color: const Color(0xFFE5E7EB)),
+                      const SizedBox(height: 16),
+                      Text('此刻心情', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: const Color(0xFF6B7280).withValues(alpha: 0.9))),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        height: 78,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemBuilder: (context, index) {
+                            final option = _moods[index];
+                            final selected = index == _selectedMoodIndex;
+                            return InkWell(
+                              borderRadius: BorderRadius.circular(16),
+                              onTap: () => setState(() => _selectedMoodIndex = index),
+                              child: SizedBox(
+                                width: 60,
+                                child: Column(
+                                  children: [
+                                    Container(
+                                      width: 44,
+                                      height: 44,
+                                      decoration: BoxDecoration(
+                                        color: selected ? option.color.withValues(alpha: 0.12) : Colors.white,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: selected ? option.color.withValues(alpha: 0.6) : const Color(0xFFF3F4F6)),
+                                        boxShadow: selected
+                                            ? [BoxShadow(color: option.color.withValues(alpha: 0.18), blurRadius: 16, offset: const Offset(0, 6))]
+                                            : const [],
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: Text(option.emoji, style: const TextStyle(fontSize: 20)),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      option.label,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w800,
+                                        color: selected ? option.color : const Color(0xFF64748B),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                          separatorBuilder: (context, index) => const SizedBox(width: 12),
+                          itemCount: _moods.length,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _InfoRow(
+                        iconBackground: mood.color.withValues(alpha: 0.12),
+                        icon: Icons.calendar_today,
+                        iconColor: mood.color,
+                        label: '记录时间',
+                        value: _formatRecordAt(_recordAt),
+                        trailingIcon: Icons.edit,
+                        onTap: _editRecordAt,
+                      ),
+                      const SizedBox(height: 10),
+                      _InfoRow(
+                        iconBackground: const Color(0xFFFFEDD5),
+                        icon: Icons.location_on,
+                        iconColor: const Color(0xFFFB923C),
+                        label: '地理位置',
+                        value: _locationDisplay.isEmpty ? '添加位置信息' : _locationDisplay,
+                        trailingIcon: Icons.chevron_right,
+                        onTap: _editLocation,
+                      ),
+                      const SizedBox(height: 18),
+                      Text('万物互联', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: const Color(0xFF6B7280).withValues(alpha: 0.9))),
+                      const SizedBox(height: 10),
+                      _UniversalLinkCard(
+                        title: '关联人生目标',
+                        subtitle: _linkedGoalIds.isEmpty ? '让小确幸充满意义' : '已选 ${_linkedGoalIds.length} 条',
+                        icon: Icons.flag,
+                        gradientStart: const Color(0xFF2BCDEE),
+                        gradientEnd: const Color(0xFF22D3EE),
+                        trailingIcon: _linkedGoalIds.isEmpty ? Icons.add_circle : Icons.check_circle,
+                        onTap: _selectLinkedGoals,
+                      ),
+                      const SizedBox(height: 10),
+                      _UniversalLinkCard(
+                        title: '关联旅行',
+                        subtitle: _linkedTravelIds.isEmpty ? '记录旅途中的点滴' : '已选 ${_linkedTravelIds.length} 条',
+                        icon: Icons.airplanemode_active,
+                        gradientStart: const Color(0xFF34D399),
+                        gradientEnd: const Color(0xFF14B8A6),
+                        trailingIcon: _linkedTravelIds.isEmpty ? Icons.add_circle : Icons.check_circle,
+                        onTap: _selectLinkedTravels,
+                      ),
+                      const SizedBox(height: 10),
+                      _UniversalLinkCard(
+                        title: '关联羁绊',
+                        subtitle: _linkedFriendIds.isEmpty ? '与朋友共享此刻' : '已选 ${_linkedFriendIds.length} 人',
+                        icon: Icons.diversity_1,
+                        gradientStart: const Color(0xFFFB7185),
+                        gradientEnd: const Color(0xFFEC4899),
+                        trailingIcon: _linkedFriendIds.isEmpty ? Icons.add_circle : Icons.check_circle,
+                        onTap: _selectLinkedFriends,
+                      ),
+                      const SizedBox(height: 10),
+                      _UniversalLinkCard(
+                        title: '关联美食',
+                        subtitle: _linkedFoodIds.isEmpty ? '记录舌尖上的幸福' : '已选 ${_linkedFoodIds.length} 条',
+                        icon: Icons.restaurant,
+                        gradientStart: const Color(0xFFFBBF24),
+                        gradientEnd: const Color(0xFFF97316),
+                        trailingIcon: _linkedFoodIds.isEmpty ? Icons.add_circle : Icons.check_circle,
+                        onTap: _selectLinkedFoods,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  _InfoRow(
-                    iconBackground: mood.color.withValues(alpha: 0.12),
-                    icon: Icons.calendar_today,
-                    iconColor: mood.color,
-                    label: '记录时间',
-                    value: _formatRecordAt(_recordAt),
-                    trailingIcon: Icons.edit,
-                    onTap: _editRecordAt,
-                  ),
-                  const SizedBox(height: 10),
-                  _InfoRow(
-                    iconBackground: const Color(0xFFFFEDD5),
-                    icon: Icons.location_on,
-                    iconColor: const Color(0xFFFB923C),
-                    label: '地理位置',
-                    value: _locationDisplay.isEmpty ? '添加位置信息' : _locationDisplay,
-                    trailingIcon: Icons.chevron_right,
-                    onTap: _editLocation,
-                  ),
-                  const SizedBox(height: 18),
-                  Text('万物互联', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: const Color(0xFF6B7280).withValues(alpha: 0.9))),
-                  const SizedBox(height: 10),
-                  _UniversalLinkCard(
-                    title: '关联人生目标',
-                    subtitle: _linkedGoalIds.isEmpty ? '让小确幸充满意义' : '已选 ${_linkedGoalIds.length} 条',
-                    icon: Icons.flag,
-                    gradientStart: const Color(0xFF2BCDEE),
-                    gradientEnd: const Color(0xFF22D3EE),
-                    trailingIcon: _linkedGoalIds.isEmpty ? Icons.add_circle : Icons.check_circle,
-                    onTap: _selectLinkedGoals,
-                  ),
-                  const SizedBox(height: 10),
-                  _UniversalLinkCard(
-                    title: '关联旅行',
-                    subtitle: _linkedTravelIds.isEmpty ? '记录旅途中的点滴' : '已选 ${_linkedTravelIds.length} 条',
-                    icon: Icons.airplanemode_active,
-                    gradientStart: const Color(0xFF34D399),
-                    gradientEnd: const Color(0xFF14B8A6),
-                    trailingIcon: _linkedTravelIds.isEmpty ? Icons.add_circle : Icons.check_circle,
-                    onTap: _selectLinkedTravels,
-                  ),
-                  const SizedBox(height: 10),
-                  _UniversalLinkCard(
-                    title: '关联羁绊',
-                    subtitle: _linkedFriendIds.isEmpty ? '与朋友共享此刻' : '已选 ${_linkedFriendIds.length} 人',
-                    icon: Icons.diversity_1,
-                    gradientStart: const Color(0xFFFB7185),
-                    gradientEnd: const Color(0xFFEC4899),
-                    trailingIcon: _linkedFriendIds.isEmpty ? Icons.add_circle : Icons.check_circle,
-                    onTap: _selectLinkedFriends,
-                  ),
-                  const SizedBox(height: 10),
-                  _UniversalLinkCard(
-                    title: '关联美食',
-                    subtitle: _linkedFoodIds.isEmpty ? '记录舌尖上的幸福' : '已选 ${_linkedFoodIds.length} 条',
-                    icon: Icons.restaurant,
-                    gradientStart: const Color(0xFFFBBF24),
-                    gradientEnd: const Color(0xFFF97316),
-                    trailingIcon: _linkedFoodIds.isEmpty ? Icons.add_circle : Icons.check_circle,
-                    onTap: _selectLinkedFoods,
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
+      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (_, __) => const Scaffold(body: Center(child: Text('加载配置失败'))),
     );
   }
 }

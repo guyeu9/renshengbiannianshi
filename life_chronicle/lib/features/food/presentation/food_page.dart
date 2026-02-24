@@ -12,7 +12,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../core/config/module_tags.dart';
+import '../../../core/config/module_management_config.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/utils/media_storage.dart';
@@ -2517,7 +2517,6 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
   double? _longitude;
 
   final _imageUrls = <String>[];
-  final _availableTags = <String>[...ModuleTags.food];
   final Set<String> _selectedTags = {};
 
   final _linkedFriends = <FriendRecord>[];
@@ -2555,9 +2554,6 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
         _selectedTags
           ..clear()
           ..addAll(tags);
-        for (final t in tags) {
-          if (!_availableTags.contains(t)) _availableTags.add(t);
-        }
       }
       _loadInitialLinks(record.id);
     } else {
@@ -2598,51 +2594,60 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.initialRecord != null;
-    return Scaffold(
-      backgroundColor: const Color(0xFFF6F8F8),
-      appBar: AppBar(
-        backgroundColor: Colors.white.withValues(alpha: 0.80),
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: true,
-        leadingWidth: 86,
-        leading: TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF6B7280))),
-        ),
-        title: Text(isEditing ? '编辑美食记录' : '新建美食记录', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _primary,
-                foregroundColor: _backgroundDark,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-                textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
-              ),
-              onPressed: _publish,
-              child: Text(isEditing ? '保存' : '发布'),
+    final configAsync = ref.watch(moduleManagementConfigProvider);
+    return configAsync.when(
+      data: (config) {
+        final availableTags = getTagsForModule(config, 'food');
+        final allTags = {...availableTags, ..._selectedTags}.toList()..sort();
+        return Scaffold(
+          backgroundColor: const Color(0xFFF6F8F8),
+          appBar: AppBar(
+            backgroundColor: Colors.white.withValues(alpha: 0.80),
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            centerTitle: true,
+            leadingWidth: 86,
+            leading: TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('取消', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF6B7280))),
             ),
+            title: Text(isEditing ? '编辑美食记录' : '新建美食记录', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _primary,
+                    foregroundColor: _backgroundDark,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                    textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
+                  ),
+                  onPressed: _publish,
+                  child: Text(isEditing ? '保存' : '发布'),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-        children: [
-          _buildImageGrid(context),
-          const SizedBox(height: 16),
-          _buildRestaurantInfoCard(),
-          const SizedBox(height: 16),
-          _buildDetailsCard(context),
-          const SizedBox(height: 16),
-          _buildLocationCard(context),
-          const SizedBox(height: 16),
-          _buildUniversalLinkSection(context),
-        ],
-      ),
+          body: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+            children: [
+              _buildImageGrid(context),
+              const SizedBox(height: 16),
+              _buildRestaurantInfoCard(),
+              const SizedBox(height: 16),
+              _buildDetailsCard(context, allTags),
+              const SizedBox(height: 16),
+              _buildLocationCard(context),
+              const SizedBox(height: 16),
+              _buildUniversalLinkSection(context),
+            ],
+          ),
+        );
+      },
+      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (_, __) => Scaffold(body: Center(child: Text('加载配置失败'))),
     );
   }
 
@@ -2789,7 +2794,7 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
     );
   }
 
-  Widget _buildDetailsCard(BuildContext context) {
+  Widget _buildDetailsCard(BuildContext context, List<String> allTags) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -2848,7 +2853,7 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
             children: [
               const Text('标签', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF9CA3AF), letterSpacing: 0.6)),
               TextButton(
-                onPressed: () => _showEditTagsSheet(context),
+                onPressed: () => _showEditTagsSheet(context, allTags),
                 style: TextButton.styleFrom(
                   padding: EdgeInsets.zero,
                   minimumSize: const Size(0, 0),
@@ -2867,7 +2872,7 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
               spacing: 10,
               runSpacing: 10,
               children: [
-                for (final t in _availableTags)
+                for (final t in allTags)
                   InkWell(
                     borderRadius: BorderRadius.circular(12),
                     onTap: () {
@@ -2899,7 +2904,7 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
                   ),
                 InkWell(
                   borderRadius: BorderRadius.circular(12),
-                  onTap: () => _showEditTagsSheet(context),
+                  onTap: () => _showEditTagsSheet(context, allTags),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
@@ -3229,8 +3234,9 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
     return persistImageFiles(files, folder: 'food', prefix: 'food');
   }
 
-  Future<void> _showEditTagsSheet(BuildContext context) async {
+  Future<void> _showEditTagsSheet(BuildContext context, List<String> allTags) async {
     final controller = TextEditingController();
+    var localTags = List<String>.from(allTags);
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -3265,8 +3271,11 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
                         onPressed: () {
                           final v = controller.text.trim();
                           if (v.isEmpty) return;
-                          if (_availableTags.contains(v)) return;
-                          setState(() => _availableTags.add(v));
+                          if (localTags.contains(v)) return;
+                          setState(() {
+                            localTags.add(v);
+                            _selectedTags.add(v);
+                          });
                           setInnerState(() {});
                           controller.clear();
                         },
@@ -3281,12 +3290,12 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
                       spacing: 10,
                       runSpacing: 10,
                       children: [
-                        for (final t in _availableTags)
+                        for (final t in localTags)
                           InkWell(
                             borderRadius: BorderRadius.circular(999),
                             onTap: () {
                               setState(() {
-                                _availableTags.remove(t);
+                                localTags.remove(t);
                                 _selectedTags.remove(t);
                               });
                               setInnerState(() {});

@@ -1809,9 +1809,7 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
                                             final computedProgress = totalCount == 0 ? quarter.progress : doneCount / totalCount;
                                             final state = (quarter.isCompleted || (computedProgress >= 1 && totalCount > 0))
                                                 ? _QuarterState.done
-                                                : (computedProgress > 0 || totalCount > 0)
-                                                    ? _QuarterState.active
-                                                    : _QuarterState.locked;
+                                                : _QuarterState.active;
                                             final quarterLabel = quarter.targetQuarter != null ? 'Q${quarter.targetQuarter}' : 'Q${index + 1}';
                                             return _QuarterNode(
                                               quarter: quarterLabel,

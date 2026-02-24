@@ -281,12 +281,42 @@ Future<ModuleManagementConfig> loadModuleManagementConfig() async {
     final raw = await file.readAsString();
     final decoded = jsonDecode(raw);
     if (decoded is Map) {
-      return ModuleManagementConfig.fromJson(Map<String, dynamic>.from(decoded));
+      final config = ModuleManagementConfig.fromJson(Map<String, dynamic>.from(decoded));
+      final migrated = _migrateModuleConfig(config);
+      if (migrated != null) {
+        await file.writeAsString(jsonEncode(migrated.toJson()));
+        return migrated;
+      }
+      return config;
     }
   } catch (_) {}
   final fallback = ModuleManagementConfig.defaults();
   await file.writeAsString(jsonEncode(fallback.toJson()));
   return fallback;
+}
+
+ModuleManagementConfig? _migrateModuleConfig(ModuleManagementConfig config) {
+  bool needsMigration = false;
+  final migratedModules = <String, ModuleConfig>{};
+
+  for (final entry in config.modules.entries) {
+    final module = entry.value;
+    String? newIconName;
+
+    if (module.key == 'travel' && module.iconName != 'airplanemode_active') {
+      newIconName = 'airplanemode_active';
+      needsMigration = true;
+    }
+
+    migratedModules[entry.key] = newIconName != null
+        ? module.copyWith(iconName: newIconName)
+        : module;
+  }
+
+  if (needsMigration) {
+    return ModuleManagementConfig(modules: migratedModules);
+  }
+  return null;
 }
 
 Future<void> saveModuleManagementConfig(ModuleManagementConfig config) async {
