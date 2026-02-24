@@ -7,7 +7,8 @@ import '../../../core/database/app_database.dart';
 import '../../../core/providers/ai_provider.dart';
 import '../../../core/config/ai_provider_templates.dart';
 import '../../../core/utils/api_key_masker.dart';
-import '../../../core/widgets/custom_bottom_sheet.dart';
+import '../../../core/services/ai_service.dart';
+import '../../../core/services/providers/openai_compatible_service.dart';
 
 class AiModelManagementPage extends ConsumerStatefulWidget {
   const AiModelManagementPage({super.key});
@@ -34,96 +35,86 @@ class _AiModelManagementPageState extends ConsumerState<AiModelManagementPage> w
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 120,
-            floating: false,
-            pinned: true,
-            backgroundColor: Colors.white,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
-                  ),
-                ),
-                child: SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(Icons.psychology, color: Colors.white, size: 24),
-                            ),
-                            const SizedBox(width: 12),
-                            const Text(
-                              'AI 模型管理',
-                              style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(48),
+      backgroundColor: const Color(0xFFF2F4F6),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            _buildHeader(context),
+            Expanded(
               child: Container(
                 color: Colors.white,
-                child: TabBar(
+                child: TabBarView(
                   controller: _tabController,
-                  labelColor: const Color(0xFF6366F1),
-                  unselectedLabelColor: const Color(0xFF9CA3AF),
-                  indicatorColor: const Color(0xFF6366F1),
-                  indicatorWeight: 3,
-                  labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-                  tabs: const [
-                    Tab(text: '对话服务'),
-                    Tab(text: 'Embedding 服务'),
+                  children: [
+                    _ProviderList(serviceType: 'chat'),
+                    _ProviderList(serviceType: 'embedding'),
                   ],
                 ),
               ),
             ),
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showAddProviderDialog(context),
+        backgroundColor: const Color(0xFF2563EB),
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text('添加服务商', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              _FrostedCircleButton(
+                icon: Icons.arrow_back_ios_new,
+                onTap: () => Navigator.of(context).pop(),
+              ),
+              const Expanded(
+                child: Text(
+                  'AI 模型管理',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF1F2937),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 40),
+            ],
           ),
-          SliverFillRemaining(
-            child: TabBarView(
+          const SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFF3F4F6),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: TabBar(
               controller: _tabController,
-              children: [
-                _ProviderList(serviceType: 'chat'),
-                _ProviderList(serviceType: 'embedding'),
+              labelColor: Colors.white,
+              unselectedLabelColor: const Color(0xFF6B7280),
+              indicator: BoxDecoration(
+                color: const Color(0xFF2563EB),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              indicatorSize: TabBarIndicatorSize.tab,
+              dividerColor: Colors.transparent,
+              labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+              tabs: const [
+                Tab(text: '对话服务'),
+                Tab(text: 'Embedding 服务'),
               ],
             ),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddProviderDialog(context),
-        backgroundColor: const Color(0xFF6366F1),
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('添加服务商', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
       ),
     );
   }
@@ -135,6 +126,34 @@ class _AiModelManagementPageState extends ConsumerState<AiModelManagementPage> w
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => _AddProviderSheet(serviceType: serviceType),
+    );
+  }
+}
+
+class _FrostedCircleButton extends StatelessWidget {
+  const _FrostedCircleButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () {
+        FocusManager.instance.primaryFocus?.unfocus();
+        onTap();
+      },
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.60),
+          borderRadius: BorderRadius.circular(999),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 10, offset: const Offset(0, 2))],
+        ),
+        child: Icon(icon, size: 20, color: const Color(0xFF374151)),
+      ),
     );
   }
 }
@@ -254,48 +273,20 @@ class _ProviderList extends ConsumerWidget {
   }
 
   Future<void> _deleteProvider(BuildContext context, WidgetRef ref, AiProvider provider) async {
-    final confirmed = await showCustomBottomSheet<bool>(
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Text(
-            '确认删除',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
+      builder: (context) => AlertDialog(
+        title: const Text('确认删除'),
+        content: Text('确定要删除服务商"${provider.name}"吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('取消'),
           ),
-          const SizedBox(height: 12),
-          Text(
-            '确定要删除服务商"${provider.name}"吗？',
-            style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
-          ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                  child: const Text('取消', style: TextStyle(fontWeight: FontWeight.w800)),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFEF4444),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                  child: const Text('删除', style: TextStyle(fontWeight: FontWeight.w800)),
-                ),
-              ),
-            ],
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('删除'),
           ),
         ],
       ),
@@ -331,13 +322,13 @@ class _ProviderCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isActive ? const Color(0xFF6366F1) : const Color(0xFFE5E7EB),
+          color: isActive ? const Color(0xFF2563EB) : const Color(0xFFE5E7EB),
           width: isActive ? 2 : 1,
         ),
         boxShadow: [
           if (isActive)
             BoxShadow(
-              color: const Color(0xFF6366F1).withValues(alpha: 0.15),
+              color: const Color(0xFF2563EB).withValues(alpha: 0.15),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -356,7 +347,7 @@ class _ProviderCard extends StatelessWidget {
                   value: true,
                   groupValue: isActive,
                   onChanged: (_) => onSetActive(),
-                  activeColor: const Color(0xFF6366F1),
+                  activeColor: const Color(0xFF2563EB),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -473,6 +464,9 @@ class _AddProviderSheetState extends ConsumerState<_AddProviderSheet> {
   String _selectedApiType = 'openai';
   AiProviderTemplate? _selectedTemplate;
   bool _obscureApiKey = true;
+  bool _isLoadingModels = false;
+  List<String> _availableModels = [];
+  String? _selectedModel;
 
   @override
   void dispose() {
@@ -490,7 +484,62 @@ class _AddProviderSheetState extends ConsumerState<_AddProviderSheet> {
       _selectedApiType = template.apiType;
       _baseUrlController.text = template.baseUrl;
       _modelNameController.text = template.defaultModel;
+      _selectedModel = template.defaultModel;
+      _availableModels = [];
     });
+  }
+
+  Future<void> _loadModels() async {
+    final baseUrl = _baseUrlController.text.trim();
+    final apiKey = _apiKeyController.text.trim();
+
+    if (baseUrl.isEmpty || apiKey.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请先填写 Base URL 和 API Key')),
+      );
+      return;
+    }
+
+    setState(() => _isLoadingModels = true);
+
+    try {
+      final tempProvider = AiProvider(
+        id: 'temp',
+        name: 'temp',
+        apiType: _selectedApiType,
+        serviceType: widget.serviceType,
+        baseUrl: baseUrl,
+        apiKey: apiKey,
+        modelName: null,
+        extraConfig: null,
+        isActive: false,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      final service = OpenAiCompatibleService(tempProvider);
+      final models = await service.fetchModels();
+
+      setState(() {
+        _availableModels = models;
+        _isLoadingModels = false;
+      });
+
+      if (models.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('未找到可用模型，请手动输入')),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() => _isLoadingModels = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('加载模型失败: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _save() async {
@@ -505,6 +554,8 @@ class _AddProviderSheetState extends ConsumerState<_AddProviderSheet> {
         : await ref.read(allEmbeddingProvidersProvider.future);
     final isFirst = existingProviders.isEmpty;
 
+    final modelName = _selectedModel ?? _modelNameController.text.trim();
+
     await dao.upsert(AiProvidersCompanion(
       id: Value(id),
       name: Value(_nameController.text.trim()),
@@ -512,7 +563,7 @@ class _AddProviderSheetState extends ConsumerState<_AddProviderSheet> {
       serviceType: Value(widget.serviceType),
       baseUrl: Value(_baseUrlController.text.trim()),
       apiKey: Value(_apiKeyController.text.trim()),
-      modelName: Value(_modelNameController.text.trim().isEmpty ? null : _modelNameController.text.trim()),
+      modelName: Value(modelName.isEmpty ? null : modelName),
       isActive: Value(isFirst),
       createdAt: Value(now),
       updatedAt: Value(now),
@@ -585,10 +636,10 @@ class _AddProviderSheetState extends ConsumerState<_AddProviderSheet> {
                               width: 100,
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: isSelected ? const Color(0xFF6366F1).withValues(alpha: 0.1) : const Color(0xFFF8FAFC),
+                                color: isSelected ? const Color(0xFF2563EB).withValues(alpha: 0.1) : const Color(0xFFF8FAFC),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: isSelected ? const Color(0xFF6366F1) : const Color(0xFFE5E7EB),
+                                  color: isSelected ? const Color(0xFF2563EB) : const Color(0xFFE5E7EB),
                                   width: isSelected ? 2 : 1,
                                 ),
                               ),
@@ -598,7 +649,7 @@ class _AddProviderSheetState extends ConsumerState<_AddProviderSheet> {
                                   Icon(
                                     _getIconForApiType(template.apiType),
                                     size: 24,
-                                    color: isSelected ? const Color(0xFF6366F1) : const Color(0xFF6B7280),
+                                    color: isSelected ? const Color(0xFF2563EB) : const Color(0xFF6B7280),
                                   ),
                                   const SizedBox(height: 6),
                                   Text(
@@ -606,7 +657,7 @@ class _AddProviderSheetState extends ConsumerState<_AddProviderSheet> {
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w600,
-                                      color: isSelected ? const Color(0xFF6366F1) : const Color(0xFF374151),
+                                      color: isSelected ? const Color(0xFF2563EB) : const Color(0xFF374151),
                                     ),
                                     textAlign: TextAlign.center,
                                     maxLines: 2,
@@ -675,13 +726,47 @@ class _AddProviderSheetState extends ConsumerState<_AddProviderSheet> {
                       validator: (v) => v?.trim().isEmpty == true ? '请输入 API Key' : null,
                     ),
                     const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _modelNameController,
-                      decoration: const InputDecoration(
-                        labelText: '模型名称（可选）',
-                        hintText: '如：gpt-4、deepseek-chat',
-                        border: OutlineInputBorder(),
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _availableModels.isNotEmpty
+                              ? DropdownButtonFormField<String>(
+                                  value: _selectedModel,
+                                  decoration: const InputDecoration(
+                                    labelText: '模型名称',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  items: _availableModels.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
+                                  onChanged: (v) => setState(() {
+                                    _selectedModel = v;
+                                    _modelNameController.text = v ?? '';
+                                  }),
+                                )
+                              : TextFormField(
+                                  controller: _modelNameController,
+                                  decoration: const InputDecoration(
+                                    labelText: '模型名称（可选）',
+                                    hintText: '如：gpt-4、deepseek-chat',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                ),
+                        ),
+                        const SizedBox(width: 12),
+                        SizedBox(
+                          height: 56,
+                          child: ElevatedButton.icon(
+                            onPressed: _isLoadingModels ? null : _loadModels,
+                            icon: _isLoadingModels
+                                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                                : const Icon(Icons.cloud_download, size: 18),
+                            label: const Text('加载'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2563EB),
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 32),
                   ],
@@ -697,7 +782,7 @@ class _AddProviderSheetState extends ConsumerState<_AddProviderSheet> {
                 child: ElevatedButton(
                   onPressed: _save,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6366F1),
+                    backgroundColor: const Color(0xFF2563EB),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -754,6 +839,9 @@ class _EditProviderSheetState extends ConsumerState<_EditProviderSheet> {
 
   late String _selectedApiType;
   bool _obscureApiKey = true;
+  bool _isLoadingModels = false;
+  List<String> _availableModels = [];
+  String? _selectedModel;
 
   @override
   void initState() {
@@ -763,6 +851,7 @@ class _EditProviderSheetState extends ConsumerState<_EditProviderSheet> {
     _apiKeyController = TextEditingController();
     _modelNameController = TextEditingController(text: widget.provider.modelName ?? '');
     _selectedApiType = widget.provider.apiType;
+    _selectedModel = widget.provider.modelName;
   }
 
   @override
@@ -774,11 +863,66 @@ class _EditProviderSheetState extends ConsumerState<_EditProviderSheet> {
     super.dispose();
   }
 
+  Future<void> _loadModels() async {
+    final baseUrl = _baseUrlController.text.trim();
+    final apiKey = _apiKeyController.text.trim().isEmpty ? widget.provider.apiKey : _apiKeyController.text.trim();
+
+    if (baseUrl.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请先填写 Base URL')),
+      );
+      return;
+    }
+
+    setState(() => _isLoadingModels = true);
+
+    try {
+      final tempProvider = AiProvider(
+        id: 'temp',
+        name: 'temp',
+        apiType: _selectedApiType,
+        serviceType: widget.provider.serviceType,
+        baseUrl: baseUrl,
+        apiKey: apiKey,
+        modelName: null,
+        extraConfig: null,
+        isActive: false,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      final service = OpenAiCompatibleService(tempProvider);
+      final models = await service.fetchModels();
+
+      setState(() {
+        _availableModels = models;
+        _isLoadingModels = false;
+      });
+
+      if (models.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('未找到可用模型，请手动输入')),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() => _isLoadingModels = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('加载模型失败: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
     final dao = ref.read(aiProviderDaoProvider);
     final now = DateTime.now();
+
+    final modelName = _selectedModel ?? _modelNameController.text.trim();
 
     await dao.upsert(AiProvidersCompanion(
       id: Value(widget.provider.id),
@@ -787,7 +931,7 @@ class _EditProviderSheetState extends ConsumerState<_EditProviderSheet> {
       serviceType: Value(widget.provider.serviceType),
       baseUrl: Value(_baseUrlController.text.trim()),
       apiKey: Value(_apiKeyController.text.trim().isEmpty ? widget.provider.apiKey : _apiKeyController.text.trim()),
-      modelName: Value(_modelNameController.text.trim().isEmpty ? null : _modelNameController.text.trim()),
+      modelName: Value(modelName.isEmpty ? null : modelName),
       isActive: Value(widget.provider.isActive),
       createdAt: Value(widget.provider.createdAt),
       updatedAt: Value(now),
@@ -893,12 +1037,46 @@ class _EditProviderSheetState extends ConsumerState<_EditProviderSheet> {
                       style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
                     ),
                     const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _modelNameController,
-                      decoration: const InputDecoration(
-                        labelText: '模型名称（可选）',
-                        border: OutlineInputBorder(),
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _availableModels.isNotEmpty
+                              ? DropdownButtonFormField<String>(
+                                  value: _selectedModel,
+                                  decoration: const InputDecoration(
+                                    labelText: '模型名称',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  items: _availableModels.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
+                                  onChanged: (v) => setState(() {
+                                    _selectedModel = v;
+                                    _modelNameController.text = v ?? '';
+                                  }),
+                                )
+                              : TextFormField(
+                                  controller: _modelNameController,
+                                  decoration: const InputDecoration(
+                                    labelText: '模型名称（可选）',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                ),
+                        ),
+                        const SizedBox(width: 12),
+                        SizedBox(
+                          height: 56,
+                          child: ElevatedButton.icon(
+                            onPressed: _isLoadingModels ? null : _loadModels,
+                            icon: _isLoadingModels
+                                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                                : const Icon(Icons.cloud_download, size: 18),
+                            label: const Text('加载'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2563EB),
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 32),
                   ],
@@ -914,7 +1092,7 @@ class _EditProviderSheetState extends ConsumerState<_EditProviderSheet> {
                 child: ElevatedButton(
                   onPressed: _save,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6366F1),
+                    backgroundColor: const Color(0xFF2563EB),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

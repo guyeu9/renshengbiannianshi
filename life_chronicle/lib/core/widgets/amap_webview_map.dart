@@ -19,6 +19,7 @@ class AMapWebViewMap extends StatefulWidget {
     this.markerLatitude,
     this.markerLongitude,
     this.webKey = '',
+    this.securityCode = '',
     this.onLocationSelected,
     this.onPoiSelected,
     this.onMapReady,
@@ -34,6 +35,7 @@ class AMapWebViewMap extends StatefulWidget {
   final double? markerLatitude;
   final double? markerLongitude;
   final String webKey;
+  final String securityCode;
   final void Function(double lat, double lng)? onLocationSelected;
   final void Function(String name, String address, double lat, double lng)? onPoiSelected;
   final VoidCallback? onMapReady;
@@ -347,6 +349,11 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
       
       log('Loading AMap JS API v2.0...');
       log('Key: $webKey');
+      
+      // 安全密钥配置
+      window._AMapSecurityConfig = {
+        securityJsCode: '${widget.securityCode}',
+      };
       
       var script = document.createElement('script');
       script.src = 'https://webapi.amap.com/maps?v=2.0&key=$webKey&callback=initAMap';
