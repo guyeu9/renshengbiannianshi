@@ -17,6 +17,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/utils/media_storage.dart';
+import '../../../core/config/module_tags.dart';
 
 const Map<String, IconData> moduleIconRegistry = {
   'restaurant': Icons.restaurant,

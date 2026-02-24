@@ -58,7 +58,6 @@ class _TravelPageState extends State<TravelPage> {
 
   @override
   Widget build(BuildContext context) {
-    final tags = {..._availableTags, ..._selectedTags}.toList()..sort();
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8F8),
       body: SafeArea(
