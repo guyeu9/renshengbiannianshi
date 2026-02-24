@@ -2091,93 +2091,6 @@ class _FriendCreatePageState extends ConsumerState<FriendCreatePage> {
     setState(() => _contactFrequency = next);
   }
 
-  Future<void> _openTagPickerSheet() async {
-    final result = await showModalBottomSheet<List<String>>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        var selected = <String>{..._selectedTags};
-        return StatefulBuilder(
-          builder: (context, setInner) {
-            return _BottomSheetShell(
-              title: '印象标签',
-              actionText: '完成',
-              onAction: () => Navigator.of(context).pop(selected.toList()),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: [
-                        for (final tag in ModuleTags.bond)
-                          InkWell(
-                            borderRadius: BorderRadius.circular(12),
-                            onTap: () {
-                              if (selected.contains(tag)) {
-                                selected.remove(tag);
-                              } else {
-                                selected.add(tag);
-                              }
-                              setInner(() {});
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: selected.contains(tag) ? const Color(0x1A0EA5E9) : const Color(0xFFF3F4F6),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                tag,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w900,
-                                  color: selected.contains(tag) ? const Color(0xFF0EA5E9) : const Color(0xFF64748B),
-                                ),
-                              ),
-                            ),
-                          ),
-                        InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                          onTap: () async {
-                            await Navigator.of(context).maybePop();
-                            if (!mounted) return;
-                            await _addCustomTag();
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: const Color(0xFFE2E8F0), style: BorderStyle.solid),
-                              borderRadius: BorderRadius.circular(12),
-                              color: Colors.transparent,
-                            ),
-                            child: const Text(
-                              '添加标签',
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF64748B)),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-    if (result == null) return;
-    setState(() {
-      _selectedTags
-        ..clear()
-        ..addAll(result.map((e) => e.replaceAll('#', '').trim()).where((e) => e.isNotEmpty));
-    });
-  }
-
   Future<void> _save() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
@@ -2458,43 +2371,38 @@ class _FriendCreatePageState extends ConsumerState<FriendCreatePage> {
                       style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF334155), height: 1.35),
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        const Expanded(
-                          child: Text('印象标签', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF999999))),
-                        ),
-                        TextButton(
-                          onPressed: _openTagPickerSheet,
-                          style: TextButton.styleFrom(
-                            foregroundColor: const Color(0xFF0EA5E9),
-                            textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
-                          ),
-                          child: const Text('选择'),
-                        ),
-                      ],
-                    ),
+                    const Text('印象标签', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF999999))),
+                    const SizedBox(height: 10),
                     Wrap(
                       spacing: 10,
                       runSpacing: 10,
                       children: [
-                        for (final t in _selectedTags)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: const Color(0x1A0EA5E9),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(t, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF0EA5E9))),
-                                const SizedBox(width: 6),
-                                InkWell(
-                                  borderRadius: BorderRadius.circular(999),
-                                  onTap: () => setState(() => _selectedTags.remove(t)),
-                                  child: const Icon(Icons.close, size: 16, color: Color(0xFF0EA5E9)),
+                        for (final tag in ModuleTags.bond)
+                          InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: () {
+                              setState(() {
+                                if (_selectedTags.contains(tag)) {
+                                  _selectedTags.remove(tag);
+                                } else {
+                                  _selectedTags.add(tag);
+                                }
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: _selectedTags.contains(tag) ? const Color(0x1A0EA5E9) : const Color(0xFFF3F4F6),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                tag,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w900,
+                                  color: _selectedTags.contains(tag) ? const Color(0xFF0EA5E9) : const Color(0xFF64748B),
                                 ),
-                              ],
+                              ),
                             ),
                           ),
                         InkWell(

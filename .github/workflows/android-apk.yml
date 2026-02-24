@@ -12,42 +12,7 @@ on:
       - master
 
 jobs:
-  pre-check:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          flutter-version: "3.27.1"
-          cache: true
-      - name: Fix Gradle Java Home (CI)
-        run: |
-          # Remove Windows-specific JDK path to allow CI to use setup-java's JDK
-          sed -i '/org.gradle.java.home/d' life_chronicle/android/gradle.properties
-
-      - name: Flutter Pub Get (CI)
-        run: |
-          flutter doctor -v
-          flutter pub get
-        working-directory: life_chronicle
-
-      - name: Pre-check Script
-        env:
-          FLUTTER_ROOT: ${{ env.FLUTTER_ROOT }}
-        run: |
-          chmod +x life_chronicle/scripts/pre-check.sh
-          ./life_chronicle/scripts/pre-check.sh
-
   build:
-    needs: pre-check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

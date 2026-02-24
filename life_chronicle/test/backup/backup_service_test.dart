@@ -199,7 +199,7 @@ void main() {
 
     test('upsert should create or update sync state', () async {
       await db.syncStateDao.upsert(SyncStateCompanion(
-        id: const Value('main'),
+        id: const Value('default'),
         lastSyncTime: Value(DateTime.now()),
         lastSyncChangeId: const Value(100),
         deviceId: const Value('test-device'),
@@ -214,7 +214,7 @@ void main() {
       final stream = db.syncStateDao.watchDefault();
 
       await db.syncStateDao.upsert(SyncStateCompanion(
-        id: const Value('main'),
+        id: const Value('default'),
         lastSyncTime: Value(DateTime.now()),
         deviceId: const Value('test-device'),
       ));
