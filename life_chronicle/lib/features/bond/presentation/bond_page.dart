@@ -2152,56 +2152,56 @@ class _FriendCreatePageState extends ConsumerState<FriendCreatePage> {
                         onTap: _pickAvatar,
                         child: Stack(
                           clipBehavior: Clip.none,
-                      children: [
-                        Container(
-                          width: 96,
-                          height: 96,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE2E8F0),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 4),
-                            boxShadow: const [BoxShadow(color: Color(0x11000000), blurRadius: 10, offset: Offset(0, 2))],
-                          ),
-                          child: ClipOval(
-                            child: avatarPath.isEmpty
-                                ? Center(
-                                    child: Text(
-                                      _initialLetter(_nameController.text),
-                                      style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: Color(0xFF94A3B8)),
-                                    ),
-                                  )
-                                : _buildLocalImage(avatarPath, fit: BoxFit.cover),
-                          ),
-                        ),
-                        Positioned(
-                          right: -2,
-                          bottom: -2,
-                          child: Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: const Color(0xFFE2E8F0)),
-                              boxShadow: const [BoxShadow(color: Color(0x11000000), blurRadius: 8, offset: Offset(0, 2))],
+                          children: [
+                            Container(
+                              width: 96,
+                              height: 96,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE2E8F0),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 4),
+                                boxShadow: const [BoxShadow(color: Color(0x11000000), blurRadius: 10, offset: Offset(0, 2))],
+                              ),
+                              child: ClipOval(
+                                child: avatarPath.isEmpty
+                                    ? Center(
+                                        child: Text(
+                                          _initialLetter(_nameController.text),
+                                          style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: Color(0xFF94A3B8)),
+                                        ),
+                                      )
+                                    : _buildLocalImage(avatarPath, fit: BoxFit.cover),
+                              ),
                             ),
-                            child: const Icon(Icons.camera_alt, size: 14, color: Color(0xFF0EA5E9)),
-                          ),
+                            Positioned(
+                              right: -2,
+                              bottom: -2,
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                                  boxShadow: const [BoxShadow(color: Color(0x11000000), blurRadius: 8, offset: Offset(0, 2))],
+                                ),
+                                child: const Icon(Icons.camera_alt, size: 14, color: Color(0xFF0EA5E9)),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 10),
+                      TextButton(
+                        onPressed: _pickAvatar,
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF0EA5E9),
+                          textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+                        ),
+                        child: const Text('修改头像'),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 10),
-                  TextButton(
-                    onPressed: _pickAvatar,
-                    style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF0EA5E9),
-                      textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
-                    ),
-                    child: const Text('修改头像'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
+                  const SizedBox(height: 14),
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -2382,7 +2382,7 @@ class _FriendCreatePageState extends ConsumerState<FriendCreatePage> {
                       spacing: 10,
                       runSpacing: 10,
                       children: [
-                        for (final tag in ModuleTags.bond)
+                        for (final tag in allTags)
                           InkWell(
                             borderRadius: BorderRadius.circular(12),
                             onTap: () {
@@ -2477,6 +2477,9 @@ class _FriendCreatePageState extends ConsumerState<FriendCreatePage> {
           ),
         ],
       ),
+      ),
+      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (_, __) => const Scaffold(body: Center(child: Text('加载配置失败'))),
     );
   }
 }

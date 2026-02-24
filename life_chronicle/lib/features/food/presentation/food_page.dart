@@ -3705,7 +3705,7 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
     final content = _contentController.text.trim();
     final link = _linkController.text.trim();
     final price = double.tryParse(_priceController.text.trim());
-    final selectedTags = _availableTags.where(_selectedTags.contains).toList();
+    final selectedTags = _selectedTags.toList();
     final wishlistDone = _isWishlist ? false : _wishlistDone;
     final resolvedCity = _poiCity.trim().isNotEmpty ? _poiCity.trim() : _extractCityToken(_poiAddress);
     final hasLocationInput = _poiName.trim().isNotEmpty || _poiAddress.trim().isNotEmpty;

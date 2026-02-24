@@ -9,6 +9,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../../../app/app_theme.dart';
+import '../../../core/config/module_management_config.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../ai_historian/presentation/ai_historian_chat_page.dart';
@@ -18,6 +19,23 @@ import '../../goal/presentation/goal_page.dart';
 import '../../moment/presentation/moment_page.dart';
 import '../../profile/presentation/profile_page.dart';
 import '../../travel/presentation/travel_page.dart';
+
+const Map<String, IconData> _moduleIconRegistry = {
+  'restaurant': Icons.restaurant,
+  'airplanemode_active': Icons.airplanemode_active,
+  'auto_awesome': Icons.auto_awesome,
+  'diversity_3': Icons.diversity_3,
+  'flag': Icons.flag,
+  'star': Icons.star,
+  'favorite': Icons.favorite,
+  'self_improvement': Icons.self_improvement,
+  'camera_alt': Icons.camera_alt,
+  'directions_walk': Icons.directions_walk,
+};
+
+IconData _iconFromName(String name) {
+  return _moduleIconRegistry[name] ?? Icons.star;
+}
 
 class HomeSchedulePage extends StatefulWidget {
   const HomeSchedulePage({super.key});
@@ -756,7 +774,7 @@ class _CalendarGrid extends StatelessWidget {
       for (final record in foods) {
         final date = record.recordDate;
         if (date.year == year && date.month == month) {
-          addIcon(date.day, iconFromName(foodModule.iconName));
+          addIcon(date.day, _iconFromName(foodModule.iconName));
         }
       }
     }
@@ -765,7 +783,7 @@ class _CalendarGrid extends StatelessWidget {
       for (final record in travels) {
         final date = record.recordDate;
         if (date.year == year && date.month == month) {
-          addIcon(date.day, iconFromName(travelModule.iconName));
+          addIcon(date.day, _iconFromName(travelModule.iconName));
         }
       }
     }
@@ -775,10 +793,10 @@ class _CalendarGrid extends StatelessWidget {
         final date = event.recordDate;
         if (date.year != year || date.month != month) continue;
         if (event.eventType == 'goal' && goalModule.showOnCalendar) {
-          addIcon(date.day, iconFromName(goalModule.iconName));
+          addIcon(date.day, _iconFromName(goalModule.iconName));
         }
         if (event.eventType == 'encounter' && bondModule.showOnCalendar) {
-          addIcon(date.day, iconFromName(bondModule.iconName));
+          addIcon(date.day, _iconFromName(bondModule.iconName));
         }
       }
     }
@@ -801,7 +819,7 @@ class _CalendarGrid extends StatelessWidget {
           continue;
         }
         final iconName = match?.iconName ?? momentModule.iconName;
-        addIcon(date.day, iconFromName(iconName));
+        addIcon(date.day, _iconFromName(iconName));
       }
     }
 
