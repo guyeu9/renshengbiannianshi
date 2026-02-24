@@ -29,6 +29,24 @@ class _TravelPageState extends State<TravelPage> {
   var _filterDateIndex = 0;
   DateTimeRange? _filterCustomRange;
   Set<String> _filterFriendIds = {};
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   Future<void> _openFilterSheet() async {
     final result = await showModalBottomSheet<_FilterResult>(
@@ -66,7 +84,7 @@ class _TravelPageState extends State<TravelPage> {
         child: CustomScrollView(
           slivers: [
             const SliverToBoxAdapter(child: _TravelTopBar()),
-            SliverToBoxAdapter(child: _TravelSearchRow(onFilterTap: _openFilterSheet)),
+            SliverToBoxAdapter(child: _TravelSearchRow(onFilterTap: _openFilterSheet, controller: _searchController)),
             SliverPersistentHeader(
               pinned: true,
               delegate: _PinnedHeaderDelegate(
@@ -80,7 +98,19 @@ class _TravelPageState extends State<TravelPage> {
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 140),
               sliver: SliverToBoxAdapter(
-                child: _mode == _TravelViewMode.onTheRoad ? const _TravelOnTheRoadView() : const _TravelWishlistView(),
+                child: _mode == _TravelViewMode.onTheRoad
+                    ? _TravelOnTheRoadView(
+                        searchQuery: _searchQuery,
+                        filterDateIndex: _filterDateIndex,
+                        filterCustomRange: _filterCustomRange,
+                        filterFriendIds: _filterFriendIds,
+                      )
+                    : _TravelWishlistView(
+                        searchQuery: _searchQuery,
+                        filterDateIndex: _filterDateIndex,
+                        filterCustomRange: _filterCustomRange,
+                        filterFriendIds: _filterFriendIds,
+                      ),
               ),
             ),
           ],
@@ -121,9 +151,10 @@ class _TravelTopBar extends StatelessWidget {
 }
 
 class _TravelSearchRow extends StatelessWidget {
-  const _TravelSearchRow({required this.onFilterTap});
+  const _TravelSearchRow({required this.onFilterTap, required this.controller});
 
   final VoidCallback onFilterTap;
+  final TextEditingController controller;
 
   @override
   Widget build(BuildContext context) {
@@ -139,15 +170,20 @@ class _TravelSearchRow extends StatelessWidget {
                 color: const Color(0xFFF3F4F6),
                 borderRadius: BorderRadius.circular(999),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.search, color: Color(0xFF94A3B8), size: 22),
-                  SizedBox(width: 10),
+                  const Icon(Icons.search, color: Color(0xFF94A3B8), size: 22),
+                  const SizedBox(width: 10),
                   Expanded(
-                    child: Text(
-                      '搜索城市、标签、地理位置...',
-                      style: TextStyle(fontSize: 14, color: Color(0xFF94A3B8), fontWeight: FontWeight.w600),
-                      overflow: TextOverflow.ellipsis,
+                    child: TextField(
+                      controller: controller,
+                      decoration: const InputDecoration(
+                        hintText: '搜索城市、标签、地理位置...',
+                        hintStyle: TextStyle(fontSize: 14, color: Color(0xFF94A3B8), fontWeight: FontWeight.w600),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      style: const TextStyle(fontSize: 14, color: Color(0xFF334155), fontWeight: FontWeight.w600),
                     ),
                   ),
                 ],
@@ -278,7 +314,17 @@ class _TravelModePill extends StatelessWidget {
 }
 
 class _TravelOnTheRoadView extends ConsumerWidget {
-  const _TravelOnTheRoadView();
+  const _TravelOnTheRoadView({
+    required this.searchQuery,
+    required this.filterDateIndex,
+    required this.filterCustomRange,
+    required this.filterFriendIds,
+  });
+
+  final String searchQuery;
+  final int filterDateIndex;
+  final DateTimeRange? filterCustomRange;
+  final Set<String> filterFriendIds;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -287,8 +333,21 @@ class _TravelOnTheRoadView extends ConsumerWidget {
       stream: db.watchAllActiveTravelRecords(),
       builder: (context, snapshot) {
         final records = snapshot.data ?? const <TravelRecord>[];
-        final onTheRoad = records.where((r) => !r.isWishlist).toList(growable: false);
-        if (onTheRoad.isEmpty) {
+        var filtered = records.where((r) => !r.isWishlist).toList(growable: false);
+
+        final searchLower = searchQuery.toLowerCase().trim();
+        if (searchLower.isNotEmpty) {
+          filtered = filtered.where((r) {
+            final title = (r.title ?? '').toLowerCase();
+            final destination = (r.destination ?? '').toLowerCase();
+            final tags = (_decodeStringList(r.tags) ?? <String>[]).join(' ').toLowerCase();
+            return title.contains(searchLower) ||
+                destination.contains(searchLower) ||
+                tags.contains(searchLower);
+          }).toList(growable: false);
+        }
+
+        if (filtered.isEmpty) {
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: const [
@@ -298,7 +357,8 @@ class _TravelOnTheRoadView extends ConsumerWidget {
             ],
           );
         }
-        final tripIds = onTheRoad.map((e) => e.tripId).toSet().toList();
+
+        final tripIds = filtered.map((e) => e.tripId).toSet().toList();
         return StreamBuilder<List<Trip>>(
           stream: _watchTripsByIds(db, tripIds),
           builder: (context, tripSnapshot) {
@@ -307,12 +367,45 @@ class _TravelOnTheRoadView extends ConsumerWidget {
               stream: db.select(db.entityLinks).watch(),
               builder: (context, linkSnapshot) {
                 final links = linkSnapshot.data ?? const <EntityLink>[];
+
+                var finalRecords = filtered;
+                if (filterFriendIds.isNotEmpty) {
+                  final friendIdsByTravel = <String, Set<String>>{};
+                  for (final link in links) {
+                    String? travelId;
+                    if (link.sourceType == 'travel' && link.targetType == 'friend') {
+                      travelId = link.sourceId;
+                      final set = friendIdsByTravel.putIfAbsent(travelId, () => <String>{});
+                      set.add(link.targetId);
+                    } else if (link.targetType == 'travel' && link.sourceType == 'friend') {
+                      travelId = link.targetId;
+                      final set = friendIdsByTravel.putIfAbsent(travelId, () => <String>{});
+                      set.add(link.sourceId);
+                    }
+                  }
+                  finalRecords = finalRecords.where((r) {
+                    final linkedFriendIds = friendIdsByTravel[r.id] ?? <String>{};
+                    return filterFriendIds.any((id) => linkedFriendIds.contains(id));
+                  }).toList(growable: false);
+                }
+
+                if (finalRecords.isEmpty) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      _TravelFootprintCard(onTap: null),
+                      SizedBox(height: 18),
+                      _EmptyTravelState(label: '没有匹配的旅行记录'),
+                    ],
+                  );
+                }
+
                 return StreamBuilder<List<FriendRecord>>(
                   stream: db.friendDao.watchAllActive(),
                   builder: (context, friendSnapshot) {
                     final friends = friendSnapshot.data ?? const <FriendRecord>[];
                     final entries = _buildTravelEntries(
-                      records: onTheRoad,
+                      records: finalRecords,
                       trips: trips,
                       friends: friends,
                       links: links,
@@ -700,7 +793,17 @@ class _TravelOnRoadCard extends StatelessWidget {
 }
 
 class _TravelWishlistView extends ConsumerWidget {
-  const _TravelWishlistView();
+  const _TravelWishlistView({
+    required this.searchQuery,
+    required this.filterDateIndex,
+    required this.filterCustomRange,
+    required this.filterFriendIds,
+  });
+
+  final String searchQuery;
+  final int filterDateIndex;
+  final DateTimeRange? filterCustomRange;
+  final Set<String> filterFriendIds;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -709,21 +812,77 @@ class _TravelWishlistView extends ConsumerWidget {
       stream: db.watchAllActiveTravelRecords(),
       builder: (context, snapshot) {
         final records = snapshot.data ?? const <TravelRecord>[];
-        final wishlist = records.where((r) => r.isWishlist).toList(growable: false);
-        if (wishlist.isEmpty) {
+        var filtered = records.where((r) => r.isWishlist).toList(growable: false);
+
+        final searchLower = searchQuery.toLowerCase().trim();
+        if (searchLower.isNotEmpty) {
+          filtered = filtered.where((r) {
+            final title = (r.title ?? '').toLowerCase();
+            final destination = (r.destination ?? '').toLowerCase();
+            final tags = (_decodeStringList(r.tags) ?? <String>[]).join(' ').toLowerCase();
+            return title.contains(searchLower) ||
+                destination.contains(searchLower) ||
+                tags.contains(searchLower);
+          }).toList(growable: false);
+        }
+
+        if (filtered.isEmpty) {
           return const _EmptyTravelState(label: '暂无心愿清单，去添加目的地吧');
         }
-        final tripIds = wishlist.map((e) => e.tripId).toSet().toList();
+        final tripIds = filtered.map((e) => e.tripId).toSet().toList();
         return StreamBuilder<List<Trip>>(
           stream: _watchTripsByIds(db, tripIds),
           builder: (context, tripSnapshot) {
             final trips = tripSnapshot.data ?? const <Trip>[];
             final tripById = {for (final t in trips) t.id: t};
+            
+            var finalRecords = filtered;
+            if (filterFriendIds.isNotEmpty) {
+              return StreamBuilder<List<EntityLink>>(
+                stream: db.select(db.entityLinks).watch(),
+                builder: (context, linkSnapshot) {
+                  final links = linkSnapshot.data ?? const <EntityLink>[];
+                  final friendIdsByTravel = <String, Set<String>>{};
+                  for (final link in links) {
+                    String? travelId;
+                    if (link.sourceType == 'travel' && link.targetType == 'friend') {
+                      travelId = link.sourceId;
+                      final set = friendIdsByTravel.putIfAbsent(travelId, () => <String>{});
+                      set.add(link.targetId);
+                    } else if (link.targetType == 'travel' && link.sourceType == 'friend') {
+                      travelId = link.targetId;
+                      final set = friendIdsByTravel.putIfAbsent(travelId, () => <String>{});
+                      set.add(link.sourceId);
+                    }
+                  }
+                  finalRecords = filtered.where((r) {
+                    final linkedFriendIds = friendIdsByTravel[r.id] ?? <String>{};
+                    return filterFriendIds.any((id) => linkedFriendIds.contains(id));
+                  }).toList(growable: false);
+                  
+                  if (finalRecords.isEmpty) {
+                    return const _EmptyTravelState(label: '没有匹配的心愿清单');
+                  }
+                  
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final record in finalRecords) ...[
+                        _TravelWishlistCard(item: _buildWishlistItem(record, tripById[record.tripId])),
+                        const SizedBox(height: 14),
+                      ],
+                    ],
+                  );
+                },
+              );
+            }
+            
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
               children: [
-                for (final record in wishlist) ...[
+                for (final record in finalRecords) ...[
                   _TravelWishlistCard(item: _buildWishlistItem(record, tripById[record.tripId])),
                   const SizedBox(height: 14),
                 ],
@@ -1087,12 +1246,43 @@ class TravelCreatePage extends ConsumerStatefulWidget {
   ConsumerState<TravelCreatePage> createState() => _TravelCreatePageState();
 }
 
-class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
-  bool _addToWishlist = true;
-  bool _checkItem1Done = true;
-  bool _checkItem2Done = false;
+class _ChecklistItem {
+  final String? id;
+  final String title;
+  final String? note;
+  bool isDone;
+  final int orderIndex;
 
-  final Set<String> _linkedFriendIds = {};
+  _ChecklistItem({
+    this.id,
+    required this.title,
+    this.note,
+    this.isDone = false,
+    this.orderIndex = 0,
+  });
+
+  _ChecklistItem copyWith({
+    String? id,
+    String? title,
+    String? note,
+    bool? isDone,
+    int? orderIndex,
+  }) {
+    return _ChecklistItem(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      note: note ?? this.note,
+      isDone: isDone ?? this.isDone,
+      orderIndex: orderIndex ?? this.orderIndex,
+    );
+  }
+}
+
+class _TravelCreatePageState extends ConsumerState&lt;TravelCreatePage&gt; {
+  bool _addToWishlist = true;
+  final List&lt;_ChecklistItem&gt; _checklistItems = [];
+
+  final Set&lt;String&gt; _linkedFriendIds = {};
   String? _coverImagePath;
   DateTime? _planStart;
   DateTime? _planEnd;
@@ -1173,6 +1363,11 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
       await _loadLinkedFriends(record.id);
     }
 
+    final tripId = existingTrip?.id ?? existingRecord?.tripId;
+    if (tripId != null) {
+      await _loadChecklistItems(tripId);
+    }
+
     if (!mounted) return;
     setState(() {});
   }
@@ -1195,6 +1390,170 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
         ..clear()
         ..addAll(ids);
     });
+  }
+
+  Future&lt;void&gt; _loadChecklistItems(String tripId) async {
+    final db = ref.read(appDatabaseProvider);
+    final items = await db.checklistDao.listByTripId(tripId);
+    if (!mounted) return;
+    setState(() {
+      _checklistItems.clear();
+      _checklistItems.addAll(items.map((e) =&gt; _ChecklistItem(
+            id: e.id,
+            title: e.title,
+            note: e.note,
+            isDone: e.isDone,
+            orderIndex: e.orderIndex,
+          )));
+    });
+  }
+
+  Future&lt;void&gt; _addChecklistItem() async {
+    final titleController = TextEditingController();
+    final noteController = TextEditingController();
+    final result = await showModalBottomSheet&lt;_ChecklistItem&gt;(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
+        return Padding(
+          padding: EdgeInsets.only(bottom: bottomPadding),
+          child: _BottomSheetShell(
+            title: '添加心愿项',
+            actionText: '添加',
+            onAction: () {
+              final title = titleController.text.trim();
+              if (title.isEmpty) return;
+              Navigator.of(context).pop(_ChecklistItem(
+                title: title,
+                note: noteController.text.trim().isEmpty ? null : noteController.text.trim(),
+                orderIndex: _checklistItems.length,
+              ));
+            },
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: titleController,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      hintText: '例如：清水寺日落',
+                      filled: true,
+                      fillColor: const Color(0xFFF3F4F6),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      labelText: '标题',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: noteController,
+                    decoration: InputDecoration(
+                      hintText: '备注（可选）',
+                      filled: true,
+                      fillColor: const Color(0xFFF3F4F6),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      labelText: '备注',
+                    ),
+                    maxLines: 2,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+    titleController.dispose();
+    noteController.dispose();
+    if (result == null || !mounted) return;
+    setState(() =&gt; _checklistItems.add(result));
+  }
+
+  Future&lt;void&gt; _editChecklistItem(int index) async {
+    final item = _checklistItems[index];
+    final titleController = TextEditingController(text: item.title);
+    final noteController = TextEditingController(text: item.note ?? '');
+    final result = await showModalBottomSheet&lt;_ChecklistItem&gt;(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
+        return Padding(
+          padding: EdgeInsets.only(bottom: bottomPadding),
+          child: _BottomSheetShell(
+            title: '编辑心愿项',
+            actionText: '保存',
+            onAction: () {
+              final title = titleController.text.trim();
+              if (title.isEmpty) return;
+              Navigator.of(context).pop(item.copyWith(
+                title: title,
+                note: noteController.text.trim().isEmpty ? null : noteController.text.trim(),
+              ));
+            },
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: titleController,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      hintText: '例如：清水寺日落',
+                      filled: true,
+                      fillColor: const Color(0xFFF3F4F6),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      labelText: '标题',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: noteController,
+                    decoration: InputDecoration(
+                      hintText: '备注（可选）',
+                      filled: true,
+                      fillColor: const Color(0xFFF3F4F6),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      labelText: '备注',
+                    ),
+                    maxLines: 2,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+    titleController.dispose();
+    noteController.dispose();
+    if (result == null || !mounted) return;
+    setState(() =&gt; _checklistItems[index] = result);
+  }
+
+  void _deleteChecklistItem(int index) {
+    setState(() =&gt; _checklistItems.removeAt(index));
   }
 
   _ContentParts _splitContent(String? raw) {
@@ -1518,6 +1877,23 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
       );
     }
 
+    await db.checklistDao.deleteByTripId(tripId);
+    for (var i = 0; i &lt; _checklistItems.length; i++) {
+      final item = _checklistItems[i];
+      final itemId = item.id ?? const Uuid().v4();
+      await db.checklistDao.upsert(ChecklistItemsCompanion.insert(
+        id: itemId,
+        tripId: tripId,
+        travelId: Value(travelId),
+        title: item.title,
+        note: Value(item.note),
+        isDone: Value(item.isDone),
+        orderIndex: i,
+        createdAt: Value(now),
+        updatedAt: Value(now),
+      ));
+    }
+
     if (!mounted) return;
     Navigator.of(context).pop();
   }
@@ -1750,7 +2126,11 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
                           const _CompanionInviteChip(),
                           for (final friend in selectedFriends) ...[
                             const SizedBox(width: 14),
-                            _CompanionNameChip(name: friend.name),
+                            _CompanionNameChip(
+                              name: friend.name,
+                              avatarPath: friend.avatarPath,
+                              isFavorite: friend.isFavorite,
+                            ),
                           ],
                         ],
                       );
@@ -1918,68 +2298,116 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                           decoration: BoxDecoration(color: const Color(0xFF2BCDEE).withValues(alpha: 0.10), borderRadius: BorderRadius.circular(999)),
-                          child: const Text('2 项', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF2BCDEE))),
+                          child: Text('${_checklistItems.length} 项', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF2BCDEE))),
                         ),
                       ],
                     ),
                     const SizedBox(height: 12),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Checkbox.adaptive(
-                          value: _checkItem1Done,
-                          activeColor: const Color(0xFF2BCDEE),
-                          onChanged: (v) => setState(() => _checkItem1Done = v ?? false),
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 12),
-                            child: Text(
-                              '清水寺日落',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
-                                color: _checkItem1Done ? const Color(0xFF94A3B8) : const Color(0xFF334155),
-                                decoration: _checkItem1Done ? TextDecoration.lineThrough : TextDecoration.none,
+                    ..._checklistItems.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final item = entry.value;
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Checkbox.adaptive(
+                            value: item.isDone,
+                            activeColor: const Color(0xFF2BCDEE),
+                            onChanged: (v) {
+                              setState(() {
+                                _checklistItems[index] = item.copyWith(isDone: v ?? false);
+                              });
+                            },
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 12),
+                              child: GestureDetector(
+                                onTap: () => _editChecklistItem(index),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      item.title,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w800,
+                                        color: item.isDone ? const Color(0xFF94A3B8) : const Color(0xFF334155),
+                                        decoration: item.isDone ? TextDecoration.lineThrough : TextDecoration.none,
+                                      ),
+                                    ),
+                                    if (item.note != null) ...[
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        item.note!,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                          color: item.isDone ? const Color(0xFF94A3B8) : const Color(0xFF94A3B8),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Checkbox.adaptive(
-                          value: _checkItem2Done,
-                          activeColor: const Color(0xFF2BCDEE),
-                          onChanged: (v) => setState(() => _checkItem2Done = v ?? false),
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: const [
-                                Text('伏见稻荷大社晨跑', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                                SizedBox(height: 4),
-                                Text('记得带运动鞋和水', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
-                              ],
-                            ),
+                          IconButton(
+                            icon: const Icon(Icons.more_horiz, color: Color(0xFF94A3B8), size: 20),
+                            onPressed: () async {
+                              final result = await showModalBottomSheet<String>(
+                                context: context,
+                                backgroundColor: Colors.transparent,
+                                builder: (context) => _BottomSheetShell(
+                                  title: '心愿项操作',
+                                  child: Padding(
+                                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        ListTile(
+                                          leading: const Icon(Icons.edit, color: Color(0xFF2BCDEE)),
+                                          title: const Text('编辑', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
+                                          onTap: () => Navigator.of(context).pop('edit'),
+                                        ),
+                                        ListTile(
+                                          leading: const Icon(Icons.delete_outline, color: Color(0xFFEF4444)),
+                                          title: const Text('删除', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFFEF4444))),
+                                          onTap: () => Navigator.of(context).pop('delete'),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                              if (result == 'edit') {
+                                _editChecklistItem(index);
+                              } else if (result == 'delete') {
+                                _deleteChecklistItem(index);
+                              }
+                            },
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      );
+                    }).toList(),
                     const SizedBox(height: 10),
                     Container(height: 1, color: Colors.black.withValues(alpha: 0.06)),
                     const SizedBox(height: 10),
-                    const Row(
+                    Row(
                       children: [
-                        Icon(Icons.add, color: Color(0xFF94A3B8), size: 18),
-                        SizedBox(width: 10),
-                        Expanded(child: _PlainTextField(hintText: '添加想去的地方...')),
+                        IconButton(
+                          icon: const Icon(Icons.add, color: Color(0xFF94A3B8), size: 18),
+                          onPressed: _addChecklistItem,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: _addChecklistItem,
+                            child: AbsorbPointer(
+                              child: const _PlainTextField(hintText: '添加想去的地方...'),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -3080,6 +3508,7 @@ class _TimelineJournalCard extends StatelessWidget {
       tagSet.add(destination);
     }
     final tags = tagSet.toList()..sort();
+    final timeLabel = '${record.recordDate.hour.toString().padLeft(2, '0')}:${record.recordDate.minute.toString().padLeft(2, '0')}';
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -3103,7 +3532,20 @@ class _TimelineJournalCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                    Row(
+                      children: [
+                        Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(timeLabel, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 2),
                     Text(subtitle, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
                   ],
@@ -3434,15 +3876,37 @@ class _CompanionInviteChip extends StatelessWidget {
 }
 
 class _CompanionNameChip extends StatelessWidget {
-  const _CompanionNameChip({required this.name});
+  const _CompanionNameChip({required this.name, this.avatarPath, this.isFavorite = false});
 
   final String name;
+  final String? avatarPath;
+  final bool isFavorite;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        _AvatarCircle(name: name),
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            _AvatarCircle(name: name, avatarPath: avatarPath),
+            if (isFavorite)
+              Positioned(
+                bottom: -2,
+                right: -2,
+                child: Container(
+                  width: 18,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2BCDEE),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  child: const Icon(Icons.favorite, color: Colors.white, size: 10),
+                ),
+              ),
+          ],
+        ),
         const SizedBox(height: 8),
         SizedBox(
           width: 64,
@@ -4395,20 +4859,61 @@ class _MultiSelectBottomSheetState extends State<_MultiSelectBottomSheet> {
 }
 
 class _AvatarCircle extends StatelessWidget {
-  const _AvatarCircle({required this.name});
+  const _AvatarCircle({required this.name, this.avatarPath});
 
   final String name;
+  final String? avatarPath;
 
   @override
   Widget build(BuildContext context) {
     final trimmed = name.trim();
     final letter = trimmed.isEmpty ? '?' : trimmed.substring(0, 1);
+    final hasAvatar = avatarPath != null && avatarPath!.trim().isNotEmpty;
+    
+    Widget content;
+    if (hasAvatar) {
+      content = ClipOval(
+        child: Image.file(
+          File(avatarPath!),
+          fit: BoxFit.cover,
+          width: 48,
+          height: 48,
+          errorBuilder: (context, error, stackTrace) {
+            return Container(
+              width: 48,
+              height: 48,
+              decoration: const BoxDecoration(color: Color(0xFFF1F5F9), shape: BoxShape.circle),
+              alignment: Alignment.center,
+              child: Text(letter, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF334155))),
+            );
+          },
+        ),
+      );
+    } else {
+      content = Container(
+        width: 48,
+        height: 48,
+        decoration: const BoxDecoration(color: Color(0xFFF1F5F9), shape: BoxShape.circle),
+        alignment: Alignment.center,
+        child: Text(letter, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF334155))),
+      );
+    }
+    
     return Container(
-      width: 34,
-      height: 34,
-      decoration: const BoxDecoration(color: Color(0xFFF1F5F9), shape: BoxShape.circle),
-      alignment: Alignment.center,
-      child: Text(letter, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF334155))),
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: content,
     );
   }
 }

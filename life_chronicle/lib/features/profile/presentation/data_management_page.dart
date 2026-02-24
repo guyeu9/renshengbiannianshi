@@ -296,8 +296,8 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
       child: Consumer(
         builder: (context, ref, _) {
           final db = ref.watch(appDatabaseProvider);
-          return StreamBuilder<SyncState?>(
-            stream: db.syncStateDao.watch(),
+          return StreamBuilder<SyncStateData?>(
+            stream: db.syncStateDao.watchDefault(),
             builder: (context, snapshot) {
               final lastSyncTime = snapshot.data?.lastSyncTime;
               return Column(
@@ -668,7 +668,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
               
               return ListTile(
                 title: Text(
-                  '${type == 'full' ? '全量备份' : '增量备份'}',
+                  type == 'full' ? '全量备份' : '增量备份',
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 subtitle: Text(
@@ -685,7 +685,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                   },
                 ),
               );
-            }).toList(),
+            }),
         ],
       ),
     );

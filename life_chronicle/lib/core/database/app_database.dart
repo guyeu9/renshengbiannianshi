@@ -12,17 +12,18 @@ part 'daos/link_dao.dart';
 part 'daos/ai_provider_dao.dart';
 part 'daos/change_log_dao.dart';
 part 'daos/sync_state_dao.dart';
+part 'daos/checklist_dao.dart';
 
 @DriftDatabase(
-  tables: [FoodRecords, MomentRecords, FriendRecords, TravelRecords, Trips, GoalRecords, TimelineEvents, EntityLinks, LinkLogs, UserProfiles, AiProviders, ChangeLogs, SyncState],
-  daos: [FoodDao, MomentDao, FriendDao, LinkDao, AiProviderDao, ChangeLogDao, SyncStateDao],
+  tables: [FoodRecords, MomentRecords, FriendRecords, TravelRecords, Trips, GoalRecords, TimelineEvents, EntityLinks, LinkLogs, UserProfiles, AiProviders, ChangeLogs, SyncState, ChecklistItems],
+  daos: [FoodDao, MomentDao, FriendDao, LinkDao, AiProviderDao, ChangeLogDao, SyncStateDao, ChecklistDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(dbconn.openConnection());
   AppDatabase.connect(super.executor);
 
   @override
-  int get schemaVersion => 11; // 升级到 11，新增 change_logs 和 sync_state 表
+  int get schemaVersion => 12; // 升级到 12，新增 checklist_items 表
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -76,6 +77,7 @@ class AppDatabase extends _$AppDatabase {
           await ensureTable(aiProviders);
           await ensureTable(changeLogs);
           await ensureTable(syncState);
+          await ensureTable(checklistItems);
 
           await ensureColumn(table: foodRecords, column: foodRecords.isFavorite);
           await ensureColumn(table: momentRecords, column: momentRecords.isFavorite);

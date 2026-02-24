@@ -99,6 +99,7 @@ class BackupService {
     exportData['link_logs'] = await _exportLinkLogs();
     exportData['user_profiles'] = await _exportUserProfiles();
     exportData['ai_providers'] = await _exportAiProviders();
+    exportData['checklist_items'] = await _exportChecklistItems();
     exportData['exported_at'] = DateTime.now().toIso8601String();
     exportData['schema_version'] = db.schemaVersion;
 
@@ -160,6 +161,11 @@ class BackupService {
     return records.map((r) => r.toJson()).toList();
   }
 
+  Future<List<Map<String, dynamic>>> _exportChecklistItems() async {
+    final records = await (db.select(db.checklistItems)).get();
+    return records.map((r) => r.toJson()).toList();
+  }
+
   Future<List<File>> collectAllMediaFiles() async {
     final mediaDir = await getMediaDir();
     if (!await mediaDir.exists()) {
@@ -209,11 +215,15 @@ class BackupService {
     if (data.containsKey('ai_providers')) {
       await _importAiProviders(List<Map<String, dynamic>>.from(data['ai_providers']), merge: merge);
     }
+    if (data.containsKey('checklist_items')) {
+      await _importChecklistItems(List<Map<String, dynamic>>.from(data['checklist_items']), merge: merge);
+    }
   }
 
   Future<void> _importFoodRecords(List<Map<String, dynamic>> records, {bool merge = true}) async {
     for (final record in records) {
-      final companion = FoodRecordsCompanion.fromJson(record);
+      final entity = FoodRecord.fromJson(record);
+      final companion = entity.toCompanion(false);
       if (merge) {
         await db.foodDao.upsert(companion);
       } else {
@@ -224,7 +234,8 @@ class BackupService {
 
   Future<void> _importMomentRecords(List<Map<String, dynamic>> records, {bool merge = true}) async {
     for (final record in records) {
-      final companion = MomentRecordsCompanion.fromJson(record);
+      final entity = MomentRecord.fromJson(record);
+      final companion = entity.toCompanion(false);
       if (merge) {
         await db.into(db.momentRecords).insertOnConflictUpdate(companion);
       } else {
@@ -235,7 +246,8 @@ class BackupService {
 
   Future<void> _importFriendRecords(List<Map<String, dynamic>> records, {bool merge = true}) async {
     for (final record in records) {
-      final companion = FriendRecordsCompanion.fromJson(record);
+      final entity = FriendRecord.fromJson(record);
+      final companion = entity.toCompanion(false);
       if (merge) {
         await db.into(db.friendRecords).insertOnConflictUpdate(companion);
       } else {
@@ -246,7 +258,8 @@ class BackupService {
 
   Future<void> _importTravelRecords(List<Map<String, dynamic>> records, {bool merge = true}) async {
     for (final record in records) {
-      final companion = TravelRecordsCompanion.fromJson(record);
+      final entity = TravelRecord.fromJson(record);
+      final companion = entity.toCompanion(false);
       if (merge) {
         await db.into(db.travelRecords).insertOnConflictUpdate(companion);
       } else {
@@ -257,7 +270,8 @@ class BackupService {
 
   Future<void> _importTrips(List<Map<String, dynamic>> records, {bool merge = true}) async {
     for (final record in records) {
-      final companion = TripsCompanion.fromJson(record);
+      final entity = Trip.fromJson(record);
+      final companion = entity.toCompanion(false);
       if (merge) {
         await db.into(db.trips).insertOnConflictUpdate(companion);
       } else {
@@ -268,7 +282,8 @@ class BackupService {
 
   Future<void> _importGoalRecords(List<Map<String, dynamic>> records, {bool merge = true}) async {
     for (final record in records) {
-      final companion = GoalRecordsCompanion.fromJson(record);
+      final entity = GoalRecord.fromJson(record);
+      final companion = entity.toCompanion(false);
       if (merge) {
         await db.into(db.goalRecords).insertOnConflictUpdate(companion);
       } else {
@@ -279,7 +294,8 @@ class BackupService {
 
   Future<void> _importTimelineEvents(List<Map<String, dynamic>> records, {bool merge = true}) async {
     for (final record in records) {
-      final companion = TimelineEventsCompanion.fromJson(record);
+      final entity = TimelineEvent.fromJson(record);
+      final companion = entity.toCompanion(false);
       if (merge) {
         await db.into(db.timelineEvents).insertOnConflictUpdate(companion);
       } else {
@@ -290,7 +306,8 @@ class BackupService {
 
   Future<void> _importEntityLinks(List<Map<String, dynamic>> records, {bool merge = true}) async {
     for (final record in records) {
-      final companion = EntityLinksCompanion.fromJson(record);
+      final entity = EntityLink.fromJson(record);
+      final companion = entity.toCompanion(false);
       if (merge) {
         await db.into(db.entityLinks).insertOnConflictUpdate(companion);
       } else {
@@ -301,7 +318,8 @@ class BackupService {
 
   Future<void> _importLinkLogs(List<Map<String, dynamic>> records, {bool merge = true}) async {
     for (final record in records) {
-      final companion = LinkLogsCompanion.fromJson(record);
+      final entity = LinkLog.fromJson(record);
+      final companion = entity.toCompanion(false);
       if (merge) {
         await db.into(db.linkLogs).insertOnConflictUpdate(companion);
       } else {
@@ -312,7 +330,8 @@ class BackupService {
 
   Future<void> _importUserProfiles(List<Map<String, dynamic>> records, {bool merge = true}) async {
     for (final record in records) {
-      final companion = UserProfilesCompanion.fromJson(record);
+      final entity = UserProfile.fromJson(record);
+      final companion = entity.toCompanion(false);
       if (merge) {
         await db.into(db.userProfiles).insertOnConflictUpdate(companion);
       } else {
@@ -323,11 +342,24 @@ class BackupService {
 
   Future<void> _importAiProviders(List<Map<String, dynamic>> records, {bool merge = true}) async {
     for (final record in records) {
-      final companion = AiProvidersCompanion.fromJson(record);
+      final entity = AiProvider.fromJson(record);
+      final companion = entity.toCompanion(false);
       if (merge) {
         await db.into(db.aiProviders).insertOnConflictUpdate(companion);
       } else {
         await db.into(db.aiProviders).insert(companion);
+      }
+    }
+  }
+
+  Future<void> _importChecklistItems(List<Map<String, dynamic>> records, {bool merge = true}) async {
+    for (final record in records) {
+      final entity = ChecklistItem.fromJson(record);
+      final companion = entity.toCompanion(false);
+      if (merge) {
+        await db.into(db.checklistItems).insertOnConflictUpdate(companion);
+      } else {
+        await db.into(db.checklistItems).insert(companion);
       }
     }
   }
@@ -400,10 +432,10 @@ class BackupService {
     _emitProgress(BackupStatus.preparing, message: '准备增量备份...');
     
     try {
-      final lastSyncState = await db.syncStateDao.get();
+      final lastSyncState = await db.syncStateDao.getDefault();
       final lastSyncChangeId = lastSyncState?.lastSyncChangeId ?? 0;
       
-      final unsyncedChanges = await db.changeLogDao.getUnsynced(lastSyncChangeId);
+      final unsyncedChanges = await db.changeLogDao.findUnsynced();
       if (unsyncedChanges.isEmpty) {
         _emitProgress(BackupStatus.completed, message: '没有需要备份的变更');
         return;
@@ -449,7 +481,7 @@ class BackupService {
       
       final maxChangeId = unsyncedChanges.map((c) => c.id).reduce((a, b) => a > b ? a : b);
       await _updateSyncState(timestamp, maxChangeId);
-      await db.changeLogDao.markAsSynced(unsyncedChanges.map((c) => c.id).toList());
+      await db.changeLogDao.markAllAsSyncedByIds(unsyncedChanges.map((c) => c.id).toList());
       
       await _saveBackupManifest(
         client,
@@ -486,6 +518,7 @@ class BackupService {
     data['trips'] = await _exportTripsByIds(entityIdsByType['trips']?.toList() ?? []);
     data['goal_records'] = await _exportGoalRecordsByIds(entityIdsByType['goal_records']?.toList() ?? []);
     data['timeline_events'] = await _exportTimelineEventsByIds(entityIdsByType['timeline_events']?.toList() ?? []);
+    data['checklist_items'] = await _exportChecklistItemsByIds(entityIdsByType['checklist_items']?.toList() ?? []);
     data['exported_at'] = DateTime.now().toIso8601String();
     
     return data;
@@ -564,9 +597,15 @@ class BackupService {
     return records.map((r) => r.toJson()).toList();
   }
 
+  Future<List<Map<String, dynamic>>> _exportChecklistItemsByIds(List<String> ids) async {
+    if (ids.isEmpty) return [];
+    final records = await (db.select(db.checklistItems)..where((t) => t.id.isIn(ids))).get();
+    return records.map((r) => r.toJson()).toList();
+  }
+
   Future<void> _updateSyncState(int timestamp, [int? lastChangeId]) async {
     final deviceId = const Uuid().v4();
-    await db.syncStateDao.update(SyncStateCompanion(
+    await db.syncStateDao.upsert(SyncStateCompanion(
       id: const Value('main'),
       lastSyncTime: Value(DateTime.fromMillisecondsSinceEpoch(timestamp)),
       lastSyncChangeId: lastChangeId != null ? Value(lastChangeId) : const Value(null),

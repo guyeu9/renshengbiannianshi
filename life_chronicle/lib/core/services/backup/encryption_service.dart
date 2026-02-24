@@ -30,7 +30,7 @@ class EncryptionService {
       final hmac = hmacSha256.convert([
         ...block,
         ...salt,
-        ...utf8.encode('${pbkdf2Iterations}'),
+        ...utf8.encode('$pbkdf2Iterations'),
       ]);
       block = hmac.bytes as Uint8List;
       
@@ -191,6 +191,6 @@ class EncryptionService {
       throw Exception('data.json not found in archive');
     }
     
-    return (jsonData!, mediaFiles);
+    return (jsonData, mediaFiles);
   }
 }

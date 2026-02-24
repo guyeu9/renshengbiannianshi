@@ -224,6 +224,21 @@ class AiProviders extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class ChecklistItems extends Table {
+  TextColumn get id => text()();
+  TextColumn get tripId => text()();
+  TextColumn get travelId => text().nullable()();
+  TextColumn get title => text()();
+  TextColumn get note => text().nullable()();
+  BoolColumn get isDone => boolean().withDefault(const Constant(false))();
+  IntColumn get orderIndex => integer().withDefault(const Constant(0))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 class ChangeLogs extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get entityType => text()();

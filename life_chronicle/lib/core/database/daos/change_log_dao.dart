@@ -16,6 +16,15 @@ class ChangeLogDao extends DatabaseAccessor<AppDatabase> with _$ChangeLogDaoMixi
     );
   }
 
+  Future<void> markAllAsSyncedByIds(List<int> ids) async {
+    if (ids.isEmpty) return;
+    await (update(db.changeLogs)..where((t) => t.id.isIn(ids))).write(
+      const ChangeLogsCompanion(
+        synced: Value(true),
+      ),
+    );
+  }
+
   Future<void> markAllAsSynced() async {
     await (update(db.changeLogs)).write(
       const ChangeLogsCompanion(

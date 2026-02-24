@@ -8,25 +8,25 @@ class SyncStateDao extends DatabaseAccessor<AppDatabase> with _$SyncStateDaoMixi
     await into(db.syncState).insertOnConflictUpdate(entry);
   }
 
-  Future<SyncState?> getById(String id) {
+  Future<SyncStateData?> getById(String id) {
     return (select(db.syncState)
           ..where((t) => t.id.equals(id))
           ..limit(1))
         .getSingleOrNull();
   }
 
-  Future<SyncState?> getDefault() {
+  Future<SyncStateData?> getDefault() {
     return getById('default');
   }
 
-  Stream<SyncState?> watchById(String id) {
+  Stream<SyncStateData?> watchById(String id) {
     return (select(db.syncState)
           ..where((t) => t.id.equals(id))
           ..limit(1))
         .watchSingleOrNull();
   }
 
-  Stream<SyncState?> watchDefault() {
+  Stream<SyncStateData?> watchDefault() {
     return watchById('default');
   }
 
