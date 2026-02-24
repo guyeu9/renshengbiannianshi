@@ -608,16 +608,44 @@ class _AnnualGoalCard extends StatelessWidget {
                   return StreamBuilder<List<GoalRecord>>(
                     stream: _watchDailyTasks(quarterIds),
                     builder: (context, taskSnapshot) {
-                      final tasks = (taskSnapshot.data ?? const <GoalRecord>[]).take(3).toList(growable: false);
+                      final tasks = taskSnapshot.data ?? const <GoalRecord>[];
                       if (tasks.isEmpty) {
                         return const SizedBox.shrink();
                       }
                       return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          for (int i = 0; i < tasks.length; i++) ...[
-                            _TaskItem(task: tasks[i], accent: accent),
-                            if (i < tasks.length - 1) const SizedBox(height: 12),
-                          ],
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF6F8F8),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.check_circle_outline,
+                                  size: 14,
+                                  color: accent,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  '${tasks.where((t) => t.isCompleted).length}/${tasks.length} 任务',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: accent,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          ...tasks.map((task) => Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: _TaskItem(task: task, accent: accent),
+                          )),
                         ],
                       );
                     },
@@ -1853,7 +1881,9 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () => _showPostponePlan(record),
+                      onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => GoalPostponePage(goal: record),
+                      )),
                       icon: const Icon(Icons.update, size: 18),
                       label: const Text('顺延计划'),
                       style: OutlinedButton.styleFrom(
@@ -2085,172 +2115,572 @@ class _GoalBreakdownMaintenancePageState extends ConsumerState<GoalBreakdownMain
     );
   }
 
+  String _getStageLabel(GoalRecord stage) {
+    final quarter = stage.targetQuarter;
+    if (quarter == null) return '';
+    final startMonth = (quarter - 1) * 3 + 1;
+    final endMonth = quarter * 3;
+    return '$startMonth月 - $endMonth月';
+  }
+
+  String _getStageStatus(GoalRecord stage, List<GoalRecord> tasks) {
+    final stageTasks = tasks.where((t) => t.parentId == stage.id).toList();
+    if (stageTasks.isEmpty) return '未开始';
+    final completedCount = stageTasks.where((t) => t.isCompleted).length;
+    if (completedCount == 0) return '未开始';
+    if (completedCount == stageTasks.length) return '已完成';
+    return '进行中';
+  }
+
   @override
   Widget build(BuildContext context) {
     final db = ref.watch(appDatabaseProvider);
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8F8),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
-              child: Row(
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).maybePop(),
-                    child: const Text('取消', style: TextStyle(fontWeight: FontWeight.w900)),
-                  ),
-                  const Expanded(
-                    child: Center(
-                      child: Text('目标拆解维护', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Column(
+              children: [
+                Container(
+                  height: 320,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0x0A2BCDEE), Color(0x00FFFFFF)],
                     ),
                   ),
-                  TextButton(
-                    onPressed: _saveSummary,
-                    child: const Text('保存', style: TextStyle(fontWeight: FontWeight.w900)),
-                  ),
-                ],
-              ),
+                ),
+                const Expanded(child: SizedBox.shrink()),
+              ],
             ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFF3F4F6))),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+          ),
+          SafeArea(
+            child: Column(
+              children: [
+                Material(
+                  color: Colors.white.withValues(alpha: 0.8),
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      border: const Border(bottom: BorderSide(color: Color(0xFFF3F4F6))),
+                    ),
+                    child: Row(
                       children: [
-                        const Text('目标摘要', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                        const SizedBox(height: 12),
-                        const Text('总结', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _summaryController,
-                          maxLines: 3,
-                          decoration: const InputDecoration(
-                            hintText: '记录阶段成果，给未来的自己鼓励',
-                            border: OutlineInputBorder(borderSide: BorderSide(color: Color(0xFFE5E7EB))),
+                        _CircleIconButton(
+                          icon: Icons.arrow_back_ios_new,
+                          onTap: () => Navigator.of(context).maybePop(),
+                        ),
+                        const Expanded(
+                          child: Center(
+                            child: Text('目标拆解维护', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
                           ),
                         ),
-                        const SizedBox(height: 14),
-                        const Text('复盘', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _noteController,
-                          maxLines: 4,
-                          decoration: const InputDecoration(
-                            hintText: '记录下遇到的问题与改进点',
-                            border: OutlineInputBorder(borderSide: BorderSide(color: Color(0xFFE5E7EB))),
+                        TextButton(
+                          onPressed: _saveSummary,
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppTheme.primary,
+                            textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
                           ),
+                          child: const Text('保存'),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Row(
+                ),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
                     children: [
-                      const Expanded(child: Text('阶段信息', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827)))),
-                      TextButton(
-                        onPressed: _showStageEditor,
-                        style: TextButton.styleFrom(foregroundColor: AppTheme.primary),
-                        child: const Text('添加新的阶段'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  StreamBuilder<List<GoalRecord>>(
-                    stream: _watchStages(db),
-                    builder: (context, stageSnapshot) {
-                      final stages = stageSnapshot.data ?? const <GoalRecord>[];
-                      return StreamBuilder<List<GoalRecord>>(
-                        stream: _watchTasks(db, stages.map((s) => s.id).toList()),
-                        builder: (context, taskSnapshot) {
-                          final tasks = taskSnapshot.data ?? const <GoalRecord>[];
-                          if (stages.isEmpty) {
-                            return Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFF3F4F6))),
-                              child: const Text('暂无阶段，点击右上角添加', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF94A3B8))),
-                            );
-                          }
-                          return Column(
-                            children: [
-                              for (final stage in stages) ...[
-                                Container(
-                                  padding: const EdgeInsets.all(14),
-                                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFF3F4F6))),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFF3F4F6)),
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 2))],
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFDCF8FD),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(Icons.flag, size: 28, color: AppTheme.primary),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('当前父级目标', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    widget.goal.title,
+                                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827), height: 1.2),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
                                     children: [
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              '阶段 ${stage.targetQuarter != null ? 'Q${stage.targetQuarter}' : ''} · ${stage.title}',
-                                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
-                                            ),
-                                          ),
-                                          IconButton(
-                                            icon: const Icon(Icons.edit, size: 18, color: Color(0xFF94A3B8)),
-                                            onPressed: () => _showStageEditor(stage: stage),
-                                          ),
-                                          IconButton(
-                                            icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFF94A3B8)),
-                                            onPressed: () => _deleteStage(stage),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Column(
-                                        children: [
-                                          for (final task in tasks.where((t) => t.parentId == stage.id)) ...[
-                                            _MaintainTaskTile(
-                                              title: task.title,
-                                              checked: task.isCompleted,
-                                              onChanged: (v) => _updateTaskCompletionForGoal(db, task, v, widget.goal.id),
-                                              onRemove: () => _deleteTask(task),
-                                            ),
-                                            const SizedBox(height: 8),
-                                          ],
-                                        ],
-                                      ),
-                                      TextButton.icon(
-                                        onPressed: () => _addTask(stage),
-                                        icon: const Icon(Icons.add_circle_outline, size: 18),
-                                        label: const Text('添加具体任务'),
-                                        style: TextButton.styleFrom(foregroundColor: AppTheme.primary, textStyle: const TextStyle(fontWeight: FontWeight.w900)),
+                                      const Icon(Icons.calendar_today, size: 14, color: Color(0xFF94A3B8)),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        widget.goal.targetYear != null ? '${widget.goal.targetYear} 年度目标' : '目标',
+                                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF94A3B8)),
                                       ),
                                     ],
                                   ),
-                                ),
-                                const SizedBox(height: 12),
-                              ],
-                            ],
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          const Text('阶段拆解', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                          const Spacer(),
+                          const Text('长按拖动排序', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      StreamBuilder<List<GoalRecord>>(
+                        stream: _watchStages(db),
+                        builder: (context, stageSnapshot) {
+                          final stages = stageSnapshot.data ?? const <GoalRecord>[];
+                          return StreamBuilder<List<GoalRecord>>(
+                            stream: _watchTasks(db, stages.map((s) => s.id).toList()),
+                            builder: (context, taskSnapshot) {
+                              final tasks = taskSnapshot.data ?? const <GoalRecord>[];
+                              if (stages.isEmpty) {
+                                return Column(
+                                  children: [
+                                    const SizedBox(height: 40),
+                                    Container(
+                                      padding: const EdgeInsets.all(24),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(color: const Color(0xFFF3F4F6)),
+                                      ),
+                                      child: const Center(
+                                        child: Text(
+                                          '暂无阶段，点击下方按钮添加',
+                                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF94A3B8)),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              }
+                              return Column(
+                                children: [
+                                  for (int i = 0; i < stages.length; i++) ...[
+                                    _StageNode(
+                                      stage: stages[i],
+                                      tasks: tasks.where((t) => t.parentId == stages[i].id).toList(),
+                                      isLast: i == stages.length - 1,
+                                      onEdit: () => _showStageEditor(stage: stages[i]),
+                                      onDelete: () => _deleteStage(stages[i]),
+                                      onAddTask: () => _addTask(stages[i]),
+                                      onDeleteTask: (task) => _deleteTask(task),
+                                      onTaskToggle: (task, checked) => _updateTaskCompletionForGoal(db, task, checked, widget.goal.id),
+                                    ),
+                                    if (i < stages.length - 1) const SizedBox(height: 8),
+                                  ],
+                                ],
+                              );
+                            },
                           );
                         },
-                      );
-                    },
+                      ),
+                      const SizedBox(height: 16),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 56),
+                        child: OutlinedButton(
+                          onPressed: _showStageEditor,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppTheme.primary,
+                            side: const BorderSide(color: Color(0x4D2BCDEE), width: 2),
+                            backgroundColor: const Color(0x0A2BCDEE),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            textStyle: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  color: const Color(0x332BCDEE),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: const Icon(Icons.add, size: 16, color: AppTheme.primary),
+                              ),
+                              const SizedBox(width: 8),
+                              const Text('添加新的阶段 (季度/月度)'),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFF3F4F6))),
-                    child: Row(
-                      children: const [
-                        Icon(Icons.info_outline, size: 18, color: Color(0xFF94A3B8)),
-                        SizedBox(width: 8),
-                        Expanded(child: Text('长按拖动排序（当前版本暂未开放）', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)))),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StageNode extends StatelessWidget {
+  const _StageNode({
+    required this.stage,
+    required this.tasks,
+    required this.isLast,
+    required this.onEdit,
+    required this.onDelete,
+    required this.onAddTask,
+    required this.onDeleteTask,
+    required this.onTaskToggle,
+  });
+
+  final GoalRecord stage;
+  final List<GoalRecord> tasks;
+  final bool isLast;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final VoidCallback onAddTask;
+  final void Function(GoalRecord) onDeleteTask;
+  final void Function(GoalRecord, bool) onTaskToggle;
+
+  String _getStageLabel(GoalRecord stage) {
+    final quarter = stage.targetQuarter;
+    if (quarter == null) return '';
+    final startMonth = (quarter - 1) * 3 + 1;
+    final endMonth = quarter * 3;
+    return '$startMonth月 - $endMonth月';
+  }
+
+  String _getStageStatus() {
+    if (tasks.isEmpty) return '未开始';
+    final completedCount = tasks.where((t) => t.isCompleted).length;
+    if (completedCount == 0) return '未开始';
+    if (completedCount == tasks.length) return '已完成';
+    return '进行中';
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case '已完成':
+        return AppTheme.primary;
+      case '进行中':
+        return AppTheme.primary;
+      default:
+        return const Color(0xFF94A3B8);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final status = _getStageStatus();
+    final statusColor = _getStatusColor(status);
+    final isActive = status == '进行中';
+    final isCompleted = status == '已完成';
+
+    return Stack(
+      children: [
+        if (!isLast)
+          Positioned(
+            left: 20,
+            top: 48,
+            bottom: 0,
+            child: Container(
+              width: 2,
+              color: const Color(0xFFE5E7EB),
+            ),
+          ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              margin: const EdgeInsets.only(top: 4),
+              decoration: BoxDecoration(
+                color: isCompleted ? AppTheme.primary : Colors.white,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isActive
+                      ? AppTheme.primary
+                      : isCompleted
+                          ? AppTheme.primary
+                          : const Color(0xFFE5E7EB),
+                  width: isActive || isCompleted ? 0 : 2,
+                ),
+                boxShadow: isActive || isCompleted
+                    ? [
+                        BoxShadow(
+                          color: AppTheme.primary.withValues(alpha: 0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
                       ],
-                    ),
+              ),
+              child: Center(
+                child: Text(
+                  'Q${stage.targetQuarter ?? ''}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                    color: isActive || isCompleted ? Colors.white : const Color(0xFF94A3B8),
                   ),
-                ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: isActive
+                      ? Border(
+                          left: BorderSide(color: AppTheme.primary, width: 4),
+                          top: const BorderSide(color: Color(0xFFF3F4F6)),
+                          right: const BorderSide(color: Color(0xFFF3F4F6)),
+                          bottom: const BorderSide(color: Color(0xFFF3F4F6)),
+                        )
+                      : Border.all(color: const Color(0xFFF3F4F6)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: isActive
+                          ? BoxDecoration(
+                              color: AppTheme.primary.withValues(alpha: 0.05),
+                              border: const Border(bottom: BorderSide(color: Color(0xFFF9FAFB))),
+                            )
+                          : null,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  stage.title,
+                                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${_getStageLabel(stage)} · $status',
+                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF94A3B8)),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Row(
+                            children: [
+                              InkWell(
+                                onTap: onEdit,
+                                borderRadius: BorderRadius.circular(999),
+                                child: Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.transparent,
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: const Icon(Icons.edit, size: 20, color: Color(0xFF94A3B8)),
+                                ),
+                              ),
+                              InkWell(
+                                onTap: onDelete,
+                                borderRadius: BorderRadius.circular(999),
+                                child: Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.transparent,
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: const Icon(Icons.delete_outline, size: 20, color: Color(0xFF94A3B8)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (tasks.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF9FAFB).withValues(alpha: 0.5),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.subdirectory_arrow_right, size: 16, color: Color(0xFF94A3B8)),
+                                const SizedBox(width: 4),
+                                const Text(
+                                  '任务详情',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF94A3B8),
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            for (int i = 0; i < tasks.length; i++) ...[
+                              _MaintainTaskItem(
+                                task: tasks[i],
+                                onToggle: (checked) => onTaskToggle(tasks[i], checked),
+                                onDelete: () => onDeleteTask(tasks[i]),
+                              ),
+                              if (i < tasks.length - 1) const SizedBox(height: 12),
+                            ],
+                            const SizedBox(height: 12),
+                            OutlinedButton(
+                              onPressed: onAddTask,
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: const Color(0xFF94A3B8),
+                                side: const BorderSide(color: Color(0xFFD1D5DB), style: BorderStyle.solid),
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.add, size: 16),
+                                  const SizedBox(width: 4),
+                                  const Text('添加具体任务'),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (tasks.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: OutlinedButton(
+                          onPressed: onAddTask,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF94A3B8),
+                            side: const BorderSide(color: Color(0xFFD1D5DB), style: BorderStyle.solid),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.add, size: 16),
+                              const SizedBox(width: 4),
+                              const Text('添加具体任务'),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           ],
         ),
+      ],
+    );
+  }
+}
+
+class _MaintainTaskItem extends StatelessWidget {
+  const _MaintainTaskItem({
+    required this.task,
+    required this.onToggle,
+    required this.onDelete,
+  });
+
+  final GoalRecord task;
+  final ValueChanged<bool> onToggle;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFF3F4F6)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.drag_indicator, size: 20, color: Color(0xFFD1D5DB)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              task.title,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: task.isCompleted ? const Color(0xFF9CA3AF) : const Color(0xFF111827),
+                decoration: task.isCompleted ? TextDecoration.lineThrough : null,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          InkWell(
+            onTap: onDelete,
+            borderRadius: BorderRadius.circular(999),
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              child: const Icon(Icons.close, size: 18, color: Color(0xFF94A3B8)),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -2475,6 +2905,570 @@ Future<void> _updateTaskCompletionForGoal(AppDatabase db, GoalRecord task, bool 
       updatedAt: Value(now),
     ),
   );
+}
+
+class GoalPostponePage extends ConsumerStatefulWidget {
+  const GoalPostponePage({super.key, required this.goal});
+
+  final GoalRecord goal;
+
+  @override
+  ConsumerState<GoalPostponePage> createState() => _GoalPostponePageState();
+}
+
+class _GoalPostponePageState extends ConsumerState<GoalPostponePage> {
+  late DateTime _newDueDate;
+  final TextEditingController _reasonController = TextEditingController();
+  final List<String> _selectedTags = [];
+
+  static const List<String> _reasonTags = [
+    '工作太忙',
+    '难度超预期',
+    '身体抱恙',
+    '计划变更',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _newDueDate = widget.goal.dueDate ?? DateTime(now.year, now.month, now.day).add(const Duration(days: 90));
+  }
+
+  @override
+  void dispose() {
+    _reasonController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _confirmPostpone() async {
+    final db = ref.read(appDatabaseProvider);
+    final now = DateTime.now();
+    const uuid = Uuid();
+
+    final oldDueDate = widget.goal.dueDate;
+    final daysDiff = _newDueDate.difference(oldDueDate ?? now).inDays;
+
+    await db.goalPostponementDao.insert(GoalPostponementsCompanion.insert(
+      id: uuid.v4(),
+      goalId: widget.goal.id,
+      oldDueDate: Value(oldDueDate),
+      newDueDate: Value(_newDueDate),
+      reason: Value(_reasonController.text.trim().isEmpty ? null : _reasonController.text.trim()),
+      daysAdded: Value(daysDiff),
+      createdAt: now,
+    ));
+
+    final targetQuarter = ((_newDueDate.month - 1) ~/ 3) + 1;
+    await (db.update(db.goalRecords)..where((t) => t.id.equals(widget.goal.id))).write(
+      GoalRecordsCompanion(
+        dueDate: Value(_newDueDate),
+        targetYear: Value(_newDueDate.year),
+        targetQuarter: Value(targetQuarter),
+        targetMonth: Value(_newDueDate.month),
+        isPostponed: const Value(true),
+        updatedAt: Value(now),
+      ),
+    );
+
+    if (!mounted) return;
+    Navigator.of(context).pop();
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('顺延计划已确认')));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final db = ref.watch(appDatabaseProvider);
+    final progressPercent = (widget.goal.progress * 100).round().clamp(0, 100);
+    final oldDueDate = widget.goal.dueDate;
+    final daysDiff = _newDueDate.difference(oldDueDate ?? DateTime.now()).inDays;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF6F8F8),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Column(
+              children: [
+                Container(
+                  height: 320,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0x1A2BCDEE), Color(0x00FFFFFF)],
+                    ),
+                  ),
+                ),
+                const Expanded(child: SizedBox.shrink()),
+              ],
+            ),
+          ),
+          SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                  child: Row(
+                    children: [
+                      _CircleIconButton(
+                        icon: Icons.arrow_back_ios_new,
+                        onTap: () => Navigator.of(context).maybePop(),
+                      ),
+                      const Expanded(
+                        child: Center(
+                          child: Text('顺延计划', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                        ),
+                      ),
+                      _CircleIconButton(
+                        icon: Icons.history,
+                        onTap: () {},
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 2, 24, 6),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.goal.title,
+                              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                const Icon(Icons.event, size: 16, color: AppTheme.primary),
+                                const SizedBox(width: 4),
+                                Text(
+                                  oldDueDate == null ? '当前截止: 未设置' : '当前截止: ${_formatDotDate(oldDueDate)}',
+                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF6B7280)),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      SizedBox(
+                        width: 64,
+                        height: 64,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            SizedBox(
+                              width: 64,
+                              height: 64,
+                              child: CircularProgressIndicator(
+                                value: 1,
+                                color: const Color(0xFFE5E7EB),
+                                strokeWidth: 5,
+                              ),
+                            ),
+                            SizedBox(
+                              width: 64,
+                              height: 64,
+                              child: Transform.rotate(
+                                angle: -3.14159 / 2,
+                                child: CircularProgressIndicator(
+                                  value: widget.goal.progress.clamp(0, 1).toDouble(),
+                                  color: AppTheme.primary,
+                                  strokeWidth: 5,
+                                  strokeCap: StrokeCap.round,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              '$progressPercent%',
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: AppTheme.primary),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(24, 2, 24, 120),
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFF3F4F6)),
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 2))],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFDCF8FD),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(Icons.edit_calendar, size: 20, color: AppTheme.primary),
+                                ),
+                                const SizedBox(width: 8),
+                                const Text('调整截止日期', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            InkWell(
+                              onTap: () async {
+                                final selected = await showDatePicker(
+                                  context: context,
+                                  initialDate: _newDueDate,
+                                  firstDate: DateTime(2000),
+                                  lastDate: DateTime(2100),
+                                );
+                                if (selected != null && mounted) {
+                                  setState(() => _newDueDate = selected);
+                                }
+                              },
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF6F8F8),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.calendar_month, size: 20, color: Color(0xFF6B7280)),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        '${_newDueDate.year}-${_newDueDate.month.toString().padLeft(2, '0')}-${_newDueDate.day.toString().padLeft(2, '0')}',
+                                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF111827)),
+                                      ),
+                                    ),
+                                    const Icon(Icons.arrow_drop_down, size: 24, color: AppTheme.primary),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  oldDueDate == null ? '当前: 未设置' : '当前: ${_formatDotDate(oldDueDate)}',
+                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF94A3B8)),
+                                ),
+                                Text(
+                                  '+$daysDiff 天',
+                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.primary),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFF3F4F6)),
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 2))],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFF4E5),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(Icons.psychology_alt, size: 20, color: Color(0xFFFB923C)),
+                                ),
+                                const SizedBox(width: 8),
+                                const Text('顺延原因与复盘', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            TextField(
+                              controller: _reasonController,
+                              maxLines: 6,
+                              decoration: const InputDecoration(
+                                hintText: '最近遇到了什么困难？为什么需要更多时间？写下来也许能理清思路...',
+                                border: InputBorder.none,
+                                filled: true,
+                                fillColor: Color(0xFFF6F8F8),
+                                contentPadding: EdgeInsets.all(16),
+                              ),
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF111827), height: 1.6),
+                            ),
+                            const SizedBox(height: 12),
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: [
+                                  for (final tag in _reasonTags) ...[
+                                    FilterChip(
+                                      label: Text(tag),
+                                      selected: _selectedTags.contains(tag),
+                                      onSelected: (selected) {
+                                        setState(() {
+                                          if (selected) {
+                                            _selectedTags.add(tag);
+                                          } else {
+                                            _selectedTags.remove(tag);
+                                          }
+                                        });
+                                      },
+                                      backgroundColor: const Color(0xFFF3F4F6),
+                                      selectedColor: const Color(0xFFDCF8FD),
+                                      checkmarkColor: AppTheme.primary,
+                                      labelStyle: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: _selectedTags.contains(tag) ? AppTheme.primary : const Color(0xFF6B7280),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    ),
+                                    const SizedBox(width: 8),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Row(
+                          children: [
+                            const Text('过往顺延记录', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF94A3B8))),
+                            const Spacer(),
+                            StreamBuilder<List<GoalPostponement>>(
+                              stream: db.goalPostponementDao.watchByGoalId(widget.goal.id),
+                              builder: (context, snapshot) {
+                                final count = snapshot.data?.length ?? 0;
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE5E7EB),
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Text(
+                                    '$count次',
+                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF6B7280)),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      StreamBuilder<List<GoalPostponement>>(
+                        stream: db.goalPostponementDao.watchByGoalId(widget.goal.id),
+                        builder: (context, snapshot) {
+                          final postponements = snapshot.data ?? const <GoalPostponement>[];
+                          if (postponements.isEmpty) {
+                            return Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: const Color(0xFFF3F4F6)),
+                              ),
+                              child: const Text('暂无顺延记录', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                            );
+                          }
+                          return Column(
+                            children: [
+                              for (int i = 0; i < postponements.length; i++) ...[
+                                _PostponementHistoryItem(
+                                  postponement: postponements[i],
+                                  isLast: i == postponements.length - 1,
+                                ),
+                              ],
+                            ],
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: ClipRect(
+              child: BackdropFilter(
+                filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    border: Border(top: BorderSide(color: const Color(0xFFE5E7EB))),
+                  ),
+                  child: ElevatedButton(
+                    onPressed: _confirmPostpone,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+                      shadowColor: AppTheme.primary.withValues(alpha: 0.3),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        AnimatedBuilder(
+                          animation: const AlwaysStoppedAnimation(0),
+                          builder: (context, child) => Transform.rotate(
+                            angle: 0,
+                            child: child,
+                          ),
+                          child: const Icon(Icons.update, size: 20),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text('确认顺延'),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PostponementHistoryItem extends StatelessWidget {
+  const _PostponementHistoryItem({required this.postponement, required this.isLast});
+
+  final GoalPostponement postponement;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(left: 12, bottom: isLast ? 0 : 24),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Column(
+              children: [
+                Container(
+                  width: 16,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD1D5DB),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                ),
+                if (!isLast)
+                  Expanded(
+                    child: Container(
+                      width: 2,
+                      color: const Color(0xFFE5E7EB),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFF3F4F6)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _formatDotDate(postponement.createdAt),
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF94A3B8)),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF4E5),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '+${postponement.daysAdded ?? 0}天',
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFFF97316)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        if (postponement.oldDueDate != null)
+                          Text(
+                            _formatDotDate(postponement.oldDueDate!),
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF94A3B8),
+                              decoration: TextDecoration.lineThrough,
+                            ),
+                          ),
+                        if (postponement.oldDueDate != null) ...[
+                          const SizedBox(width: 8),
+                          const Icon(Icons.arrow_right_alt, size: 18, color: Color(0xFF94A3B8)),
+                          const SizedBox(width: 8),
+                        ],
+                        Text(
+                          _formatDotDate(postponement.newDueDate ?? DateTime.now()),
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF111827)),
+                        ),
+                      ],
+                    ),
+                    if (postponement.reason != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        '"${postponement.reason!}"',
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF94A3B8), fontStyle: FontStyle.italic),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _HeroProgressRing extends StatelessWidget {

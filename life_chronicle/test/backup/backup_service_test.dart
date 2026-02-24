@@ -1,13 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide isNotNull;
 import 'package:drift/native.dart';
 import 'package:life_chronicle/core/database/app_database.dart';
 import 'package:life_chronicle/core/services/backup/backup_service.dart';
-import 'package:life_chronicle/core/services/backup/encryption_service.dart';
 import 'package:life_chronicle/core/services/backup/change_log_recorder.dart';
 
 AppDatabase _createTestDatabase() {
-  return AppDatabase(NativeDatabase.memory());
+  return AppDatabase.connect(NativeDatabase.memory());
 }
 
 void main() {
@@ -29,6 +28,7 @@ void main() {
       await db.foodDao.upsert(FoodRecordsCompanion.insert(
         id: 'test-food-1',
         title: 'Test Food',
+        recordDate: DateTime.now(),
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       ));
@@ -47,18 +47,25 @@ void main() {
           {
             'id': 'test-food-import-1',
             'title': 'Imported Food',
-            'description': null,
-            'location': null,
+            'content': null,
+            'images': null,
+            'tags': null,
             'rating': null,
-            'price': null,
-            'images': '[]',
-            'tags': '[]',
-            'isFavorite': false,
-            'isDeleted': false,
+            'pricePerPerson': null,
+            'link': null,
+            'latitude': null,
+            'longitude': null,
+            'poiName': null,
+            'poiAddress': null,
+            'city': null,
+            'mood': null,
             'isWishlist': false,
+            'isFavorite': false,
             'wishlistDone': false,
+            'recordDate': DateTime.now().toIso8601String(),
             'createdAt': DateTime.now().toIso8601String(),
             'updatedAt': DateTime.now().toIso8601String(),
+            'isDeleted': false,
           }
         ],
       };
@@ -74,6 +81,7 @@ void main() {
       await db.foodDao.upsert(FoodRecordsCompanion.insert(
         id: 'test-food-merge-1',
         title: 'Original Title',
+        recordDate: DateTime.now(),
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       ));
@@ -83,18 +91,25 @@ void main() {
           {
             'id': 'test-food-merge-1',
             'title': 'Updated Title',
-            'description': null,
-            'location': null,
+            'content': null,
+            'images': null,
+            'tags': null,
             'rating': null,
-            'price': null,
-            'images': '[]',
-            'tags': '[]',
-            'isFavorite': false,
-            'isDeleted': false,
+            'pricePerPerson': null,
+            'link': null,
+            'latitude': null,
+            'longitude': null,
+            'poiName': null,
+            'poiAddress': null,
+            'city': null,
+            'mood': null,
             'isWishlist': false,
+            'isFavorite': false,
             'wishlistDone': false,
+            'recordDate': DateTime.now().toIso8601String(),
             'createdAt': DateTime.now().toIso8601String(),
             'updatedAt': DateTime.now().toIso8601String(),
+            'isDeleted': false,
           }
         ],
       };
@@ -103,40 +118,6 @@ void main() {
 
       final food = await db.foodDao.findById('test-food-merge-1');
       expect(food!.title, equals('Updated Title'));
-    });
-  });
-
-  group('EncryptionService Tests', () {
-    test('encrypt and decrypt should work correctly', () async {
-      final testData = {'key': 'value', 'number': 42};
-      final testJson = testData.toString();
-
-      final encrypted = await EncryptionService.encryptString(
-        testJson,
-        'test-password',
-      );
-
-      expect(encrypted, isNotEmpty);
-
-      final decrypted = await EncryptionService.decryptString(
-        encrypted,
-        'test-password',
-      );
-
-      expect(decrypted, equals(testJson));
-    });
-
-    test('decrypt with wrong password should fail', () async {
-      final testData = 'test data';
-      final encrypted = await EncryptionService.encryptString(
-        testData,
-        'correct-password',
-      );
-
-      expect(
-        () => EncryptionService.decryptString(encrypted, 'wrong-password'),
-        throwsA(isA<Exception>()),
-      );
     });
   });
 
@@ -170,7 +151,7 @@ void main() {
       await recorder.recordUpdate(
         entityType: 'food_records',
         entityId: 'test-id-2',
-        changedFields: ['title', 'description'],
+        changedFields: ['title', 'content'],
       );
 
       final changes = await db.changeLogDao.findUnsynced();

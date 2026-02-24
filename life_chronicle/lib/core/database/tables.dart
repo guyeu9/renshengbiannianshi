@@ -91,6 +91,7 @@ class TravelRecords extends Table {
   BoolColumn get isWishlist => boolean().withDefault(const Constant(false))();
   BoolColumn get isFavorite => boolean().withDefault(const Constant(false))();
   BoolColumn get wishlistDone => boolean().withDefault(const Constant(false))();
+  BoolColumn get isJournal => boolean().withDefault(const Constant(false))();
   DateTimeColumn get planDate => dateTime().nullable()();
   DateTimeColumn get recordDate => dateTime()();
   DateTimeColumn get createdAt => dateTime()();

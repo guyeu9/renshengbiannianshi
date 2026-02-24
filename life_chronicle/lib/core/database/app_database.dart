@@ -26,7 +26,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.connect(super.executor);
 
   @override
-  int get schemaVersion => 13; // 升级到 13，新增 goal_postponements 和 goal_reviews 表
+  int get schemaVersion => 14; // 升级到 14，新增 travel_records.isJournal 字段
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -57,9 +57,9 @@ class AppDatabase extends _$AppDatabase {
             }
           }
 
-          Future<void> ensureColumn({
+          Future<void> ensureColumn<T extends Object>({
             required TableInfo<Table, dynamic> table,
-            required GeneratedColumn column,
+            required GeneratedColumn<T> column,
           }) async {
             if (!await columnExists(table.actualTableName, column.name)) {
               await m.addColumn(table, column);
@@ -138,6 +138,8 @@ class AppDatabase extends _$AppDatabase {
               "UPDATE moment_records SET scene_tag = json_array(scene_tag) WHERE scene_tag IS NOT NULL AND scene_tag != '' AND json_valid(scene_tag) = 0",
             );
           }
+
+          await ensureColumn(table: travelRecords, column: travelRecords.isJournal);
         },
       );
 
@@ -168,6 +170,23 @@ class AppDatabase extends _$AppDatabase {
   Stream<List<TravelRecord>> watchAllActiveTravelRecords() {
     return (select(travelRecords)
           ..where((t) => t.isDeleted.equals(false))
+          ..orderBy([(t) => OrderingTerm(expression: t.recordDate, mode: OrderingMode.desc)]))
+        .watch();
+  }
+
+  Stream<List<TravelRecord>> watchTravelTrips() {
+    return (select(travelRecords)
+          ..where((t) => t.isDeleted.equals(false))
+          ..where((t) => t.isJournal.equals(false))
+          ..orderBy([(t) => OrderingTerm(expression: t.recordDate, mode: OrderingMode.desc)]))
+        .watch();
+  }
+
+  Stream<List<TravelRecord>> watchTravelJournals(String tripId) {
+    return (select(travelRecords)
+          ..where((t) => t.isDeleted.equals(false))
+          ..where((t) => t.isJournal.equals(true))
+          ..where((t) => t.tripId.equals(tripId))
           ..orderBy([(t) => OrderingTerm(expression: t.recordDate, mode: OrderingMode.desc)]))
         .watch();
   }

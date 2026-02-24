@@ -2601,6 +2601,16 @@ class $TravelRecordsTable extends TravelRecords
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'CHECK ("wishlist_done" IN (0, 1))'),
       defaultValue: const Constant(false));
+  static const VerificationMeta _isJournalMeta =
+      const VerificationMeta('isJournal');
+  @override
+  late final GeneratedColumn<bool> isJournal = GeneratedColumn<bool>(
+      'is_journal', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_journal" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _planDateMeta =
       const VerificationMeta('planDate');
   @override
@@ -2657,6 +2667,7 @@ class $TravelRecordsTable extends TravelRecords
         isWishlist,
         isFavorite,
         wishlistDone,
+        isJournal,
         planDate,
         recordDate,
         createdAt,
@@ -2774,6 +2785,10 @@ class $TravelRecordsTable extends TravelRecords
           wishlistDone.isAcceptableOrUnknown(
               data['wishlist_done']!, _wishlistDoneMeta));
     }
+    if (data.containsKey('is_journal')) {
+      context.handle(_isJournalMeta,
+          isJournal.isAcceptableOrUnknown(data['is_journal']!, _isJournalMeta));
+    }
     if (data.containsKey('plan_date')) {
       context.handle(_planDateMeta,
           planDate.isAcceptableOrUnknown(data['plan_date']!, _planDateMeta));
@@ -2851,6 +2866,8 @@ class $TravelRecordsTable extends TravelRecords
           .read(DriftSqlType.bool, data['${effectivePrefix}is_favorite'])!,
       wishlistDone: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}wishlist_done'])!,
+      isJournal: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_journal'])!,
       planDate: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}plan_date']),
       recordDate: attachedDatabase.typeMapping
@@ -2891,6 +2908,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
   final bool isWishlist;
   final bool isFavorite;
   final bool wishlistDone;
+  final bool isJournal;
   final DateTime? planDate;
   final DateTime recordDate;
   final DateTime createdAt;
@@ -2917,6 +2935,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
       required this.isWishlist,
       required this.isFavorite,
       required this.wishlistDone,
+      required this.isJournal,
       this.planDate,
       required this.recordDate,
       required this.createdAt,
@@ -2975,6 +2994,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
     map['is_wishlist'] = Variable<bool>(isWishlist);
     map['is_favorite'] = Variable<bool>(isFavorite);
     map['wishlist_done'] = Variable<bool>(wishlistDone);
+    map['is_journal'] = Variable<bool>(isJournal);
     if (!nullToAbsent || planDate != null) {
       map['plan_date'] = Variable<DateTime>(planDate);
     }
@@ -3029,6 +3049,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
       isWishlist: Value(isWishlist),
       isFavorite: Value(isFavorite),
       wishlistDone: Value(wishlistDone),
+      isJournal: Value(isJournal),
       planDate: planDate == null && nullToAbsent
           ? const Value.absent()
           : Value(planDate),
@@ -3063,6 +3084,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
       isWishlist: serializer.fromJson<bool>(json['isWishlist']),
       isFavorite: serializer.fromJson<bool>(json['isFavorite']),
       wishlistDone: serializer.fromJson<bool>(json['wishlistDone']),
+      isJournal: serializer.fromJson<bool>(json['isJournal']),
       planDate: serializer.fromJson<DateTime?>(json['planDate']),
       recordDate: serializer.fromJson<DateTime>(json['recordDate']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -3094,6 +3116,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
       'isWishlist': serializer.toJson<bool>(isWishlist),
       'isFavorite': serializer.toJson<bool>(isFavorite),
       'wishlistDone': serializer.toJson<bool>(wishlistDone),
+      'isJournal': serializer.toJson<bool>(isJournal),
       'planDate': serializer.toJson<DateTime?>(planDate),
       'recordDate': serializer.toJson<DateTime>(recordDate),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -3123,6 +3146,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
           bool? isWishlist,
           bool? isFavorite,
           bool? wishlistDone,
+          bool? isJournal,
           Value<DateTime?> planDate = const Value.absent(),
           DateTime? recordDate,
           DateTime? createdAt,
@@ -3153,6 +3177,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
         isWishlist: isWishlist ?? this.isWishlist,
         isFavorite: isFavorite ?? this.isFavorite,
         wishlistDone: wishlistDone ?? this.wishlistDone,
+        isJournal: isJournal ?? this.isJournal,
         planDate: planDate.present ? planDate.value : this.planDate,
         recordDate: recordDate ?? this.recordDate,
         createdAt: createdAt ?? this.createdAt,
@@ -3194,6 +3219,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
       wishlistDone: data.wishlistDone.present
           ? data.wishlistDone.value
           : this.wishlistDone,
+      isJournal: data.isJournal.present ? data.isJournal.value : this.isJournal,
       planDate: data.planDate.present ? data.planDate.value : this.planDate,
       recordDate:
           data.recordDate.present ? data.recordDate.value : this.recordDate,
@@ -3226,6 +3252,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
           ..write('isWishlist: $isWishlist, ')
           ..write('isFavorite: $isFavorite, ')
           ..write('wishlistDone: $wishlistDone, ')
+          ..write('isJournal: $isJournal, ')
           ..write('planDate: $planDate, ')
           ..write('recordDate: $recordDate, ')
           ..write('createdAt: $createdAt, ')
@@ -3257,6 +3284,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
         isWishlist,
         isFavorite,
         wishlistDone,
+        isJournal,
         planDate,
         recordDate,
         createdAt,
@@ -3287,6 +3315,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
           other.isWishlist == this.isWishlist &&
           other.isFavorite == this.isFavorite &&
           other.wishlistDone == this.wishlistDone &&
+          other.isJournal == this.isJournal &&
           other.planDate == this.planDate &&
           other.recordDate == this.recordDate &&
           other.createdAt == this.createdAt &&
@@ -3315,6 +3344,7 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
   final Value<bool> isWishlist;
   final Value<bool> isFavorite;
   final Value<bool> wishlistDone;
+  final Value<bool> isJournal;
   final Value<DateTime?> planDate;
   final Value<DateTime> recordDate;
   final Value<DateTime> createdAt;
@@ -3342,6 +3372,7 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
     this.isWishlist = const Value.absent(),
     this.isFavorite = const Value.absent(),
     this.wishlistDone = const Value.absent(),
+    this.isJournal = const Value.absent(),
     this.planDate = const Value.absent(),
     this.recordDate = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -3370,6 +3401,7 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
     this.isWishlist = const Value.absent(),
     this.isFavorite = const Value.absent(),
     this.wishlistDone = const Value.absent(),
+    this.isJournal = const Value.absent(),
     this.planDate = const Value.absent(),
     required DateTime recordDate,
     required DateTime createdAt,
@@ -3402,6 +3434,7 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
     Expression<bool>? isWishlist,
     Expression<bool>? isFavorite,
     Expression<bool>? wishlistDone,
+    Expression<bool>? isJournal,
     Expression<DateTime>? planDate,
     Expression<DateTime>? recordDate,
     Expression<DateTime>? createdAt,
@@ -3430,6 +3463,7 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
       if (isWishlist != null) 'is_wishlist': isWishlist,
       if (isFavorite != null) 'is_favorite': isFavorite,
       if (wishlistDone != null) 'wishlist_done': wishlistDone,
+      if (isJournal != null) 'is_journal': isJournal,
       if (planDate != null) 'plan_date': planDate,
       if (recordDate != null) 'record_date': recordDate,
       if (createdAt != null) 'created_at': createdAt,
@@ -3460,6 +3494,7 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
       Value<bool>? isWishlist,
       Value<bool>? isFavorite,
       Value<bool>? wishlistDone,
+      Value<bool>? isJournal,
       Value<DateTime?>? planDate,
       Value<DateTime>? recordDate,
       Value<DateTime>? createdAt,
@@ -3487,6 +3522,7 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
       isWishlist: isWishlist ?? this.isWishlist,
       isFavorite: isFavorite ?? this.isFavorite,
       wishlistDone: wishlistDone ?? this.wishlistDone,
+      isJournal: isJournal ?? this.isJournal,
       planDate: planDate ?? this.planDate,
       recordDate: recordDate ?? this.recordDate,
       createdAt: createdAt ?? this.createdAt,
@@ -3559,6 +3595,9 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
     if (wishlistDone.present) {
       map['wishlist_done'] = Variable<bool>(wishlistDone.value);
     }
+    if (isJournal.present) {
+      map['is_journal'] = Variable<bool>(isJournal.value);
+    }
     if (planDate.present) {
       map['plan_date'] = Variable<DateTime>(planDate.value);
     }
@@ -3603,6 +3642,7 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
           ..write('isWishlist: $isWishlist, ')
           ..write('isFavorite: $isFavorite, ')
           ..write('wishlistDone: $wishlistDone, ')
+          ..write('isJournal: $isJournal, ')
           ..write('planDate: $planDate, ')
           ..write('recordDate: $recordDate, ')
           ..write('createdAt: $createdAt, ')
@@ -10514,6 +10554,7 @@ typedef $$TravelRecordsTableCreateCompanionBuilder = TravelRecordsCompanion
   Value<bool> isWishlist,
   Value<bool> isFavorite,
   Value<bool> wishlistDone,
+  Value<bool> isJournal,
   Value<DateTime?> planDate,
   required DateTime recordDate,
   required DateTime createdAt,
@@ -10543,6 +10584,7 @@ typedef $$TravelRecordsTableUpdateCompanionBuilder = TravelRecordsCompanion
   Value<bool> isWishlist,
   Value<bool> isFavorite,
   Value<bool> wishlistDone,
+  Value<bool> isJournal,
   Value<DateTime?> planDate,
   Value<DateTime> recordDate,
   Value<DateTime> createdAt,
@@ -10620,6 +10662,9 @@ class $$TravelRecordsTableFilterComposer
 
   ColumnFilters<bool> get wishlistDone => $composableBuilder(
       column: $table.wishlistDone, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isJournal => $composableBuilder(
+      column: $table.isJournal, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get planDate => $composableBuilder(
       column: $table.planDate, builder: (column) => ColumnFilters(column));
@@ -10710,6 +10755,9 @@ class $$TravelRecordsTableOrderingComposer
       column: $table.wishlistDone,
       builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<bool> get isJournal => $composableBuilder(
+      column: $table.isJournal, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get planDate => $composableBuilder(
       column: $table.planDate, builder: (column) => ColumnOrderings(column));
 
@@ -10795,6 +10843,9 @@ class $$TravelRecordsTableAnnotationComposer
   GeneratedColumn<bool> get wishlistDone => $composableBuilder(
       column: $table.wishlistDone, builder: (column) => column);
 
+  GeneratedColumn<bool> get isJournal =>
+      $composableBuilder(column: $table.isJournal, builder: (column) => column);
+
   GeneratedColumn<DateTime> get planDate =>
       $composableBuilder(column: $table.planDate, builder: (column) => column);
 
@@ -10857,6 +10908,7 @@ class $$TravelRecordsTableTableManager extends RootTableManager<
             Value<bool> isWishlist = const Value.absent(),
             Value<bool> isFavorite = const Value.absent(),
             Value<bool> wishlistDone = const Value.absent(),
+            Value<bool> isJournal = const Value.absent(),
             Value<DateTime?> planDate = const Value.absent(),
             Value<DateTime> recordDate = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
@@ -10885,6 +10937,7 @@ class $$TravelRecordsTableTableManager extends RootTableManager<
             isWishlist: isWishlist,
             isFavorite: isFavorite,
             wishlistDone: wishlistDone,
+            isJournal: isJournal,
             planDate: planDate,
             recordDate: recordDate,
             createdAt: createdAt,
@@ -10913,6 +10966,7 @@ class $$TravelRecordsTableTableManager extends RootTableManager<
             Value<bool> isWishlist = const Value.absent(),
             Value<bool> isFavorite = const Value.absent(),
             Value<bool> wishlistDone = const Value.absent(),
+            Value<bool> isJournal = const Value.absent(),
             Value<DateTime?> planDate = const Value.absent(),
             required DateTime recordDate,
             required DateTime createdAt,
@@ -10941,6 +10995,7 @@ class $$TravelRecordsTableTableManager extends RootTableManager<
             isWishlist: isWishlist,
             isFavorite: isFavorite,
             wishlistDone: wishlistDone,
+            isJournal: isJournal,
             planDate: planDate,
             recordDate: recordDate,
             createdAt: createdAt,

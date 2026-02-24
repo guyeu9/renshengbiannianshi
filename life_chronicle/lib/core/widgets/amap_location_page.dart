@@ -97,6 +97,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
   static const String _amapAndroidKey = String.fromEnvironment('AMAP_ANDROID_KEY', defaultValue: 'a5a3e21e2d17ffa851374ed158a985a6');
   static const String _amapIosKey = String.fromEnvironment('AMAP_IOS_KEY', defaultValue: '');
   static const String _amapWebKey = String.fromEnvironment('AMAP_WEB_KEY', defaultValue: '76e66f23c7045fbe296f9aa9b7e7f12c');
+  static const String _amapSecurityCode = String.fromEnvironment('AMAP_SECURITY_CODE', defaultValue: '');
 
   static const _primary = Color(0xFF2BCDEE);
 

@@ -333,7 +333,7 @@ class _TravelOnTheRoadView extends ConsumerWidget {
       stream: db.watchAllActiveTravelRecords(),
       builder: (context, snapshot) {
         final records = snapshot.data ?? const <TravelRecord>[];
-        var filtered = records.where((r) => !r.isWishlist).toList(growable: false);
+        var filtered = records.where((r) => !r.isWishlist && !r.isJournal).toList(growable: false);
 
         final searchLower = searchQuery.toLowerCase().trim();
         if (searchLower.isNotEmpty) {
@@ -1825,6 +1825,7 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
             latitude: Value(_latitude),
             longitude: Value(_longitude),
             isWishlist: Value(_addToWishlist),
+            isJournal: const Value(false),
             wishlistDone: Value(existingRecord?.wishlistDone ?? false),
             planDate: Value(startDate),
             recordDate: recordDate,
@@ -2751,6 +2752,7 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
             longitude: Value(_longitude),
             mood: Value(mood),
             isWishlist: const Value(false),
+            isJournal: const Value(true),
             wishlistDone: const Value(false),
             recordDate: recordDate,
             createdAt: now,
