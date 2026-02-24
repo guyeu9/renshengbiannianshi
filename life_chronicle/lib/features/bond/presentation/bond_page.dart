@@ -2477,7 +2477,6 @@ class _FriendCreatePageState extends ConsumerState<FriendCreatePage> {
           ),
         ],
       ),
-      ),
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (_, __) => const Scaffold(body: Center(child: Text('加载配置失败'))),
     );
