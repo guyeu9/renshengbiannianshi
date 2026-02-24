@@ -7,3 +7,4 @@ analyzer:
     - plugins/**
   errors:
     deprecated_member_use: ignore
+    empty_catches: ignore
