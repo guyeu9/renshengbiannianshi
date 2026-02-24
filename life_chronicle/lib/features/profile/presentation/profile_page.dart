@@ -682,7 +682,7 @@ class ProfilePage extends StatelessWidget {
                   ),
                 ],
               ),
-            ),
+            ,
             // 悬浮按钮 - 返回
             Positioned(
               top: 16,

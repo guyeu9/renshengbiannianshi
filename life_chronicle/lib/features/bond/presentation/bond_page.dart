@@ -251,75 +251,69 @@ class _SegmentedPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final w = constraints.maxWidth;
-        final pillWidth = (w - 8) / 2;
-
-        return Container(
-          height: 52,
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: const Color(0xFFE5E7EB),
-            borderRadius: BorderRadius.circular(999),
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(999),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 2))],
+      ),
+      child: Stack(
+        children: [
+          AnimatedAlign(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            alignment: tabIndex == 0 ? Alignment.centerLeft : Alignment.centerRight,
+            child: FractionallySizedBox(
+              widthFactor: 0.5,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2BCDEE),
+                  borderRadius: BorderRadius.circular(999),
+                  boxShadow: [BoxShadow(color: const Color(0xFF2BCDEE).withValues(alpha: 0.22), blurRadius: 18, offset: const Offset(0, 8))],
+                ),
+              ),
+            ),
           ),
-          child: Stack(
+          Row(
             children: [
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeOut,
-                left: tabIndex == 0 ? 0 : pillWidth,
-                top: 0,
-                bottom: 0,
-                width: pillWidth,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(999),
-                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 2))],
+              Expanded(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(999),
+                  onTap: () => onChanged(0),
+                  child: Center(
+                    child: Text(
+                      '朋友档案',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: tabIndex == 0 ? Colors.white : const Color(0xFF6B7280),
+                      ),
+                    ),
                   ),
                 ),
               ),
-              Row(
-                children: [
-                  Expanded(
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(999),
-                      onTap: () => onChanged(0),
-                      child: Center(
-                        child: Text(
-                          '朋友档案',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: tabIndex == 0 ? const Color(0xFF1F2937) : const Color(0xFF6B7280),
-                          ),
-                        ),
+              Expanded(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(999),
+                  onTap: () => onChanged(1),
+                  child: Center(
+                    child: Text(
+                      '相遇',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: tabIndex == 1 ? Colors.white : const Color(0xFF6B7280),
                       ),
                     ),
                   ),
-                  Expanded(
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(999),
-                      onTap: () => onChanged(1),
-                      child: Center(
-                        child: Text(
-                          '相遇',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: tabIndex == 1 ? FontWeight.w800 : FontWeight.w700,
-                            color: tabIndex == 1 ? const Color(0xFF2BCDEE) : const Color(0xFF6B7280),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ],
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 }

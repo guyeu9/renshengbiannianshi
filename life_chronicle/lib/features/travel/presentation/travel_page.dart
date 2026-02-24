@@ -22,7 +22,7 @@ class TravelPage extends StatefulWidget {
   State<TravelPage> createState() => _TravelPageState();
 }
 
-enum _TravelViewMode { wishlist, onTheRoad }
+enum _TravelViewMode { onTheRoad, wishlist }
 
 class _TravelPageState extends State<TravelPage> {
   _TravelViewMode _mode = _TravelViewMode.onTheRoad;
@@ -258,60 +258,73 @@ class _TravelModeSwitch extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 40,
+      height: 44,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: const Color(0xFFF3F4F6),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(999),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 2))],
       ),
-      child: Row(
+      child: Stack(
         children: [
-          Expanded(
-            child: _TravelModePill(
-              label: '愿望清单',
-              selected: mode == _TravelViewMode.wishlist,
-              onTap: () => onChanged(_TravelViewMode.wishlist),
+          AnimatedAlign(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            alignment: mode == _TravelViewMode.onTheRoad ? Alignment.centerLeft : Alignment.centerRight,
+            child: FractionallySizedBox(
+              widthFactor: 0.5,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2BCDEE),
+                  borderRadius: BorderRadius.circular(999),
+                  boxShadow: [BoxShadow(color: const Color(0xFF2BCDEE).withValues(alpha: 0.22), blurRadius: 18, offset: const Offset(0, 8))],
+                ),
+              ),
             ),
           ),
-          Expanded(
-            child: _TravelModePill(
-              label: '在路上',
-              selected: mode == _TravelViewMode.onTheRoad,
-              onTap: () => onChanged(_TravelViewMode.onTheRoad),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(999),
+                  onTap: () {
+                    FocusManager.instance.primaryFocus?.unfocus();
+                    onChanged(_TravelViewMode.onTheRoad);
+                  },
+                  child: Center(
+                    child: Text(
+                      '在路上',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: mode == _TravelViewMode.onTheRoad ? Colors.white : const Color(0xFF6B7280),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(999),
+                  onTap: () {
+                    FocusManager.instance.primaryFocus?.unfocus();
+                    onChanged(_TravelViewMode.wishlist);
+                  },
+                  child: Center(
+                    child: Text(
+                      '愿望清单',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: mode == _TravelViewMode.wishlist ? Colors.white : const Color(0xFF6B7280),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _TravelModePill extends StatelessWidget {
-  const _TravelModePill({required this.label, required this.selected, required this.onTap});
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: selected ? const Color(0xFF2BCDEE) : Colors.transparent,
-      borderRadius: BorderRadius.circular(999),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
-        child: Container(
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-              color: selected ? Colors.white : const Color(0xFF64748B),
-            ),
-          ),
-        ),
       ),
     );
   }
