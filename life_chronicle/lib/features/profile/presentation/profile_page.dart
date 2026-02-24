@@ -1,4 +1,4 @@
-﻿﻿import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -218,12 +218,7 @@ class ModuleManagementConfig {
           iconName: 'restaurant',
           tagTitle: '菜系标签管理',
           showOnCalendar: true,
-          tags: const [
-            ModuleTag(id: 'food-1', name: '火锅'),
-            ModuleTag(id: 'food-2', name: '日料'),
-            ModuleTag(id: 'food-3', name: '川菜'),
-            ModuleTag(id: 'food-4', name: '西餐'),
-          ],
+          tags: ModuleTags.food.asMap().entries.map((e) => ModuleTag(id: 'food-${e.key + 1}', name: e.value, showOnCalendar: true)).toList(),
         ),
         'travel': ModuleConfig(
           key: 'travel',
@@ -231,12 +226,7 @@ class ModuleManagementConfig {
           iconName: 'flight_takeoff',
           tagTitle: '目的地标签管理',
           showOnCalendar: true,
-          tags: const [
-            ModuleTag(id: 'travel-1', name: '国内游'),
-            ModuleTag(id: 'travel-2', name: '露营'),
-            ModuleTag(id: 'travel-3', name: '海岛'),
-            ModuleTag(id: 'travel-4', name: '城市漫游'),
-          ],
+          tags: ModuleTags.travel.asMap().entries.map((e) => ModuleTag(id: 'travel-${e.key + 1}', name: e.value, showOnCalendar: true)).toList(),
         ),
         'moment': ModuleConfig(
           key: 'moment',
@@ -244,12 +234,7 @@ class ModuleManagementConfig {
           iconName: 'auto_awesome',
           tagTitle: '个性化标签管理 (支持自定义图标)',
           showOnCalendar: true,
-          tags: const [
-            ModuleTag(id: 'moment-1', name: '礼物', iconName: 'card_giftcard', showOnCalendar: true),
-            ModuleTag(id: 'moment-2', name: '夕阳', iconName: 'sunny', showOnCalendar: false),
-            ModuleTag(id: 'moment-3', name: '散步', iconName: 'directions_walk', showOnCalendar: true),
-            ModuleTag(id: 'moment-4', name: '花束', iconName: 'local_florist', showOnCalendar: true),
-          ],
+          tags: ModuleTags.moment.asMap().entries.map((e) => ModuleTag(id: 'moment-${e.key + 1}', name: e.value, showOnCalendar: true)).toList(),
         ),
         'bond': ModuleConfig(
           key: 'bond',
@@ -257,11 +242,7 @@ class ModuleManagementConfig {
           iconName: 'diversity_3',
           tagTitle: '印象标签管理',
           showOnCalendar: true,
-          tags: const [
-            ModuleTag(id: 'bond-1', name: '死党'),
-            ModuleTag(id: 'bond-2', name: '家人'),
-            ModuleTag(id: 'bond-3', name: '同事'),
-          ],
+          tags: ModuleTags.bond.asMap().entries.map((e) => ModuleTag(id: 'bond-${e.key + 1}', name: e.value, showOnCalendar: true)).toList(),
         ),
         'goal': ModuleConfig(
           key: 'goal',
@@ -269,11 +250,7 @@ class ModuleManagementConfig {
           iconName: 'flag',
           tagTitle: '目标分类管理',
           showOnCalendar: true,
-          tags: const [
-            ModuleTag(id: 'goal-1', name: '年度目标'),
-            ModuleTag(id: 'goal-2', name: '习惯养成'),
-            ModuleTag(id: 'goal-3', name: '职业发展'),
-          ],
+          tags: ModuleTags.goal.asMap().entries.map((e) => ModuleTag(id: 'goal-${e.key + 1}', name: e.value, showOnCalendar: true)).toList(),
         ),
       },
     );
@@ -4674,50 +4651,6 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
     return counts;
   }
 
-  List<ModuleTag> _discoverUncategorizedTags({
-    required ModuleConfig module,
-    required Map<String, int> tagCounts,
-  }) {
-    final configuredNames = module.tags.map((t) => t.name.trim()).toSet();
-    final uncategorized = <ModuleTag>[];
-    for (final entry in tagCounts.entries) {
-      final name = entry.key.trim();
-      if (name.isEmpty) continue;
-      if (!configuredNames.contains(name)) {
-        uncategorized.add(ModuleTag(
-          id: '${module.key}-uncat-${name.hashCode}',
-          name: name,
-          isCustom: true,
-          usageCount: entry.value,
-        ));
-      }
-    }
-    uncategorized.sort((a, b) => b.usageCount.compareTo(a.usageCount));
-    return uncategorized;
-  }
-
-  Future<void> _addUncategorizedTagToConfig({
-    required ModuleConfig module,
-    required ModuleTag tag,
-  }) async {
-    final current = _config?.moduleOf(module.key) ?? module;
-    final newTag = ModuleTag(
-      id: _newTagId(module.key),
-      name: tag.name,
-      iconName: module.key == 'moment' ? 'star' : null,
-      showOnCalendar: true,
-      isCustom: false,
-      usageCount: tag.usageCount,
-    );
-    final updatedTags = [...current.tags, newTag];
-    await _saveConfig(_updateModule(current.copyWith(tags: updatedTags)));
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已将"${tag.name}"添加到标签库')),
-      );
-    }
-  }
-
   String _newTagId(String moduleKey) {
     return '$moduleKey-${DateTime.now().millisecondsSinceEpoch}';
   }
@@ -5108,7 +5041,6 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
     required Map<String, int> tagCounts,
   }) {
     final tags = module.tags;
-    final uncategorizedTags = _discoverUncategorizedTags(module: module, tagCounts: tagCounts);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: _cardBorder)),
@@ -5191,52 +5123,6 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
               ),
             ],
           ),
-          if (uncategorizedTags.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFF7ED),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFFED7AA)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.label_outline, size: 14, color: Color(0xFFEA580C)),
-                      const SizedBox(width: 6),
-                      Text('未分类标签 (${uncategorizedTags.length})', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFFEA580C))),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text('以下标签在数据库中存在但未在配置中定义，点击可添加到标签库', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF9A3412))),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final tag in uncategorizedTags)
-                        InkWell(
-                          borderRadius: BorderRadius.circular(999),
-                          onTap: () => _addUncategorizedTagToConfig(module: module, tag: tag),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFEDD5),
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(color: const Color(0xFFFDBA74)),
-                            ),
-                            child: Text('${tag.name} (${tag.usageCount})', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF9A3412))),
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
         ],
       ),
     );

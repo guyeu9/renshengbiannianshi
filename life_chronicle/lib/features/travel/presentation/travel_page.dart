@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart' show Value, OrderingTerm, OrderingMode;
 import 'package:uuid/uuid.dart';
 
 import '../../../core/database/app_database.dart';
@@ -2369,6 +2369,7 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
 
   @override
   Widget build(BuildContext context) {
+    final tags = {..._availableTags, ..._selectedTags}.toList()..sort();
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8F8),
       appBar: PreferredSize(
@@ -3918,6 +3919,28 @@ List<String> _decodeStringList(String? raw) {
   } catch (_) {
     return const <String>[];
   }
+}
+
+class _ContentParts {
+  const _ContentParts({required this.note, required this.flight, required this.hotel});
+  final String note;
+  final String flight;
+  final String hotel;
+}
+
+String _formatDurationLabel(int days) {
+  if (days <= 1) return '1天';
+  return '$days天';
+}
+
+String _formatDateDotRange(DateTime? start, DateTime? end) {
+  if (start == null && end == null) return '';
+  final startDate = start ?? end!;
+  final endDate = end ?? startDate;
+  if (_isSameDay(startDate, endDate)) {
+    return '${startDate.month}.${startDate.day}';
+  }
+  return '${startDate.month}.${startDate.day} - ${endDate.month}.${endDate.day}';
 }
 
 class _AssociationRow extends StatelessWidget {
