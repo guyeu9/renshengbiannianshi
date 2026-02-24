@@ -8154,6 +8154,1213 @@ class SyncStateCompanion extends UpdateCompanion<SyncStateData> {
   }
 }
 
+class $ChecklistItemsTable extends ChecklistItems
+    with TableInfo<$ChecklistItemsTable, ChecklistItem> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ChecklistItemsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _tripIdMeta = const VerificationMeta('tripId');
+  @override
+  late final GeneratedColumn<String> tripId = GeneratedColumn<String>(
+      'trip_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _travelIdMeta =
+      const VerificationMeta('travelId');
+  @override
+  late final GeneratedColumn<String> travelId = GeneratedColumn<String>(
+      'travel_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+      'title', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+      'note', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _isDoneMeta = const VerificationMeta('isDone');
+  @override
+  late final GeneratedColumn<bool> isDone = GeneratedColumn<bool>(
+      'is_done', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_done" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _orderIndexMeta =
+      const VerificationMeta('orderIndex');
+  @override
+  late final GeneratedColumn<int> orderIndex = GeneratedColumn<int>(
+      'order_index', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        tripId,
+        travelId,
+        title,
+        note,
+        isDone,
+        orderIndex,
+        createdAt,
+        updatedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'checklist_items';
+  @override
+  VerificationContext validateIntegrity(Insertable<ChecklistItem> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('trip_id')) {
+      context.handle(_tripIdMeta,
+          tripId.isAcceptableOrUnknown(data['trip_id']!, _tripIdMeta));
+    } else if (isInserting) {
+      context.missing(_tripIdMeta);
+    }
+    if (data.containsKey('travel_id')) {
+      context.handle(_travelIdMeta,
+          travelId.isAcceptableOrUnknown(data['travel_id']!, _travelIdMeta));
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+          _titleMeta, title.isAcceptableOrUnknown(data['title']!, _titleMeta));
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+          _noteMeta, note.isAcceptableOrUnknown(data['note']!, _noteMeta));
+    }
+    if (data.containsKey('is_done')) {
+      context.handle(_isDoneMeta,
+          isDone.isAcceptableOrUnknown(data['is_done']!, _isDoneMeta));
+    }
+    if (data.containsKey('order_index')) {
+      context.handle(
+          _orderIndexMeta,
+          orderIndex.isAcceptableOrUnknown(
+              data['order_index']!, _orderIndexMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ChecklistItem map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ChecklistItem(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      tripId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}trip_id'])!,
+      travelId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}travel_id']),
+      title: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}title'])!,
+      note: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}note']),
+      isDone: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_done'])!,
+      orderIndex: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}order_index'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+    );
+  }
+
+  @override
+  $ChecklistItemsTable createAlias(String alias) {
+    return $ChecklistItemsTable(attachedDatabase, alias);
+  }
+}
+
+class ChecklistItem extends DataClass implements Insertable<ChecklistItem> {
+  final String id;
+  final String tripId;
+  final String? travelId;
+  final String title;
+  final String? note;
+  final bool isDone;
+  final int orderIndex;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const ChecklistItem(
+      {required this.id,
+      required this.tripId,
+      this.travelId,
+      required this.title,
+      this.note,
+      required this.isDone,
+      required this.orderIndex,
+      required this.createdAt,
+      required this.updatedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['trip_id'] = Variable<String>(tripId);
+    if (!nullToAbsent || travelId != null) {
+      map['travel_id'] = Variable<String>(travelId);
+    }
+    map['title'] = Variable<String>(title);
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
+    map['is_done'] = Variable<bool>(isDone);
+    map['order_index'] = Variable<int>(orderIndex);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  ChecklistItemsCompanion toCompanion(bool nullToAbsent) {
+    return ChecklistItemsCompanion(
+      id: Value(id),
+      tripId: Value(tripId),
+      travelId: travelId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(travelId),
+      title: Value(title),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      isDone: Value(isDone),
+      orderIndex: Value(orderIndex),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory ChecklistItem.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ChecklistItem(
+      id: serializer.fromJson<String>(json['id']),
+      tripId: serializer.fromJson<String>(json['tripId']),
+      travelId: serializer.fromJson<String?>(json['travelId']),
+      title: serializer.fromJson<String>(json['title']),
+      note: serializer.fromJson<String?>(json['note']),
+      isDone: serializer.fromJson<bool>(json['isDone']),
+      orderIndex: serializer.fromJson<int>(json['orderIndex']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'tripId': serializer.toJson<String>(tripId),
+      'travelId': serializer.toJson<String?>(travelId),
+      'title': serializer.toJson<String>(title),
+      'note': serializer.toJson<String?>(note),
+      'isDone': serializer.toJson<bool>(isDone),
+      'orderIndex': serializer.toJson<int>(orderIndex),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  ChecklistItem copyWith(
+          {String? id,
+          String? tripId,
+          Value<String?> travelId = const Value.absent(),
+          String? title,
+          Value<String?> note = const Value.absent(),
+          bool? isDone,
+          int? orderIndex,
+          DateTime? createdAt,
+          DateTime? updatedAt}) =>
+      ChecklistItem(
+        id: id ?? this.id,
+        tripId: tripId ?? this.tripId,
+        travelId: travelId.present ? travelId.value : this.travelId,
+        title: title ?? this.title,
+        note: note.present ? note.value : this.note,
+        isDone: isDone ?? this.isDone,
+        orderIndex: orderIndex ?? this.orderIndex,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+  ChecklistItem copyWithCompanion(ChecklistItemsCompanion data) {
+    return ChecklistItem(
+      id: data.id.present ? data.id.value : this.id,
+      tripId: data.tripId.present ? data.tripId.value : this.tripId,
+      travelId: data.travelId.present ? data.travelId.value : this.travelId,
+      title: data.title.present ? data.title.value : this.title,
+      note: data.note.present ? data.note.value : this.note,
+      isDone: data.isDone.present ? data.isDone.value : this.isDone,
+      orderIndex:
+          data.orderIndex.present ? data.orderIndex.value : this.orderIndex,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ChecklistItem(')
+          ..write('id: $id, ')
+          ..write('tripId: $tripId, ')
+          ..write('travelId: $travelId, ')
+          ..write('title: $title, ')
+          ..write('note: $note, ')
+          ..write('isDone: $isDone, ')
+          ..write('orderIndex: $orderIndex, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, tripId, travelId, title, note, isDone,
+      orderIndex, createdAt, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ChecklistItem &&
+          other.id == this.id &&
+          other.tripId == this.tripId &&
+          other.travelId == this.travelId &&
+          other.title == this.title &&
+          other.note == this.note &&
+          other.isDone == this.isDone &&
+          other.orderIndex == this.orderIndex &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class ChecklistItemsCompanion extends UpdateCompanion<ChecklistItem> {
+  final Value<String> id;
+  final Value<String> tripId;
+  final Value<String?> travelId;
+  final Value<String> title;
+  final Value<String?> note;
+  final Value<bool> isDone;
+  final Value<int> orderIndex;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const ChecklistItemsCompanion({
+    this.id = const Value.absent(),
+    this.tripId = const Value.absent(),
+    this.travelId = const Value.absent(),
+    this.title = const Value.absent(),
+    this.note = const Value.absent(),
+    this.isDone = const Value.absent(),
+    this.orderIndex = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ChecklistItemsCompanion.insert({
+    required String id,
+    required String tripId,
+    this.travelId = const Value.absent(),
+    required String title,
+    this.note = const Value.absent(),
+    this.isDone = const Value.absent(),
+    this.orderIndex = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        tripId = Value(tripId),
+        title = Value(title),
+        createdAt = Value(createdAt),
+        updatedAt = Value(updatedAt);
+  static Insertable<ChecklistItem> custom({
+    Expression<String>? id,
+    Expression<String>? tripId,
+    Expression<String>? travelId,
+    Expression<String>? title,
+    Expression<String>? note,
+    Expression<bool>? isDone,
+    Expression<int>? orderIndex,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (tripId != null) 'trip_id': tripId,
+      if (travelId != null) 'travel_id': travelId,
+      if (title != null) 'title': title,
+      if (note != null) 'note': note,
+      if (isDone != null) 'is_done': isDone,
+      if (orderIndex != null) 'order_index': orderIndex,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ChecklistItemsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? tripId,
+      Value<String?>? travelId,
+      Value<String>? title,
+      Value<String?>? note,
+      Value<bool>? isDone,
+      Value<int>? orderIndex,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<int>? rowid}) {
+    return ChecklistItemsCompanion(
+      id: id ?? this.id,
+      tripId: tripId ?? this.tripId,
+      travelId: travelId ?? this.travelId,
+      title: title ?? this.title,
+      note: note ?? this.note,
+      isDone: isDone ?? this.isDone,
+      orderIndex: orderIndex ?? this.orderIndex,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (tripId.present) {
+      map['trip_id'] = Variable<String>(tripId.value);
+    }
+    if (travelId.present) {
+      map['travel_id'] = Variable<String>(travelId.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (isDone.present) {
+      map['is_done'] = Variable<bool>(isDone.value);
+    }
+    if (orderIndex.present) {
+      map['order_index'] = Variable<int>(orderIndex.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ChecklistItemsCompanion(')
+          ..write('id: $id, ')
+          ..write('tripId: $tripId, ')
+          ..write('travelId: $travelId, ')
+          ..write('title: $title, ')
+          ..write('note: $note, ')
+          ..write('isDone: $isDone, ')
+          ..write('orderIndex: $orderIndex, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $GoalPostponementsTable extends GoalPostponements
+    with TableInfo<$GoalPostponementsTable, GoalPostponement> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $GoalPostponementsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _goalIdMeta = const VerificationMeta('goalId');
+  @override
+  late final GeneratedColumn<String> goalId = GeneratedColumn<String>(
+      'goal_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _oldDueDateMeta =
+      const VerificationMeta('oldDueDate');
+  @override
+  late final GeneratedColumn<DateTime> oldDueDate = GeneratedColumn<DateTime>(
+      'old_due_date', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _newDueDateMeta =
+      const VerificationMeta('newDueDate');
+  @override
+  late final GeneratedColumn<DateTime> newDueDate = GeneratedColumn<DateTime>(
+      'new_due_date', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _reasonMeta = const VerificationMeta('reason');
+  @override
+  late final GeneratedColumn<String> reason = GeneratedColumn<String>(
+      'reason', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _daysAddedMeta =
+      const VerificationMeta('daysAdded');
+  @override
+  late final GeneratedColumn<int> daysAdded = GeneratedColumn<int>(
+      'days_added', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, goalId, oldDueDate, newDueDate, reason, daysAdded, createdAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'goal_postponements';
+  @override
+  VerificationContext validateIntegrity(Insertable<GoalPostponement> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('goal_id')) {
+      context.handle(_goalIdMeta,
+          goalId.isAcceptableOrUnknown(data['goal_id']!, _goalIdMeta));
+    } else if (isInserting) {
+      context.missing(_goalIdMeta);
+    }
+    if (data.containsKey('old_due_date')) {
+      context.handle(
+          _oldDueDateMeta,
+          oldDueDate.isAcceptableOrUnknown(
+              data['old_due_date']!, _oldDueDateMeta));
+    }
+    if (data.containsKey('new_due_date')) {
+      context.handle(
+          _newDueDateMeta,
+          newDueDate.isAcceptableOrUnknown(
+              data['new_due_date']!, _newDueDateMeta));
+    }
+    if (data.containsKey('reason')) {
+      context.handle(_reasonMeta,
+          reason.isAcceptableOrUnknown(data['reason']!, _reasonMeta));
+    }
+    if (data.containsKey('days_added')) {
+      context.handle(_daysAddedMeta,
+          daysAdded.isAcceptableOrUnknown(data['days_added']!, _daysAddedMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  GoalPostponement map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return GoalPostponement(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      goalId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}goal_id'])!,
+      oldDueDate: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}old_due_date']),
+      newDueDate: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}new_due_date']),
+      reason: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}reason']),
+      daysAdded: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}days_added']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+    );
+  }
+
+  @override
+  $GoalPostponementsTable createAlias(String alias) {
+    return $GoalPostponementsTable(attachedDatabase, alias);
+  }
+}
+
+class GoalPostponement extends DataClass
+    implements Insertable<GoalPostponement> {
+  final String id;
+  final String goalId;
+  final DateTime? oldDueDate;
+  final DateTime? newDueDate;
+  final String? reason;
+  final int? daysAdded;
+  final DateTime createdAt;
+  const GoalPostponement(
+      {required this.id,
+      required this.goalId,
+      this.oldDueDate,
+      this.newDueDate,
+      this.reason,
+      this.daysAdded,
+      required this.createdAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['goal_id'] = Variable<String>(goalId);
+    if (!nullToAbsent || oldDueDate != null) {
+      map['old_due_date'] = Variable<DateTime>(oldDueDate);
+    }
+    if (!nullToAbsent || newDueDate != null) {
+      map['new_due_date'] = Variable<DateTime>(newDueDate);
+    }
+    if (!nullToAbsent || reason != null) {
+      map['reason'] = Variable<String>(reason);
+    }
+    if (!nullToAbsent || daysAdded != null) {
+      map['days_added'] = Variable<int>(daysAdded);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  GoalPostponementsCompanion toCompanion(bool nullToAbsent) {
+    return GoalPostponementsCompanion(
+      id: Value(id),
+      goalId: Value(goalId),
+      oldDueDate: oldDueDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(oldDueDate),
+      newDueDate: newDueDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(newDueDate),
+      reason:
+          reason == null && nullToAbsent ? const Value.absent() : Value(reason),
+      daysAdded: daysAdded == null && nullToAbsent
+          ? const Value.absent()
+          : Value(daysAdded),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory GoalPostponement.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return GoalPostponement(
+      id: serializer.fromJson<String>(json['id']),
+      goalId: serializer.fromJson<String>(json['goalId']),
+      oldDueDate: serializer.fromJson<DateTime?>(json['oldDueDate']),
+      newDueDate: serializer.fromJson<DateTime?>(json['newDueDate']),
+      reason: serializer.fromJson<String?>(json['reason']),
+      daysAdded: serializer.fromJson<int?>(json['daysAdded']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'goalId': serializer.toJson<String>(goalId),
+      'oldDueDate': serializer.toJson<DateTime?>(oldDueDate),
+      'newDueDate': serializer.toJson<DateTime?>(newDueDate),
+      'reason': serializer.toJson<String?>(reason),
+      'daysAdded': serializer.toJson<int?>(daysAdded),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  GoalPostponement copyWith(
+          {String? id,
+          String? goalId,
+          Value<DateTime?> oldDueDate = const Value.absent(),
+          Value<DateTime?> newDueDate = const Value.absent(),
+          Value<String?> reason = const Value.absent(),
+          Value<int?> daysAdded = const Value.absent(),
+          DateTime? createdAt}) =>
+      GoalPostponement(
+        id: id ?? this.id,
+        goalId: goalId ?? this.goalId,
+        oldDueDate: oldDueDate.present ? oldDueDate.value : this.oldDueDate,
+        newDueDate: newDueDate.present ? newDueDate.value : this.newDueDate,
+        reason: reason.present ? reason.value : this.reason,
+        daysAdded: daysAdded.present ? daysAdded.value : this.daysAdded,
+        createdAt: createdAt ?? this.createdAt,
+      );
+  GoalPostponement copyWithCompanion(GoalPostponementsCompanion data) {
+    return GoalPostponement(
+      id: data.id.present ? data.id.value : this.id,
+      goalId: data.goalId.present ? data.goalId.value : this.goalId,
+      oldDueDate:
+          data.oldDueDate.present ? data.oldDueDate.value : this.oldDueDate,
+      newDueDate:
+          data.newDueDate.present ? data.newDueDate.value : this.newDueDate,
+      reason: data.reason.present ? data.reason.value : this.reason,
+      daysAdded: data.daysAdded.present ? data.daysAdded.value : this.daysAdded,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GoalPostponement(')
+          ..write('id: $id, ')
+          ..write('goalId: $goalId, ')
+          ..write('oldDueDate: $oldDueDate, ')
+          ..write('newDueDate: $newDueDate, ')
+          ..write('reason: $reason, ')
+          ..write('daysAdded: $daysAdded, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id, goalId, oldDueDate, newDueDate, reason, daysAdded, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is GoalPostponement &&
+          other.id == this.id &&
+          other.goalId == this.goalId &&
+          other.oldDueDate == this.oldDueDate &&
+          other.newDueDate == this.newDueDate &&
+          other.reason == this.reason &&
+          other.daysAdded == this.daysAdded &&
+          other.createdAt == this.createdAt);
+}
+
+class GoalPostponementsCompanion extends UpdateCompanion<GoalPostponement> {
+  final Value<String> id;
+  final Value<String> goalId;
+  final Value<DateTime?> oldDueDate;
+  final Value<DateTime?> newDueDate;
+  final Value<String?> reason;
+  final Value<int?> daysAdded;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const GoalPostponementsCompanion({
+    this.id = const Value.absent(),
+    this.goalId = const Value.absent(),
+    this.oldDueDate = const Value.absent(),
+    this.newDueDate = const Value.absent(),
+    this.reason = const Value.absent(),
+    this.daysAdded = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  GoalPostponementsCompanion.insert({
+    required String id,
+    required String goalId,
+    this.oldDueDate = const Value.absent(),
+    this.newDueDate = const Value.absent(),
+    this.reason = const Value.absent(),
+    this.daysAdded = const Value.absent(),
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        goalId = Value(goalId),
+        createdAt = Value(createdAt);
+  static Insertable<GoalPostponement> custom({
+    Expression<String>? id,
+    Expression<String>? goalId,
+    Expression<DateTime>? oldDueDate,
+    Expression<DateTime>? newDueDate,
+    Expression<String>? reason,
+    Expression<int>? daysAdded,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (goalId != null) 'goal_id': goalId,
+      if (oldDueDate != null) 'old_due_date': oldDueDate,
+      if (newDueDate != null) 'new_due_date': newDueDate,
+      if (reason != null) 'reason': reason,
+      if (daysAdded != null) 'days_added': daysAdded,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  GoalPostponementsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? goalId,
+      Value<DateTime?>? oldDueDate,
+      Value<DateTime?>? newDueDate,
+      Value<String?>? reason,
+      Value<int?>? daysAdded,
+      Value<DateTime>? createdAt,
+      Value<int>? rowid}) {
+    return GoalPostponementsCompanion(
+      id: id ?? this.id,
+      goalId: goalId ?? this.goalId,
+      oldDueDate: oldDueDate ?? this.oldDueDate,
+      newDueDate: newDueDate ?? this.newDueDate,
+      reason: reason ?? this.reason,
+      daysAdded: daysAdded ?? this.daysAdded,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (goalId.present) {
+      map['goal_id'] = Variable<String>(goalId.value);
+    }
+    if (oldDueDate.present) {
+      map['old_due_date'] = Variable<DateTime>(oldDueDate.value);
+    }
+    if (newDueDate.present) {
+      map['new_due_date'] = Variable<DateTime>(newDueDate.value);
+    }
+    if (reason.present) {
+      map['reason'] = Variable<String>(reason.value);
+    }
+    if (daysAdded.present) {
+      map['days_added'] = Variable<int>(daysAdded.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GoalPostponementsCompanion(')
+          ..write('id: $id, ')
+          ..write('goalId: $goalId, ')
+          ..write('oldDueDate: $oldDueDate, ')
+          ..write('newDueDate: $newDueDate, ')
+          ..write('reason: $reason, ')
+          ..write('daysAdded: $daysAdded, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $GoalReviewsTable extends GoalReviews
+    with TableInfo<$GoalReviewsTable, GoalReview> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $GoalReviewsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _goalIdMeta = const VerificationMeta('goalId');
+  @override
+  late final GeneratedColumn<String> goalId = GeneratedColumn<String>(
+      'goal_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+      'title', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _contentMeta =
+      const VerificationMeta('content');
+  @override
+  late final GeneratedColumn<String> content = GeneratedColumn<String>(
+      'content', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _reviewDateMeta =
+      const VerificationMeta('reviewDate');
+  @override
+  late final GeneratedColumn<DateTime> reviewDate = GeneratedColumn<DateTime>(
+      'review_date', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, goalId, title, content, reviewDate, createdAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'goal_reviews';
+  @override
+  VerificationContext validateIntegrity(Insertable<GoalReview> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('goal_id')) {
+      context.handle(_goalIdMeta,
+          goalId.isAcceptableOrUnknown(data['goal_id']!, _goalIdMeta));
+    } else if (isInserting) {
+      context.missing(_goalIdMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+          _titleMeta, title.isAcceptableOrUnknown(data['title']!, _titleMeta));
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('content')) {
+      context.handle(_contentMeta,
+          content.isAcceptableOrUnknown(data['content']!, _contentMeta));
+    }
+    if (data.containsKey('review_date')) {
+      context.handle(
+          _reviewDateMeta,
+          reviewDate.isAcceptableOrUnknown(
+              data['review_date']!, _reviewDateMeta));
+    } else if (isInserting) {
+      context.missing(_reviewDateMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  GoalReview map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return GoalReview(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      goalId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}goal_id'])!,
+      title: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}title'])!,
+      content: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}content']),
+      reviewDate: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}review_date'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+    );
+  }
+
+  @override
+  $GoalReviewsTable createAlias(String alias) {
+    return $GoalReviewsTable(attachedDatabase, alias);
+  }
+}
+
+class GoalReview extends DataClass implements Insertable<GoalReview> {
+  final String id;
+  final String goalId;
+  final String title;
+  final String? content;
+  final DateTime reviewDate;
+  final DateTime createdAt;
+  const GoalReview(
+      {required this.id,
+      required this.goalId,
+      required this.title,
+      this.content,
+      required this.reviewDate,
+      required this.createdAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['goal_id'] = Variable<String>(goalId);
+    map['title'] = Variable<String>(title);
+    if (!nullToAbsent || content != null) {
+      map['content'] = Variable<String>(content);
+    }
+    map['review_date'] = Variable<DateTime>(reviewDate);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  GoalReviewsCompanion toCompanion(bool nullToAbsent) {
+    return GoalReviewsCompanion(
+      id: Value(id),
+      goalId: Value(goalId),
+      title: Value(title),
+      content: content == null && nullToAbsent
+          ? const Value.absent()
+          : Value(content),
+      reviewDate: Value(reviewDate),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory GoalReview.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return GoalReview(
+      id: serializer.fromJson<String>(json['id']),
+      goalId: serializer.fromJson<String>(json['goalId']),
+      title: serializer.fromJson<String>(json['title']),
+      content: serializer.fromJson<String?>(json['content']),
+      reviewDate: serializer.fromJson<DateTime>(json['reviewDate']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'goalId': serializer.toJson<String>(goalId),
+      'title': serializer.toJson<String>(title),
+      'content': serializer.toJson<String?>(content),
+      'reviewDate': serializer.toJson<DateTime>(reviewDate),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  GoalReview copyWith(
+          {String? id,
+          String? goalId,
+          String? title,
+          Value<String?> content = const Value.absent(),
+          DateTime? reviewDate,
+          DateTime? createdAt}) =>
+      GoalReview(
+        id: id ?? this.id,
+        goalId: goalId ?? this.goalId,
+        title: title ?? this.title,
+        content: content.present ? content.value : this.content,
+        reviewDate: reviewDate ?? this.reviewDate,
+        createdAt: createdAt ?? this.createdAt,
+      );
+  GoalReview copyWithCompanion(GoalReviewsCompanion data) {
+    return GoalReview(
+      id: data.id.present ? data.id.value : this.id,
+      goalId: data.goalId.present ? data.goalId.value : this.goalId,
+      title: data.title.present ? data.title.value : this.title,
+      content: data.content.present ? data.content.value : this.content,
+      reviewDate:
+          data.reviewDate.present ? data.reviewDate.value : this.reviewDate,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GoalReview(')
+          ..write('id: $id, ')
+          ..write('goalId: $goalId, ')
+          ..write('title: $title, ')
+          ..write('content: $content, ')
+          ..write('reviewDate: $reviewDate, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, goalId, title, content, reviewDate, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is GoalReview &&
+          other.id == this.id &&
+          other.goalId == this.goalId &&
+          other.title == this.title &&
+          other.content == this.content &&
+          other.reviewDate == this.reviewDate &&
+          other.createdAt == this.createdAt);
+}
+
+class GoalReviewsCompanion extends UpdateCompanion<GoalReview> {
+  final Value<String> id;
+  final Value<String> goalId;
+  final Value<String> title;
+  final Value<String?> content;
+  final Value<DateTime> reviewDate;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const GoalReviewsCompanion({
+    this.id = const Value.absent(),
+    this.goalId = const Value.absent(),
+    this.title = const Value.absent(),
+    this.content = const Value.absent(),
+    this.reviewDate = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  GoalReviewsCompanion.insert({
+    required String id,
+    required String goalId,
+    required String title,
+    this.content = const Value.absent(),
+    required DateTime reviewDate,
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        goalId = Value(goalId),
+        title = Value(title),
+        reviewDate = Value(reviewDate),
+        createdAt = Value(createdAt);
+  static Insertable<GoalReview> custom({
+    Expression<String>? id,
+    Expression<String>? goalId,
+    Expression<String>? title,
+    Expression<String>? content,
+    Expression<DateTime>? reviewDate,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (goalId != null) 'goal_id': goalId,
+      if (title != null) 'title': title,
+      if (content != null) 'content': content,
+      if (reviewDate != null) 'review_date': reviewDate,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  GoalReviewsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? goalId,
+      Value<String>? title,
+      Value<String?>? content,
+      Value<DateTime>? reviewDate,
+      Value<DateTime>? createdAt,
+      Value<int>? rowid}) {
+    return GoalReviewsCompanion(
+      id: id ?? this.id,
+      goalId: goalId ?? this.goalId,
+      title: title ?? this.title,
+      content: content ?? this.content,
+      reviewDate: reviewDate ?? this.reviewDate,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (goalId.present) {
+      map['goal_id'] = Variable<String>(goalId.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (content.present) {
+      map['content'] = Variable<String>(content.value);
+    }
+    if (reviewDate.present) {
+      map['review_date'] = Variable<DateTime>(reviewDate.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GoalReviewsCompanion(')
+          ..write('id: $id, ')
+          ..write('goalId: $goalId, ')
+          ..write('title: $title, ')
+          ..write('content: $content, ')
+          ..write('reviewDate: $reviewDate, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -8170,6 +9377,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $AiProvidersTable aiProviders = $AiProvidersTable(this);
   late final $ChangeLogsTable changeLogs = $ChangeLogsTable(this);
   late final $SyncStateTable syncState = $SyncStateTable(this);
+  late final $ChecklistItemsTable checklistItems = $ChecklistItemsTable(this);
+  late final $GoalPostponementsTable goalPostponements =
+      $GoalPostponementsTable(this);
+  late final $GoalReviewsTable goalReviews = $GoalReviewsTable(this);
   late final FoodDao foodDao = FoodDao(this as AppDatabase);
   late final MomentDao momentDao = MomentDao(this as AppDatabase);
   late final FriendDao friendDao = FriendDao(this as AppDatabase);
@@ -8177,6 +9388,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final AiProviderDao aiProviderDao = AiProviderDao(this as AppDatabase);
   late final ChangeLogDao changeLogDao = ChangeLogDao(this as AppDatabase);
   late final SyncStateDao syncStateDao = SyncStateDao(this as AppDatabase);
+  late final ChecklistDao checklistDao = ChecklistDao(this as AppDatabase);
+  late final GoalPostponementDao goalPostponementDao =
+      GoalPostponementDao(this as AppDatabase);
+  late final GoalReviewDao goalReviewDao = GoalReviewDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -8194,7 +9409,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         userProfiles,
         aiProviders,
         changeLogs,
-        syncState
+        syncState,
+        checklistItems,
+        goalPostponements,
+        goalReviews
       ];
 }
 
@@ -11900,6 +13118,627 @@ typedef $$SyncStateTableProcessedTableManager = ProcessedTableManager<
     ),
     SyncStateData,
     PrefetchHooks Function()>;
+typedef $$ChecklistItemsTableCreateCompanionBuilder = ChecklistItemsCompanion
+    Function({
+  required String id,
+  required String tripId,
+  Value<String?> travelId,
+  required String title,
+  Value<String?> note,
+  Value<bool> isDone,
+  Value<int> orderIndex,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+  Value<int> rowid,
+});
+typedef $$ChecklistItemsTableUpdateCompanionBuilder = ChecklistItemsCompanion
+    Function({
+  Value<String> id,
+  Value<String> tripId,
+  Value<String?> travelId,
+  Value<String> title,
+  Value<String?> note,
+  Value<bool> isDone,
+  Value<int> orderIndex,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+
+class $$ChecklistItemsTableFilterComposer
+    extends Composer<_$AppDatabase, $ChecklistItemsTable> {
+  $$ChecklistItemsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get tripId => $composableBuilder(
+      column: $table.tripId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get travelId => $composableBuilder(
+      column: $table.travelId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get title => $composableBuilder(
+      column: $table.title, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get note => $composableBuilder(
+      column: $table.note, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isDone => $composableBuilder(
+      column: $table.isDone, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get orderIndex => $composableBuilder(
+      column: $table.orderIndex, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$ChecklistItemsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ChecklistItemsTable> {
+  $$ChecklistItemsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get tripId => $composableBuilder(
+      column: $table.tripId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get travelId => $composableBuilder(
+      column: $table.travelId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get title => $composableBuilder(
+      column: $table.title, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get note => $composableBuilder(
+      column: $table.note, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isDone => $composableBuilder(
+      column: $table.isDone, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get orderIndex => $composableBuilder(
+      column: $table.orderIndex, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$ChecklistItemsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ChecklistItemsTable> {
+  $$ChecklistItemsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get tripId =>
+      $composableBuilder(column: $table.tripId, builder: (column) => column);
+
+  GeneratedColumn<String> get travelId =>
+      $composableBuilder(column: $table.travelId, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDone =>
+      $composableBuilder(column: $table.isDone, builder: (column) => column);
+
+  GeneratedColumn<int> get orderIndex => $composableBuilder(
+      column: $table.orderIndex, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$ChecklistItemsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $ChecklistItemsTable,
+    ChecklistItem,
+    $$ChecklistItemsTableFilterComposer,
+    $$ChecklistItemsTableOrderingComposer,
+    $$ChecklistItemsTableAnnotationComposer,
+    $$ChecklistItemsTableCreateCompanionBuilder,
+    $$ChecklistItemsTableUpdateCompanionBuilder,
+    (
+      ChecklistItem,
+      BaseReferences<_$AppDatabase, $ChecklistItemsTable, ChecklistItem>
+    ),
+    ChecklistItem,
+    PrefetchHooks Function()> {
+  $$ChecklistItemsTableTableManager(
+      _$AppDatabase db, $ChecklistItemsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ChecklistItemsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ChecklistItemsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ChecklistItemsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> tripId = const Value.absent(),
+            Value<String?> travelId = const Value.absent(),
+            Value<String> title = const Value.absent(),
+            Value<String?> note = const Value.absent(),
+            Value<bool> isDone = const Value.absent(),
+            Value<int> orderIndex = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ChecklistItemsCompanion(
+            id: id,
+            tripId: tripId,
+            travelId: travelId,
+            title: title,
+            note: note,
+            isDone: isDone,
+            orderIndex: orderIndex,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String tripId,
+            Value<String?> travelId = const Value.absent(),
+            required String title,
+            Value<String?> note = const Value.absent(),
+            Value<bool> isDone = const Value.absent(),
+            Value<int> orderIndex = const Value.absent(),
+            required DateTime createdAt,
+            required DateTime updatedAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ChecklistItemsCompanion.insert(
+            id: id,
+            tripId: tripId,
+            travelId: travelId,
+            title: title,
+            note: note,
+            isDone: isDone,
+            orderIndex: orderIndex,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$ChecklistItemsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $ChecklistItemsTable,
+    ChecklistItem,
+    $$ChecklistItemsTableFilterComposer,
+    $$ChecklistItemsTableOrderingComposer,
+    $$ChecklistItemsTableAnnotationComposer,
+    $$ChecklistItemsTableCreateCompanionBuilder,
+    $$ChecklistItemsTableUpdateCompanionBuilder,
+    (
+      ChecklistItem,
+      BaseReferences<_$AppDatabase, $ChecklistItemsTable, ChecklistItem>
+    ),
+    ChecklistItem,
+    PrefetchHooks Function()>;
+typedef $$GoalPostponementsTableCreateCompanionBuilder
+    = GoalPostponementsCompanion Function({
+  required String id,
+  required String goalId,
+  Value<DateTime?> oldDueDate,
+  Value<DateTime?> newDueDate,
+  Value<String?> reason,
+  Value<int?> daysAdded,
+  required DateTime createdAt,
+  Value<int> rowid,
+});
+typedef $$GoalPostponementsTableUpdateCompanionBuilder
+    = GoalPostponementsCompanion Function({
+  Value<String> id,
+  Value<String> goalId,
+  Value<DateTime?> oldDueDate,
+  Value<DateTime?> newDueDate,
+  Value<String?> reason,
+  Value<int?> daysAdded,
+  Value<DateTime> createdAt,
+  Value<int> rowid,
+});
+
+class $$GoalPostponementsTableFilterComposer
+    extends Composer<_$AppDatabase, $GoalPostponementsTable> {
+  $$GoalPostponementsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get goalId => $composableBuilder(
+      column: $table.goalId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get oldDueDate => $composableBuilder(
+      column: $table.oldDueDate, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get newDueDate => $composableBuilder(
+      column: $table.newDueDate, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get reason => $composableBuilder(
+      column: $table.reason, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get daysAdded => $composableBuilder(
+      column: $table.daysAdded, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$GoalPostponementsTableOrderingComposer
+    extends Composer<_$AppDatabase, $GoalPostponementsTable> {
+  $$GoalPostponementsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get goalId => $composableBuilder(
+      column: $table.goalId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get oldDueDate => $composableBuilder(
+      column: $table.oldDueDate, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get newDueDate => $composableBuilder(
+      column: $table.newDueDate, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get reason => $composableBuilder(
+      column: $table.reason, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get daysAdded => $composableBuilder(
+      column: $table.daysAdded, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$GoalPostponementsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $GoalPostponementsTable> {
+  $$GoalPostponementsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get goalId =>
+      $composableBuilder(column: $table.goalId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get oldDueDate => $composableBuilder(
+      column: $table.oldDueDate, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get newDueDate => $composableBuilder(
+      column: $table.newDueDate, builder: (column) => column);
+
+  GeneratedColumn<String> get reason =>
+      $composableBuilder(column: $table.reason, builder: (column) => column);
+
+  GeneratedColumn<int> get daysAdded =>
+      $composableBuilder(column: $table.daysAdded, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$GoalPostponementsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $GoalPostponementsTable,
+    GoalPostponement,
+    $$GoalPostponementsTableFilterComposer,
+    $$GoalPostponementsTableOrderingComposer,
+    $$GoalPostponementsTableAnnotationComposer,
+    $$GoalPostponementsTableCreateCompanionBuilder,
+    $$GoalPostponementsTableUpdateCompanionBuilder,
+    (
+      GoalPostponement,
+      BaseReferences<_$AppDatabase, $GoalPostponementsTable, GoalPostponement>
+    ),
+    GoalPostponement,
+    PrefetchHooks Function()> {
+  $$GoalPostponementsTableTableManager(
+      _$AppDatabase db, $GoalPostponementsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$GoalPostponementsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$GoalPostponementsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$GoalPostponementsTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> goalId = const Value.absent(),
+            Value<DateTime?> oldDueDate = const Value.absent(),
+            Value<DateTime?> newDueDate = const Value.absent(),
+            Value<String?> reason = const Value.absent(),
+            Value<int?> daysAdded = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              GoalPostponementsCompanion(
+            id: id,
+            goalId: goalId,
+            oldDueDate: oldDueDate,
+            newDueDate: newDueDate,
+            reason: reason,
+            daysAdded: daysAdded,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String goalId,
+            Value<DateTime?> oldDueDate = const Value.absent(),
+            Value<DateTime?> newDueDate = const Value.absent(),
+            Value<String?> reason = const Value.absent(),
+            Value<int?> daysAdded = const Value.absent(),
+            required DateTime createdAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              GoalPostponementsCompanion.insert(
+            id: id,
+            goalId: goalId,
+            oldDueDate: oldDueDate,
+            newDueDate: newDueDate,
+            reason: reason,
+            daysAdded: daysAdded,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$GoalPostponementsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $GoalPostponementsTable,
+    GoalPostponement,
+    $$GoalPostponementsTableFilterComposer,
+    $$GoalPostponementsTableOrderingComposer,
+    $$GoalPostponementsTableAnnotationComposer,
+    $$GoalPostponementsTableCreateCompanionBuilder,
+    $$GoalPostponementsTableUpdateCompanionBuilder,
+    (
+      GoalPostponement,
+      BaseReferences<_$AppDatabase, $GoalPostponementsTable, GoalPostponement>
+    ),
+    GoalPostponement,
+    PrefetchHooks Function()>;
+typedef $$GoalReviewsTableCreateCompanionBuilder = GoalReviewsCompanion
+    Function({
+  required String id,
+  required String goalId,
+  required String title,
+  Value<String?> content,
+  required DateTime reviewDate,
+  required DateTime createdAt,
+  Value<int> rowid,
+});
+typedef $$GoalReviewsTableUpdateCompanionBuilder = GoalReviewsCompanion
+    Function({
+  Value<String> id,
+  Value<String> goalId,
+  Value<String> title,
+  Value<String?> content,
+  Value<DateTime> reviewDate,
+  Value<DateTime> createdAt,
+  Value<int> rowid,
+});
+
+class $$GoalReviewsTableFilterComposer
+    extends Composer<_$AppDatabase, $GoalReviewsTable> {
+  $$GoalReviewsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get goalId => $composableBuilder(
+      column: $table.goalId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get title => $composableBuilder(
+      column: $table.title, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get content => $composableBuilder(
+      column: $table.content, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get reviewDate => $composableBuilder(
+      column: $table.reviewDate, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$GoalReviewsTableOrderingComposer
+    extends Composer<_$AppDatabase, $GoalReviewsTable> {
+  $$GoalReviewsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get goalId => $composableBuilder(
+      column: $table.goalId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get title => $composableBuilder(
+      column: $table.title, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get content => $composableBuilder(
+      column: $table.content, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get reviewDate => $composableBuilder(
+      column: $table.reviewDate, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$GoalReviewsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $GoalReviewsTable> {
+  $$GoalReviewsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get goalId =>
+      $composableBuilder(column: $table.goalId, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get content =>
+      $composableBuilder(column: $table.content, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get reviewDate => $composableBuilder(
+      column: $table.reviewDate, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$GoalReviewsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $GoalReviewsTable,
+    GoalReview,
+    $$GoalReviewsTableFilterComposer,
+    $$GoalReviewsTableOrderingComposer,
+    $$GoalReviewsTableAnnotationComposer,
+    $$GoalReviewsTableCreateCompanionBuilder,
+    $$GoalReviewsTableUpdateCompanionBuilder,
+    (GoalReview, BaseReferences<_$AppDatabase, $GoalReviewsTable, GoalReview>),
+    GoalReview,
+    PrefetchHooks Function()> {
+  $$GoalReviewsTableTableManager(_$AppDatabase db, $GoalReviewsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$GoalReviewsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$GoalReviewsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$GoalReviewsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> goalId = const Value.absent(),
+            Value<String> title = const Value.absent(),
+            Value<String?> content = const Value.absent(),
+            Value<DateTime> reviewDate = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              GoalReviewsCompanion(
+            id: id,
+            goalId: goalId,
+            title: title,
+            content: content,
+            reviewDate: reviewDate,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String goalId,
+            required String title,
+            Value<String?> content = const Value.absent(),
+            required DateTime reviewDate,
+            required DateTime createdAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              GoalReviewsCompanion.insert(
+            id: id,
+            goalId: goalId,
+            title: title,
+            content: content,
+            reviewDate: reviewDate,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$GoalReviewsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $GoalReviewsTable,
+    GoalReview,
+    $$GoalReviewsTableFilterComposer,
+    $$GoalReviewsTableOrderingComposer,
+    $$GoalReviewsTableAnnotationComposer,
+    $$GoalReviewsTableCreateCompanionBuilder,
+    $$GoalReviewsTableUpdateCompanionBuilder,
+    (GoalReview, BaseReferences<_$AppDatabase, $GoalReviewsTable, GoalReview>),
+    GoalReview,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -11930,6 +13769,12 @@ class $AppDatabaseManager {
       $$ChangeLogsTableTableManager(_db, _db.changeLogs);
   $$SyncStateTableTableManager get syncState =>
       $$SyncStateTableTableManager(_db, _db.syncState);
+  $$ChecklistItemsTableTableManager get checklistItems =>
+      $$ChecklistItemsTableTableManager(_db, _db.checklistItems);
+  $$GoalPostponementsTableTableManager get goalPostponements =>
+      $$GoalPostponementsTableTableManager(_db, _db.goalPostponements);
+  $$GoalReviewsTableTableManager get goalReviews =>
+      $$GoalReviewsTableTableManager(_db, _db.goalReviews);
 }
 
 mixin _$FoodDaoMixin on DatabaseAccessor<AppDatabase> {
@@ -11953,4 +13798,14 @@ mixin _$ChangeLogDaoMixin on DatabaseAccessor<AppDatabase> {
 }
 mixin _$SyncStateDaoMixin on DatabaseAccessor<AppDatabase> {
   $SyncStateTable get syncState => attachedDatabase.syncState;
+}
+mixin _$ChecklistDaoMixin on DatabaseAccessor<AppDatabase> {
+  $ChecklistItemsTable get checklistItems => attachedDatabase.checklistItems;
+}
+mixin _$GoalPostponementDaoMixin on DatabaseAccessor<AppDatabase> {
+  $GoalPostponementsTable get goalPostponements =>
+      attachedDatabase.goalPostponements;
+}
+mixin _$GoalReviewDaoMixin on DatabaseAccessor<AppDatabase> {
+  $GoalReviewsTable get goalReviews => attachedDatabase.goalReviews;
 }

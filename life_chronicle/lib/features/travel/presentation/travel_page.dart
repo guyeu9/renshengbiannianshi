@@ -1278,11 +1278,11 @@ class _ChecklistItem {
   }
 }
 
-class _TravelCreatePageState extends ConsumerState&lt;TravelCreatePage&gt; {
+class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
   bool _addToWishlist = true;
-  final List&lt;_ChecklistItem&gt; _checklistItems = [];
+  final List<_ChecklistItem> _checklistItems = [];
 
-  final Set&lt;String&gt; _linkedFriendIds = {};
+  final Set<String> _linkedFriendIds = {};
   String? _coverImagePath;
   DateTime? _planStart;
   DateTime? _planEnd;
@@ -1363,7 +1363,7 @@ class _TravelCreatePageState extends ConsumerState&lt;TravelCreatePage&gt; {
       await _loadLinkedFriends(record.id);
     }
 
-    final tripId = existingTrip?.id ?? existingRecord?.tripId;
+    final tripId = trip?.id ?? record?.tripId;
     if (tripId != null) {
       await _loadChecklistItems(tripId);
     }
@@ -1392,13 +1392,13 @@ class _TravelCreatePageState extends ConsumerState&lt;TravelCreatePage&gt; {
     });
   }
 
-  Future&lt;void&gt; _loadChecklistItems(String tripId) async {
+  Future<void> _loadChecklistItems(String tripId) async {
     final db = ref.read(appDatabaseProvider);
     final items = await db.checklistDao.listByTripId(tripId);
     if (!mounted) return;
     setState(() {
       _checklistItems.clear();
-      _checklistItems.addAll(items.map((e) =&gt; _ChecklistItem(
+      _checklistItems.addAll(items.map((e) => _ChecklistItem(
             id: e.id,
             title: e.title,
             note: e.note,
@@ -1408,10 +1408,10 @@ class _TravelCreatePageState extends ConsumerState&lt;TravelCreatePage&gt; {
     });
   }
 
-  Future&lt;void&gt; _addChecklistItem() async {
+  Future<void> _addChecklistItem() async {
     final titleController = TextEditingController();
     final noteController = TextEditingController();
-    final result = await showModalBottomSheet&lt;_ChecklistItem&gt;(
+    final result = await showModalBottomSheet<_ChecklistItem>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -1477,14 +1477,14 @@ class _TravelCreatePageState extends ConsumerState&lt;TravelCreatePage&gt; {
     titleController.dispose();
     noteController.dispose();
     if (result == null || !mounted) return;
-    setState(() =&gt; _checklistItems.add(result));
+    setState(() => _checklistItems.add(result));
   }
 
-  Future&lt;void&gt; _editChecklistItem(int index) async {
+  Future<void> _editChecklistItem(int index) async {
     final item = _checklistItems[index];
     final titleController = TextEditingController(text: item.title);
     final noteController = TextEditingController(text: item.note ?? '');
-    final result = await showModalBottomSheet&lt;_ChecklistItem&gt;(
+    final result = await showModalBottomSheet<_ChecklistItem>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -1549,11 +1549,11 @@ class _TravelCreatePageState extends ConsumerState&lt;TravelCreatePage&gt; {
     titleController.dispose();
     noteController.dispose();
     if (result == null || !mounted) return;
-    setState(() =&gt; _checklistItems[index] = result);
+    setState(() => _checklistItems[index] = result);
   }
 
   void _deleteChecklistItem(int index) {
-    setState(() =&gt; _checklistItems.removeAt(index));
+    setState(() => _checklistItems.removeAt(index));
   }
 
   _ContentParts _splitContent(String? raw) {
@@ -1878,7 +1878,7 @@ class _TravelCreatePageState extends ConsumerState&lt;TravelCreatePage&gt; {
     }
 
     await db.checklistDao.deleteByTripId(tripId);
-    for (var i = 0; i &lt; _checklistItems.length; i++) {
+    for (var i = 0; i < _checklistItems.length; i++) {
       final item = _checklistItems[i];
       final itemId = item.id ?? const Uuid().v4();
       await db.checklistDao.upsert(ChecklistItemsCompanion.insert(
@@ -1888,9 +1888,9 @@ class _TravelCreatePageState extends ConsumerState&lt;TravelCreatePage&gt; {
         title: item.title,
         note: Value(item.note),
         isDone: Value(item.isDone),
-        orderIndex: i,
-        createdAt: Value(now),
-        updatedAt: Value(now),
+        orderIndex: Value(i),
+        createdAt: now,
+        updatedAt: now,
       ));
     }
 
@@ -4732,14 +4732,14 @@ class _FilterFriendTile extends StatelessWidget {
 class _BottomSheetShell extends StatelessWidget {
   const _BottomSheetShell({
     required this.title,
-    required this.actionText,
-    required this.onAction,
     required this.child,
+    this.actionText,
+    this.onAction,
   });
 
   final String title;
-  final String actionText;
-  final VoidCallback onAction;
+  final String? actionText;
+  final VoidCallback? onAction;
   final Widget child;
 
   @override
@@ -4765,11 +4765,14 @@ class _BottomSheetShell extends StatelessWidget {
                     Expanded(
                       child: Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
                     ),
-                    TextButton(
-                      onPressed: onAction,
-                      style: TextButton.styleFrom(foregroundColor: const Color(0xFF2BCDEE), textStyle: const TextStyle(fontWeight: FontWeight.w900)),
-                      child: Text(actionText),
-                    ),
+                    if (actionText != null && onAction != null)
+                      TextButton(
+                        onPressed: onAction,
+                        style: TextButton.styleFrom(foregroundColor: const Color(0xFF2BCDEE), textStyle: const TextStyle(fontWeight: FontWeight.w900)),
+                        child: Text(actionText!),
+                      )
+                    else
+                      const SizedBox(width: 60),
                   ],
                 ),
               ),

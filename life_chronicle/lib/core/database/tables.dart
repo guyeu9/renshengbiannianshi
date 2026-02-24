@@ -258,3 +258,28 @@ class SyncState extends Table {
   @override
   Set<Column> get primaryKey => {id};
 }
+
+class GoalPostponements extends Table {
+  TextColumn get id => text()();
+  TextColumn get goalId => text()();
+  DateTimeColumn get oldDueDate => dateTime().nullable()();
+  DateTimeColumn get newDueDate => dateTime().nullable()();
+  TextColumn get reason => text().nullable()();
+  IntColumn get daysAdded => integer().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class GoalReviews extends Table {
+  TextColumn get id => text()();
+  TextColumn get goalId => text()();
+  TextColumn get title => text()();
+  TextColumn get content => text().nullable()();
+  DateTimeColumn get reviewDate => dateTime()();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}

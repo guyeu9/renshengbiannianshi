@@ -4,8 +4,14 @@ part of '../app_database.dart';
 class MomentDao extends DatabaseAccessor<AppDatabase> with _$MomentDaoMixin {
   MomentDao(super.db);
 
+  late final ChangeLogRecorder _changeLogRecorder = ChangeLogRecorder(db);
+
   Future<void> upsert(MomentRecordsCompanion entry) async {
     await into(db.momentRecords).insertOnConflictUpdate(entry);
+    await _changeLogRecorder.recordInsert(
+      entityType: 'moment_records',
+      entityId: entry.id.value,
+    );
   }
 
   Future<void> updateFavorite(String id, {required bool isFavorite, required DateTime now}) async {
@@ -14,6 +20,11 @@ class MomentDao extends DatabaseAccessor<AppDatabase> with _$MomentDaoMixin {
         isFavorite: Value(isFavorite),
         updatedAt: Value(now),
       ),
+    );
+    await _changeLogRecorder.recordUpdate(
+      entityType: 'moment_records',
+      entityId: id,
+      changedFields: ['isFavorite'],
     );
   }
 
@@ -25,6 +36,10 @@ class MomentDao extends DatabaseAccessor<AppDatabase> with _$MomentDaoMixin {
           .go();
       await (delete(db.momentRecords)..where((t) => t.id.equals(id))).go();
     });
+    await _changeLogRecorder.recordDelete(
+      entityType: 'moment_records',
+      entityId: id,
+    );
   }
 
   Future<void> softDeleteById(String id, {required DateTime now}) async {
@@ -33,6 +48,10 @@ class MomentDao extends DatabaseAccessor<AppDatabase> with _$MomentDaoMixin {
         isDeleted: const Value(true),
         updatedAt: Value(now),
       ),
+    );
+    await _changeLogRecorder.recordDelete(
+      entityType: 'moment_records',
+      entityId: id,
     );
   }
 

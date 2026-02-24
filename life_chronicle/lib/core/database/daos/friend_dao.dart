@@ -4,8 +4,14 @@ part of '../app_database.dart';
 class FriendDao extends DatabaseAccessor<AppDatabase> with _$FriendDaoMixin {
   FriendDao(super.db);
 
+  late final ChangeLogRecorder _changeLogRecorder = ChangeLogRecorder(db);
+
   Future<void> upsert(FriendRecordsCompanion entry) async {
     await into(db.friendRecords).insertOnConflictUpdate(entry);
+    await _changeLogRecorder.recordInsert(
+      entityType: 'friend_records',
+      entityId: entry.id.value,
+    );
   }
 
   Future<void> softDeleteById(String id, {required DateTime now}) async {
@@ -26,6 +32,10 @@ class FriendDao extends DatabaseAccessor<AppDatabase> with _$FriendDaoMixin {
         isDeleted: const Value(true),
         updatedAt: Value(now),
       ),
+    );
+    await _changeLogRecorder.recordDelete(
+      entityType: 'friend_records',
+      entityId: id,
     );
   }
 
@@ -50,6 +60,11 @@ class FriendDao extends DatabaseAccessor<AppDatabase> with _$FriendDaoMixin {
         isFavorite: Value(isFavorite),
         updatedAt: Value(now),
       ),
+    );
+    await _changeLogRecorder.recordUpdate(
+      entityType: 'friend_records',
+      entityId: id,
+      changedFields: ['isFavorite'],
     );
   }
 

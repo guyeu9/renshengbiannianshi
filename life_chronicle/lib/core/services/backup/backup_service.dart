@@ -5,6 +5,7 @@ import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import '../../database/app_database.dart';
 import 'change_log_recorder.dart';
 import 'encryption_service.dart';
@@ -48,6 +49,25 @@ class BackupService {
 
   void dispose() {
     _progressController.close();
+  }
+
+  Future<bool> isWifiConnected() async {
+    final connectivityResult = await Connectivity().checkConnectivity();
+    return connectivityResult == ConnectivityResult.wifi;
+  }
+
+  Future<bool> isNetworkAvailable() async {
+    final connectivityResult = await Connectivity().checkConnectivity();
+    return connectivityResult != ConnectivityResult.none;
+  }
+
+  Future<void> checkNetworkConstraint({required bool wifiOnly}) async {
+    if (!await isNetworkAvailable()) {
+      throw Exception('网络不可用，请检查网络连接');
+    }
+    if (wifiOnly && !await isWifiConnected()) {
+      throw Exception('当前非 Wi-Fi 网络，已跳过备份');
+    }
   }
 
   void _emitProgress(BackupStatus status, {double progress = 0.0, String? message, String? error}) {
@@ -371,6 +391,12 @@ class BackupService {
     _emitProgress(BackupStatus.preparing, message: '准备备份...');
     
     try {
+      if (config.backupOnWifiOnly ?? false) {
+        await checkNetworkConstraint(wifiOnly: true);
+      } else {
+        await checkNetworkConstraint(wifiOnly: false);
+      }
+      
       final tempDir = await getTempDir();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final zipPath = path.join(tempDir.path, 'life_chronicle_full_$timestamp.zip');
@@ -432,12 +458,29 @@ class BackupService {
     _emitProgress(BackupStatus.preparing, message: '准备增量备份...');
     
     try {
+      if (config.backupOnWifiOnly ?? false) {
+        await checkNetworkConstraint(wifiOnly: true);
+      } else {
+        await checkNetworkConstraint(wifiOnly: false);
+      }
+      
       final lastSyncState = await db.syncStateDao.getDefault();
       final lastSyncChangeId = lastSyncState?.lastSyncChangeId ?? 0;
       
       final unsyncedChanges = await db.changeLogDao.findUnsynced();
       if (unsyncedChanges.isEmpty) {
         _emitProgress(BackupStatus.completed, message: '没有需要备份的变更');
+        return;
+      }
+      
+      final nonIncrementalEntityTypes = ['entity_links', 'link_logs', 'user_profiles', 'ai_providers'];
+      final hasNonIncrementalChanges = unsyncedChanges.any(
+        (c) => nonIncrementalEntityTypes.contains(c.entityType),
+      );
+      
+      if (hasNonIncrementalChanges) {
+        _emitProgress(BackupStatus.preparing, message: '检测到配置变更，执行全量备份...');
+        await performFullBackup(config: config, encryptionPassword: encryptionPassword);
         return;
       }
       

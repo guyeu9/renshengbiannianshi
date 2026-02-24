@@ -5,6 +5,7 @@ class LinkDao extends DatabaseAccessor<AppDatabase> with _$LinkDaoMixin {
   LinkDao(super.db, {Uuid? uuid}) : _uuid = uuid ?? const Uuid();
 
   final Uuid _uuid;
+  late final ChangeLogRecorder _changeLogRecorder = ChangeLogRecorder(db);
 
   Future<bool> linkExists({
     required String sourceType,
@@ -60,6 +61,10 @@ class LinkDao extends DatabaseAccessor<AppDatabase> with _$LinkDaoMixin {
         ),
       );
     });
+    await _changeLogRecorder.recordInsert(
+      entityType: 'entity_links',
+      entityId: linkId,
+    );
     await _syncGoalsAfterLinkChange(
       sourceType: sourceType,
       sourceId: sourceId,
@@ -78,6 +83,14 @@ class LinkDao extends DatabaseAccessor<AppDatabase> with _$LinkDaoMixin {
     required DateTime now,
   }) async {
     final logId = _uuid.v4();
+    
+    final existingLinks = await (select(db.entityLinks)
+          ..where((t) => t.sourceType.equals(sourceType))
+          ..where((t) => t.sourceId.equals(sourceId))
+          ..where((t) => t.targetType.equals(targetType))
+          ..where((t) => t.targetId.equals(targetId)))
+        .get();
+    final linkIds = existingLinks.map((l) => l.id).toList();
 
     await transaction(() async {
       await (delete(db.entityLinks)
@@ -100,6 +113,12 @@ class LinkDao extends DatabaseAccessor<AppDatabase> with _$LinkDaoMixin {
         ),
       );
     });
+    for (final linkId in linkIds) {
+      await _changeLogRecorder.recordDelete(
+        entityType: 'entity_links',
+        entityId: linkId,
+      );
+    }
     await _syncGoalsAfterLinkChange(
       sourceType: sourceType,
       sourceId: sourceId,

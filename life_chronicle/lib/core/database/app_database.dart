@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 
 import 'db_connection_io.dart' if (dart.library.html) 'db_connection_web.dart' as dbconn;
 import 'tables.dart';
+import '../services/backup/change_log_recorder.dart';
 
 part 'app_database.g.dart';
 part 'daos/food_dao.dart';
@@ -13,17 +14,19 @@ part 'daos/ai_provider_dao.dart';
 part 'daos/change_log_dao.dart';
 part 'daos/sync_state_dao.dart';
 part 'daos/checklist_dao.dart';
+part 'daos/goal_postponement_dao.dart';
+part 'daos/goal_review_dao.dart';
 
 @DriftDatabase(
-  tables: [FoodRecords, MomentRecords, FriendRecords, TravelRecords, Trips, GoalRecords, TimelineEvents, EntityLinks, LinkLogs, UserProfiles, AiProviders, ChangeLogs, SyncState, ChecklistItems],
-  daos: [FoodDao, MomentDao, FriendDao, LinkDao, AiProviderDao, ChangeLogDao, SyncStateDao, ChecklistDao],
+  tables: [FoodRecords, MomentRecords, FriendRecords, TravelRecords, Trips, GoalRecords, TimelineEvents, EntityLinks, LinkLogs, UserProfiles, AiProviders, ChangeLogs, SyncState, ChecklistItems, GoalPostponements, GoalReviews],
+  daos: [FoodDao, MomentDao, FriendDao, LinkDao, AiProviderDao, ChangeLogDao, SyncStateDao, ChecklistDao, GoalPostponementDao, GoalReviewDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(dbconn.openConnection());
   AppDatabase.connect(super.executor);
 
   @override
-  int get schemaVersion => 12; // 升级到 12，新增 checklist_items 表
+  int get schemaVersion => 13; // 升级到 13，新增 goal_postponements 和 goal_reviews 表
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -78,6 +81,8 @@ class AppDatabase extends _$AppDatabase {
           await ensureTable(changeLogs);
           await ensureTable(syncState);
           await ensureTable(checklistItems);
+          await ensureTable(goalPostponements);
+          await ensureTable(goalReviews);
 
           await ensureColumn(table: foodRecords, column: foodRecords.isFavorite);
           await ensureColumn(table: momentRecords, column: momentRecords.isFavorite);

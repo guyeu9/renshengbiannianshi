@@ -4,8 +4,14 @@ part of '../app_database.dart';
 class FoodDao extends DatabaseAccessor<AppDatabase> with _$FoodDaoMixin {
   FoodDao(super.db);
 
+  late final ChangeLogRecorder _changeLogRecorder = ChangeLogRecorder(db);
+
   Future<void> upsert(FoodRecordsCompanion entry) async {
     await into(db.foodRecords).insertOnConflictUpdate(entry);
+    await _changeLogRecorder.recordInsert(
+      entityType: 'food_records',
+      entityId: entry.id.value,
+    );
   }
 
   Future<void> softDeleteById(String id, {required DateTime now}) async {
@@ -15,6 +21,10 @@ class FoodDao extends DatabaseAccessor<AppDatabase> with _$FoodDaoMixin {
         updatedAt: Value(now),
       ),
     );
+    await _changeLogRecorder.recordDelete(
+      entityType: 'food_records',
+      entityId: id,
+    );
   }
 
   Future<void> updateFavorite(String id, {required bool isFavorite, required DateTime now}) async {
@@ -23,6 +33,11 @@ class FoodDao extends DatabaseAccessor<AppDatabase> with _$FoodDaoMixin {
         isFavorite: Value(isFavorite),
         updatedAt: Value(now),
       ),
+    );
+    await _changeLogRecorder.recordUpdate(
+      entityType: 'food_records',
+      entityId: id,
+      changedFields: ['isFavorite'],
     );
   }
 

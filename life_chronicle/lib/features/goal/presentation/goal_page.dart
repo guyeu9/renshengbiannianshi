@@ -330,12 +330,13 @@ class _GoalHomeBodyState extends ConsumerState<_GoalHomeBody> {
         final canNext = yearIndex > 0;
 
         return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 6, 16, 140),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 140),
           children: [
+            const SizedBox(height: 12),
             Row(
               children: [
                 const Expanded(
-                  child: Text('年度目标', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                  child: Text('年度目标', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
                 ),
                 TextButton(
                   onPressed: () => Navigator.of(context).push(
@@ -343,7 +344,7 @@ class _GoalHomeBodyState extends ConsumerState<_GoalHomeBody> {
                   ),
                   style: TextButton.styleFrom(
                     foregroundColor: const Color(0xFF3B82F6),
-                    textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+                    textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                   ),
                   child: const Text('历史年度总结'),
                 ),
@@ -377,35 +378,38 @@ class _GoalHomeBodyState extends ConsumerState<_GoalHomeBody> {
                 ],
               ),
             ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _YearOverviewCard(
-                    value: '$inProgress',
-                    label: '进行中',
-                    valueColor: const Color(0xFFA855F7),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _YearOverviewCard(
+                      value: '$inProgress',
+                      label: '进行中',
+                      valueColor: const Color(0xFFA855F7),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _YearOverviewCard(
-                    value: '$completed',
-                    label: '已完成',
-                    valueColor: const Color(0xFFA855F7),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _YearOverviewCard(
+                      value: '$completed',
+                      label: '已完成',
+                      valueColor: const Color(0xFFA855F7),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _YearOverviewCard(
-                    value: '${(completionRate * 100).round()}%',
-                    label: '完成率',
-                    valueColor: const Color(0xFFA855F7),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _YearOverviewCard(
+                      value: '${(completionRate * 100).round()}%',
+                      label: '完成率',
+                      valueColor: const Color(0xFFA855F7),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             if (yearGoals.isEmpty)
               Container(
                 padding: const EdgeInsets.all(16),
@@ -419,7 +423,6 @@ class _GoalHomeBodyState extends ConsumerState<_GoalHomeBody> {
                   goals: grouped[label] ?? const [],
                   db: db,
                 ),
-                const SizedBox(height: 18),
               ],
           ],
         );
@@ -441,15 +444,15 @@ class _YearOverviewCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFF3F4F6)),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 12, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 2))],
       ),
       child: Column(
         children: [
-          Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: valueColor)),
-          const SizedBox(height: 6),
-          Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+          Text(value, style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: valueColor)),
+          const SizedBox(height: 4),
+          Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF6B7280))),
         ],
       ),
     );
@@ -472,21 +475,21 @@ class _GoalCategorySection extends StatelessWidget {
         Row(
           children: [
             Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(color: meta.background, borderRadius: BorderRadius.circular(10)),
-              child: Icon(meta.icon, size: 16, color: meta.accent),
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(color: meta.background, borderRadius: BorderRadius.circular(8)),
+              child: Icon(meta.icon, size: 20, color: meta.accent),
             ),
-            const SizedBox(width: 8),
-            Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+            const SizedBox(width: 12),
+            Text(label, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         Column(
           children: [
             for (final goal in goals) ...[
               _AnnualGoalCard(record: goal, db: db),
-              const SizedBox(height: 12),
+              const SizedBox(height: 24),
             ],
           ],
         ),
@@ -526,37 +529,77 @@ class _AnnualGoalCard extends StatelessWidget {
     final progress = record.progress.clamp(0, 1).toDouble();
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(24),
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => GoalDetailPage(record: record))),
         child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFF3F4F6))),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: const Color(0xFFF3F4F6)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: Text(record.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                    child: Text(
+                      record.title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF111827),
+                      ),
+                    ),
                   ),
-                  Text('${(progress * 100).round()}%', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: accent)),
+                  Text(
+                    '${(progress * 100).round()}%',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFFA855F7),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 4),
-              Text(_goalDeadlineLabel(record), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
-              const SizedBox(height: 10),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(999),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 6,
-                  backgroundColor: const Color(0xFFF1F5F9),
-                  valueColor: AlwaysStoppedAnimation(accent),
+              Text(
+                _goalDeadlineLabel(record),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF6B7280),
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 16),
+              Container(
+                height: 8,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: FractionallySizedBox(
+                  widthFactor: progress,
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: accent,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
               StreamBuilder<List<GoalRecord>>(
                 stream: _watchQuarters(),
                 builder: (context, quarterSnapshot) {
@@ -567,29 +610,13 @@ class _AnnualGoalCard extends StatelessWidget {
                     builder: (context, taskSnapshot) {
                       final tasks = (taskSnapshot.data ?? const <GoalRecord>[]).take(3).toList(growable: false);
                       if (tasks.isEmpty) {
-                        return const Text('暂无阶段任务', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFFCBD5F5)));
+                        return const SizedBox.shrink();
                       }
                       return Column(
                         children: [
-                          for (final task in tasks) ...[
-                            Row(
-                              children: [
-                                Icon(task.isCompleted ? Icons.check_circle : Icons.radio_button_unchecked, size: 18, color: task.isCompleted ? accent : const Color(0xFFCBD5F5)),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    task.title,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w800,
-                                      color: task.isCompleted ? const Color(0xFF64748B) : const Color(0xFF111827),
-                                      decoration: task.isCompleted ? TextDecoration.lineThrough : TextDecoration.none,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
+                          for (int i = 0; i < tasks.length; i++) ...[
+                            _TaskItem(task: tasks[i], accent: accent),
+                            if (i < tasks.length - 1) const SizedBox(height: 12),
                           ],
                         ],
                       );
@@ -601,6 +628,55 @@ class _AnnualGoalCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _TaskItem extends StatelessWidget {
+  const _TaskItem({required this.task, required this.accent});
+
+  final GoalRecord task;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 20,
+          height: 20,
+          decoration: BoxDecoration(
+            color: task.isCompleted ? const Color(0xFF22D3EE) : Colors.transparent,
+            shape: BoxShape.circle,
+            border: task.isCompleted
+                ? null
+                : Border.all(
+                    color: const Color(0xFFD1D5DB),
+                    width: 2,
+                  ),
+          ),
+          child: task.isCompleted
+              ? const Icon(
+                  Icons.check,
+                  size: 14,
+                  color: Colors.white,
+                )
+              : null,
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            task.title,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: task.isCompleted ? const Color(0xFF6B7280) : const Color(0xFF111827),
+              decoration: task.isCompleted ? TextDecoration.lineThrough : TextDecoration.none,
+              decorationColor: const Color(0xFFD1D5DB),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1097,6 +1173,117 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
     return DateTime(year, month, day);
   }
 
+  void _showActionMenu() async {
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return _BottomSheetShell(
+          title: '操作',
+          actionText: '关闭',
+          onAction: () => Navigator.of(context).pop(),
+          child: ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
+            children: [
+              ListTile(
+                leading: const Icon(Icons.hub, color: AppTheme.primary),
+                title: const Text('拆解维护', style: TextStyle(fontWeight: FontWeight.w900)),
+                onTap: () => Navigator.of(context).pop('maintain'),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.edit, color: AppTheme.primary),
+                title: const Text('编辑', style: TextStyle(fontWeight: FontWeight.w900)),
+                onTap: () => Navigator.of(context).pop('edit'),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.delete_outline, color: Color(0xFFEF4444)),
+                title: const Text('删除', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFFEF4444))),
+                onTap: () => Navigator.of(context).pop('delete'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (!mounted) return;
+    if (result == 'maintain') {
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => GoalBreakdownMaintenancePage(goal: widget.record),
+      ));
+    } else if (result == 'edit') {
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => GoalCreatePage(goal: widget.record),
+      ));
+    } else if (result == 'delete') {
+      _showDeleteConfirmation();
+    }
+  }
+
+  Future<void> _showDeleteConfirmation() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('删除目标'),
+        content: const Text('确认删除该目标及其所有子目标吗？此操作不可恢复。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: const Color(0xFFEF4444)),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    if (!mounted) return;
+
+    final db = ref.read(appDatabaseProvider);
+    final now = DateTime.now();
+
+    await (db.update(db.goalRecords)..where((t) => t.id.equals(widget.record.id))).write(
+      GoalRecordsCompanion(
+        isDeleted: const Value(true),
+        updatedAt: Value(now),
+      ),
+    );
+
+    final children = await (db.select(db.goalRecords)
+          ..where((t) => t.parentId.equals(widget.record.id))
+          ..where((t) => t.isDeleted.equals(false)))
+        .get();
+
+    for (final child in children) {
+      await (db.update(db.goalRecords)..where((t) => t.id.equals(child.id))).write(
+        GoalRecordsCompanion(
+          isDeleted: const Value(true),
+          updatedAt: Value(now),
+        ),
+      );
+      final grandchildren = await (db.select(db.goalRecords)
+            ..where((t) => t.parentId.equals(child.id))
+            ..where((t) => t.isDeleted.equals(false)))
+          .get();
+      for (final grandchild in grandchildren) {
+        await (db.update(db.goalRecords)..where((t) => t.id.equals(grandchild.id))).write(
+          GoalRecordsCompanion(
+            isDeleted: const Value(true),
+            updatedAt: Value(now),
+          ),
+        );
+      }
+    }
+
+    if (!mounted) return;
+    Navigator.of(context).pop();
+  }
+
   Future<void> _showPostponePlan(GoalRecord record) async {
     final now = DateTime.now();
     final baseDate = record.dueDate ?? DateTime(now.year, now.month, now.day);
@@ -1317,10 +1504,8 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
                             ),
                           ),
                           _CircleIconButton(
-                            icon: Icons.edit_note,
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(builder: (_) => GoalBreakdownMaintenancePage(goal: record)),
-                            ),
+                            icon: Icons.more_vert,
+                            onTap: _showActionMenu,
                           ),
                         ],
                       ),
@@ -1367,6 +1552,182 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
                             ),
                           ),
                           const SizedBox(height: 22),
+                          StreamBuilder<List<GoalReview>>(
+                            stream: db.goalReviewDao.watchByGoalId(record.id),
+                            builder: (context, reviewSnapshot) {
+                              final reviews = reviewSnapshot.data ?? const <GoalReview>[];
+                              if (reviews.isNotEmpty) {
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('阶段复盘', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                                    const SizedBox(height: 10),
+                                    Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(color: const Color(0xFFF3F4F6)),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          for (int i = 0; i < reviews.length; i++) ...[
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    reviews[i].title,
+                                                    style: const TextStyle(
+                                                      fontSize: 15,
+                                                      fontWeight: FontWeight.w900,
+                                                      color: Color(0xFF111827),
+                                                    ),
+                                                  ),
+                                                ),
+                                                Text(
+                                                  _formatDotDate(reviews[i].reviewDate),
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: Color(0xFF94A3B8),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            if (reviews[i].content?.isNotEmpty == true) ...[
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                reviews[i].content!,
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: Color(0xFF6B7280),
+                                                ),
+                                              ),
+                                            ],
+                                            if (i != reviews.length - 1) const Divider(height: 24, color: Color(0xFFE5E7EB)),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 18),
+                                  ],
+                                );
+                              }
+                              return const SizedBox.shrink();
+                            },
+                          ),
+                          StreamBuilder<List<GoalPostponement>>(
+                            stream: db.goalPostponementDao.watchByGoalId(record.id),
+                            builder: (context, postponementSnapshot) {
+                              final postponements = postponementSnapshot.data ?? const <GoalPostponement>[];
+                              if (postponements.isNotEmpty) {
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('顺延记录', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                                    const SizedBox(height: 10),
+                                    Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(color: const Color(0xFFF3F4F6)),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          for (int i = 0; i < postponements.length; i++) ...[
+                                            Row(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Container(
+                                                  width: 40,
+                                                  height: 40,
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(0xFFFFF7ED),
+                                                    borderRadius: BorderRadius.circular(12),
+                                                  ),
+                                                  child: const Icon(
+                                                    Icons.update,
+                                                    size: 20,
+                                                    color: Color(0xFFF97316),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      Row(
+                                                        children: [
+                                                          if (postponements[i].oldDueDate != null)
+                                                            Text(
+                                                              _formatDotDate(postponements[i].oldDueDate!),
+                                                              style: const TextStyle(
+                                                                fontSize: 13,
+                                                                fontWeight: FontWeight.w700,
+                                                                color: Color(0xFF94A3B8),
+                                                                decoration: TextDecoration.lineThrough,
+                                                              ),
+                                                            ),
+                                                          const SizedBox(width: 8),
+                                                          const Icon(
+                                                            Icons.arrow_forward,
+                                                            size: 14,
+                                                            color: Color(0xFF6B7280),
+                                                          ),
+                                                          const SizedBox(width: 8),
+                                                          if (postponements[i].newDueDate != null)
+                                                            Text(
+                                                              _formatDotDate(postponements[i].newDueDate!),
+                                                              style: const TextStyle(
+                                                                fontSize: 13,
+                                                                fontWeight: FontWeight.w900,
+                                                                color: Color(0xFF111827),
+                                                              ),
+                                                            ),
+                                                        ],
+                                                      ),
+                                                      if (postponements[i].reason?.isNotEmpty == true) ...[
+                                                        const SizedBox(height: 4),
+                                                        Text(
+                                                          postponements[i].reason!,
+                                                          style: const TextStyle(
+                                                            fontSize: 12,
+                                                            fontWeight: FontWeight.w700,
+                                                            color: Color(0xFF6B7280),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                      const SizedBox(height: 4),
+                                                      Text(
+                                                        _formatDotDate(postponements[i].createdAt),
+                                                        style: const TextStyle(
+                                                          fontSize: 11,
+                                                          fontWeight: FontWeight.w700,
+                                                          color: Color(0xFF94A3B8),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            if (i != postponements.length - 1) const Divider(height: 24, color: Color(0xFFE5E7EB)),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 18),
+                                  ],
+                                );
+                              }
+                              return const SizedBox.shrink();
+                            },
+                          ),
+                          const SizedBox(height: 8),
                           StreamBuilder<List<GoalRecord>>(
                             stream: _watchChildren(db, record.id, 'quarter'),
                             builder: (context, quarterSnapshot) {
@@ -2514,7 +2875,9 @@ class _TextMemoryCard extends StatelessWidget {
 }
 
 class GoalCreatePage extends ConsumerStatefulWidget {
-  const GoalCreatePage({super.key});
+  const GoalCreatePage({super.key, this.goal});
+
+  final GoalRecord? goal;
 
   @override
   ConsumerState<GoalCreatePage> createState() => _GoalCreatePageState();
@@ -2525,11 +2888,38 @@ class _GoalCreatePageState extends ConsumerState<GoalCreatePage> {
   final Set<String> _linkedFoodIds = {};
   final Set<String> _linkedFriendIds = {};
   final Set<String> _linkedTravelIds = {};
-  final _titleController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  String _selectedGoalType = _goalTypeOptions.first.value;
-  DateTime? _dueDate;
-  String _remindFrequency = _remindOptions.first.value;
+  late final TextEditingController _titleController;
+  late final TextEditingController _descriptionController;
+  late String _selectedGoalType;
+  late DateTime? _dueDate;
+  late String _remindFrequency;
+
+  bool get _isEditMode => widget.goal != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isEditMode) {
+      _titleController = TextEditingController(text: widget.goal!.title);
+      _descriptionController = TextEditingController(text: widget.goal!.note ?? '');
+      _selectedGoalType = widget.goal!.category ?? _goalTypeOptions.first.value;
+      _dueDate = widget.goal!.dueDate;
+      _remindFrequency = widget.goal!.remindFrequency ?? _remindOptions.first.value;
+    } else {
+      _titleController = TextEditingController();
+      _descriptionController = TextEditingController();
+      _selectedGoalType = _goalTypeOptions.first.value;
+      _dueDate = null;
+      _remindFrequency = _remindOptions.first.value;
+    }
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
 
   Future<void> _selectLinkedMoments() async {
     final db = ref.read(appDatabaseProvider);
@@ -2771,13 +3161,6 @@ class _GoalCreatePageState extends ConsumerState<GoalCreatePage> {
 
     if (!mounted) return;
     Navigator.of(context).pop();
-  }
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _descriptionController.dispose();
-    super.dispose();
   }
 
   Future<void> _pickDueDate() async {

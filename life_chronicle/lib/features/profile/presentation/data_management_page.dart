@@ -15,6 +15,7 @@ class DataManagementPage extends ConsumerStatefulWidget {
 
 class _DataManagementPageState extends ConsumerState<DataManagementPage> {
   final WebDavConfigService _configService = WebDavConfigService();
+  final BackgroundBackupService _backgroundBackupService = BackgroundBackupService();
   WebDavConfig? _config;
   bool _isLoading = true;
   bool _isBackingUp = false;
@@ -498,6 +499,14 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
               if (_config != null) {
                 final newConfig = _config!.copyWith(autoBackup: value);
                 await _configService.saveConfig(newConfig);
+                if (value) {
+                  await _backgroundBackupService.registerPeriodicBackup(
+                    frequency: newConfig.autoBackupFrequency ?? 'daily',
+                    wifiOnly: newConfig.backupOnWifiOnly ?? true,
+                  );
+                } else {
+                  await _backgroundBackupService.cancelBackup();
+                }
                 setState(() => _config = newConfig);
               }
             },
@@ -523,6 +532,12 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                 if (_config != null && value != null) {
                   final newConfig = _config!.copyWith(autoBackupFrequency: value);
                   await _configService.saveConfig(newConfig);
+                  if (newConfig.autoBackup) {
+                    await _backgroundBackupService.registerPeriodicBackup(
+                      frequency: value,
+                      wifiOnly: newConfig.backupOnWifiOnly ?? true,
+                    );
+                  }
                   setState(() => _config = newConfig);
                 }
               },

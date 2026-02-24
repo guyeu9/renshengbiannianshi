@@ -37,6 +37,7 @@ dependencies:
   connectivity_plus: ^5.0.2
   device_info_plus: ^9.1.2
   crypto: ^3.0.5
+  flutter_local_notifications: ^18.0.1
 
 dev_dependencies:
   flutter_test:
