@@ -9,17 +9,18 @@ part 'daos/food_dao.dart';
 part 'daos/moment_dao.dart';
 part 'daos/friend_dao.dart';
 part 'daos/link_dao.dart';
+part 'daos/ai_provider_dao.dart';
 
 @DriftDatabase(
-  tables: [FoodRecords, MomentRecords, FriendRecords, TravelRecords, Trips, GoalRecords, TimelineEvents, EntityLinks, LinkLogs, UserProfiles],
-  daos: [FoodDao, MomentDao, FriendDao, LinkDao],
+  tables: [FoodRecords, MomentRecords, FriendRecords, TravelRecords, Trips, GoalRecords, TimelineEvents, EntityLinks, LinkLogs, UserProfiles, AiProviders],
+  daos: [FoodDao, MomentDao, FriendDao, LinkDao, AiProviderDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(dbconn.openConnection());
   AppDatabase.connect(super.executor);
 
   @override
-  int get schemaVersion => 9; // 升级到 9，新增 travel_records.tags 和 timeline_events.tags 字段
+  int get schemaVersion => 10; // 升级到 10，新增 ai_providers 表
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -69,6 +70,8 @@ class AppDatabase extends _$AppDatabase {
           await ensureTable(entityLinks);
           await ensureTable(linkLogs);
           await ensureTable(userProfiles);
+
+          await ensureTable(aiProviders);
 
           await ensureColumn(table: foodRecords, column: foodRecords.isFavorite);
           await ensureColumn(table: momentRecords, column: momentRecords.isFavorite);

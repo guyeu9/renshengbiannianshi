@@ -18,6 +18,7 @@ import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/utils/media_storage.dart';
 import '../../../core/config/module_tags.dart';
+import 'ai_model_management_page.dart';
 
 const Map<String, IconData> moduleIconRegistry = {
   'restaurant': Icons.restaurant,
@@ -639,6 +640,14 @@ class ProfilePage extends StatelessWidget {
                               title: '万物互联',
                               onTap: () => Navigator.of(context).push(
                                 MaterialPageRoute(builder: (_) => const UniversalLinkPage()),
+                              ),
+                            ),
+                            _ListItem(
+                              icon: Icons.psychology,
+                              iconColor: const Color(0xFF6366F1),
+                              title: 'AI 模型管理',
+                              onTap: () => Navigator.of(context).push(
+                                MaterialPageRoute(builder: (_) => const AiModelManagementPage()),
                               ),
                             ),
                             _ListItem(

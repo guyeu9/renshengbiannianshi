@@ -206,3 +206,20 @@ class UserProfiles extends Table {
   @override
   Set<Column> get primaryKey => {id};
 }
+
+class AiProviders extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get apiType => text()();
+  TextColumn get serviceType => text()();
+  TextColumn get baseUrl => text()();
+  TextColumn get apiKey => text()();
+  TextColumn get modelName => text().nullable()();
+  TextColumn get extraConfig => text().nullable()();
+  BoolColumn get isActive => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
