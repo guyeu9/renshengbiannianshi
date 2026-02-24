@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class AMapWebViewMap extends StatefulWidget {
@@ -45,13 +47,39 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
   bool _isMapReady = false;
   bool _hasError = false;
   String _errorMessage = '';
+  bool _locationPermissionGranted = false;
 
   static const _primaryColor = '#2BCDEE';
 
   @override
   void initState() {
     super.initState();
-    _initWebView();
+    _requestLocationPermission().then((_) {
+      _initWebView();
+    });
+  }
+
+  Future<void> _requestLocationPermission() async {
+    if (!Platform.isAndroid && !Platform.isIOS) {
+      _locationPermissionGranted = true;
+      return;
+    }
+
+    final status = await Permission.location.status;
+    if (status.isGranted) {
+      setState(() => _locationPermissionGranted = true);
+      return;
+    }
+
+    final result = await Permission.location.request();
+    if (result.isGranted) {
+      setState(() => _locationPermissionGranted = true);
+    } else if (result.isPermanentlyDenied) {
+      if (kDebugMode) {
+        debugPrint('AMapWebViewMap: Location permission permanently denied');
+      }
+      widget.onError?.call('定位权限被拒绝，请在设置中开启');
+    }
   }
 
   void _initWebView() {
@@ -80,6 +108,14 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
       ..addJavaScriptChannel(
         'AMapFlutter',
         onMessageReceived: _handleJsMessage,
+      )
+      ..addJavaScriptChannel(
+        'ConsoleLog',
+        onMessageReceived: (message) {
+          if (kDebugMode) {
+            debugPrint('WebView Console: ${message.message}');
+          }
+        },
       )
       ..loadHtmlString(_buildMapHtml());
   }
@@ -132,6 +168,23 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
       width: 32px;
       height: 32px;
     }
+    .error-msg {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: #666;
+      font-size: 14px;
+      text-align: center;
+      padding: 20px;
+    }
+    .error-msg svg {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 12px;
+      fill: #ef4444;
+    }
   </style>
 </head>
 <body>
@@ -146,68 +199,98 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
     <svg viewBox="0 0 24 24" fill="$_primaryColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
   </div>
   ''' : ''}
-  <script src="https://webapi.amap.com/maps?v=2.0&key=${widget.webKey}"></script>
   <script>
     var map;
     var marker;
     var centerMarker = document.getElementById('centerMarker');
+    var mapReady = false;
+    
+    function showError(msg) {
+      document.getElementById('container').innerHTML = 
+        '<div class="error-msg"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg><div>' + msg + '</div></div>';
+      AMapFlutter.postMessage(JSON.stringify({type: 'error', message: msg}));
+    }
+    
+    window.onerror = function(msg, url, line) {
+      ConsoleLog.postMessage('JS Error: ' + msg + ' at ' + url + ':' + line);
+      AMapFlutter.postMessage(JSON.stringify({
+        type: 'jsError',
+        message: msg,
+        url: url,
+        line: line
+      }));
+    };
     
     function initMap() {
-      map = new AMap.Map('container', {
-        zoom: ${widget.initialZoom},
-        center: [$initialLng, $initialLat],
-        resizeEnable: true
-      });
+      ConsoleLog.postMessage('initMap called, AMap available: ' + (typeof AMap !== 'undefined'));
       
-      ${widget.isPreviewMode && markerLat != null && markerLng != null ? '''
-      marker = new AMap.Marker({
-        position: [$markerLng, $markerLat],
-        map: map
-      });
-      map.setCenter([$markerLng, $markerLat]);
-      ''' : ''}
+      if (typeof AMap === 'undefined') {
+        showError('地图 API 加载失败，请检查网络连接');
+        return;
+      }
       
-      map.on('complete', function() {
-        AMapFlutter.postMessage(JSON.stringify({type: 'mapReady'}));
-      });
-      
-      ${!widget.isPreviewMode ? '''
-      map.on('click', function(e) {
-        var lng = e.lnglat.getLng();
-        var lat = e.lnglat.getLat();
-        AMapFlutter.postMessage(JSON.stringify({
-          type: 'click',
-          lng: lng,
-          lat: lat
-        }));
-      });
-      
-      map.on('moveend', function() {
-        if (centerMarker) {
-          var center = map.getCenter();
+      try {
+        map = new AMap.Map('container', {
+          zoom: ${widget.initialZoom},
+          center: [$initialLng, $initialLat],
+          resizeEnable: true
+        });
+        
+        ${widget.isPreviewMode && markerLat != null && markerLng != null ? '''
+        marker = new AMap.Marker({
+          position: [$markerLng, $markerLat],
+          map: map
+        });
+        map.setCenter([$markerLng, $markerLat]);
+        ''' : ''}
+        
+        map.on('complete', function() {
+          mapReady = true;
+          ConsoleLog.postMessage('Map ready');
+          AMapFlutter.postMessage(JSON.stringify({type: 'mapReady'}));
+        });
+        
+        ${!widget.isPreviewMode ? '''
+        map.on('click', function(e) {
+          var lng = e.lnglat.getLng();
+          var lat = e.lnglat.getLat();
           AMapFlutter.postMessage(JSON.stringify({
-            type: 'moveEnd',
-            lng: center.getLng(),
-            lat: center.getLat()
+            type: 'click',
+            lng: lng,
+            lat: lat
           }));
-        }
-      });
-      ''' : ''}
-      
-      ${widget.enablePoiClick && !widget.isPreviewMode ? '''
-      map.on('poiClick', function(e) {
-        var poi = e.poi;
-        if (poi && poi.location) {
-          AMapFlutter.postMessage(JSON.stringify({
-            type: 'poiClick',
-            name: poi.name || '',
-            address: poi.address || '',
-            lng: poi.location.getLng(),
-            lat: poi.location.getLat()
-          }));
-        }
-      });
-      ''' : ''}
+        });
+        
+        map.on('moveend', function() {
+          if (centerMarker) {
+            var center = map.getCenter();
+            AMapFlutter.postMessage(JSON.stringify({
+              type: 'moveEnd',
+              lng: center.getLng(),
+              lat: center.getLat()
+            }));
+          }
+        });
+        ''' : ''}
+        
+        ${widget.enablePoiClick && !widget.isPreviewMode ? '''
+        map.on('poiClick', function(e) {
+          var poi = e.poi;
+          if (poi && poi.location) {
+            AMapFlutter.postMessage(JSON.stringify({
+              type: 'poiClick',
+              name: poi.name || '',
+              address: poi.address || '',
+              lng: poi.location.getLng(),
+              lat: poi.location.getLat()
+            }));
+          }
+        });
+        ''' : ''}
+      } catch (e) {
+        ConsoleLog.postMessage('Map init error: ' + e.message);
+        showError('地图初始化失败: ' + e.message);
+      }
     }
     
     function locateMe() {
@@ -238,14 +321,9 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
       }
     }
     
-    if (typeof AMap !== 'undefined') {
-      initMap();
-    } else {
-      window.onerror = function(msg) {
-        AMapFlutter.postMessage(JSON.stringify({type: 'error', message: msg}));
-      };
-    }
+    ConsoleLog.postMessage('Loading AMap JS API with key: ${widget.webKey.substring(0, 8)}...');
   </script>
+  <script src="https://webapi.amap.com/maps?v=2.0&key=${widget.webKey}" onerror="showError('地图 API 脚本加载失败')" onload="initMap()"></script>
 </body>
 </html>
 ''';
@@ -282,6 +360,7 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
           _handleLocationRequest();
           break;
         case 'error':
+        case 'jsError':
           final errorMsg = data['message'] as String? ?? 'Unknown error';
           setState(() {
             _hasError = true;
@@ -298,6 +377,16 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
   }
 
   Future<void> _handleLocationRequest() async {
+    if (!_locationPermissionGranted) {
+      await _requestLocationPermission();
+      if (!_locationPermissionGranted) {
+        if (kDebugMode) {
+          debugPrint('AMapWebViewMap: Location permission not granted');
+        }
+        return;
+      }
+    }
+
     try {
       await _controller.runJavaScript('''
         if (navigator.geolocation) {
@@ -314,12 +403,19 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
               }));
             },
             function(error) {
+              ConsoleLog.postMessage('Geolocation error: ' + error.message);
               AMapFlutter.postMessage(JSON.stringify({
                 type: 'locationError',
                 message: error.message
               }));
-            }
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
           );
+        } else {
+          AMapFlutter.postMessage(JSON.stringify({
+            type: 'locationError',
+            message: '浏览器不支持定位'
+          }));
         }
       ''');
     } catch (e) {

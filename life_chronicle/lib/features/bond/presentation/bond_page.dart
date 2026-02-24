@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/config/module_tags.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/utils/media_storage.dart';
@@ -1905,20 +1906,6 @@ class FriendCreatePage extends ConsumerStatefulWidget {
 class _FriendCreatePageState extends ConsumerState<FriendCreatePage> {
   static const _uuid = Uuid();
   static const _frequencyOptions = ['无需提醒', '每一个月提醒一次', '每三个月提醒一次', '每年提醒一次'];
-  static const _presetTags = [
-    '家人',
-    '同学',
-    '同事',
-    '闺蜜',
-    '饭搭子',
-    '旅行搭子',
-    '球友',
-    '靠谱',
-    '有趣',
-    '温柔',
-    '爱运动',
-    '爱拍照',
-  ];
 
   final _nameController = TextEditingController();
   final _meetWayController = TextEditingController();
@@ -2102,7 +2089,7 @@ class _FriendCreatePageState extends ConsumerState<FriendCreatePage> {
                       spacing: 10,
                       runSpacing: 10,
                       children: [
-                        for (final tag in _presetTags)
+                        for (final tag in ModuleTags.bond)
                           InkWell(
                             borderRadius: BorderRadius.circular(12),
                             onTap: () {

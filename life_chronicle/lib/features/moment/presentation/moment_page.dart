@@ -11,6 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/config/module_tags.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/utils/media_storage.dart';
@@ -1337,7 +1338,7 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
   double? _latitude;
   double? _longitude;
 
-  final List<String> _tags = ['读书', '搬家', '桌面布置', '电影'];
+  final List<String> _tags = List.from(ModuleTags.moment);
   final Set<String> _selectedTags = {};
 
   final List<String> _imageUrls = [];

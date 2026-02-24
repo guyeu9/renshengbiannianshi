@@ -12,6 +12,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/config/module_tags.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/utils/media_storage.dart';
@@ -2501,16 +2502,6 @@ class FoodCreatePage extends ConsumerStatefulWidget {
 class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
   static const _primary = Color(0xFF2BCDEE);
   static const _backgroundDark = Color(0xFF102222);
-  static const List<String> _systemTags = [
-    '必吃榜',
-    '周末探店',
-    '辣',
-    '火锅',
-    '烤肉',
-    '日料',
-    '甜品',
-    '咖啡',
-  ];
 
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
@@ -2529,7 +2520,7 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
   double? _longitude;
 
   final _imageUrls = <String>[];
-  final _availableTags = <String>[..._systemTags];
+  final _availableTags = <String>[...ModuleTags.food];
   final Set<String> _selectedTags = {};
 
   final _linkedFriends = <FriendRecord>[];
