@@ -667,7 +667,7 @@ class _EncounterEventRow extends ConsumerWidget {
             color: Colors.white,
             borderRadius: BorderRadius.circular(28),
             child: InkWell(
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => _EncounterDetailPage(encounterId: event.id))),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => EncounterDetailPage(encounterId: event.id))),
               borderRadius: BorderRadius.circular(28),
               child: Container(
                 padding: const EdgeInsets.all(16),
@@ -3937,8 +3937,8 @@ class _SelectedAvatarsRow extends ConsumerWidget {
   }
 }
 
-class _EncounterDetailPage extends ConsumerWidget {
-  const _EncounterDetailPage({required this.encounterId});
+class EncounterDetailPage extends ConsumerWidget {
+  const EncounterDetailPage({super.key, required this.encounterId});
 
   final String encounterId;
 

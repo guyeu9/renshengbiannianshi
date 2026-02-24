@@ -12,9 +12,12 @@ import '../../../app/app_theme.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../ai_historian/presentation/ai_historian_chat_page.dart';
+import '../../bond/presentation/bond_page.dart';
 import '../../food/presentation/food_page.dart';
 import '../../goal/presentation/goal_page.dart';
+import '../../moment/presentation/moment_page.dart';
 import '../../profile/presentation/profile_page.dart';
+import '../../travel/presentation/travel_page.dart';
 
 class HomeSchedulePage extends StatefulWidget {
   const HomeSchedulePage({super.key});
@@ -1160,11 +1163,24 @@ class _EventStream extends ConsumerWidget {
                   title: e.title,
                   subtitle: e.note,
                   type: e.eventType,
-                  onTap: e.eventType == 'goal'
-                      ? () {
-                          _openGoalDetail(context, ref, e.id);
-                        }
-                      : null,
+                  onTap: () {
+                    switch (e.eventType) {
+                      case 'goal':
+                        _openGoalDetail(context, ref, e.id);
+                        break;
+                      case 'encounter':
+                        _openEncounterDetail(context, e.id);
+                        break;
+                      case 'travel':
+                        _openTravelDetail(context, ref, e.id);
+                        break;
+                      case 'moment':
+                        _openMomentDetail(context, e.id);
+                        break;
+                      default:
+                        break;
+                    }
+                  },
                 ),
               for (final f in foods)
                 (
@@ -1279,6 +1295,45 @@ class _EventStream extends ConsumerWidget {
       default:
         return Colors.grey;
     }
+  }
+
+  Future<void> _openEncounterDetail(BuildContext context, String encounterId) async {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => EncounterDetailPage(encounterId: encounterId)));
+  }
+
+  Future<void> _openTravelDetail(BuildContext context, WidgetRef ref, String travelId) async {
+    final db = ref.read(appDatabaseProvider);
+    final record = await (db.select(db.travelRecords)
+          ..where((t) => t.id.equals(travelId))
+          ..where((t) => t.isDeleted.equals(false))
+          ..limit(1))
+        .getSingleOrNull();
+    if (!context.mounted) return;
+    if (record == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('未找到旅行记录')));
+      return;
+    }
+    final item = TravelItem(
+      travelId: record.id,
+      tripId: record.tripId,
+      recordDate: record.recordDate,
+      date: _formatDateRange(record.recordDate, record.endDate),
+      title: record.title ?? '',
+      subtitle: record.poiName ?? '',
+      imageUrl: record.images ?? '',
+    );
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => TravelDetailPage(item: item)));
+  }
+
+  String _formatDateRange(DateTime start, DateTime? end) {
+    final startStr = '${start.month}月${start.day}日';
+    if (end == null) return startStr;
+    if (start.year == end.year && start.month == end.month && start.day == end.day) return startStr;
+    return '$startStr - ${end.month}月${end.day}日';
+  }
+
+  Future<void> _openMomentDetail(BuildContext context, String momentId) async {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => MomentDetailPage(recordId: momentId)));
   }
 
   Future<void> _openGoalDetail(BuildContext context, WidgetRef ref, String goalId) async {
@@ -1427,14 +1482,21 @@ class _LeadingBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        width: 64,
-        height: 64,
-        color: bg,
-        child: Icon(icon ?? Icons.event, size: 32, color: fg),
+    return Container(
+      width: 64,
+      height: 64,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
+      child: Icon(icon ?? Icons.event, size: 32, color: fg),
     );
   }
 }

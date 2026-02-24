@@ -129,21 +129,13 @@ class _TravelTopBar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
       child: Row(
         children: [
-          const SizedBox(width: 48),
           const Expanded(
             child: Text(
               '人生路漫漫',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
             ),
           ),
-          SizedBox(
-              width: 48,
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: AiParseButton(text: '解析', onPressed: () {}),
-              ),
-            ),
+          AiParseButton(text: '解析', onPressed: () {}),
         ],
       ),
     );
