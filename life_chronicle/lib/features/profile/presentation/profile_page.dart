@@ -672,7 +672,7 @@ class ProfilePage extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           ).copyWith(
-                            backgroundColor: const WidgetStatePropertyAll(Colors.transparent),
+                            backgroundColor: WidgetStateProperty.all(Colors.transparent),
                           ),
                           onPressed: () {},
                           child: const Text('退出登录', style: TextStyle(fontWeight: FontWeight.w600)),
