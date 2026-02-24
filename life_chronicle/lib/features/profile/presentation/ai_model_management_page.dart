@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' hide Column;
@@ -702,7 +700,7 @@ class _AddProviderSheetState extends ConsumerState<_AddProviderSheet> {
       case 'moonshot':
         return Icons.nightlight;
       case 'bge':
-        return Icons.embeddings;
+        return Icons.view_in_ar;
       default:
         return Icons.settings;
     }

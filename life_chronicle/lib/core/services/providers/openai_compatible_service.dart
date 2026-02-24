@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import 'package:life_chronicle/core/database/app_database.dart';
 import 'package:life_chronicle/core/services/ai_service.dart';
 import 'package:life_chronicle/core/services/embedding_service.dart';
 

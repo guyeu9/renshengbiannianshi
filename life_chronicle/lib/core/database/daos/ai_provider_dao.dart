@@ -49,19 +49,17 @@ class AiProviderDao extends DatabaseAccessor<AppDatabase> with _$AiProviderDaoMi
   }
 
   Future<void> setActiveProvider(String id, String serviceType, {required DateTime now}) async {
-    await batch(() async {
-      await (update(db.aiProviders)..where((t) => t.serviceType.equals(serviceType))).write(
-        AiProvidersCompanion(
-          isActive: const Value(false),
-          updatedAt: Value(now),
-        ),
-      );
-      await (update(db.aiProviders)..where((t) => t.id.equals(id))).write(
-        AiProvidersCompanion(
-          isActive: const Value(true),
-          updatedAt: Value(now),
-        ),
-      );
-    });
+    await (update(db.aiProviders)..where((t) => t.serviceType.equals(serviceType))).write(
+      AiProvidersCompanion(
+        isActive: const Value(false),
+        updatedAt: Value(now),
+      ),
+    );
+    await (update(db.aiProviders)..where((t) => t.id.equals(id))).write(
+      AiProvidersCompanion(
+        isActive: const Value(true),
+        updatedAt: Value(now),
+      ),
+    );
   }
 }
