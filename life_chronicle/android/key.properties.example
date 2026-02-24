@@ -1,0 +1,4 @@
+storePassword=YOUR_STORE_PASSWORD
+keyPassword=YOUR_KEY_PASSWORD
+keyAlias=life-chronicle
+storeFile=life-chronicle-release.jks

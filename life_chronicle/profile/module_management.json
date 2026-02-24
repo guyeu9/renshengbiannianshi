@@ -66,7 +66,7 @@
     "travel": {
       "key": "travel",
       "title": "旅行",
-      "iconName": "flight_takeoff",
+      "iconName": "airplanemode_active",
       "tagTitle": "目的地标签管理",
       "showOnCalendar": true,
       "tags": [

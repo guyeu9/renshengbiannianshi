@@ -52,7 +52,7 @@ const _goalTypeOptions = <_GoalTypeOption>[
   _GoalTypeOption(
     value: '旅行',
     label: '环球旅行',
-    icon: Icons.flight_takeoff,
+    icon: Icons.airplanemode_active,
     accent: Color(0xFF10B981),
     background: Color(0xFFDCFCE7),
   ),
@@ -456,8 +456,34 @@ class _GoalHomeBodyState extends ConsumerState<_GoalHomeBody> {
             const SizedBox(height: 12),
             Row(
               children: [
-                const Expanded(
-                  child: Text('年度目标', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+                const Expanded(child: SizedBox()),
+                GestureDetector(
+                  onHorizontalDragEnd: (details) => _handleYearSwipe(years, activeYear, details),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => _shiftYear(years, activeYear, 1),
+                        icon: Icon(Icons.chevron_left, color: canPrev ? const Color(0xFF94A3B8) : const Color(0xFFE2E8F0)),
+                      ),
+                      InkWell(
+                        borderRadius: BorderRadius.circular(999),
+                        onTap: () => _pickYear(years, activeYear),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          child: Row(
+                            children: [
+                              Text('$activeYear年', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF2BCDEE))),
+                              const Icon(Icons.keyboard_arrow_down, size: 24, color: Color(0xFF2BCDEE)),
+                            ],
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => _shiftYear(years, activeYear, -1),
+                        icon: Icon(Icons.chevron_right, color: canNext ? const Color(0xFF94A3B8) : const Color(0xFFE2E8F0)),
+                      ),
+                    ],
+                  ),
                 ),
                 TextButton(
                   onPressed: () => Navigator.of(context).push(
@@ -470,34 +496,6 @@ class _GoalHomeBodyState extends ConsumerState<_GoalHomeBody> {
                   child: const Text('历史年度总结'),
                 ),
               ],
-            ),
-            GestureDetector(
-              onHorizontalDragEnd: (details) => _handleYearSwipe(years, activeYear, details),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: () => _shiftYear(years, activeYear, 1),
-                    icon: Icon(Icons.chevron_left, color: canPrev ? const Color(0xFF94A3B8) : const Color(0xFFE2E8F0)),
-                  ),
-                  InkWell(
-                    borderRadius: BorderRadius.circular(999),
-                    onTap: () => _pickYear(years, activeYear),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      child: Row(
-                        children: [
-                          Text('$activeYear年', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF2BCDEE))),
-                          const Icon(Icons.keyboard_arrow_down, size: 18, color: Color(0xFF2BCDEE)),
-                        ],
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => _shiftYear(years, activeYear, -1),
-                    icon: Icon(Icons.chevron_right, color: canNext ? const Color(0xFF94A3B8) : const Color(0xFFE2E8F0)),
-                  ),
-                ],
-              ),
             ),
             const SizedBox(height: 8),
             Container(
@@ -1877,7 +1875,7 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
                                 ),
                                 SizedBox(width: 12),
                                 _MemoryCard(
-                                  typeIcon: Icons.flight,
+                                  typeIcon: Icons.airplanemode_active,
                                   typeColor: Color(0xFF3B82F6),
                                   title: '巴黎旅行计划灵感',
                                   date: '2023.05.01',
@@ -3998,7 +3996,7 @@ class _GoalCreatePageState extends ConsumerState<GoalCreatePage> {
                     (t) => _SelectItem(
                       id: t.id,
                       title: t.title?.isNotEmpty == true ? t.title! : '旅行记录',
-                      leading: const _IconSquare(color: Color(0xFFF0FDF4), icon: Icons.flight_takeoff, iconColor: Color(0xFF22C55E)),
+                      leading: const _IconSquare(color: Color(0xFFF0FDF4), icon: Icons.airplanemode_active, iconColor: Color(0xFF22C55E)),
                     ),
                   )
                   .toList(growable: false),
@@ -4296,7 +4294,7 @@ class _GoalCreatePageState extends ConsumerState<GoalCreatePage> {
                         ),
                         _GoalLinkTile(
                           iconBackground: Color(0xFFF0FDF4),
-                          icon: Icons.flight_takeoff,
+                          icon: Icons.airplanemode_active,
                           iconColor: Color(0xFF22C55E),
                           title: '关联旅行',
                           trailingText: _linkedTravelIds.isEmpty ? '选择旅行记录' : '已选 ${_linkedTravelIds.length} 条',

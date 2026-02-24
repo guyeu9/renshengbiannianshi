@@ -716,7 +716,7 @@ class _TravelOnRoadCard extends StatelessWidget {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.flight_takeoff, size: 14, color: Colors.white),
+                              const Icon(Icons.airplanemode_active, size: 14, color: Colors.white),
                               const SizedBox(width: 6),
                               Text('${entry.durationDays} 天', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.white)),
                             ],
@@ -2627,7 +2627,7 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
                               ),
                               child: Row(
                                 children: [
-                                  const _IconSquare(color: Color(0xFFE0F2FE), icon: Icons.flight_takeoff, iconColor: Color(0xFF0EA5E9)),
+                                  const _IconSquare(color: Color(0xFFE0F2FE), icon: Icons.airplanemode_active, iconColor: Color(0xFF0EA5E9)),
                                   const SizedBox(width: 10),
                                   Expanded(child: Text(trip.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF111827)))),
                                   Icon(checked ? Icons.check_circle : Icons.radio_button_unchecked, color: checked ? const Color(0xFF2BCDEE) : const Color(0xFFCBD5E1)),

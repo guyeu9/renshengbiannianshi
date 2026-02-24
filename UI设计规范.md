@@ -460,7 +460,34 @@ focus状态：ring-2，主色10%透明度，边框主色50%透明度
 
 ---
 
-## 十三、间距规范
+## 十三、模块图标规范
+
+### 13.1 模块图标定义
+
+所有模块图标统一以底部导航菜单为准，确保全局一致性。
+
+| 模块 | 图标名称 | IconData | 说明 |
+|------|----------|----------|------|
+| 日程 | calendar_today | Icons.calendar_today | 首页日程 |
+| 美食 | restaurant | Icons.restaurant | 美食模块主图标 |
+| 旅行 | airplanemode_active | Icons.airplanemode_active | 旅行模块主图标 |
+| 小确幸 | auto_awesome | Icons.auto_awesome | 小确幸模块主图标 |
+| 羁绊 | group | Icons.group | 羁绊模块主图标 |
+| 目标 | outlined_flag | Icons.outlined_flag | 目标模块主图标 |
+
+### 13.2 模块主题色映射
+
+| 模块 | 主题色 | 色值 |
+|------|--------|------|
+| 美食 | 美食橙 | #FF9F43 |
+| 旅行 | 旅行蓝 | #42A5F5 |
+| 小确幸 | 主色/淡青色 | #2BCDEE |
+| 羁绊 | 羁绊红 | #EF5350 |
+| 目标 | 目标紫 | #AB47BC |
+
+---
+
+## 十四、间距规范
 
 采用 4px 基准的间距系统：
 

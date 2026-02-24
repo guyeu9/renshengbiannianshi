@@ -19,10 +19,11 @@ import '../../../core/database/database_providers.dart';
 import '../../../core/utils/media_storage.dart';
 import '../../../core/config/module_tags.dart';
 import 'ai_model_management_page.dart';
+import 'data_management_page.dart';
 
 const Map<String, IconData> moduleIconRegistry = {
   'restaurant': Icons.restaurant,
-  'flight_takeoff': Icons.flight_takeoff,
+  'airplanemode_active': Icons.airplanemode_active,
   'auto_awesome': Icons.auto_awesome,
   'diversity_3': Icons.diversity_3,
   'flag': Icons.flag,
@@ -225,7 +226,7 @@ class ModuleManagementConfig {
         'travel': ModuleConfig(
           key: 'travel',
           title: '旅行',
-          iconName: 'flight_takeoff',
+          iconName: 'airplanemode_active',
           tagTitle: '目的地标签管理',
           showOnCalendar: true,
           tags: ModuleTags.travel.asMap().entries.map((e) => ModuleTag(id: 'travel-${e.key + 1}', name: e.value, showOnCalendar: true)).toList(),
@@ -4222,15 +4223,6 @@ List<_LogGroup> _groupLogsByDay(List<LinkLog> logs) {
     result.add(_LogGroup(title: k, items: olderGroups[k] ?? const <LinkLog>[]));
   }
   return result;
-}
-
-class DataManagementPage extends StatelessWidget {
-  const DataManagementPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const _PlaceholderPage(title: '个人中心-数据管理');
-  }
 }
 
 class PersonalProfilePage extends ConsumerStatefulWidget {

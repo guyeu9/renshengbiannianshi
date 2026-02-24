@@ -1794,7 +1794,7 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
                     (t) => _SelectItem(
                       id: t.id,
                       title: t.title?.isNotEmpty == true ? t.title! : '旅行记录',
-                      leading: const _IconSquare(color: Color(0xFFF0FDF4), icon: Icons.flight_takeoff, iconColor: Color(0xFF22C55E)),
+                      leading: const _IconSquare(color: Color(0xFFF0FDF4), icon: Icons.airplanemode_active, iconColor: Color(0xFF22C55E)),
                     ),
                   )
                   .toList(growable: false),
@@ -2202,7 +2202,7 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
                   _UniversalLinkCard(
                     title: '关联旅行',
                     subtitle: _linkedTravelIds.isEmpty ? '记录旅途中的点滴' : '已选 ${_linkedTravelIds.length} 条',
-                    icon: Icons.flight_takeoff,
+                    icon: Icons.airplanemode_active,
                     gradientStart: const Color(0xFF34D399),
                     gradientEnd: const Color(0xFF14B8A6),
                     trailingIcon: _linkedTravelIds.isEmpty ? Icons.add_circle : Icons.check_circle,

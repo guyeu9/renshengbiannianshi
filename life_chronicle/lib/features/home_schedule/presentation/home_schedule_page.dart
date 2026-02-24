@@ -1266,7 +1266,7 @@ class _EventStream extends ConsumerWidget {
       case 'personal':
         return Icons.person;
       case 'travel':
-        return Icons.flight;
+        return Icons.airplanemode_active;
       case 'food':
         return Icons.restaurant;
       case 'encounter':
@@ -1409,12 +1409,12 @@ class _TimelineItem extends StatelessWidget {
                       borderRadius: BorderRadius.circular(14),
                       boxShadow: const [
                         BoxShadow(
-                          color: Color(0x1A2BCDEE),
+                          color: Color(0x0A000000),
                           blurRadius: 20,
                           offset: Offset(0, 4),
                         ),
                         BoxShadow(
-                          color: Color(0x0A000000),
+                          color: Color(0x05000000),
                           blurRadius: 10,
                           offset: Offset(0, 2),
                         ),
