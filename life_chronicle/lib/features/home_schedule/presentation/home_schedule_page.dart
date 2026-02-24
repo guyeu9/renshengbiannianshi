@@ -1317,19 +1317,12 @@ class _EventStream extends ConsumerWidget {
       travelId: record.id,
       tripId: record.tripId,
       recordDate: record.recordDate,
-      date: _formatDateRange(record.recordDate, record.endDate),
+      date: '${record.recordDate.month}月${record.recordDate.day}日',
       title: record.title ?? '',
       subtitle: record.poiName ?? '',
       imageUrl: record.images ?? '',
     );
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => TravelDetailPage(item: item)));
-  }
-
-  String _formatDateRange(DateTime start, DateTime? end) {
-    final startStr = '${start.month}月${start.day}日';
-    if (end == null) return startStr;
-    if (start.year == end.year && start.month == end.month && start.day == end.day) return startStr;
-    return '$startStr - ${end.month}月${end.day}日';
   }
 
   Future<void> _openMomentDetail(BuildContext context, String momentId) async {
