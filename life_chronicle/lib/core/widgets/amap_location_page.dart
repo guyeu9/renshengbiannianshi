@@ -96,9 +96,9 @@ class _AmapPoi {
 class _AmapLocationPageState extends State<AmapLocationPage> {
   static const String _amapAndroidKey = String.fromEnvironment('AMAP_ANDROID_KEY', defaultValue: 'a5a3e21e2d17ffa851374ed158a985a6');
   static const String _amapIosKey = String.fromEnvironment('AMAP_IOS_KEY', defaultValue: '');
-  static const String _amapWebKey = String.fromEnvironment('AMAP_WEB_KEY', defaultValue: 'fbe9be9664c1c2b31f7783a10ec61bc8');
+  static const String _amapWebKey = String.fromEnvironment('AMAP_WEB_KEY', defaultValue: '76e66f23c7045fbe296f9aa9b7e7f12c');
+  static const String _amapJsKey = String.fromEnvironment('AMAP_JS_KEY', defaultValue: 'fbe9be9664c1c2b31f7783a10ec61bc8');
   static const String _amapSecurityCode = String.fromEnvironment('AMAP_SECURITY_CODE', defaultValue: '08b0afcf6f31af1de9d21d23f22baa66');
-
   static const _primary = Color(0xFF2BCDEE);
 
   final _searchController = TextEditingController();
@@ -510,7 +510,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
                     )
                   : useWebViewMap
                       ? AMapWebViewMap(
-                          webKey: _amapWebKey,
+                          webKey: _amapJsKey,
                           securityCode: _amapSecurityCode,
                           initialLatitude: mapTargetLat,
                           initialLongitude: mapTargetLng,

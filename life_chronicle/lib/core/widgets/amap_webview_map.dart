@@ -1,7 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:amap_flutter_location/amap_flutter_location.dart';
+import 'package:amap_flutter_location/amap_location_option.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -51,15 +55,41 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
   String _errorMessage = '';
   bool _locationPermissionGranted = false;
   bool _isLoading = true;
+  AMapFlutterLocation? _locationPlugin;
+  StreamSubscription<Map<String, Object>>? _locationSubscription;
+  bool _isLocating = false;
 
   static const _primaryColor = '#2BCDEE';
+  static const _amapAndroidKey = String.fromEnvironment('AMAP_ANDROID_KEY', defaultValue: 'a5a3e21e2d17ffa851374ed158a985a6');
+  static const _amapIosKey = String.fromEnvironment('AMAP_IOS_KEY', defaultValue: '');
 
   @override
   void initState() {
     super.initState();
+    _initLocationPlugin();
     _requestLocationPermission().then((_) {
       _initWebView();
     });
+  }
+
+  void _initLocationPlugin() {
+    AMapFlutterLocation.setApiKey(_amapAndroidKey, _amapIosKey);
+    AMapFlutterLocation.updatePrivacyShow(true, true);
+    AMapFlutterLocation.updatePrivacyAgree(true);
+    
+    _locationPlugin = AMapFlutterLocation();
+    _locationPlugin?.setLocationOption(AMapLocationOption(
+      onceLocation: true,
+      needAddress: false,
+      locationMode: AMapLocationMode.Hight_Accuracy,
+    ));
+  }
+
+  @override
+  void dispose() {
+    _locationSubscription?.cancel();
+    _locationPlugin?.destroy();
+    super.dispose();
   }
 
   Future<void> _requestLocationPermission() async {
@@ -146,6 +176,13 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
     final markerLat = widget.markerLatitude;
     final markerLng = widget.markerLongitude;
     final webKey = widget.webKey;
+    final securityCode = widget.securityCode;
+    final initialZoom = widget.initialZoom;
+    final primaryColor = _primaryColor;
+    final showLocationButton = widget.showLocationButton && !widget.isPreviewMode;
+    final isPreviewMode = widget.isPreviewMode;
+    final enablePoiClick = widget.enablePoiClick && !widget.isPreviewMode;
+    final hasMarker = isPreviewMode && markerLat != null && markerLng != null;
 
     return '''
 <!DOCTYPE html>
@@ -206,14 +243,14 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
       <div>正在加载地图...</div>
     </div>
   </div>
-  ${widget.showLocationButton && !widget.isPreviewMode ? '''
+  ${showLocationButton ? '''
   <div class="location-btn" id="locationBtn">
     <svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
   </div>
   ''' : ''}
-  ${!widget.isPreviewMode ? '''
+  ${!isPreviewMode ? '''
   <div class="center-marker" id="centerMarker" style="display: none;">
-    <svg viewBox="0 0 24 24" fill="$_primaryColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+    <svg viewBox="0 0 24 24" fill="$primaryColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
   </div>
   ''' : ''}
   <script>
@@ -264,12 +301,12 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
           if (centerMarker) centerMarker.style.display = 'block';
           
           map = new AMap.Map('container', {
-            zoom: ${widget.initialZoom},
+            zoom: $initialZoom,
             center: [$initialLng, $initialLat],
             resizeEnable: true
           });
           
-          ${widget.isPreviewMode && markerLat != null && markerLng != null ? '''
+          ${hasMarker ? '''
           marker = new AMap.Marker({
             position: [$markerLng, $markerLat],
             map: map
@@ -282,7 +319,7 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
             try { AMapFlutter.postMessage(JSON.stringify({type: 'mapReady'})); } catch(e) {}
           });
           
-          ${!widget.isPreviewMode ? '''
+          ${!isPreviewMode ? '''
           map.on('click', function(e) {
             try {
               AMapFlutter.postMessage(JSON.stringify({
@@ -307,7 +344,7 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
           });
           ''' : ''}
           
-          ${widget.enablePoiClick && !widget.isPreviewMode ? '''
+          ${enablePoiClick ? '''
           map.on('poiClick', function(e) {
             var poi = e.poi;
             if (poi && poi.location) {
@@ -351,7 +388,7 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
       
       // 安全密钥配置
       window._AMapSecurityConfig = {
-        securityJsCode: '${widget.securityCode}',
+        securityJsCode: '$securityCode',
       };
       
       var script = document.createElement('script');
@@ -416,47 +453,76 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
   }
 
   Future<void> _handleLocationRequest() async {
+    if (_isLocating) return;
+    
     if (!_locationPermissionGranted) {
       await _requestLocationPermission();
       if (!_locationPermissionGranted) {
         debugPrint('AMapWebViewMap: Location permission not granted');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('定位权限未授权，请在设置中开启')),
+          );
+        }
         return;
       }
     }
 
+    setState(() => _isLocating = true);
+    
     try {
-      await _controller?.runJavaScript('''
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            function(pos) {
-              if (window.setCenter) window.setCenter(pos.coords.latitude, pos.coords.longitude);
-              AMapFlutter.postMessage(JSON.stringify({
-                type: 'locationResult',
-                lat: pos.coords.latitude,
-                lng: pos.coords.longitude
-              }));
-            },
-            function(err) {
-              AMapFlutter.postMessage(JSON.stringify({
-                type: 'locationError',
-                message: err.message
-              }));
-            },
-            { enableHighAccuracy: true, timeout: 10000 }
-          );
+      _locationSubscription?.cancel();
+      _locationSubscription = _locationPlugin?.onLocationChanged().listen((result) {
+        _locationSubscription?.cancel();
+        
+        final lat = result['latitude'] as double?;
+        final lng = result['longitude'] as double?;
+        
+        if (lat != null && lng != null && mounted) {
+          _controller?.runJavaScript('if(window.setCenter) window.setCenter($lng, $lat)');
+          widget.onLocationSelected?.call(lat, lng);
+          debugPrint('AMapWebViewMap: Location result: lat=$lat, lng=$lng');
+        } else {
+          debugPrint('AMapWebViewMap: Location result invalid: $result');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('定位失败，请重试')),
+            );
+          }
         }
-      ''');
+        
+        _locationPlugin?.stopLocation();
+        if (mounted) setState(() => _isLocating = false);
+      });
+      
+      _locationPlugin?.startLocation();
+      
+      await Future.delayed(const Duration(seconds: 15));
+      if (_isLocating && mounted) {
+        _locationSubscription?.cancel();
+        _locationPlugin?.stopLocation();
+        setState(() => _isLocating = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('定位超时，请检查定位服务是否开启')),
+        );
+      }
     } catch (e) {
-      debugPrint('AMapWebViewMap: Error running location script: $e');
+      debugPrint('AMapWebViewMap: Location error: $e');
+      if (mounted) {
+        setState(() => _isLocating = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('定位失败: $e')),
+        );
+      }
     }
   }
 
   Future<void> setCenter(double lat, double lng) async {
-    await _controller?.runJavaScript('if(window.setCenter) window.setCenter($lat, $lng)');
+    await _controller?.runJavaScript('if(window.setCenter) window.setCenter($lng, $lat)');
   }
 
   Future<void> setMarker(double lat, double lng) async {
-    await _controller?.runJavaScript('if(window.setMarker) window.setMarker($lat, $lng)');
+    await _controller?.runJavaScript('if(window.setMarker) window.setMarker($lng, $lat)');
   }
 
   Future<void> clearMarker() async {
@@ -504,9 +570,48 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
 
     return Stack(
       children: [
-        WebViewWidget(controller: _controller!),
+        WebViewWidget(
+          controller: _controller!,
+          gestureRecognizers: {
+            Factory<VerticalDragGestureRecognizer>(() => VerticalDragGestureRecognizer()),
+            Factory<HorizontalDragGestureRecognizer>(() => HorizontalDragGestureRecognizer()),
+          },
+        ),
         if (_isLoading || !_isMapReady)
           const Center(child: CircularProgressIndicator()),
+        if (_isLocating)
+          Positioned(
+            top: 16,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.black87,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      '正在定位...',
+                      style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }
