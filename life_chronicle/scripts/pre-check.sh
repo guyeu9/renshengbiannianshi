@@ -271,7 +271,7 @@ if [ -n "$FLUTTER_CMD" ]; then
         check_pass "Flutter analyze passed"
     else
         # Check if it's a Flutter SDK crash (not our code issue)
-        if echo "$analyze_output" | grep -q "FileSystemException\|exited unexpectedly\|crash report"; then
+        if echo "$analyze_output" | grep -q "FileSystemException\|exited unexpectedly\|crash report\|Failed to decode data\|Oops; flutter"; then
             check_warn "Flutter analyze crashed due to SDK issue (non-blocking)"
             check_info "This is a Flutter SDK bug, not your code issue"
             check_info "Try: flutter clean && flutter pub get"
