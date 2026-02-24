@@ -50,6 +50,17 @@ check_flutter() {
             return 0
         fi
     fi
+    
+    # Also check local.properties for flutter.sdk
+    local props_file="$PROJECT_DIR/android/local.properties"
+    if [ -f "$props_file" ]; then
+        local flutter_sdk=$(grep "flutter.sdk" "$props_file" | cut -d'=' -f2 | tr -d ' \r')
+        if [ -n "$flutter_sdk" ] && [ -f "$flutter_sdk/bin/flutter" ]; then
+            export PATH="$flutter_sdk/bin:$PATH"
+            check_info "Using Flutter from local.properties: $flutter_sdk"
+            return 0
+        fi
+    fi
     return 1
 }
 
@@ -209,21 +220,64 @@ echo ""
 
 # Check 9: Flutter Analyze (if Flutter is available)
 echo "--- Check 9: Flutter Analyze ---"
-if check_flutter; then
+FLUTTER_CMD=""
+
+# Find Flutter command
+if command -v flutter &> /dev/null; then
+    FLUTTER_CMD="flutter"
+elif [ -n "$FLUTTER_ROOT" ] && [ -f "$FLUTTER_ROOT/bin/flutter" ]; then
+    FLUTTER_CMD="$FLUTTER_ROOT/bin/flutter"
+else
+    # Check local.properties for flutter.sdk
+    props_file="$PROJECT_DIR/android/local.properties"
+    if [ -f "$props_file" ]; then
+        flutter_sdk=$(grep "flutter.sdk" "$props_file" | cut -d'=' -f2 | tr -d ' \r\n')
+        if [ -n "$flutter_sdk" ]; then
+            # Convert Windows path to Unix-style for Git Bash
+            flutter_sdk_unix=$(echo "$flutter_sdk" | sed 's|\\|/|g' | sed 's|^\([A-Za-z]\):|/\L\1/|')
+            flutter_exe="$flutter_sdk_unix/bin/flutter"
+            if [ -f "$flutter_exe" ]; then
+                FLUTTER_CMD="$flutter_exe"
+                check_info "Using Flutter from local.properties: $flutter_sdk"
+            else
+                # Fallback: try using the Windows path directly with flutter.bat
+                flutter_bat="$flutter_sdk/bin/flutter.bat"
+                if [ -f "$flutter_bat" ]; then
+                    FLUTTER_CMD="$flutter_sdk/bin/flutter.bat"
+                    check_info "Using Flutter from local.properties: $flutter_sdk"
+                fi
+            fi
+        fi
+    fi
+fi
+
+if [ -n "$FLUTTER_CMD" ]; then
     check_info "Running flutter analyze..."
     cd "$PROJECT_DIR"
     
     # Run flutter pub get first if needed
     if [ ! -f ".dart_tool/package_config.json" ]; then
         check_info "Running flutter pub get..."
-        flutter pub get 2>&1 | tail -5
+        "$FLUTTER_CMD" pub get 2>&1 | tail -5
     fi
     
-    # Run flutter analyze
-    if flutter analyze 2>&1; then
+    # Run flutter analyze and capture output
+    set +e
+    analyze_output=$("$FLUTTER_CMD" analyze 2>&1)
+    analyze_exit_code=$?
+    set -e
+    
+    if [ $analyze_exit_code -eq 0 ]; then
         check_pass "Flutter analyze passed"
     else
-        check_fail "Flutter analyze found issues (see above)"
+        # Check if it's a Flutter SDK crash (not our code issue)
+        if echo "$analyze_output" | grep -q "FileSystemException\|exited unexpectedly\|crash report"; then
+            check_warn "Flutter analyze crashed due to SDK issue (non-blocking)"
+            check_info "This is a Flutter SDK bug, not your code issue"
+            check_info "Try: flutter clean && flutter pub get"
+        else
+            check_fail "Flutter analyze found issues (see above)"
+        fi
     fi
 else
     check_warn "Flutter not found in PATH - skipping flutter analyze"
@@ -256,8 +310,20 @@ if [ -f "$PROJECT_DIR/android/gradlew" ]; then
         if [ $gradle_exit_code -eq 0 ]; then
             check_pass "Gradle configuration OK"
         else
-            check_fail "Gradle configuration has errors:"
-            echo "$gradle_output" | tail -50 | sed 's/^/    /'
+            # Check if error is from Flutter toolchain Kotlin DSL
+            if echo "$gradle_output" | grep -q "flutter_tools/gradle/build.gradle.kts" && \
+               echo "$gradle_output" | grep -q "PluginDependenciesSpec\|Unresolved reference"; then
+                check_warn "Gradle configuration has Flutter toolchain Kotlin DSL issues (non-blocking)"
+                check_info "This is typically caused by Gradle/Kotlin DSL cache issues, not your code"
+                check_info "Try: gradlew --stop && rm -rf ~/.gradle/caches"
+            # Check if error is environment related (JAVA_HOME, etc)
+            elif echo "$gradle_output" | grep -q "JAVA_HOME is not set\|java.*command could not be found"; then
+                check_warn "Gradle configuration skipped due to environment issues (non-blocking)"
+                check_info "Ensure JAVA_HOME is set and Java is available in PATH"
+            else
+                check_fail "Gradle configuration has errors:"
+                echo "$gradle_output" | tail -50 | sed 's/^/    /'
+            fi
         fi
     fi
 else

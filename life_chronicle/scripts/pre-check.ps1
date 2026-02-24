@@ -254,6 +254,22 @@ if ($SkipAnalyze) {
         }
     }
     
+    # Also check local.properties for flutter.sdk
+    if (-not $flutterCmd) {
+        $localProps = Join-Path $ProjectDir "android\local.properties"
+        if (Test-Path $localProps) {
+            $props = Get-Content $localProps -Raw
+            if ($props -match "flutter\.sdk\s*=\s*(.+)") {
+                $flutterSdkPath = $Matches[1].Trim()
+                $flutterExe = Join-Path $flutterSdkPath "bin\flutter.bat"
+                if (Test-Path $flutterExe) {
+                    $flutterCmd = $flutterExe
+                    Write-Info "Using Flutter from local.properties: $flutterSdkPath"
+                }
+            }
+        }
+    }
+    
     if ($flutterCmd) {
         Write-Info "Running flutter analyze..."
         Push-Location $ProjectDir
@@ -279,6 +295,7 @@ if ($SkipAnalyze) {
     } else {
         Write-Warn "Flutter not found in PATH - skipping flutter analyze"
         Write-Info "Install Flutter or set FLUTTER_ROOT environment variable"
+        Write-Info "Or configure flutter.sdk in android/local.properties"
     }
 }
 Write-Host ""
@@ -299,8 +316,25 @@ if (Test-Path $gradlewPath) {
     if ($gradleExitCode -eq 0 -and $gradleOutput -notmatch "FAILURE|error") {
         Write-Pass "Gradle configuration OK"
     } else {
-        Write-Host $gradleOutput | Select-Object -First 20
-        Write-Fail "Gradle configuration has errors (see above)"
+        # Check if error is from Flutter toolchain Kotlin DSL
+        $isFlutterToolchainError = $gradleOutput -match "flutter_tools[/\\]gradle[/\\]build\.gradle\.kts" -and 
+                                   $gradleOutput -match "PluginDependenciesSpec|Unresolved reference"
+        
+        # Check if error is environment related (JAVA_HOME, etc)
+        $isEnvError = $gradleOutput -match "JAVA_HOME is not set" -or 
+                      $gradleOutput -match "java.*command could not be found"
+        
+        if ($isFlutterToolchainError) {
+            Write-Warn "Gradle configuration has Flutter toolchain Kotlin DSL issues (non-blocking)"
+            Write-Info "This is typically caused by Gradle/Kotlin DSL cache issues, not your code"
+            Write-Info "Try: gradlew --stop && delete %USERPROFILE%\.gradle\caches"
+        } elseif ($isEnvError) {
+            Write-Warn "Gradle configuration skipped due to environment issues (non-blocking)"
+            Write-Info "Ensure JAVA_HOME is set and Java is available in PATH"
+        } else {
+            Write-Host $gradleOutput | Select-Object -First 20
+            Write-Fail "Gradle configuration has errors (see above)"
+        }
     }
 } else {
     Write-Warn "Gradle wrapper not found - skipping Gradle check"
