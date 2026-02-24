@@ -515,32 +515,12 @@ class ProfilePage extends StatelessWidget {
       backgroundColor: _background,
       body: SafeArea(
         bottom: false,
-        child: Column(
+        child: Stack(
           children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _FrostedCircleButton(
-                    icon: Icons.arrow_back_ios_new,
-                    onTap: () => Navigator.of(context).maybePop(),
-                  ),
-                  Row(
-                    children: [
-                      _FrostedCircleButton(icon: Icons.share, onTap: () {}),
-                      const SizedBox(width: 12),
-                      _FrostedCircleButton(icon: Icons.notifications, onTap: () {}),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: ListView(
-                padding: EdgeInsets.only(bottom: 40 + MediaQuery.paddingOf(context).bottom),
-                children: [
-                  const _Header(),
+            ListView(
+              padding: EdgeInsets.only(bottom: 40 + MediaQuery.paddingOf(context).bottom),
+              children: [
+                const _Header(),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
                     child: Column(
@@ -700,6 +680,27 @@ class ProfilePage extends StatelessWidget {
                       ],
                     ),
                   ),
+                ],
+              ),
+            ),
+            // 悬浮按钮 - 返回
+            Positioned(
+              top: 16,
+              left: 16,
+              child: _FrostedCircleButton(
+                icon: Icons.arrow_back_ios_new,
+                onTap: () => Navigator.of(context).maybePop(),
+              ),
+            ),
+            // 悬浮按钮 - 分享和通知
+            Positioned(
+              top: 16,
+              right: 16,
+              child: Row(
+                children: [
+                  _FrostedCircleButton(icon: Icons.share, onTap: () {}),
+                  const SizedBox(width: 12),
+                  _FrostedCircleButton(icon: Icons.notifications, onTap: () {}),
                 ],
               ),
             ),

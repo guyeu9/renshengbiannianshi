@@ -1192,15 +1192,6 @@ class _GoalBreakdownDetailPage extends ConsumerStatefulWidget {
 }
 
 class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPage> {
-  DateTime _addMonths(DateTime base, int months) {
-    final totalMonths = base.month - 1 + months;
-    final year = base.year + totalMonths ~/ 12;
-    final month = totalMonths % 12 + 1;
-    final lastDay = DateTime(year, month + 1, 0).day;
-    final day = base.day > lastDay ? lastDay : base.day;
-    return DateTime(year, month, day);
-  }
-
   void _showActionMenu() async {
     final result = await showModalBottomSheet<String>(
       context: context,
@@ -2278,17 +2269,6 @@ class _StageNode extends StatelessWidget {
     if (completedCount == 0) return '未开始';
     if (completedCount == tasks.length) return '已完成';
     return '进行中';
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case '已完成':
-        return AppTheme.primary;
-      case '进行中':
-        return AppTheme.primary;
-      default:
-        return const Color(0xFF94A3B8);
-    }
   }
 
   @override
