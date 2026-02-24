@@ -126,8 +126,53 @@ _RemindOption _remindOptionFor(String value) {
   return _remindOptions.firstWhere((option) => option.value == value, orElse: () => _remindOptions.first);
 }
 
-class GoalPage extends StatelessWidget {
+class GoalPage extends StatefulWidget {
   const GoalPage({super.key});
+
+  @override
+  State<GoalPage> createState() => _GoalPageState();
+}
+
+class _GoalPageState extends State<GoalPage> {
+  final _searchController = TextEditingController();
+  var _searchQuery = '';
+  var _filterStatusIndex = 0; // 0: 全部, 1: 进行中, 2: 已完成, 3: 已放弃
+  var _filterTypeIndex = 0; // 0: 全部, 1: 职业, 2: 健康, 3: 旅行
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _openFilterSheet() async {
+    final result = await showModalBottomSheet<_GoalFilterResult>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return _GoalFilterBottomSheet(
+          initialStatusIndex: _filterStatusIndex,
+          initialTypeIndex: _filterTypeIndex,
+        );
+      },
+    );
+    if (result == null) return;
+    setState(() {
+      _filterStatusIndex = result.statusIndex;
+      _filterTypeIndex = result.typeIndex;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -136,9 +181,19 @@ class GoalPage extends StatelessWidget {
       body: SafeArea(
         bottom: false,
         child: Column(
-          children: const [
-            _GoalHeader(),
-            Expanded(child: _GoalHomeBody()),
+          children: [
+            _GoalHeader(
+              searchController: _searchController,
+              onSearchChanged: (v) => setState(() => _searchQuery = v),
+              onFilterTap: _openFilterSheet,
+            ),
+            Expanded(
+              child: _GoalHomeBody(
+                searchQuery: _searchQuery,
+                filterStatusIndex: _filterStatusIndex,
+                filterTypeIndex: _filterTypeIndex,
+              ),
+            ),
           ],
         ),
       ),
@@ -147,7 +202,15 @@ class GoalPage extends StatelessWidget {
 }
 
 class _GoalHeader extends StatelessWidget {
-  const _GoalHeader();
+  const _GoalHeader({
+    required this.searchController,
+    required this.onSearchChanged,
+    required this.onFilterTap,
+  });
+
+  final TextEditingController searchController;
+  final ValueChanged<String> onSearchChanged;
+  final VoidCallback onFilterTap;
 
   @override
   Widget build(BuildContext context) {
@@ -175,15 +238,21 @@ class _GoalHeader extends StatelessWidget {
                     borderRadius: BorderRadius.circular(999),
                     boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 2))],
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.search, color: Color(0xFF9CA3AF), size: 22),
-                      SizedBox(width: 10),
+                      const Icon(Icons.search, color: Color(0xFF9CA3AF), size: 22),
+                      const SizedBox(width: 10),
                       Expanded(
-                        child: Text(
-                          '搜索目标、标签..',
-                          style: TextStyle(fontSize: 15, color: Color(0xFF9CA3AF), fontWeight: FontWeight.w500),
-                          overflow: TextOverflow.ellipsis,
+                        child: TextField(
+                          controller: searchController,
+                          onChanged: onSearchChanged,
+                          decoration: const InputDecoration(
+                            hintText: '搜索目标、标签..',
+                            hintStyle: TextStyle(fontSize: 15, color: Color(0xFF9CA3AF), fontWeight: FontWeight.w500),
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          style: const TextStyle(fontSize: 15, color: Color(0xFF111827), fontWeight: FontWeight.w600),
                         ),
                       ),
                     ],
@@ -191,7 +260,7 @@ class _GoalHeader extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              _CircleButton(icon: Icons.tune, onTap: () {}),
+              _CircleButton(icon: Icons.tune, onTap: onFilterTap),
               const SizedBox(width: 12),
               _CircleButton(
                 icon: Icons.add,
@@ -228,7 +297,15 @@ class _CircleButton extends StatelessWidget {
 }
 
 class _GoalHomeBody extends ConsumerStatefulWidget {
-  const _GoalHomeBody();
+  const _GoalHomeBody({
+    required this.searchQuery,
+    required this.filterStatusIndex,
+    required this.filterTypeIndex,
+  });
+
+  final String searchQuery;
+  final int filterStatusIndex;
+  final int filterTypeIndex;
 
   @override
   ConsumerState<_GoalHomeBody> createState() => _GoalHomeBodyState();
@@ -299,6 +376,44 @@ class _GoalHomeBodyState extends ConsumerState<_GoalHomeBody> {
     }
   }
 
+  bool _matchesSearch(GoalRecord record) {
+    final query = widget.searchQuery.toLowerCase().trim();
+    if (query.isEmpty) return true;
+    final title = record.title.toLowerCase();
+    final category = (record.category ?? '').toLowerCase();
+    return title.contains(query) || category.contains(query);
+  }
+
+  bool _matchesStatusFilter(GoalRecord record) {
+    switch (widget.filterStatusIndex) {
+      case 0: // 全部
+        return true;
+      case 1: // 进行中
+        return !record.isCompleted && !record.isPostponed;
+      case 2: // 已完成
+        return record.isCompleted;
+      case 3: // 已顺延
+        return record.isPostponed;
+      default:
+        return true;
+    }
+  }
+
+  bool _matchesTypeFilter(GoalRecord record) {
+    if (widget.filterTypeIndex == 0) return true;
+    final category = record.category ?? '';
+    switch (widget.filterTypeIndex) {
+      case 1: // 职业
+        return category == '职业' || category == '职业发展';
+      case 2: // 健康
+        return category == '健康' || category == '身心健康';
+      case 3: // 旅行
+        return category == '旅行' || category == '环球旅行';
+      default:
+        return true;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final db = ref.watch(appDatabaseProvider);
@@ -306,10 +421,16 @@ class _GoalHomeBodyState extends ConsumerState<_GoalHomeBody> {
       stream: _watchYearGoals(db),
       builder: (context, snapshot) {
         final records = snapshot.data ?? const <GoalRecord>[];
+
+        // 应用所有筛选条件
+        var filteredRecords = records.where((r) {
+          return _matchesSearch(r) && _matchesStatusFilter(r) && _matchesTypeFilter(r);
+        }).toList();
+
         final years = records.map(_goalYear).toSet().toList()..sort((a, b) => b.compareTo(a));
         final activeYear = years.contains(_selectedYear) ? _selectedYear : (years.isNotEmpty ? years.first : _selectedYear);
-        final yearGoals = records.where((r) => _goalYear(r) == activeYear).toList(growable: false);
-        final inProgress = yearGoals.where((r) => !r.isCompleted).length;
+        final yearGoals = filteredRecords.where((r) => _goalYear(r) == activeYear).toList(growable: false);
+        final inProgress = yearGoals.where((r) => !r.isCompleted && !r.isPostponed).length;
         final completed = yearGoals.where((r) => r.isCompleted).length;
         final total = yearGoals.length;
         final completionRate = total == 0 ? 0 : (completed / total);
@@ -4492,6 +4613,133 @@ class _IconSquare extends StatelessWidget {
       height: 34,
       decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)),
       child: Icon(icon, color: iconColor, size: 18),
+    );
+  }
+}
+
+// 目标筛选结果数据类
+class _GoalFilterResult {
+  const _GoalFilterResult({
+    required this.statusIndex,
+    required this.typeIndex,
+  });
+
+  final int statusIndex;
+  final int typeIndex;
+}
+
+// 目标筛选底部弹窗
+class _GoalFilterBottomSheet extends StatefulWidget {
+  const _GoalFilterBottomSheet({
+    required this.initialStatusIndex,
+    required this.initialTypeIndex,
+  });
+
+  final int initialStatusIndex;
+  final int initialTypeIndex;
+
+  @override
+  State<_GoalFilterBottomSheet> createState() => _GoalFilterBottomSheetState();
+}
+
+class _GoalFilterBottomSheetState extends State<_GoalFilterBottomSheet> {
+  late int _statusIndex;
+  late int _typeIndex;
+
+  static const _statusOptions = ['全部', '进行中', '已完成', '已顺延'];
+  static const _typeOptions = ['全部', '职业发展', '身心健康', '环球旅行'];
+
+  @override
+  void initState() {
+    super.initState();
+    _statusIndex = widget.initialStatusIndex;
+    _typeIndex = widget.initialTypeIndex;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _BottomSheetShell(
+      title: '筛选目标',
+      actionText: '确定',
+      onAction: () => Navigator.of(context).pop(
+        _GoalFilterResult(statusIndex: _statusIndex, typeIndex: _typeIndex),
+      ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.6),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('目标状态', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  for (var i = 0; i < _statusOptions.length; i++)
+                    _FilterOptionChip(
+                      label: _statusOptions[i],
+                      selected: _statusIndex == i,
+                      onTap: () => setState(() => _statusIndex = i),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              const Text('目标类型', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  for (var i = 0; i < _typeOptions.length; i++)
+                    _FilterOptionChip(
+                      label: _typeOptions[i],
+                      selected: _typeIndex == i,
+                      onTap: () => setState(() => _typeIndex = i),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterOptionChip extends StatelessWidget {
+  const _FilterOptionChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFF2BCDEE) : Colors.white,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: selected ? const Color(0xFF2BCDEE) : const Color(0xFFE5E7EB)),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: selected ? Colors.white : const Color(0xFF6B7280),
+          ),
+        ),
+      ),
     );
   }
 }

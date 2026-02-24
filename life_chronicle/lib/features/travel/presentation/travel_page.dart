@@ -164,55 +164,59 @@ class _TravelSearchRow extends StatelessWidget {
         children: [
           Expanded(
             child: Container(
-              height: 44,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
+              height: 48,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
-                color: const Color(0xFFF3F4F6),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(999),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 2))],
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.search, color: Color(0xFF94A3B8), size: 22),
+                  const Icon(Icons.search, color: Color(0xFF9CA3AF), size: 22),
                   const SizedBox(width: 10),
                   Expanded(
                     child: TextField(
                       controller: controller,
                       decoration: const InputDecoration(
                         hintText: '搜索城市、标签、地理位置...',
-                        hintStyle: TextStyle(fontSize: 14, color: Color(0xFF94A3B8), fontWeight: FontWeight.w600),
+                        hintStyle: TextStyle(fontSize: 15, color: Color(0xFF9CA3AF), fontWeight: FontWeight.w500),
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.zero,
                       ),
-                      style: const TextStyle(fontSize: 14, color: Color(0xFF334155), fontWeight: FontWeight.w600),
+                      style: const TextStyle(fontSize: 15, color: Color(0xFF111827), fontWeight: FontWeight.w600),
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          const SizedBox(width: 10),
-          _SquareIconButton(icon: Icons.tune, onTap: onFilterTap),
+          const SizedBox(width: 12),
+          _FilterButton(onTap: onFilterTap),
         ],
       ),
     );
   }
 }
 
-class _SquareIconButton extends StatelessWidget {
-  const _SquareIconButton({required this.icon, required this.onTap});
+class _FilterButton extends StatelessWidget {
+  const _FilterButton({required this.onTap});
 
-  final IconData icon;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFFF3F4F6),
-      borderRadius: BorderRadius.circular(14),
+      color: Colors.white,
+      shape: const CircleBorder(),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: SizedBox(width: 44, height: 44, child: Icon(icon, color: const Color(0xFF64748B), size: 22)),
+        customBorder: const CircleBorder(),
+        child: const SizedBox(
+          width: 48,
+          height: 48,
+          child: Icon(Icons.tune, color: Color(0xFF6B7280), size: 22),
+        ),
       ),
     );
   }
