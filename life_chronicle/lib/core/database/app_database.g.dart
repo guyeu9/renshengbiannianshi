@@ -7487,6 +7487,673 @@ class AiProvidersCompanion extends UpdateCompanion<AiProvider> {
   }
 }
 
+class $ChangeLogsTable extends ChangeLogs
+    with TableInfo<$ChangeLogsTable, ChangeLog> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ChangeLogsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+      'id', aliasedName, false,
+      hasAutoIncrement: true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _entityTypeMeta =
+      const VerificationMeta('entityType');
+  @override
+  late final GeneratedColumn<String> entityType = GeneratedColumn<String>(
+      'entity_type', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _entityIdMeta =
+      const VerificationMeta('entityId');
+  @override
+  late final GeneratedColumn<String> entityId = GeneratedColumn<String>(
+      'entity_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _actionMeta = const VerificationMeta('action');
+  @override
+  late final GeneratedColumn<String> action = GeneratedColumn<String>(
+      'action', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _changedFieldsMeta =
+      const VerificationMeta('changedFields');
+  @override
+  late final GeneratedColumn<String> changedFields = GeneratedColumn<String>(
+      'changed_fields', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _timestampMeta =
+      const VerificationMeta('timestamp');
+  @override
+  late final GeneratedColumn<DateTime> timestamp = GeneratedColumn<DateTime>(
+      'timestamp', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _syncedMeta = const VerificationMeta('synced');
+  @override
+  late final GeneratedColumn<bool> synced = GeneratedColumn<bool>(
+      'synced', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("synced" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, entityType, entityId, action, changedFields, timestamp, synced];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'change_logs';
+  @override
+  VerificationContext validateIntegrity(Insertable<ChangeLog> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('entity_type')) {
+      context.handle(
+          _entityTypeMeta,
+          entityType.isAcceptableOrUnknown(
+              data['entity_type']!, _entityTypeMeta));
+    } else if (isInserting) {
+      context.missing(_entityTypeMeta);
+    }
+    if (data.containsKey('entity_id')) {
+      context.handle(_entityIdMeta,
+          entityId.isAcceptableOrUnknown(data['entity_id']!, _entityIdMeta));
+    } else if (isInserting) {
+      context.missing(_entityIdMeta);
+    }
+    if (data.containsKey('action')) {
+      context.handle(_actionMeta,
+          action.isAcceptableOrUnknown(data['action']!, _actionMeta));
+    } else if (isInserting) {
+      context.missing(_actionMeta);
+    }
+    if (data.containsKey('changed_fields')) {
+      context.handle(
+          _changedFieldsMeta,
+          changedFields.isAcceptableOrUnknown(
+              data['changed_fields']!, _changedFieldsMeta));
+    }
+    if (data.containsKey('timestamp')) {
+      context.handle(_timestampMeta,
+          timestamp.isAcceptableOrUnknown(data['timestamp']!, _timestampMeta));
+    } else if (isInserting) {
+      context.missing(_timestampMeta);
+    }
+    if (data.containsKey('synced')) {
+      context.handle(_syncedMeta,
+          synced.isAcceptableOrUnknown(data['synced']!, _syncedMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ChangeLog map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ChangeLog(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      entityType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}entity_type'])!,
+      entityId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}entity_id'])!,
+      action: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}action'])!,
+      changedFields: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}changed_fields']),
+      timestamp: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}timestamp'])!,
+      synced: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}synced'])!,
+    );
+  }
+
+  @override
+  $ChangeLogsTable createAlias(String alias) {
+    return $ChangeLogsTable(attachedDatabase, alias);
+  }
+}
+
+class ChangeLog extends DataClass implements Insertable<ChangeLog> {
+  final int id;
+  final String entityType;
+  final String entityId;
+  final String action;
+  final String? changedFields;
+  final DateTime timestamp;
+  final bool synced;
+  const ChangeLog(
+      {required this.id,
+      required this.entityType,
+      required this.entityId,
+      required this.action,
+      this.changedFields,
+      required this.timestamp,
+      required this.synced});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['entity_type'] = Variable<String>(entityType);
+    map['entity_id'] = Variable<String>(entityId);
+    map['action'] = Variable<String>(action);
+    if (!nullToAbsent || changedFields != null) {
+      map['changed_fields'] = Variable<String>(changedFields);
+    }
+    map['timestamp'] = Variable<DateTime>(timestamp);
+    map['synced'] = Variable<bool>(synced);
+    return map;
+  }
+
+  ChangeLogsCompanion toCompanion(bool nullToAbsent) {
+    return ChangeLogsCompanion(
+      id: Value(id),
+      entityType: Value(entityType),
+      entityId: Value(entityId),
+      action: Value(action),
+      changedFields: changedFields == null && nullToAbsent
+          ? const Value.absent()
+          : Value(changedFields),
+      timestamp: Value(timestamp),
+      synced: Value(synced),
+    );
+  }
+
+  factory ChangeLog.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ChangeLog(
+      id: serializer.fromJson<int>(json['id']),
+      entityType: serializer.fromJson<String>(json['entityType']),
+      entityId: serializer.fromJson<String>(json['entityId']),
+      action: serializer.fromJson<String>(json['action']),
+      changedFields: serializer.fromJson<String?>(json['changedFields']),
+      timestamp: serializer.fromJson<DateTime>(json['timestamp']),
+      synced: serializer.fromJson<bool>(json['synced']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'entityType': serializer.toJson<String>(entityType),
+      'entityId': serializer.toJson<String>(entityId),
+      'action': serializer.toJson<String>(action),
+      'changedFields': serializer.toJson<String?>(changedFields),
+      'timestamp': serializer.toJson<DateTime>(timestamp),
+      'synced': serializer.toJson<bool>(synced),
+    };
+  }
+
+  ChangeLog copyWith(
+          {int? id,
+          String? entityType,
+          String? entityId,
+          String? action,
+          Value<String?> changedFields = const Value.absent(),
+          DateTime? timestamp,
+          bool? synced}) =>
+      ChangeLog(
+        id: id ?? this.id,
+        entityType: entityType ?? this.entityType,
+        entityId: entityId ?? this.entityId,
+        action: action ?? this.action,
+        changedFields:
+            changedFields.present ? changedFields.value : this.changedFields,
+        timestamp: timestamp ?? this.timestamp,
+        synced: synced ?? this.synced,
+      );
+  ChangeLog copyWithCompanion(ChangeLogsCompanion data) {
+    return ChangeLog(
+      id: data.id.present ? data.id.value : this.id,
+      entityType:
+          data.entityType.present ? data.entityType.value : this.entityType,
+      entityId: data.entityId.present ? data.entityId.value : this.entityId,
+      action: data.action.present ? data.action.value : this.action,
+      changedFields: data.changedFields.present
+          ? data.changedFields.value
+          : this.changedFields,
+      timestamp: data.timestamp.present ? data.timestamp.value : this.timestamp,
+      synced: data.synced.present ? data.synced.value : this.synced,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ChangeLog(')
+          ..write('id: $id, ')
+          ..write('entityType: $entityType, ')
+          ..write('entityId: $entityId, ')
+          ..write('action: $action, ')
+          ..write('changedFields: $changedFields, ')
+          ..write('timestamp: $timestamp, ')
+          ..write('synced: $synced')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id, entityType, entityId, action, changedFields, timestamp, synced);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ChangeLog &&
+          other.id == this.id &&
+          other.entityType == this.entityType &&
+          other.entityId == this.entityId &&
+          other.action == this.action &&
+          other.changedFields == this.changedFields &&
+          other.timestamp == this.timestamp &&
+          other.synced == this.synced);
+}
+
+class ChangeLogsCompanion extends UpdateCompanion<ChangeLog> {
+  final Value<int> id;
+  final Value<String> entityType;
+  final Value<String> entityId;
+  final Value<String> action;
+  final Value<String?> changedFields;
+  final Value<DateTime> timestamp;
+  final Value<bool> synced;
+  const ChangeLogsCompanion({
+    this.id = const Value.absent(),
+    this.entityType = const Value.absent(),
+    this.entityId = const Value.absent(),
+    this.action = const Value.absent(),
+    this.changedFields = const Value.absent(),
+    this.timestamp = const Value.absent(),
+    this.synced = const Value.absent(),
+  });
+  ChangeLogsCompanion.insert({
+    this.id = const Value.absent(),
+    required String entityType,
+    required String entityId,
+    required String action,
+    this.changedFields = const Value.absent(),
+    required DateTime timestamp,
+    this.synced = const Value.absent(),
+  })  : entityType = Value(entityType),
+        entityId = Value(entityId),
+        action = Value(action),
+        timestamp = Value(timestamp);
+  static Insertable<ChangeLog> custom({
+    Expression<int>? id,
+    Expression<String>? entityType,
+    Expression<String>? entityId,
+    Expression<String>? action,
+    Expression<String>? changedFields,
+    Expression<DateTime>? timestamp,
+    Expression<bool>? synced,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (entityType != null) 'entity_type': entityType,
+      if (entityId != null) 'entity_id': entityId,
+      if (action != null) 'action': action,
+      if (changedFields != null) 'changed_fields': changedFields,
+      if (timestamp != null) 'timestamp': timestamp,
+      if (synced != null) 'synced': synced,
+    });
+  }
+
+  ChangeLogsCompanion copyWith(
+      {Value<int>? id,
+      Value<String>? entityType,
+      Value<String>? entityId,
+      Value<String>? action,
+      Value<String?>? changedFields,
+      Value<DateTime>? timestamp,
+      Value<bool>? synced}) {
+    return ChangeLogsCompanion(
+      id: id ?? this.id,
+      entityType: entityType ?? this.entityType,
+      entityId: entityId ?? this.entityId,
+      action: action ?? this.action,
+      changedFields: changedFields ?? this.changedFields,
+      timestamp: timestamp ?? this.timestamp,
+      synced: synced ?? this.synced,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (entityType.present) {
+      map['entity_type'] = Variable<String>(entityType.value);
+    }
+    if (entityId.present) {
+      map['entity_id'] = Variable<String>(entityId.value);
+    }
+    if (action.present) {
+      map['action'] = Variable<String>(action.value);
+    }
+    if (changedFields.present) {
+      map['changed_fields'] = Variable<String>(changedFields.value);
+    }
+    if (timestamp.present) {
+      map['timestamp'] = Variable<DateTime>(timestamp.value);
+    }
+    if (synced.present) {
+      map['synced'] = Variable<bool>(synced.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ChangeLogsCompanion(')
+          ..write('id: $id, ')
+          ..write('entityType: $entityType, ')
+          ..write('entityId: $entityId, ')
+          ..write('action: $action, ')
+          ..write('changedFields: $changedFields, ')
+          ..write('timestamp: $timestamp, ')
+          ..write('synced: $synced')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $SyncStateTable extends SyncState
+    with TableInfo<$SyncStateTable, SyncStateData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SyncStateTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _lastSyncTimeMeta =
+      const VerificationMeta('lastSyncTime');
+  @override
+  late final GeneratedColumn<DateTime> lastSyncTime = GeneratedColumn<DateTime>(
+      'last_sync_time', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _lastSyncChangeIdMeta =
+      const VerificationMeta('lastSyncChangeId');
+  @override
+  late final GeneratedColumn<int> lastSyncChangeId = GeneratedColumn<int>(
+      'last_sync_change_id', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _deviceIdMeta =
+      const VerificationMeta('deviceId');
+  @override
+  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
+      'device_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, lastSyncTime, lastSyncChangeId, deviceId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sync_state';
+  @override
+  VerificationContext validateIntegrity(Insertable<SyncStateData> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('last_sync_time')) {
+      context.handle(
+          _lastSyncTimeMeta,
+          lastSyncTime.isAcceptableOrUnknown(
+              data['last_sync_time']!, _lastSyncTimeMeta));
+    }
+    if (data.containsKey('last_sync_change_id')) {
+      context.handle(
+          _lastSyncChangeIdMeta,
+          lastSyncChangeId.isAcceptableOrUnknown(
+              data['last_sync_change_id']!, _lastSyncChangeIdMeta));
+    }
+    if (data.containsKey('device_id')) {
+      context.handle(_deviceIdMeta,
+          deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta));
+    } else if (isInserting) {
+      context.missing(_deviceIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SyncStateData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SyncStateData(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      lastSyncTime: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime, data['${effectivePrefix}last_sync_time']),
+      lastSyncChangeId: attachedDatabase.typeMapping.read(
+          DriftSqlType.int, data['${effectivePrefix}last_sync_change_id']),
+      deviceId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}device_id'])!,
+    );
+  }
+
+  @override
+  $SyncStateTable createAlias(String alias) {
+    return $SyncStateTable(attachedDatabase, alias);
+  }
+}
+
+class SyncStateData extends DataClass implements Insertable<SyncStateData> {
+  final String id;
+  final DateTime? lastSyncTime;
+  final int? lastSyncChangeId;
+  final String deviceId;
+  const SyncStateData(
+      {required this.id,
+      this.lastSyncTime,
+      this.lastSyncChangeId,
+      required this.deviceId});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    if (!nullToAbsent || lastSyncTime != null) {
+      map['last_sync_time'] = Variable<DateTime>(lastSyncTime);
+    }
+    if (!nullToAbsent || lastSyncChangeId != null) {
+      map['last_sync_change_id'] = Variable<int>(lastSyncChangeId);
+    }
+    map['device_id'] = Variable<String>(deviceId);
+    return map;
+  }
+
+  SyncStateCompanion toCompanion(bool nullToAbsent) {
+    return SyncStateCompanion(
+      id: Value(id),
+      lastSyncTime: lastSyncTime == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSyncTime),
+      lastSyncChangeId: lastSyncChangeId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSyncChangeId),
+      deviceId: Value(deviceId),
+    );
+  }
+
+  factory SyncStateData.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SyncStateData(
+      id: serializer.fromJson<String>(json['id']),
+      lastSyncTime: serializer.fromJson<DateTime?>(json['lastSyncTime']),
+      lastSyncChangeId: serializer.fromJson<int?>(json['lastSyncChangeId']),
+      deviceId: serializer.fromJson<String>(json['deviceId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'lastSyncTime': serializer.toJson<DateTime?>(lastSyncTime),
+      'lastSyncChangeId': serializer.toJson<int?>(lastSyncChangeId),
+      'deviceId': serializer.toJson<String>(deviceId),
+    };
+  }
+
+  SyncStateData copyWith(
+          {String? id,
+          Value<DateTime?> lastSyncTime = const Value.absent(),
+          Value<int?> lastSyncChangeId = const Value.absent(),
+          String? deviceId}) =>
+      SyncStateData(
+        id: id ?? this.id,
+        lastSyncTime:
+            lastSyncTime.present ? lastSyncTime.value : this.lastSyncTime,
+        lastSyncChangeId: lastSyncChangeId.present
+            ? lastSyncChangeId.value
+            : this.lastSyncChangeId,
+        deviceId: deviceId ?? this.deviceId,
+      );
+  SyncStateData copyWithCompanion(SyncStateCompanion data) {
+    return SyncStateData(
+      id: data.id.present ? data.id.value : this.id,
+      lastSyncTime: data.lastSyncTime.present
+          ? data.lastSyncTime.value
+          : this.lastSyncTime,
+      lastSyncChangeId: data.lastSyncChangeId.present
+          ? data.lastSyncChangeId.value
+          : this.lastSyncChangeId,
+      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncStateData(')
+          ..write('id: $id, ')
+          ..write('lastSyncTime: $lastSyncTime, ')
+          ..write('lastSyncChangeId: $lastSyncChangeId, ')
+          ..write('deviceId: $deviceId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, lastSyncTime, lastSyncChangeId, deviceId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SyncStateData &&
+          other.id == this.id &&
+          other.lastSyncTime == this.lastSyncTime &&
+          other.lastSyncChangeId == this.lastSyncChangeId &&
+          other.deviceId == this.deviceId);
+}
+
+class SyncStateCompanion extends UpdateCompanion<SyncStateData> {
+  final Value<String> id;
+  final Value<DateTime?> lastSyncTime;
+  final Value<int?> lastSyncChangeId;
+  final Value<String> deviceId;
+  final Value<int> rowid;
+  const SyncStateCompanion({
+    this.id = const Value.absent(),
+    this.lastSyncTime = const Value.absent(),
+    this.lastSyncChangeId = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SyncStateCompanion.insert({
+    required String id,
+    this.lastSyncTime = const Value.absent(),
+    this.lastSyncChangeId = const Value.absent(),
+    required String deviceId,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        deviceId = Value(deviceId);
+  static Insertable<SyncStateData> custom({
+    Expression<String>? id,
+    Expression<DateTime>? lastSyncTime,
+    Expression<int>? lastSyncChangeId,
+    Expression<String>? deviceId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (lastSyncTime != null) 'last_sync_time': lastSyncTime,
+      if (lastSyncChangeId != null) 'last_sync_change_id': lastSyncChangeId,
+      if (deviceId != null) 'device_id': deviceId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SyncStateCompanion copyWith(
+      {Value<String>? id,
+      Value<DateTime?>? lastSyncTime,
+      Value<int?>? lastSyncChangeId,
+      Value<String>? deviceId,
+      Value<int>? rowid}) {
+    return SyncStateCompanion(
+      id: id ?? this.id,
+      lastSyncTime: lastSyncTime ?? this.lastSyncTime,
+      lastSyncChangeId: lastSyncChangeId ?? this.lastSyncChangeId,
+      deviceId: deviceId ?? this.deviceId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (lastSyncTime.present) {
+      map['last_sync_time'] = Variable<DateTime>(lastSyncTime.value);
+    }
+    if (lastSyncChangeId.present) {
+      map['last_sync_change_id'] = Variable<int>(lastSyncChangeId.value);
+    }
+    if (deviceId.present) {
+      map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncStateCompanion(')
+          ..write('id: $id, ')
+          ..write('lastSyncTime: $lastSyncTime, ')
+          ..write('lastSyncChangeId: $lastSyncChangeId, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -7501,11 +8168,15 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $LinkLogsTable linkLogs = $LinkLogsTable(this);
   late final $UserProfilesTable userProfiles = $UserProfilesTable(this);
   late final $AiProvidersTable aiProviders = $AiProvidersTable(this);
+  late final $ChangeLogsTable changeLogs = $ChangeLogsTable(this);
+  late final $SyncStateTable syncState = $SyncStateTable(this);
   late final FoodDao foodDao = FoodDao(this as AppDatabase);
   late final MomentDao momentDao = MomentDao(this as AppDatabase);
   late final FriendDao friendDao = FriendDao(this as AppDatabase);
   late final LinkDao linkDao = LinkDao(this as AppDatabase);
   late final AiProviderDao aiProviderDao = AiProviderDao(this as AppDatabase);
+  late final ChangeLogDao changeLogDao = ChangeLogDao(this as AppDatabase);
+  late final SyncStateDao syncStateDao = SyncStateDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -7521,7 +8192,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         entityLinks,
         linkLogs,
         userProfiles,
-        aiProviders
+        aiProviders,
+        changeLogs,
+        syncState
       ];
 }
 
@@ -10878,6 +11551,355 @@ typedef $$AiProvidersTableProcessedTableManager = ProcessedTableManager<
     (AiProvider, BaseReferences<_$AppDatabase, $AiProvidersTable, AiProvider>),
     AiProvider,
     PrefetchHooks Function()>;
+typedef $$ChangeLogsTableCreateCompanionBuilder = ChangeLogsCompanion Function({
+  Value<int> id,
+  required String entityType,
+  required String entityId,
+  required String action,
+  Value<String?> changedFields,
+  required DateTime timestamp,
+  Value<bool> synced,
+});
+typedef $$ChangeLogsTableUpdateCompanionBuilder = ChangeLogsCompanion Function({
+  Value<int> id,
+  Value<String> entityType,
+  Value<String> entityId,
+  Value<String> action,
+  Value<String?> changedFields,
+  Value<DateTime> timestamp,
+  Value<bool> synced,
+});
+
+class $$ChangeLogsTableFilterComposer
+    extends Composer<_$AppDatabase, $ChangeLogsTable> {
+  $$ChangeLogsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get entityType => $composableBuilder(
+      column: $table.entityType, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get entityId => $composableBuilder(
+      column: $table.entityId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get action => $composableBuilder(
+      column: $table.action, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get changedFields => $composableBuilder(
+      column: $table.changedFields, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get timestamp => $composableBuilder(
+      column: $table.timestamp, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get synced => $composableBuilder(
+      column: $table.synced, builder: (column) => ColumnFilters(column));
+}
+
+class $$ChangeLogsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ChangeLogsTable> {
+  $$ChangeLogsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get entityType => $composableBuilder(
+      column: $table.entityType, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get entityId => $composableBuilder(
+      column: $table.entityId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get action => $composableBuilder(
+      column: $table.action, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get changedFields => $composableBuilder(
+      column: $table.changedFields,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get timestamp => $composableBuilder(
+      column: $table.timestamp, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get synced => $composableBuilder(
+      column: $table.synced, builder: (column) => ColumnOrderings(column));
+}
+
+class $$ChangeLogsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ChangeLogsTable> {
+  $$ChangeLogsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get entityType => $composableBuilder(
+      column: $table.entityType, builder: (column) => column);
+
+  GeneratedColumn<String> get entityId =>
+      $composableBuilder(column: $table.entityId, builder: (column) => column);
+
+  GeneratedColumn<String> get action =>
+      $composableBuilder(column: $table.action, builder: (column) => column);
+
+  GeneratedColumn<String> get changedFields => $composableBuilder(
+      column: $table.changedFields, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get timestamp =>
+      $composableBuilder(column: $table.timestamp, builder: (column) => column);
+
+  GeneratedColumn<bool> get synced =>
+      $composableBuilder(column: $table.synced, builder: (column) => column);
+}
+
+class $$ChangeLogsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $ChangeLogsTable,
+    ChangeLog,
+    $$ChangeLogsTableFilterComposer,
+    $$ChangeLogsTableOrderingComposer,
+    $$ChangeLogsTableAnnotationComposer,
+    $$ChangeLogsTableCreateCompanionBuilder,
+    $$ChangeLogsTableUpdateCompanionBuilder,
+    (ChangeLog, BaseReferences<_$AppDatabase, $ChangeLogsTable, ChangeLog>),
+    ChangeLog,
+    PrefetchHooks Function()> {
+  $$ChangeLogsTableTableManager(_$AppDatabase db, $ChangeLogsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ChangeLogsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ChangeLogsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ChangeLogsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<String> entityType = const Value.absent(),
+            Value<String> entityId = const Value.absent(),
+            Value<String> action = const Value.absent(),
+            Value<String?> changedFields = const Value.absent(),
+            Value<DateTime> timestamp = const Value.absent(),
+            Value<bool> synced = const Value.absent(),
+          }) =>
+              ChangeLogsCompanion(
+            id: id,
+            entityType: entityType,
+            entityId: entityId,
+            action: action,
+            changedFields: changedFields,
+            timestamp: timestamp,
+            synced: synced,
+          ),
+          createCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            required String entityType,
+            required String entityId,
+            required String action,
+            Value<String?> changedFields = const Value.absent(),
+            required DateTime timestamp,
+            Value<bool> synced = const Value.absent(),
+          }) =>
+              ChangeLogsCompanion.insert(
+            id: id,
+            entityType: entityType,
+            entityId: entityId,
+            action: action,
+            changedFields: changedFields,
+            timestamp: timestamp,
+            synced: synced,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$ChangeLogsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $ChangeLogsTable,
+    ChangeLog,
+    $$ChangeLogsTableFilterComposer,
+    $$ChangeLogsTableOrderingComposer,
+    $$ChangeLogsTableAnnotationComposer,
+    $$ChangeLogsTableCreateCompanionBuilder,
+    $$ChangeLogsTableUpdateCompanionBuilder,
+    (ChangeLog, BaseReferences<_$AppDatabase, $ChangeLogsTable, ChangeLog>),
+    ChangeLog,
+    PrefetchHooks Function()>;
+typedef $$SyncStateTableCreateCompanionBuilder = SyncStateCompanion Function({
+  required String id,
+  Value<DateTime?> lastSyncTime,
+  Value<int?> lastSyncChangeId,
+  required String deviceId,
+  Value<int> rowid,
+});
+typedef $$SyncStateTableUpdateCompanionBuilder = SyncStateCompanion Function({
+  Value<String> id,
+  Value<DateTime?> lastSyncTime,
+  Value<int?> lastSyncChangeId,
+  Value<String> deviceId,
+  Value<int> rowid,
+});
+
+class $$SyncStateTableFilterComposer
+    extends Composer<_$AppDatabase, $SyncStateTable> {
+  $$SyncStateTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get lastSyncTime => $composableBuilder(
+      column: $table.lastSyncTime, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get lastSyncChangeId => $composableBuilder(
+      column: $table.lastSyncChangeId,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get deviceId => $composableBuilder(
+      column: $table.deviceId, builder: (column) => ColumnFilters(column));
+}
+
+class $$SyncStateTableOrderingComposer
+    extends Composer<_$AppDatabase, $SyncStateTable> {
+  $$SyncStateTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get lastSyncTime => $composableBuilder(
+      column: $table.lastSyncTime,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get lastSyncChangeId => $composableBuilder(
+      column: $table.lastSyncChangeId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get deviceId => $composableBuilder(
+      column: $table.deviceId, builder: (column) => ColumnOrderings(column));
+}
+
+class $$SyncStateTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SyncStateTable> {
+  $$SyncStateTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastSyncTime => $composableBuilder(
+      column: $table.lastSyncTime, builder: (column) => column);
+
+  GeneratedColumn<int> get lastSyncChangeId => $composableBuilder(
+      column: $table.lastSyncChangeId, builder: (column) => column);
+
+  GeneratedColumn<String> get deviceId =>
+      $composableBuilder(column: $table.deviceId, builder: (column) => column);
+}
+
+class $$SyncStateTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $SyncStateTable,
+    SyncStateData,
+    $$SyncStateTableFilterComposer,
+    $$SyncStateTableOrderingComposer,
+    $$SyncStateTableAnnotationComposer,
+    $$SyncStateTableCreateCompanionBuilder,
+    $$SyncStateTableUpdateCompanionBuilder,
+    (
+      SyncStateData,
+      BaseReferences<_$AppDatabase, $SyncStateTable, SyncStateData>
+    ),
+    SyncStateData,
+    PrefetchHooks Function()> {
+  $$SyncStateTableTableManager(_$AppDatabase db, $SyncStateTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SyncStateTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SyncStateTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SyncStateTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<DateTime?> lastSyncTime = const Value.absent(),
+            Value<int?> lastSyncChangeId = const Value.absent(),
+            Value<String> deviceId = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              SyncStateCompanion(
+            id: id,
+            lastSyncTime: lastSyncTime,
+            lastSyncChangeId: lastSyncChangeId,
+            deviceId: deviceId,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            Value<DateTime?> lastSyncTime = const Value.absent(),
+            Value<int?> lastSyncChangeId = const Value.absent(),
+            required String deviceId,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              SyncStateCompanion.insert(
+            id: id,
+            lastSyncTime: lastSyncTime,
+            lastSyncChangeId: lastSyncChangeId,
+            deviceId: deviceId,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$SyncStateTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $SyncStateTable,
+    SyncStateData,
+    $$SyncStateTableFilterComposer,
+    $$SyncStateTableOrderingComposer,
+    $$SyncStateTableAnnotationComposer,
+    $$SyncStateTableCreateCompanionBuilder,
+    $$SyncStateTableUpdateCompanionBuilder,
+    (
+      SyncStateData,
+      BaseReferences<_$AppDatabase, $SyncStateTable, SyncStateData>
+    ),
+    SyncStateData,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -10904,6 +11926,10 @@ class $AppDatabaseManager {
       $$UserProfilesTableTableManager(_db, _db.userProfiles);
   $$AiProvidersTableTableManager get aiProviders =>
       $$AiProvidersTableTableManager(_db, _db.aiProviders);
+  $$ChangeLogsTableTableManager get changeLogs =>
+      $$ChangeLogsTableTableManager(_db, _db.changeLogs);
+  $$SyncStateTableTableManager get syncState =>
+      $$SyncStateTableTableManager(_db, _db.syncState);
 }
 
 mixin _$FoodDaoMixin on DatabaseAccessor<AppDatabase> {
@@ -10921,4 +11947,10 @@ mixin _$LinkDaoMixin on DatabaseAccessor<AppDatabase> {
 }
 mixin _$AiProviderDaoMixin on DatabaseAccessor<AppDatabase> {
   $AiProvidersTable get aiProviders => attachedDatabase.aiProviders;
+}
+mixin _$ChangeLogDaoMixin on DatabaseAccessor<AppDatabase> {
+  $ChangeLogsTable get changeLogs => attachedDatabase.changeLogs;
+}
+mixin _$SyncStateDaoMixin on DatabaseAccessor<AppDatabase> {
+  $SyncStateTable get syncState => attachedDatabase.syncState;
 }

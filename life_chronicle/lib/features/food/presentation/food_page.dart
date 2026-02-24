@@ -17,6 +17,7 @@ import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/utils/media_storage.dart';
 import '../../../core/widgets/amap_location_page.dart';
+import '../../../core/widgets/ai_parse_button.dart';
 
 class FoodPage extends StatefulWidget {
   const FoodPage({super.key});
@@ -219,13 +220,9 @@ class _FoodHeader extends StatelessWidget {
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
                 ),
               ),
-              TextButton(
+              AiParseButton(
+                text: '解析',
                 onPressed: () {},
-                style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF2BCDEE),
-                  textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-                ),
-                child: const Text('解析'),
               ),
             ],
           ),

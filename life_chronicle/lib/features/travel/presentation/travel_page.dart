@@ -12,6 +12,7 @@ import 'package:uuid/uuid.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/utils/media_storage.dart';
+import '../../../core/widgets/ai_parse_button.dart';
 import '../../../core/widgets/amap_location_page.dart';
 
 class TravelPage extends StatefulWidget {
@@ -107,19 +108,12 @@ class _TravelTopBar extends StatelessWidget {
             ),
           ),
           SizedBox(
-            width: 48,
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () {},
-                style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF2BCDEE),
-                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-                ),
-                child: const Text('解析'),
+              width: 48,
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: AiParseButton(text: '解析', onPressed: () {}),
               ),
             ),
-          ),
         ],
       ),
     );

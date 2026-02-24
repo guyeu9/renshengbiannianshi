@@ -7,6 +7,7 @@ import '../../../core/database/app_database.dart';
 import '../../../core/providers/ai_provider.dart';
 import '../../../core/config/ai_provider_templates.dart';
 import '../../../core/utils/api_key_masker.dart';
+import '../../../core/widgets/custom_bottom_sheet.dart';
 
 class AiModelManagementPage extends ConsumerStatefulWidget {
   const AiModelManagementPage({super.key});
@@ -253,20 +254,48 @@ class _ProviderList extends ConsumerWidget {
   }
 
   Future<void> _deleteProvider(BuildContext context, WidgetRef ref, AiProvider provider) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showCustomBottomSheet<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('确认删除'),
-        content: Text('确定要删除服务商"${provider.name}"吗？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('取消'),
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            '确认删除',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
           ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('删除'),
+          const SizedBox(height: 12),
+          Text(
+            '确定要删除服务商"${provider.name}"吗？',
+            style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: const Text('取消', style: TextStyle(fontWeight: FontWeight.w800)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFEF4444),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: const Text('删除', style: TextStyle(fontWeight: FontWeight.w800)),
+                ),
+              ),
+            ],
           ),
         ],
       ),

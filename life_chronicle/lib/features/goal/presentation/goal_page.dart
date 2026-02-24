@@ -16,6 +16,7 @@ import '../../../app/app_theme.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/utils/media_storage.dart';
+import '../../../core/widgets/ai_parse_button.dart';
 
 class _GoalTypeOption {
   const _GoalTypeOption({
@@ -159,14 +160,7 @@ class _GoalHeader extends StatelessWidget {
               const Expanded(
                 child: Text('目标', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
               ),
-              TextButton(
-                onPressed: () {},
-                style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF2BCDEE),
-                  textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-                ),
-                child: const Text('解析'),
-              ),
+              AiParseButton(text: '解析', onPressed: () {}),
             ],
           ),
           const SizedBox(height: 12),

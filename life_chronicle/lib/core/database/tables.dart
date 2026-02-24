@@ -223,3 +223,23 @@ class AiProviders extends Table {
   @override
   Set<Column> get primaryKey => {id};
 }
+
+class ChangeLogs extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get entityType => text()();
+  TextColumn get entityId => text()();
+  TextColumn get action => text()();
+  TextColumn get changedFields => text().nullable()();
+  DateTimeColumn get timestamp => dateTime()();
+  BoolColumn get synced => boolean().withDefault(const Constant(false))();
+}
+
+class SyncState extends Table {
+  TextColumn get id => text()();
+  DateTimeColumn get lastSyncTime => dateTime().nullable()();
+  IntColumn get lastSyncChangeId => integer().nullable()();
+  TextColumn get deviceId => text()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}

@@ -1,0 +1,731 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
+import 'package:drift/drift.dart';
+import 'package:uuid/uuid.dart';
+import '../../database/app_database.dart';
+import 'change_log_recorder.dart';
+import 'encryption_service.dart';
+import 'webdav_client.dart';
+import 'webdav_config_service.dart';
+
+enum BackupStatus {
+  idle,
+  preparing,
+  exporting,
+  zipping,
+  encrypting,
+  uploading,
+  downloading,
+  completed,
+  failed,
+}
+
+class BackupProgress {
+  final BackupStatus status;
+  final double progress;
+  final String? message;
+  final String? error;
+
+  BackupProgress({
+    required this.status,
+    this.progress = 0.0,
+    this.message,
+    this.error,
+  });
+}
+
+class BackupService {
+  final AppDatabase db;
+  final ChangeLogRecorder changeLogRecorder;
+  final _progressController = StreamController<BackupProgress>.broadcast();
+
+  Stream<BackupProgress> get progressStream => _progressController.stream;
+
+  BackupService(this.db) : changeLogRecorder = ChangeLogRecorder(db);
+
+  void dispose() {
+    _progressController.close();
+  }
+
+  void _emitProgress(BackupStatus status, {double progress = 0.0, String? message, String? error}) {
+    _progressController.add(
+      BackupProgress(
+        status: status,
+        progress: progress,
+        message: message,
+        error: error,
+      ),
+    );
+  }
+
+  Future<Directory> getTempDir() async {
+    final tempDir = await getTemporaryDirectory();
+    final backupDir = Directory(path.join(tempDir.path, 'life_chronicle_backup'));
+    if (!await backupDir.exists()) {
+      await backupDir.create(recursive: true);
+    }
+    return backupDir;
+  }
+
+  Future<Directory> getExportDir() async {
+    final appDocDir = await getApplicationDocumentsDirectory();
+    final exportDir = Directory(path.join(appDocDir.path, 'exports'));
+    if (!await exportDir.exists()) {
+      await exportDir.create(recursive: true);
+    }
+    return exportDir;
+  }
+
+  Future<Directory> getMediaDir() async {
+    final appDocDir = await getApplicationDocumentsDirectory();
+    final mediaDir = Directory(path.join(appDocDir.path, 'media'));
+    return mediaDir;
+  }
+
+  Future<Map<String, dynamic>> exportAllData() async {
+    final exportData = <String, dynamic>{};
+
+    exportData['food_records'] = await _exportFoodRecords();
+    exportData['moment_records'] = await _exportMomentRecords();
+    exportData['friend_records'] = await _exportFriendRecords();
+    exportData['travel_records'] = await _exportTravelRecords();
+    exportData['trips'] = await _exportTrips();
+    exportData['goal_records'] = await _exportGoalRecords();
+    exportData['timeline_events'] = await _exportTimelineEvents();
+    exportData['entity_links'] = await _exportEntityLinks();
+    exportData['link_logs'] = await _exportLinkLogs();
+    exportData['user_profiles'] = await _exportUserProfiles();
+    exportData['ai_providers'] = await _exportAiProviders();
+    exportData['exported_at'] = DateTime.now().toIso8601String();
+    exportData['schema_version'] = db.schemaVersion;
+
+    return exportData;
+  }
+
+  Future<List<Map<String, dynamic>>> _exportFoodRecords() async {
+    final records = await (db.select(db.foodRecords)).get();
+    return records.map((r) => r.toJson()).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> _exportMomentRecords() async {
+    final records = await (db.select(db.momentRecords)).get();
+    return records.map((r) => r.toJson()).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> _exportFriendRecords() async {
+    final records = await (db.select(db.friendRecords)).get();
+    return records.map((r) => r.toJson()).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> _exportTravelRecords() async {
+    final records = await (db.select(db.travelRecords)).get();
+    return records.map((r) => r.toJson()).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> _exportTrips() async {
+    final records = await (db.select(db.trips)).get();
+    return records.map((r) => r.toJson()).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> _exportGoalRecords() async {
+    final records = await (db.select(db.goalRecords)).get();
+    return records.map((r) => r.toJson()).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> _exportTimelineEvents() async {
+    final records = await (db.select(db.timelineEvents)).get();
+    return records.map((r) => r.toJson()).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> _exportEntityLinks() async {
+    final records = await (db.select(db.entityLinks)).get();
+    return records.map((r) => r.toJson()).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> _exportLinkLogs() async {
+    final records = await (db.select(db.linkLogs)).get();
+    return records.map((r) => r.toJson()).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> _exportUserProfiles() async {
+    final records = await (db.select(db.userProfiles)).get();
+    return records.map((r) => r.toJson()).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> _exportAiProviders() async {
+    final records = await (db.select(db.aiProviders)).get();
+    return records.map((r) => r.toJson()).toList();
+  }
+
+  Future<List<File>> collectAllMediaFiles() async {
+    final mediaDir = await getMediaDir();
+    if (!await mediaDir.exists()) {
+      return [];
+    }
+
+    final files = <File>[];
+    await for (final entity in mediaDir.list(recursive: true)) {
+      if (entity is File) {
+        files.add(entity);
+      }
+    }
+    return files;
+  }
+
+  Future<void> importData(Map<String, dynamic> data, {bool merge = true}) async {
+    if (data.containsKey('food_records')) {
+      await _importFoodRecords(List<Map<String, dynamic>>.from(data['food_records']), merge: merge);
+    }
+    if (data.containsKey('moment_records')) {
+      await _importMomentRecords(List<Map<String, dynamic>>.from(data['moment_records']), merge: merge);
+    }
+    if (data.containsKey('friend_records')) {
+      await _importFriendRecords(List<Map<String, dynamic>>.from(data['friend_records']), merge: merge);
+    }
+    if (data.containsKey('travel_records')) {
+      await _importTravelRecords(List<Map<String, dynamic>>.from(data['travel_records']), merge: merge);
+    }
+    if (data.containsKey('trips')) {
+      await _importTrips(List<Map<String, dynamic>>.from(data['trips']), merge: merge);
+    }
+    if (data.containsKey('goal_records')) {
+      await _importGoalRecords(List<Map<String, dynamic>>.from(data['goal_records']), merge: merge);
+    }
+    if (data.containsKey('timeline_events')) {
+      await _importTimelineEvents(List<Map<String, dynamic>>.from(data['timeline_events']), merge: merge);
+    }
+    if (data.containsKey('entity_links')) {
+      await _importEntityLinks(List<Map<String, dynamic>>.from(data['entity_links']), merge: merge);
+    }
+    if (data.containsKey('link_logs')) {
+      await _importLinkLogs(List<Map<String, dynamic>>.from(data['link_logs']), merge: merge);
+    }
+    if (data.containsKey('user_profiles')) {
+      await _importUserProfiles(List<Map<String, dynamic>>.from(data['user_profiles']), merge: merge);
+    }
+    if (data.containsKey('ai_providers')) {
+      await _importAiProviders(List<Map<String, dynamic>>.from(data['ai_providers']), merge: merge);
+    }
+  }
+
+  Future<void> _importFoodRecords(List<Map<String, dynamic>> records, {bool merge = true}) async {
+    for (final record in records) {
+      final companion = FoodRecordsCompanion.fromJson(record);
+      if (merge) {
+        await db.foodDao.upsert(companion);
+      } else {
+        await db.into(db.foodRecords).insert(companion);
+      }
+    }
+  }
+
+  Future<void> _importMomentRecords(List<Map<String, dynamic>> records, {bool merge = true}) async {
+    for (final record in records) {
+      final companion = MomentRecordsCompanion.fromJson(record);
+      if (merge) {
+        await db.into(db.momentRecords).insertOnConflictUpdate(companion);
+      } else {
+        await db.into(db.momentRecords).insert(companion);
+      }
+    }
+  }
+
+  Future<void> _importFriendRecords(List<Map<String, dynamic>> records, {bool merge = true}) async {
+    for (final record in records) {
+      final companion = FriendRecordsCompanion.fromJson(record);
+      if (merge) {
+        await db.into(db.friendRecords).insertOnConflictUpdate(companion);
+      } else {
+        await db.into(db.friendRecords).insert(companion);
+      }
+    }
+  }
+
+  Future<void> _importTravelRecords(List<Map<String, dynamic>> records, {bool merge = true}) async {
+    for (final record in records) {
+      final companion = TravelRecordsCompanion.fromJson(record);
+      if (merge) {
+        await db.into(db.travelRecords).insertOnConflictUpdate(companion);
+      } else {
+        await db.into(db.travelRecords).insert(companion);
+      }
+    }
+  }
+
+  Future<void> _importTrips(List<Map<String, dynamic>> records, {bool merge = true}) async {
+    for (final record in records) {
+      final companion = TripsCompanion.fromJson(record);
+      if (merge) {
+        await db.into(db.trips).insertOnConflictUpdate(companion);
+      } else {
+        await db.into(db.trips).insert(companion);
+      }
+    }
+  }
+
+  Future<void> _importGoalRecords(List<Map<String, dynamic>> records, {bool merge = true}) async {
+    for (final record in records) {
+      final companion = GoalRecordsCompanion.fromJson(record);
+      if (merge) {
+        await db.into(db.goalRecords).insertOnConflictUpdate(companion);
+      } else {
+        await db.into(db.goalRecords).insert(companion);
+      }
+    }
+  }
+
+  Future<void> _importTimelineEvents(List<Map<String, dynamic>> records, {bool merge = true}) async {
+    for (final record in records) {
+      final companion = TimelineEventsCompanion.fromJson(record);
+      if (merge) {
+        await db.into(db.timelineEvents).insertOnConflictUpdate(companion);
+      } else {
+        await db.into(db.timelineEvents).insert(companion);
+      }
+    }
+  }
+
+  Future<void> _importEntityLinks(List<Map<String, dynamic>> records, {bool merge = true}) async {
+    for (final record in records) {
+      final companion = EntityLinksCompanion.fromJson(record);
+      if (merge) {
+        await db.into(db.entityLinks).insertOnConflictUpdate(companion);
+      } else {
+        await db.into(db.entityLinks).insert(companion);
+      }
+    }
+  }
+
+  Future<void> _importLinkLogs(List<Map<String, dynamic>> records, {bool merge = true}) async {
+    for (final record in records) {
+      final companion = LinkLogsCompanion.fromJson(record);
+      if (merge) {
+        await db.into(db.linkLogs).insertOnConflictUpdate(companion);
+      } else {
+        await db.into(db.linkLogs).insert(companion);
+      }
+    }
+  }
+
+  Future<void> _importUserProfiles(List<Map<String, dynamic>> records, {bool merge = true}) async {
+    for (final record in records) {
+      final companion = UserProfilesCompanion.fromJson(record);
+      if (merge) {
+        await db.into(db.userProfiles).insertOnConflictUpdate(companion);
+      } else {
+        await db.into(db.userProfiles).insert(companion);
+      }
+    }
+  }
+
+  Future<void> _importAiProviders(List<Map<String, dynamic>> records, {bool merge = true}) async {
+    for (final record in records) {
+      final companion = AiProvidersCompanion.fromJson(record);
+      if (merge) {
+        await db.into(db.aiProviders).insertOnConflictUpdate(companion);
+      } else {
+        await db.into(db.aiProviders).insert(companion);
+      }
+    }
+  }
+
+  Future<void> performFullBackup({
+    required WebDavConfig config,
+    required String encryptionPassword,
+  }) async {
+    _emitProgress(BackupStatus.preparing, message: '准备备份...');
+    
+    try {
+      final tempDir = await getTempDir();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final zipPath = path.join(tempDir.path, 'life_chronicle_full_$timestamp.zip');
+      
+      _emitProgress(BackupStatus.exporting, progress: 0.1, message: '导出数据...');
+      final data = await exportAllData();
+      final mediaFiles = await collectAllMediaFiles();
+      
+      _emitProgress(BackupStatus.zipping, progress: 0.3, message: '打包文件...');
+      final zipFile = await EncryptionService.createZipArchive(
+        mediaFiles,
+        data,
+        zipPath,
+      );
+      
+      File encryptedFile = zipFile;
+      if (config.encryptBackup) {
+        _emitProgress(BackupStatus.encrypting, progress: 0.5, message: '加密备份...');
+        encryptedFile = await EncryptionService.encryptFile(
+          zipFile,
+          encryptionPassword,
+        );
+      }
+      
+      _emitProgress(BackupStatus.uploading, progress: 0.7, message: '上传到 WebDAV...');
+      final client = WebDavClient(
+        baseUrl: config.url,
+        username: config.username,
+        password: config.password,
+      );
+      
+      final backupPath = config.backupPath ?? '/life_chronicle_backups/';
+      await client.createDirectory(backupPath);
+      
+      final remoteFileName = path.basename(encryptedFile.path);
+      final remotePath = path.join(backupPath, remoteFileName);
+      await client.uploadFile(encryptedFile, remotePath);
+      
+      await _updateSyncState(timestamp);
+      await _saveBackupManifest(
+        client,
+        backupPath,
+        'full',
+        remoteFileName,
+        timestamp,
+      );
+      
+      _emitProgress(BackupStatus.completed, progress: 1.0, message: '备份完成！');
+    } catch (e) {
+      _emitProgress(BackupStatus.failed, error: e.toString());
+      rethrow;
+    }
+  }
+
+  Future<void> performIncrementalBackup({
+    required WebDavConfig config,
+    required String encryptionPassword,
+  }) async {
+    _emitProgress(BackupStatus.preparing, message: '准备增量备份...');
+    
+    try {
+      final lastSyncState = await db.syncStateDao.get();
+      final lastSyncChangeId = lastSyncState?.lastSyncChangeId ?? 0;
+      
+      final unsyncedChanges = await db.changeLogDao.getUnsynced(lastSyncChangeId);
+      if (unsyncedChanges.isEmpty) {
+        _emitProgress(BackupStatus.completed, message: '没有需要备份的变更');
+        return;
+      }
+      
+      final tempDir = await getTempDir();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final zipPath = path.join(tempDir.path, 'life_chronicle_inc_$timestamp.zip');
+      
+      _emitProgress(BackupStatus.exporting, progress: 0.1, message: '导出变更数据...');
+      final incrementalData = await _exportIncrementalData(unsyncedChanges);
+      final changedMediaFiles = await _collectChangedMediaFiles(unsyncedChanges);
+      
+      _emitProgress(BackupStatus.zipping, progress: 0.3, message: '打包文件...');
+      final zipFile = await EncryptionService.createZipArchive(
+        changedMediaFiles,
+        incrementalData,
+        zipPath,
+      );
+      
+      File encryptedFile = zipFile;
+      if (config.encryptBackup) {
+        _emitProgress(BackupStatus.encrypting, progress: 0.5, message: '加密备份...');
+        encryptedFile = await EncryptionService.encryptFile(
+          zipFile,
+          encryptionPassword,
+        );
+      }
+      
+      _emitProgress(BackupStatus.uploading, progress: 0.7, message: '上传到 WebDAV...');
+      final client = WebDavClient(
+        baseUrl: config.url,
+        username: config.username,
+        password: config.password,
+      );
+      
+      final backupPath = config.backupPath ?? '/life_chronicle_backups/';
+      await client.createDirectory(backupPath);
+      
+      final remoteFileName = path.basename(encryptedFile.path);
+      final remotePath = path.join(backupPath, remoteFileName);
+      await client.uploadFile(encryptedFile, remotePath);
+      
+      final maxChangeId = unsyncedChanges.map((c) => c.id).reduce((a, b) => a > b ? a : b);
+      await _updateSyncState(timestamp, maxChangeId);
+      await db.changeLogDao.markAsSynced(unsyncedChanges.map((c) => c.id).toList());
+      
+      await _saveBackupManifest(
+        client,
+        backupPath,
+        'incremental',
+        remoteFileName,
+        timestamp,
+        lastSyncChangeId,
+      );
+      
+      _emitProgress(BackupStatus.completed, progress: 1.0, message: '增量备份完成！');
+    } catch (e) {
+      _emitProgress(BackupStatus.failed, error: e.toString());
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> _exportIncrementalData(List<ChangeLog> changes) async {
+    final data = <String, dynamic>{};
+    final entityIdsByType = <String, Set<String>>{};
+    
+    for (final change in changes) {
+      if (!entityIdsByType.containsKey(change.entityType)) {
+        entityIdsByType[change.entityType] = <String>{};
+      }
+      entityIdsByType[change.entityType]!.add(change.entityId);
+    }
+    
+    data['changes'] = changes.map((c) => c.toJson()).toList();
+    data['food_records'] = await _exportFoodRecordsByIds(entityIdsByType['food_records']?.toList() ?? []);
+    data['moment_records'] = await _exportMomentRecordsByIds(entityIdsByType['moment_records']?.toList() ?? []);
+    data['friend_records'] = await _exportFriendRecordsByIds(entityIdsByType['friend_records']?.toList() ?? []);
+    data['travel_records'] = await _exportTravelRecordsByIds(entityIdsByType['travel_records']?.toList() ?? []);
+    data['trips'] = await _exportTripsByIds(entityIdsByType['trips']?.toList() ?? []);
+    data['goal_records'] = await _exportGoalRecordsByIds(entityIdsByType['goal_records']?.toList() ?? []);
+    data['timeline_events'] = await _exportTimelineEventsByIds(entityIdsByType['timeline_events']?.toList() ?? []);
+    data['exported_at'] = DateTime.now().toIso8601String();
+    
+    return data;
+  }
+
+  Future<List<File>> _collectChangedMediaFiles(List<ChangeLog> changes) async {
+    final mediaDir = await getMediaDir();
+    if (!await mediaDir.exists()) return [];
+    
+    final files = <File>[];
+    final changedFileNames = <String>{};
+    
+    for (final change in changes) {
+      if (change.changedFields != null) {
+        try {
+          final fields = jsonDecode(change.changedFields!);
+          if (fields is Map<String, dynamic>) {
+            for (final value in fields.values) {
+              if (value is String && (value.endsWith('.jpg') || value.endsWith('.png') || value.endsWith('.jpeg'))) {
+                changedFileNames.add(path.basename(value));
+              }
+            }
+          }
+        } catch (_) {}
+      }
+    }
+    
+    await for (final entity in mediaDir.list(recursive: true)) {
+      if (entity is File && changedFileNames.contains(path.basename(entity.path))) {
+        files.add(entity);
+      }
+    }
+    
+    return files;
+  }
+
+  Future<List<Map<String, dynamic>>> _exportFoodRecordsByIds(List<String> ids) async {
+    if (ids.isEmpty) return [];
+    final records = await (db.select(db.foodRecords)..where((t) => t.id.isIn(ids))).get();
+    return records.map((r) => r.toJson()).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> _exportMomentRecordsByIds(List<String> ids) async {
+    if (ids.isEmpty) return [];
+    final records = await (db.select(db.momentRecords)..where((t) => t.id.isIn(ids))).get();
+    return records.map((r) => r.toJson()).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> _exportFriendRecordsByIds(List<String> ids) async {
+    if (ids.isEmpty) return [];
+    final records = await (db.select(db.friendRecords)..where((t) => t.id.isIn(ids))).get();
+    return records.map((r) => r.toJson()).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> _exportTravelRecordsByIds(List<String> ids) async {
+    if (ids.isEmpty) return [];
+    final records = await (db.select(db.travelRecords)..where((t) => t.id.isIn(ids))).get();
+    return records.map((r) => r.toJson()).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> _exportTripsByIds(List<String> ids) async {
+    if (ids.isEmpty) return [];
+    final records = await (db.select(db.trips)..where((t) => t.id.isIn(ids))).get();
+    return records.map((r) => r.toJson()).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> _exportGoalRecordsByIds(List<String> ids) async {
+    if (ids.isEmpty) return [];
+    final records = await (db.select(db.goalRecords)..where((t) => t.id.isIn(ids))).get();
+    return records.map((r) => r.toJson()).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> _exportTimelineEventsByIds(List<String> ids) async {
+    if (ids.isEmpty) return [];
+    final records = await (db.select(db.timelineEvents)..where((t) => t.id.isIn(ids))).get();
+    return records.map((r) => r.toJson()).toList();
+  }
+
+  Future<void> _updateSyncState(int timestamp, [int? lastChangeId]) async {
+    final deviceId = const Uuid().v4();
+    await db.syncStateDao.update(SyncStateCompanion(
+      id: const Value('main'),
+      lastSyncTime: Value(DateTime.fromMillisecondsSinceEpoch(timestamp)),
+      lastSyncChangeId: lastChangeId != null ? Value(lastChangeId) : const Value(null),
+      deviceId: Value(deviceId),
+    ));
+  }
+
+  Future<void> _saveBackupManifest(
+    WebDavClient client,
+    String backupPath,
+    String type,
+    String fileName,
+    int timestamp, [
+    int? baseChangeId,
+  ]) async {
+    final tempDir = await getTempDir();
+    final manifestPath = path.join(tempDir.path, 'backup_manifest.json');
+    
+    Map<String, dynamic>? existingManifest;
+    try {
+      final remoteManifestPath = path.join(backupPath, 'backup_manifest.json');
+      if (await client.exists(remoteManifestPath)) {
+        final localManifestPath = path.join(tempDir.path, 'existing_manifest.json');
+        await client.downloadFile(remoteManifestPath, localManifestPath);
+        final manifestString = await File(localManifestPath).readAsString();
+        existingManifest = jsonDecode(manifestString) as Map<String, dynamic>;
+      }
+    } catch (_) {}
+    
+    final newBackup = {
+      'type': type,
+      'fileName': fileName,
+      'timestamp': timestamp,
+      'baseChangeId': baseChangeId,
+    };
+    
+    final backups = (existingManifest?['backups'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    backups.add(newBackup);
+    
+    final manifest = {
+      'version': '1.0',
+      'lastUpdated': DateTime.now().toIso8601String(),
+      'backups': backups,
+    };
+    
+    final manifestFile = File(manifestPath);
+    await manifestFile.writeAsString(jsonEncode(manifest));
+    
+    final remoteManifestPath = path.join(backupPath, 'backup_manifest.json');
+    await client.uploadFile(manifestFile, remoteManifestPath);
+  }
+
+  Future<void> restoreFromBackup({
+    required WebDavConfig config,
+    required String encryptionPassword,
+    required String backupFileName,
+  }) async {
+    _emitProgress(BackupStatus.preparing, message: '准备恢复...');
+    
+    try {
+      final tempDir = await getTempDir();
+      final extractDir = path.join(tempDir.path, 'extract');
+      
+      _emitProgress(BackupStatus.downloading, progress: 0.1, message: '下载备份...');
+      final client = WebDavClient(
+        baseUrl: config.url,
+        username: config.username,
+        password: config.password,
+      );
+      
+      final backupPath = config.backupPath ?? '/life_chronicle_backups/';
+      final remotePath = path.join(backupPath, backupFileName);
+      final localFilePath = path.join(tempDir.path, backupFileName);
+      
+      await client.downloadFile(remotePath, localFilePath);
+      
+      File decryptedFile = File(localFilePath);
+      if (config.encryptBackup) {
+        _emitProgress(BackupStatus.encrypting, progress: 0.3, message: '解密备份...');
+        decryptedFile = await EncryptionService.decryptFile(
+          File(localFilePath),
+          encryptionPassword,
+        );
+      }
+      
+      _emitProgress(BackupStatus.zipping, progress: 0.5, message: '解压文件...');
+      final (data, mediaFiles) = await EncryptionService.extractZipArchive(
+        decryptedFile,
+        extractDir,
+      );
+      
+      _emitProgress(BackupStatus.exporting, progress: 0.7, message: '恢复数据...');
+      await _createLocalSnapshot();
+      
+      try {
+        await importData(data, merge: true);
+        await _restoreMediaFiles(mediaFiles);
+        
+        _emitProgress(BackupStatus.completed, progress: 1.0, message: '恢复完成！');
+      } catch (e) {
+        await _restoreFromSnapshot();
+        rethrow;
+      }
+    } catch (e) {
+      _emitProgress(BackupStatus.failed, error: e.toString());
+      rethrow;
+    }
+  }
+
+  Future<void> _createLocalSnapshot() async {
+    final tempDir = await getTempDir();
+    final snapshotDir = Directory(path.join(tempDir.path, 'snapshot'));
+    if (await snapshotDir.exists()) {
+      await snapshotDir.delete(recursive: true);
+    }
+    await snapshotDir.create(recursive: true);
+  }
+
+  Future<void> _restoreFromSnapshot() async {
+  }
+
+  Future<void> _restoreMediaFiles(List<File> mediaFiles) async {
+    final targetMediaDir = await getMediaDir();
+    if (!await targetMediaDir.exists()) {
+      await targetMediaDir.create(recursive: true);
+    }
+    
+    for (final file in mediaFiles) {
+      final fileName = path.basename(file.path);
+      final targetPath = path.join(targetMediaDir.path, fileName);
+      await file.copy(targetPath);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> listAvailableBackups(WebDavConfig config) async {
+    final client = WebDavClient(
+      baseUrl: config.url,
+      username: config.username,
+      password: config.password,
+    );
+    
+    final backupPath = config.backupPath ?? '/life_chronicle_backups/';
+    final manifestRemotePath = path.join(backupPath, 'backup_manifest.json');
+    
+    try {
+      if (!await client.exists(manifestRemotePath)) {
+        return [];
+      }
+      
+      final tempDir = await getTempDir();
+      final localManifestPath = path.join(tempDir.path, 'manifest.json');
+      await client.downloadFile(manifestRemotePath, localManifestPath);
+      
+      final manifestString = await File(localManifestPath).readAsString();
+      final manifest = jsonDecode(manifestString) as Map<String, dynamic>;
+      
+      return (manifest['backups'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    } catch (e) {
+      return [];
+    }
+  }
+}

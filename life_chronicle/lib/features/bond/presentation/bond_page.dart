@@ -12,7 +12,9 @@ import '../../../core/config/module_tags.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/utils/media_storage.dart';
+import '../../../core/widgets/ai_parse_button.dart';
 import '../../../core/widgets/amap_location_page.dart';
+import '../../../core/widgets/custom_bottom_sheet.dart';
 
 class BondPage extends StatefulWidget {
   const BondPage({super.key});
@@ -148,14 +150,7 @@ class _BondHeader extends StatelessWidget {
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
                 ),
               ),
-              TextButton(
-                onPressed: () {},
-                style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF2BCDEE),
-                  textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-                ),
-                child: const Text('解析'),
-              ),
+              AiParseButton(text: '解析', onPressed: () {}),
             ],
           ),
           const SizedBox(height: 10),
@@ -778,15 +773,50 @@ class _BondFriendDetailPage extends ConsumerWidget {
         final friend = snapshot.data;
 
         Future<void> deleteFriend() async {
-          final confirmed = await showDialog<bool>(
+          final confirmed = await showCustomBottomSheet<bool>(
             context: context,
             builder: (context) {
-              return AlertDialog(
-                title: const Text('删除档案'),
-                content: const Text('删除后将解除已关联的万物互联关系，且无法在列表中恢复显示。'),
-                actions: [
-                  TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('取消')),
-                  TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('删除')),
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    '删除档案',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    '删除后将解除已关联的万物互联关系，且无法在列表中恢复显示。',
+                    style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(context).pop(false),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          ),
+                          child: const Text('取消', style: TextStyle(fontWeight: FontWeight.w800)),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.of(context).pop(true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFEF4444),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          ),
+                          child: const Text('删除', style: TextStyle(fontWeight: FontWeight.w800)),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               );
             },

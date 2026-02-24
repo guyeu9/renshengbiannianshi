@@ -15,7 +15,9 @@ import '../../../core/config/module_tags.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/utils/media_storage.dart';
+import '../../../core/widgets/ai_parse_button.dart';
 import '../../../core/widgets/amap_location_page.dart';
+import '../../../core/widgets/custom_bottom_sheet.dart';
 
 List<String> _parseMomentImages(String? raw) {
   if (raw == null || raw.trim().isEmpty) return const [];
@@ -175,14 +177,7 @@ class _MomentHeader extends StatelessWidget {
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
                 ),
               ),
-              TextButton(
-                onPressed: () {},
-                style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF2BCDEE),
-                  textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-                ),
-                child: const Text('解析'),
-              ),
+              AiParseButton(text: '解析', onPressed: () {}),
             ],
           ),
           const SizedBox(height: 12),
@@ -883,15 +878,50 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
                                 subtitle: const Text('删除后将不可恢复，并同步删除万物互联关系', style: TextStyle(fontSize: 12, color: Color(0xFF9CA3AF))),
                                 onTap: () async {
                                   Navigator.of(sheetContext).pop();
-                                  final confirmed = await showDialog<bool>(
+                                  final confirmed = await showCustomBottomSheet<bool>(
                                     context: context,
                                     builder: (dialogContext) {
-                                      return AlertDialog(
-                                        title: const Text('确认删除'),
-                                        content: const Text('确定要删除这条小确幸记录吗？'),
-                                        actions: [
-                                          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('取消')),
-                                          TextButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('删除')),
+                                      return Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                                        children: [
+                                          const Text(
+                                            '确认删除',
+                                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
+                                          ),
+                                          const SizedBox(height: 12),
+                                          const Text(
+                                            '确定要删除这条小确幸记录吗？',
+                                            style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+                                          ),
+                                          const SizedBox(height: 24),
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: OutlinedButton(
+                                                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                                                  style: OutlinedButton.styleFrom(
+                                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                                  ),
+                                                  child: const Text('取消', style: TextStyle(fontWeight: FontWeight.w800)),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                child: ElevatedButton(
+                                                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor: const Color(0xFFEF4444),
+                                                    foregroundColor: Colors.white,
+                                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                                  ),
+                                                  child: const Text('删除', style: TextStyle(fontWeight: FontWeight.w800)),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ],
                                       );
                                     },
