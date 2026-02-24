@@ -40,7 +40,7 @@ jobs:
           echo "storePassword=renshengbiannianshi9" > life_chronicle/android/key.properties
           echo "keyPassword=renshengbiannianshi9" >> life_chronicle/android/key.properties
           echo "keyAlias=life-chronicle" >> life_chronicle/android/key.properties
-          echo "storeFile=app/life-chronicle-release.jks" >> life_chronicle/android/key.properties
+          echo "storeFile=life-chronicle-release.jks" >> life_chronicle/android/key.properties
       - name: Install Android SDK platforms
         run: |
           sdkmanager "platforms;android-35" "platforms;android-31" "platforms;android-29" "build-tools;35.0.0"
