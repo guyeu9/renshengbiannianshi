@@ -68,6 +68,6 @@ class BackupLogDao extends DatabaseAccessor<AppDatabase> with _$BackupLogDaoMixi
       ..addColumns([count])
       ..where(db.backupLogs.status.equals(status));
     final result = await query.getSingle();
-    return result?.read(count) ?? 0;
+    return result.read(count) ?? 0;
   }
 }

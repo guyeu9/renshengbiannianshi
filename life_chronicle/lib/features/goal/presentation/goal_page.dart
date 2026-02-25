@@ -695,7 +695,6 @@ class _AnnualGoalCardState extends State<_AnnualGoalCard> with SingleTickerProvi
   @override
   Widget build(BuildContext context) {
     final accent = _goalAccentFor(widget.record.category);
-    final progress = widget.record.progress.clamp(0, 1).toDouble();
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(24),
@@ -840,11 +839,10 @@ class _AnnualGoalCardState extends State<_AnnualGoalCard> with SingleTickerProvi
 }
 
 class _TaskItem extends StatefulWidget {
-  const _TaskItem({required this.task, required this.accent, this.onToggle});
+  const _TaskItem({required this.task, required this.accent});
 
   final GoalRecord task;
   final Color accent;
-  final void Function(bool)? onToggle;
 
   @override
   State<_TaskItem> createState() => _TaskItemState();
@@ -891,8 +889,8 @@ class _TaskItemState extends State<_TaskItem> with SingleTickerProviderStateMixi
 
   Future<void> _triggerVibration() async {
     try {
-      final hasVibrator = await Vibration.hasVibrator() ?? false;
-      if (hasVibrator) {
+      final hasVibrator = await Vibration.hasVibrator();
+      if (hasVibrator == true) {
         await Vibration.vibrate(duration: 50, amplitude: 128);
       }
     } catch (_) {}
@@ -1466,8 +1464,8 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
 
   Future<void> _triggerCelebrationVibration() async {
     try {
-      final hasVibrator = await Vibration.hasVibrator() ?? false;
-      if (hasVibrator) {
+      final hasVibrator = await Vibration.hasVibrator();
+      if (hasVibrator == true) {
         await Vibration.vibrate(pattern: [0, 100, 50, 100, 50, 200], intensities: [0, 255, 0, 200, 0, 255]);
       }
     } catch (_) {}
@@ -4626,96 +4624,6 @@ class _FriendListItem extends StatelessWidget {
       child: Text(
         name?.isNotEmpty == true ? name!.substring(0, 1) : '?',
         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFFEF4444)),
-      ),
-    );
-  }
-}
-
-class _MemoryCard extends StatelessWidget {
-  const _MemoryCard({required this.typeIcon, required this.typeColor, required this.title, required this.date, required this.imageUrl});
-
-  final IconData typeIcon;
-  final Color typeColor;
-  final String title;
-  final String date;
-  final String imageUrl;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 128,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Stack(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(14),
-                child: SizedBox(
-                  width: 128,
-                  height: 128,
-                  child: Image.network(imageUrl, fit: BoxFit.cover),
-                ),
-              ),
-              Positioned(
-                right: 8,
-                bottom: 8,
-                child: Container(
-                  width: 26,
-                  height: 26,
-                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.92), shape: BoxShape.circle),
-                  child: Icon(typeIcon, size: 14, color: typeColor),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-          const SizedBox(height: 4),
-          Text(date, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF9CA3AF))),
-        ],
-      ),
-    );
-  }
-}
-
-class _TextMemoryCard extends StatelessWidget {
-  const _TextMemoryCard({required this.title, required this.excerpt, required this.date});
-
-  final String title;
-  final String excerpt;
-  final String date;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 128,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 128,
-            height: 128,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFFBEB),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFFDE68A).withValues(alpha: 0.50)),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.auto_stories, size: 30, color: Color(0xFFFBBF24)),
-                const SizedBox(height: 8),
-                Text(excerpt, maxLines: 2, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF92400E), height: 1.25)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-          const SizedBox(height: 4),
-          Text(date, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF9CA3AF))),
-        ],
       ),
     );
   }

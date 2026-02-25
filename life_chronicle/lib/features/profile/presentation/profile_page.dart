@@ -1825,7 +1825,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
                         decoration: pw.BoxDecoration(color: colors[i % colors.length]),
                       ),
                       pw.SizedBox(width: 8),
-                      pw.Text('${summary.title}: ${summary.count} (${percentage}%)', style: pw.TextStyle(fontSize: 10)),
+                      pw.Text('${summary.title}: ${summary.count} ($percentage%)', style: pw.TextStyle(fontSize: 10)),
                     ],
                   ),
                 );
@@ -2290,6 +2290,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
     }
     
     doc.addPage(_buildPdfClosingPage(title, summaries));
+    doc.addPage(_buildPdfConclusionPage(title, range));
     
     return doc.save();
   }
@@ -2593,6 +2594,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
                             _ModuleItem(
                               module: _modules[i],
                               selected: _moduleSelection[_modules[i]['key']] ?? false,
+                              count: _summaries.where((s) => s.key == _modules[i]['key']).firstOrNull?.count,
                               onTap: () {
                                 setState(() {
                                   final key = _modules[i]['key'] as String;
@@ -2743,31 +2745,43 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
                         ],
                       ),
                       const SizedBox(height: 12),
-                      Stack(
-                        children: [
-                          TextField(
-                            controller: _aiSummaryController,
-                            maxLines: 6,
-                            decoration: InputDecoration(
-                              hintText: 'AI 生成的总结将显示在这里...',
-                              hintStyle: TextStyle(color: textMuted),
-                              filled: true,
-                              fillColor: const Color(0xFFF1F5F9),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide.none,
-                              ),
-                              contentPadding: const EdgeInsets.all(16),
+                      if (_loadingSummary)
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(20),
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary),
                             ),
-                            style: TextStyle(fontSize: 14, color: textMain, height: 1.5),
                           ),
-                          Positioned(
-                            bottom: 12,
-                            right: 12,
-                            child: Icon(Icons.edit, color: textMuted, size: 18),
-                          ),
-                        ],
-                      ),
+                        )
+                      else
+                        Stack(
+                          children: [
+                            TextField(
+                              controller: _aiSummaryController,
+                              maxLines: 6,
+                              decoration: InputDecoration(
+                                hintText: 'AI 生成的总结将显示在这里...',
+                                hintStyle: TextStyle(color: textMuted),
+                                filled: true,
+                                fillColor: const Color(0xFFF1F5F9),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide.none,
+                                ),
+                                contentPadding: const EdgeInsets.all(16),
+                              ),
+                              style: TextStyle(fontSize: 14, color: textMain, height: 1.5),
+                            ),
+                            Positioned(
+                              bottom: 12,
+                              right: 12,
+                              child: Icon(Icons.edit, color: textMuted, size: 18),
+                            ),
+                          ],
+                        ),
                     ],
                   ),
                 ),
@@ -2929,10 +2943,11 @@ class _RangeChip extends StatelessWidget {
 }
 
 class _ModuleItem extends StatelessWidget {
-  const _ModuleItem({required this.module, required this.selected, required this.onTap});
+  const _ModuleItem({required this.module, required this.selected, this.count, required this.onTap});
 
   final Map<String, dynamic> module;
   final bool selected;
+  final int? count;
   final VoidCallback onTap;
 
   @override
@@ -2970,7 +2985,22 @@ class _ModuleItem extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(module['title'] as String, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textMain)),
+                  Row(
+                    children: [
+                      Text(module['title'] as String, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textMain)),
+                      if (count != null && count! > 0) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text('$count', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: primary)),
+                        ),
+                      ],
+                    ],
+                  ),
                   const SizedBox(height: 2),
                   Text(module['desc'] as String, style: TextStyle(fontSize: 12, color: textMuted)),
                 ],

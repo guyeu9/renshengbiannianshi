@@ -39,7 +39,6 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
   final _encryptionPasswordController = TextEditingController();
 
   bool _obscurePassword = true;
-  bool _obscureEncryptionPassword = true;
   String _backupFrequency = 'daily';
 
   @override
@@ -313,7 +312,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
   }
 
   Future<void> _restoreMediaFiles(List<File> mediaFiles) async {
-    final targetMediaDir = await Directory(path.join((await getApplicationDocumentsDirectory()).path, 'media'));
+    final targetMediaDir = Directory(path.join((await getApplicationDocumentsDirectory()).path, 'media'));
     if (!await targetMediaDir.exists()) {
       await targetMediaDir.create(recursive: true);
     }
@@ -1261,8 +1260,45 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
               Icons.cloud_download,
               AppTheme.primary,
               '从云端恢复',
-              () {
-                _loadAvailableBackups();
+              _isRestoring ? null : () async {
+                await _loadAvailableBackups();
+                if (_availableBackups.isNotEmpty && mounted) {
+                  showModalBottomSheet(
+                    context: context,
+                    builder: (context) => SafeArea(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Text('选择备份文件', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                          ),
+                          const Divider(height: 1),
+                          Flexible(
+                            child: ListView.builder(
+                              shrinkWrap: true,
+                              itemCount: _availableBackups.length,
+                              itemBuilder: (context, index) {
+                                final backup = _availableBackups[index];
+                                final fileName = backup['fileName'] as String? ?? '未知文件';
+                                final dateStr = backup['date'] as String? ?? '';
+                                return ListTile(
+                                  leading: const Icon(Icons.backup),
+                                  title: Text(fileName),
+                                  subtitle: Text(dateStr),
+                                  onTap: () {
+                                    Navigator.of(context).pop();
+                                    _restoreBackup(fileName);
+                                  },
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
               },
             ),
             _buildRecoveryCard(

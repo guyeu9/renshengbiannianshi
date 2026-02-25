@@ -27,7 +27,7 @@ Widget _buildLocalImage(String path, {BoxFit fit = BoxFit.cover}) {
   return Image.file(File(trimmed), fit: fit, gaplessPlayback: true);
 }
 
-String _initialLetter(String name) {
+String initialLetter(String name) {
   final trimmed = name.trim();
   return trimmed.isEmpty ? '?' : trimmed.characters.first;
 }
@@ -897,7 +897,7 @@ class EncounterDetailPage extends ConsumerWidget {
                                         width: 36,
                                         height: 36,
                                         decoration: BoxDecoration(color: const Color(0x1A2BCDEE), borderRadius: BorderRadius.circular(12)),
-                                        child: const Icon(Icons.diversity_3, color: const Color(0xFF2BCDEE)),
+                                        child: const Icon(Icons.diversity_3, color: Color(0xFF2BCDEE)),
                                       ),
                                       const SizedBox(width: 10),
                                       Expanded(
@@ -910,6 +910,25 @@ class EncounterDetailPage extends ConsumerWidget {
                                   ),
                                   const SizedBox(height: 12),
                                   Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827), height: 1.2)),
+                                  if (event.poiName != null && event.poiName!.trim().isNotEmpty) ...[
+                                    const SizedBox(height: 12),
+                                    GestureDetector(
+                                      onTap: openMapPreview,
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.location_on, size: 16, color: Color(0xFF9CA3AF)),
+                                          const SizedBox(width: 4),
+                                          Expanded(
+                                            child: Text(
+                                              event.poiName!,
+                                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF6B7280)),
+                                            ),
+                                          ),
+                                          const Icon(Icons.chevron_right, size: 16, color: Color(0xFF9CA3AF)),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                   const SizedBox(height: 14),
                                   const Text('参与者', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
                                   const SizedBox(height: 10),
