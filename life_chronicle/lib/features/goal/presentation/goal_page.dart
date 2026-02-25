@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
-import 'dart:math' as math;
 
 import 'package:confetti/confetti.dart';
 import 'package:drift/drift.dart' show OrderingMode, OrderingTerm, Value;
@@ -2991,7 +2990,7 @@ Future<void> _updateTaskCompletionForGoal(AppDatabase db, GoalRecord task, bool 
         ),
       );
     } else {
-      await (delete(db.timelineEvents)
+      await (db.delete(db.timelineEvents)
             ..where((t) => t.id.equals(task.id))
             ..where((t) => t.eventType.equals('goal')))
           .go();
@@ -4083,7 +4082,7 @@ class _TravelMemoryCard extends StatelessWidget {
 
         return GestureDetector(
           onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => TravelDetailPage(TravelItem.fromRecord(travel))),
+            MaterialPageRoute(builder: (_) => TravelDetailPage(item: TravelItem.fromRecord(travel))),
           ),
           child: SizedBox(
             width: 128,
@@ -4117,7 +4116,7 @@ class _TravelMemoryCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text(travel.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                Text(travel.title ?? '未命名', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
                 const SizedBox(height: 4),
                 Text(_formatDate(travel.recordDate), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF9CA3AF))),
               ],
@@ -4524,7 +4523,7 @@ class _TravelListItem extends StatelessWidget {
         if (travel == null) return const SizedBox.shrink();
 
         return ListTile(
-          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => TravelDetailPage(TravelItem.fromRecord(travel)))),
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => TravelDetailPage(item: TravelItem.fromRecord(travel)))),
           leading: Container(
             width: 48,
             height: 48,
@@ -4538,7 +4537,7 @@ class _TravelListItem extends StatelessWidget {
                   )
                 : const Icon(Icons.airplanemode_active, color: Color(0xFF3B82F6)),
           ),
-          title: Text(travel.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+          title: Text(travel.title ?? '未命名', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
           subtitle: Text(_formatDate(travel.recordDate), style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF))),
           trailing: const Icon(Icons.chevron_right, color: Color(0xFFD1D5DB)),
         );

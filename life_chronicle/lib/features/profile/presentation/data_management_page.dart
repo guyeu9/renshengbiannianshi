@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as path;
@@ -17,10 +18,10 @@ class DataManagementPage extends ConsumerStatefulWidget {
   const DataManagementPage({super.key});
 
   @override
-  ConsumerState&lt;DataManagementPage&gt; createState() =&gt; _DataManagementPageState();
+  ConsumerState<DataManagementPage> createState() => _DataManagementPageState();
 }
 
-class _DataManagementPageState extends ConsumerState&lt;DataManagementPage&gt; {
+class _DataManagementPageState extends ConsumerState<DataManagementPage> {
   final WebDavConfigService _configService = WebDavConfigService();
   final BackgroundBackupService _backgroundBackupService = BackgroundBackupService();
   WebDavConfig? _config;
@@ -29,8 +30,8 @@ class _DataManagementPageState extends ConsumerState&lt;DataManagementPage&gt; {
   bool _isRestoring = false;
   bool _isExporting = false;
   BackupProgress? _currentProgress;
-  StreamSubscription&lt;BackupProgress&gt;? _progressSubscription;
-  List&lt;Map&lt;String, dynamic&gt;&gt; _availableBackups = [];
+  StreamSubscription<BackupProgress>? _progressSubscription;
+  List<Map<String, dynamic>> _availableBackups = [];
 
   final _urlController = TextEditingController();
   final _usernameController = TextEditingController();
@@ -57,7 +58,7 @@ class _DataManagementPageState extends ConsumerState&lt;DataManagementPage&gt; {
     super.dispose();
   }
 
-  Future&lt;void&gt; _loadConfig() async {
+  Future<void> _loadConfig() async {
     final config = await _configService.loadConfig();
     if (mounted) {
       setState(() {
@@ -73,7 +74,7 @@ class _DataManagementPageState extends ConsumerState&lt;DataManagementPage&gt; {
     }
   }
 
-  Future&lt;void&gt; _testConnection() async {
+  Future<void> _testConnection() async {
     if (_urlController.text.isEmpty ||
         _usernameController.text.isEmpty ||
         _passwordController.text.isEmpty) {
@@ -81,7 +82,7 @@ class _DataManagementPageState extends ConsumerState&lt;DataManagementPage&gt; {
       return;
     }
 
-    setState(() =&gt; _isLoading = true);
+    setState(() => _isLoading = true);
     try {
       final client = WebDavClient(
         baseUrl: _urlController.text,
@@ -100,12 +101,12 @@ class _DataManagementPageState extends ConsumerState&lt;DataManagementPage&gt; {
       _showSnackBar('连接出错: $e', isError: true);
     } finally {
       if (mounted) {
-        setState(() =&gt; _isLoading = false);
+        setState(() => _isLoading = false);
       }
     }
   }
 
-  Future&lt;void&gt; _saveConfig() async {
+  Future<void> _saveConfig() async {
     if (_urlController.text.isEmpty ||
         _usernameController.text.isEmpty ||
         _passwordController.text.isEmpty) {
@@ -126,18 +127,18 @@ class _DataManagementPageState extends ConsumerState&lt;DataManagementPage&gt; {
 
     await _configService.saveConfig(newConfig);
     if (mounted) {
-      setState(() =&gt; _config = newConfig);
+      setState(() => _config = newConfig);
       _showSnackBar('配置已保存');
     }
   }
 
-  Future&lt;void&gt; _performFullBackup() async {
+  Future<void> _performFullBackup() async {
     if (_config == null) {
       _showSnackBar('请先配置 WebDAV', isError: true);
       return;
     }
 
-    if (_encryptionPasswordController.text.isEmpty &amp;&amp; _config!.encryptBackup) {
+    if (_encryptionPasswordController.text.isEmpty && _config!.encryptBackup) {
       _showSnackBar('请输入加密密码', isError: true);
       return;
     }
@@ -145,12 +146,12 @@ class _DataManagementPageState extends ConsumerState&lt;DataManagementPage&gt; {
     final db = ref.read(appDatabaseProvider);
     final backupService = BackupService(db);
 
-    setState(() =&gt; _isBackingUp = true);
+    setState(() => _isBackingUp = true);
     
     try {
       _progressSubscription = backupService.progressStream.listen((progress) {
         if (mounted) {
-          setState(() =&gt; _currentProgress = progress);
+          setState(() => _currentProgress = progress);
         }
       });
 
@@ -173,7 +174,7 @@ class _DataManagementPageState extends ConsumerState&lt;DataManagementPage&gt; {
     }
   }
 
-  Future&lt;void&gt; _performLocalBackup() async {
+  Future<void> _performLocalBackup() async {
     final db = ref.read(appDatabaseProvider);
     final backupService = BackupService(db);
     final startedAt = DateTime.now();
@@ -181,7 +182,7 @@ class _DataManagementPageState extends ConsumerState&lt;DataManagementPage&gt; {
     final fileName = 'life_chronicle_local_$timestamp.zip';
     String? logId;
 
-    setState(() =&gt; _isBackingUp = true);
+    setState(() => _isBackingUp = true);
     
     try {
       logId = const Uuid().v4();
@@ -222,7 +223,7 @@ class _DataManagementPageState extends ConsumerState&lt;DataManagementPage&gt; {
         completedAt: DateTime.now(),
       );
       
-      await (db.update(db.backupLogs)..where((t) =&gt; t.id.equals(logId))).write(
+      await (db.update(db.backupLogs)..where((t) => t.id.equals(logId!))).write(
         BackupLogsCompanion(
           filePath: Value(finalZipPath),
           fileSize: Value(fileSize),
@@ -252,7 +253,7 @@ class _DataManagementPageState extends ConsumerState&lt;DataManagementPage&gt; {
     }
   }
   
-  int _countRecords(Map&lt;String, dynamic&gt; data) {
+  int _countRecords(Map<String, dynamic> data) {
     int count = 0;
     for (final key in data.keys) {
       if (key.endsWith('_records') || key == 'trips' || key == 'checklist_items' || key == 'entity_links' || key == 'link_logs' || key == 'user_profiles' || key == 'ai_providers') {
@@ -265,11 +266,11 @@ class _DataManagementPageState extends ConsumerState&lt;DataManagementPage&gt; {
     return count;
   }
 
-  Future&lt;void&gt; _restoreFromLocal() async {
+  Future<void> _restoreFromLocal() async {
     final db = ref.read(appDatabaseProvider);
     final backupService = BackupService(db);
 
-    setState(() =&gt; _isRestoring = true);
+    setState(() => _isRestoring = true);
     
     try {
       final appDocDir = await getApplicationDocumentsDirectory();
@@ -280,14 +281,14 @@ class _DataManagementPageState extends ConsumerState&lt;DataManagementPage&gt; {
       }
 
       final files = await backupDir.list().toList();
-      final zipFiles = files.whereType&lt;File&gt;().where((f) =&gt; f.path.endsWith('.zip')).toList();
+      final zipFiles = files.whereType<File>().where((f) => f.path.endsWith('.zip')).toList();
       
       if (zipFiles.isEmpty) {
         _showSnackBar('未找到备份文件', isError: true);
         return;
       }
       
-      zipFiles.sort((a, b) =&gt; b.lastModifiedSync().compareTo(a.lastModifiedSync()));
+      zipFiles.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
       final latestBackup = zipFiles.first;
       
       final tempDir = await backupService.getTempDir();
@@ -311,7 +312,7 @@ class _DataManagementPageState extends ConsumerState&lt;DataManagementPage&gt; {
     }
   }
 
-  Future&lt;void&gt; _restoreMediaFiles(List&lt;File&gt; mediaFiles) async {
+  Future<void> _restoreMediaFiles(List<File> mediaFiles) async {
     final targetMediaDir = await Directory(path.join((await getApplicationDocumentsDirectory()).path, 'media'));
     if (!await targetMediaDir.exists()) {
       await targetMediaDir.create(recursive: true);
@@ -324,11 +325,11 @@ class _DataManagementPageState extends ConsumerState&lt;DataManagementPage&gt; {
     }
   }
 
-  Future&lt;void&gt; _exportToJson() async {
+  Future<void> _exportToJson() async {
     final db = ref.read(appDatabaseProvider);
     final backupService = BackupService(db);
 
-    setState(() =&gt; _isExporting = true);
+    setState(() => _isExporting = true);
     
     try {
       final data = await backupService.exportAllData();
@@ -350,12 +351,12 @@ class _DataManagementPageState extends ConsumerState&lt;DataManagementPage&gt; {
       _showSnackBar('JSON 导出失败: $e', isError: true);
     } finally {
       if (mounted) {
-        setState(() =&gt; _isExporting = false);
+        setState(() => _isExporting = false);
       }
     }
   }
 
-  Future&lt;void&gt; _loadAvailableBackups() async {
+  Future<void> _loadAvailableBackups() async {
     if (_config == null) return;
     
     final db = ref.read(appDatabaseProvider);
@@ -364,36 +365,36 @@ class _DataManagementPageState extends ConsumerState&lt;DataManagementPage&gt; {
     try {
       final backups = await backupService.listAvailableBackups(_config!);
       if (mounted) {
-        setState(() =&gt; _availableBackups = backups);
+        setState(() => _availableBackups = backups);
       }
     } catch (e) {
       _showSnackBar('加载备份列表失败: $e', isError: true);
     }
   }
 
-  Future&lt;void&gt; _restoreBackup(String fileName) async {
+  Future<void> _restoreBackup(String fileName) async {
     if (_config == null) {
       _showSnackBar('请先配置 WebDAV', isError: true);
       return;
     }
 
-    if (_encryptionPasswordController.text.isEmpty &amp;&amp; _config!.encryptBackup) {
+    if (_encryptionPasswordController.text.isEmpty && _config!.encryptBackup) {
       _showSnackBar('请输入加密密码', isError: true);
       return;
     }
 
-    final confirmed = await showDialog&lt;bool&gt;(
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) =&gt; AlertDialog(
+      builder: (context) => AlertDialog(
         title: const Text('确认恢复'),
         content: const Text('恢复数据将合并到当前数据中，是否继续？'),
         actions: [
           TextButton(
-            onPressed: () =&gt; Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(context).pop(false),
             child: const Text('取消'),
           ),
           TextButton(
-            onPressed: () =&gt; Navigator.of(context).pop(true),
+            onPressed: () => Navigator.of(context).pop(true),
             child: const Text('确定'),
           ),
         ],
@@ -405,12 +406,12 @@ class _DataManagementPageState extends ConsumerState&lt;DataManagementPage&gt; {
     final db = ref.read(appDatabaseProvider);
     final backupService = BackupService(db);
 
-    setState(() =&gt; _isRestoring = true);
+    setState(() => _isRestoring = true);
     
     try {
       _progressSubscription = backupService.progressStream.listen((progress) {
         if (mounted) {
-          setState(() =&gt; _currentProgress = progress);
+          setState(() => _currentProgress = progress);
         }
       });
 
@@ -460,7 +461,7 @@ class _DataManagementPageState extends ConsumerState&lt;DataManagementPage&gt; {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: AppTheme.primary),
-          onPressed: () =&gt; Navigator.of(context).pop(),
+          onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
           '数据管理',
@@ -504,7 +505,7 @@ class _DataManagementPageState extends ConsumerState&lt;DataManagementPage&gt; {
     return Consumer(
       builder: (context, ref, _) {
         final db = ref.watch(appDatabaseProvider);
-        return StreamBuilder&lt;SyncStateData?&gt;(
+        return StreamBuilder<SyncStateData?>(
           stream: db.syncStateDao.watchDefault(),
           builder: (context, snapshot) {
             final lastSyncTime = snapshot.data?.lastSyncTime;
@@ -841,7 +842,7 @@ class _DataManagementPageState extends ConsumerState&lt;DataManagementPage&gt; {
                   if (_config != null) {
                     final newConfig = _config!.copyWith(encryptBackup: value);
                     await _configService.saveConfig(newConfig);
-                    setState(() =&gt; _config = newConfig);
+                    setState(() => _config = newConfig);
                   }
                 },
               ),
@@ -1001,7 +1002,7 @@ class _DataManagementPageState extends ConsumerState&lt;DataManagementPage&gt; {
     String title,
     String subtitle,
     bool value,
-    ValueChanged&lt;bool&gt; onChanged,
+    ValueChanged<bool> onChanged,
   ) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1034,9 +1035,9 @@ class _DataManagementPageState extends ConsumerState&lt;DataManagementPage&gt; {
     );
   }
 
-  Widget _buildCustomSwitch(bool value, ValueChanged&lt;bool&gt; onChanged) {
+  Widget _buildCustomSwitch(bool value, ValueChanged<bool> onChanged) {
     return GestureDetector(
-      onTap: () =&gt; onChanged(!value),
+      onTap: () => onChanged(!value),
       child: Container(
         width: 52,
         height: 32,
@@ -1126,7 +1127,7 @@ class _DataManagementPageState extends ConsumerState&lt;DataManagementPage&gt; {
                       } else {
                         await _backgroundBackupService.cancelBackup();
                       }
-                      setState(() =&gt; _config = newConfig);
+                      setState(() => _config = newConfig);
                     }
                   },
                 ),
@@ -1193,7 +1194,7 @@ class _DataManagementPageState extends ConsumerState&lt;DataManagementPage&gt; {
                 wifiOnly: newConfig.backupOnWifiOnly,
               );
             }
-            setState(() =&gt; _config = newConfig);
+            setState(() => _config = newConfig);
           }
         },
         child: Container(
@@ -1467,7 +1468,7 @@ class _DataManagementPageState extends ConsumerState&lt;DataManagementPage&gt; {
         LinearProgressIndicator(
           value: _currentProgress!.progress,
           backgroundColor: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
-          valueColor: const AlwaysStoppedAnimation&lt;Color&gt;(AppTheme.primary),
+          valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primary),
         ),
         const SizedBox(height: 8),
         Text(

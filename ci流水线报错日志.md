@@ -3,439 +3,321 @@ Analyzing life_chronicle...
 
   error • The name 'EncounterCreatePage' isn't a class • lib/app/app_shell.dart:194:94 • creation_with_non_type
 warning • The receiver can't be null, so the null-aware operator '?.' is unnecessary • lib/core/database/daos/backup_log_dao.dart:71:18 • invalid_null_aware_operator
-  error • The name '_FilterResult' isn't a type, so it can't be used as a type argument • lib/features/bond/presentation/bond_page.dart:35:47 • non_type_as_type_argument
-  error • The method '_FilterBottomSheet' isn't defined for the type '_BondPageState' • lib/features/bond/presentation/bond_page.dart:43:20 • undefined_method
-  error • The name 'EncounterCreatePage' isn't a class • lib/features/bond/presentation/bond_page.dart:67:74 • creation_with_non_type
-  error • The method '_parseTags' isn't defined for the type '_FriendCard' • lib/features/bond/presentation/bond_page.dart:450:18 • undefined_method
-  error • The method '_formatDays' isn't defined for the type '_FriendCard' • lib/features/bond/presentation/bond_page.dart:452:22 • undefined_method
-  error • The method '_formatLastMeet' isn't defined for the type '_FriendCard' • lib/features/bond/presentation/bond_page.dart:453:26 • undefined_method
-  error • The method '_buildLocalImage' isn't defined for the type '_FriendCard' • lib/features/bond/presentation/bond_page.dart:480:25 • undefined_method
-  error • The method '_initialLetter' isn't defined for the type '_FriendCard' • lib/features/bond/presentation/bond_page.dart:492:31 • undefined_method
-  error • The method '_parseEncounterNoteParts' isn't defined for the type '_EncounterEventRow' • lib/features/bond/presentation/bond_page.dart:644:23 • undefined_method
-  error • The method '_eventLocationDisplay' isn't defined for the type '_EncounterEventRow' • lib/features/bond/presentation/bond_page.dart:647:29 • undefined_method
-  error • The method 'EncounterDetailPage' isn't defined for the type '_EncounterEventRow' • lib/features/bond/presentation/bond_page.dart:670:89 • undefined_method
-  error • The method '_collectLinkIds' isn't defined for the type '_EncounterEventRow' • lib/features/bond/presentation/bond_page.dart:715:43 • undefined_method
-  error • The method '_AvatarCircle' isn't defined for the type '_EncounterEventRow' • lib/features/bond/presentation/bond_page.dart:729:37 • undefined_method
-  error • The method '_initialLetter' isn't defined for the type '_FriendProfileCard' • lib/features/bond/presentation/bond_page.dart:1018:27 • undefined_method
-  error • The method '_buildLocalImage' isn't defined for the type '_FriendProfileCard' • lib/features/bond/presentation/bond_page.dart:1022:23 • undefined_method
-  error • The method '_formatDays' isn't defined for the type '_FriendProfileCard' • lib/features/bond/presentation/bond_page.dart:1034:32 • undefined_method
-  error • The method '_formatBirthday' isn't defined for the type '_FriendProfileCard' • lib/features/bond/presentation/bond_page.dart:1039:63 • undefined_method
-  error • The method '_formatOrFallback' isn't defined for the type '_FriendProfileCard' • lib/features/bond/presentation/bond_page.dart:1041:63 • undefined_method
-  error • The method '_formatOrFallback' isn't defined for the type '_FriendProfileCard' • lib/features/bond/presentation/bond_page.dart:1045:41 • undefined_method
-  error • The method '_formatOrFallback' isn't defined for the type '_FriendProfileCard' • lib/features/bond/presentation/bond_page.dart:1046:15 • undefined_method
-  error • The method '_formatOrFallback' isn't defined for the type '_FriendProfileCard' • lib/features/bond/presentation/bond_page.dart:1048:45 • undefined_method
-  error • The method '_tagsOrFallback' isn't defined for the type '_FriendProfileCard' • lib/features/bond/presentation/bond_page.dart:1062:37 • undefined_method
-  error • The method '_buildLocalImage' isn't defined for the type '_SingleImageMemoryCard' • lib/features/bond/presentation/bond_page.dart:1653:23 • undefined_method
-  error • The method '_buildLocalImage' isn't defined for the type '_MultiImageMemoryCard' • lib/features/bond/presentation/bond_page.dart:1798:27 • undefined_method
-  error • The method '_BottomSheetShell' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2039:18 • undefined_method
-  error • The method '_BottomSheetShell' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2073:16 • undefined_method
-  error • The named parameter 'error' is required, but there's no corresponding argument • lib/features/bond/presentation/bond_page.dart:2149:24 • missing_required_argument
-  error • The named parameter 'loading' is required, but there's no corresponding argument • lib/features/bond/presentation/bond_page.dart:2149:24 • missing_required_argument
-  error • The named parameter 'loading' isn't defined • lib/features/bond/presentation/bond_page.dart:2491:7 • undefined_named_parameter
-  error • The named parameter 'error' isn't defined • lib/features/bond/presentation/bond_page.dart:2492:7 • undefined_named_parameter
-  error • Expected to find ';' • lib/features/bond/presentation/bond_page.dart:2494:3 • expected_token
-  error • Expected to find ')' • lib/features/bond/presentation/bond_page.dart:2495:1 • expected_token
-  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:2497:1 • class_in_class
-  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:2497:27 • expected_class_member
-   info • The variable name 'ConsumerStatefulWidget' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:2497:35 • non_constant_identifier_names
-  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:2497:35 • missing_method_parameters
-  error • The name 'EncounterCreatePage' isn't a class • lib/features/bond/presentation/bond_page.dart:2498:9 • creation_with_non_type
-  error • The getter 'key' isn't defined in a superclass of '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2498:36 • undefined_super_member
-  error • ConsumerState isn't a type • lib/features/bond/presentation/bond_page.dart:2501:3 • not_a_type
-  error • The name 'EncounterCreatePage' isn't a type, so it can't be used as a type argument • lib/features/bond/presentation/bond_page.dart:2501:17 • non_type_as_type_argument
-warning • The declaration 'createState' isn't referenced • lib/features/bond/presentation/bond_page.dart:2501:38 • unused_element
-  error • The method '_EncounterCreatePageState' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2501:55 • undefined_method
-  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:2504:1 • class_in_class
-  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:2504:33 • expected_class_member
-   info • The variable name 'ConsumerState' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:2504:41 • non_constant_identifier_names
-  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:2504:41 • missing_method_parameters
-  error • Can't have modifier 'static' here • lib/features/bond/presentation/bond_page.dart:2505:3 • extraneous_modifier
-   info • The local variable '_uuid' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2505:16 • no_leading_underscores_for_local_identifiers
-   info • The local variable '_titleController' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2507:9 • no_leading_underscores_for_local_identifiers
-   info • The local variable '_moodController' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2508:9 • no_leading_underscores_for_local_identifiers
-   info • The local variable '_poiName' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2509:10 • no_leading_underscores_for_local_identifiers
-   info • The local variable '_poiAddress' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2510:10 • no_leading_underscores_for_local_identifiers
-   info • The local variable '_latitude' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2511:11 • no_leading_underscores_for_local_identifiers
-   info • The local variable '_longitude' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2512:11 • no_leading_underscores_for_local_identifiers
-   info • The local variable '_date' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2514:12 • no_leading_underscores_for_local_identifiers
-   info • The local variable '_imageUrls' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2515:22 • no_leading_underscores_for_local_identifiers
-   info • The local variable '_linkedFriendIds' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2517:21 • no_leading_underscores_for_local_identifiers
-   info • The local variable '_linkedFoodIds' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2518:21 • no_leading_underscores_for_local_identifiers
-   info • The local variable '_linkTravel' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2519:8 • no_leading_underscores_for_local_identifiers
-   info • The local variable '_linkGoal' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2520:8 • no_leading_underscores_for_local_identifiers
-warning • The declaration 'dispose' isn't referenced • lib/features/bond/presentation/bond_page.dart:2523:8 • unused_element
-   info • The local variable '_formatDate' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2529:10 • no_leading_underscores_for_local_identifiers
-   info • The local variable '_pickDate' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2534:16 • no_leading_underscores_for_local_identifiers
-   info • The local variable '_addPlaceholderImage' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2559:16 • no_leading_underscores_for_local_identifiers
-  error • Local variable '_persistImages' can't be referenced before it is declared • lib/features/bond/presentation/bond_page.dart:2563:26 • referenced_before_declaration
-   info • The local variable '_persistImages' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2568:24 • no_leading_underscores_for_local_identifiers
-   info • The local variable '_removeImageAt' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2572:8 • no_leading_underscores_for_local_identifiers
-   info • The local variable '_selectFriends' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2576:16 • no_leading_underscores_for_local_identifiers
-  error • The method '_SelectItem' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2588:26 • undefined_method
-  error • The method '_AvatarCircle' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2591:30 • undefined_method
-  error • The method '_MultiSelectBottomSheet' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2595:20 • undefined_method
-   info • The local variable '_selectFoods' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2608:16 • no_leading_underscores_for_local_identifiers
-  error • The method '_SelectItem' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2620:26 • undefined_method
-  error • The name '_IconSquare' isn't a class • lib/features/bond/presentation/bond_page.dart:2623:36 • creation_with_non_type
-  error • The method '_MultiSelectBottomSheet' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2627:20 • undefined_method
-   info • The local variable '_selectLocation' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2640:16 • no_leading_underscores_for_local_identifiers
-   info • The local variable '_save' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2661:16 • no_leading_underscores_for_local_identifiers
-warning • The declaration 'build' isn't referenced • lib/features/bond/presentation/bond_page.dart:2726:10 • unused_element
-  error • The method '_CreateTopBar' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2733:13 • undefined_method
-  error • The method '_SectionCard' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2743:19 • undefined_method
-  error • The method '_SectionCard' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2755:19 • undefined_method
-  error • The method '_SelectedAvatarsRow' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2764:40 • undefined_method
-  error • The method '_FieldCard' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2791:32 • undefined_method
-  error • The method '_FieldCard' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2810:32 • undefined_method
-  error • The method '_SectionCard' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2851:19 • undefined_method
-  error • The method '_SectionCard' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2865:19 • undefined_method
-  error • The method '_PhotoAddTile' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2880:38 • undefined_method
-  error • The method '_PhotoTile' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2882:36 • undefined_method
-  error • The method '_SectionCard' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2889:19 • undefined_method
-  error • The method '_LinkToggleRow' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2894:25 • undefined_method
-  error • The method '_LinkToggleRow' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2904:25 • undefined_method
-  error • The method '_LinkToggleRow' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2914:25 • undefined_method
-  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:2936:1 • class_in_class
-  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:2936:17 • expected_class_member
-   info • The variable name 'StatelessWidget' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:2936:25 • non_constant_identifier_names
-  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:2936:25 • missing_method_parameters
-  error • The name '_ChipPill' isn't a class • lib/features/bond/presentation/bond_page.dart:2937:9 • creation_with_non_type
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:2937:29 • expected_token
-  error • The getter 'text' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2937:34 • undefined_getter
-warning • The declaration 'build' isn't referenced • lib/features/bond/presentation/bond_page.dart:2942:10 • unused_element
-  error • The final variable 'text' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:2946:19 • read_potentially_unassigned_final
-  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:2951:1 • class_in_class
-  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:2951:21 • expected_class_member
-   info • The variable name 'StatelessWidget' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:2951:29 • non_constant_identifier_names
-  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:2951:29 • missing_method_parameters
-  error • The name 'StatelessWidget' is already defined • lib/features/bond/presentation/bond_page.dart:2951:29 • duplicate_definition
-  error • The name '_CreateTopBar' isn't a class • lib/features/bond/presentation/bond_page.dart:2952:9 • creation_with_non_type
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:2953:14 • expected_token
-  error • The getter 'title' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2953:19 • undefined_getter
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:2954:14 • expected_token
-  error • The getter 'onCancel' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2954:19 • undefined_getter
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:2955:14 • expected_token
-  error • The getter 'actionText' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2955:19 • undefined_getter
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:2956:14 • expected_token
-  error • The getter 'onAction' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2956:19 • undefined_getter
-warning • The declaration 'build' isn't referenced • lib/features/bond/presentation/bond_page.dart:2965:10 • unused_element
-  error • The final variable 'onCancel' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:2976:24 • read_potentially_unassigned_final
-  error • The final variable 'title' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:2980:32 • read_potentially_unassigned_final
-  error • The final variable 'onAction' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:2982:24 • read_potentially_unassigned_final
-  error • The final variable 'actionText' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:2991:25 • read_potentially_unassigned_final
-  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:2999:1 • class_in_class
-  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:2999:20 • expected_class_member
-   info • The variable name 'StatelessWidget' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:2999:28 • non_constant_identifier_names
-  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:2999:28 • missing_method_parameters
-  error • The name 'StatelessWidget' is already defined • lib/features/bond/presentation/bond_page.dart:2999:28 • duplicate_definition
-  error • The name '_SectionCard' isn't a class • lib/features/bond/presentation/bond_page.dart:3000:9 • creation_with_non_type
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3000:32 • expected_token
-  error • The getter 'title' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3000:37 • undefined_getter
-  error • The getter 'trailing' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3000:49 • undefined_getter
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3000:68 • expected_token
-  error • The getter 'child' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3000:73 • undefined_getter
-warning • The declaration 'build' isn't referenced • lib/features/bond/presentation/bond_page.dart:3007:10 • unused_element
-  error • The final variable 'title' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3021:20 • read_potentially_unassigned_final
-warning • The operand must be 'null', so the condition is always 'false' • lib/features/bond/presentation/bond_page.dart:3023:19 • unnecessary_null_comparison
-  error • The final variable 'trailing' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3023:19 • read_potentially_unassigned_final
-  error • The final variable 'trailing' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3023:37 • read_potentially_unassigned_final
-warning • The '!' will have no effect because the receiver can't be null • lib/features/bond/presentation/bond_page.dart:3023:45 • unnecessary_non_null_assertion
-  error • The final variable 'child' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3027:11 • read_potentially_unassigned_final
-  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:3034:1 • class_in_class
-  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:3034:18 • expected_class_member
-   info • The variable name 'StatelessWidget' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:3034:26 • non_constant_identifier_names
-  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:3034:26 • missing_method_parameters
-  error • The name 'StatelessWidget' is already defined • lib/features/bond/presentation/bond_page.dart:3034:26 • duplicate_definition
-  error • The name '_FieldCard' isn't a class • lib/features/bond/presentation/bond_page.dart:3035:9 • creation_with_non_type
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3036:14 • expected_token
-  error • The getter 'label' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3036:19 • undefined_getter
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3037:14 • expected_token
-  error • The getter 'icon' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3037:19 • undefined_getter
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3038:14 • expected_token
-  error • The getter 'iconColor' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3038:19 • undefined_getter
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3039:14 • expected_token
-  error • The getter 'child' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3039:19 • undefined_getter
-warning • The declaration 'build' isn't referenced • lib/features/bond/presentation/bond_page.dart:3048:10 • unused_element
-  error • The final variable 'label' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3060:16 • read_potentially_unassigned_final
-  error • The final variable 'icon' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3064:20 • read_potentially_unassigned_final
-  error • The final variable 'iconColor' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3064:43 • read_potentially_unassigned_final
-  error • The final variable 'child' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3066:31 • read_potentially_unassigned_final
-  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:3075:1 • class_in_class
-  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:3075:18 • expected_class_member
-   info • The variable name 'StatelessWidget' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:3075:26 • non_constant_identifier_names
-  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:3075:26 • missing_method_parameters
-  error • The name 'StatelessWidget' is already defined • lib/features/bond/presentation/bond_page.dart:3075:26 • duplicate_definition
-  error • The name '_PhotoTile' isn't a class • lib/features/bond/presentation/bond_page.dart:3076:9 • creation_with_non_type
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3076:30 • expected_token
-  error • The getter 'url' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3076:35 • undefined_getter
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3076:49 • expected_token
-  error • The getter 'onRemove' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3076:54 • undefined_getter
-warning • The declaration 'build' isn't referenced • lib/features/bond/presentation/bond_page.dart:3082:10 • unused_element
-  error • The final variable 'url' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3088:28 • read_potentially_unassigned_final
-  error • The final variable 'onRemove' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3093:22 • read_potentially_unassigned_final
-  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:3108:1 • class_in_class
-  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:3108:21 • expected_class_member
-   info • The variable name 'StatelessWidget' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:3108:29 • non_constant_identifier_names
-  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:3108:29 • missing_method_parameters
-  error • The name 'StatelessWidget' is already defined • lib/features/bond/presentation/bond_page.dart:3108:29 • duplicate_definition
-  error • The name '_PhotoAddTile' isn't a class • lib/features/bond/presentation/bond_page.dart:3109:9 • creation_with_non_type
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3109:33 • expected_token
-  error • The getter 'onTap' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3109:38 • undefined_getter
-warning • The declaration 'build' isn't referenced • lib/features/bond/presentation/bond_page.dart:3114:10 • unused_element
-  error • The final variable 'onTap' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3117:14 • read_potentially_unassigned_final
-warning • The declaration '_tagsOrFallback' isn't referenced • lib/features/bond/presentation/bond_page.dart:3163:14 • unused_element
-warning • The declaration '_formatDays' isn't referenced • lib/features/bond/presentation/bond_page.dart:3168:8 • unused_element
-warning • The declaration '_formatLastMeet' isn't referenced • lib/features/bond/presentation/bond_page.dart:3177:8 • unused_element
-warning • The declaration '_formatBirthday' isn't referenced • lib/features/bond/presentation/bond_page.dart:3187:8 • unused_element
-warning • The declaration '_formatOrFallback' isn't referenced • lib/features/bond/presentation/bond_page.dart:3193:8 • unused_element
-  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:3198:1 • class_in_class
-  error • Undefined class '_EncounterNoteParts' • lib/features/bond/presentation/bond_page.dart:3210:1 • undefined_class
-  error • The name '_EncounterNoteParts' isn't a class • lib/features/bond/presentation/bond_page.dart:3213:18 • creation_with_non_type
-  error • The method '_EncounterNoteParts' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3243:10 • undefined_method
-  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:3278:1 • class_in_class
-  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:3278:22 • expected_class_member
-   info • The variable name 'StatelessWidget' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:3278:30 • non_constant_identifier_names
-  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:3278:30 • missing_method_parameters
-  error • The name 'StatelessWidget' is already defined • lib/features/bond/presentation/bond_page.dart:3278:30 • duplicate_definition
-  error • The name '_LinkToggleRow' isn't a class • lib/features/bond/presentation/bond_page.dart:3279:9 • creation_with_non_type
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3280:14 • expected_token
-  error • The getter 'title' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3280:19 • undefined_getter
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3281:14 • expected_token
-  error • The getter 'subtitle' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3281:19 • undefined_getter
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3282:14 • expected_token
-  error • The getter 'iconBackground' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3282:19 • undefined_getter
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3283:14 • expected_token
-  error • The getter 'icon' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3283:19 • undefined_getter
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3284:14 • expected_token
-  error • The getter 'iconColor' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3284:19 • undefined_getter
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3285:14 • expected_token
-  error • The getter 'checked' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3285:19 • undefined_getter
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3286:14 • expected_token
-  error • The getter 'onTap' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3286:19 • undefined_getter
-warning • The declaration 'build' isn't referenced • lib/features/bond/presentation/bond_page.dart:3298:10 • unused_element
-  error • The final variable 'onTap' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3301:14 • read_potentially_unassigned_final
-  error • The final variable 'checked' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3305:18 • read_potentially_unassigned_final
-  error • The final variable 'checked' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3307:37 • read_potentially_unassigned_final
-  error • The final variable 'iconBackground' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3314:48 • read_potentially_unassigned_final
-  error • The final variable 'icon' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3315:27 • read_potentially_unassigned_final
-  error • The final variable 'iconColor' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3315:40 • read_potentially_unassigned_final
-  error • The final variable 'title' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3322:24 • read_potentially_unassigned_final
-  error • The final variable 'subtitle' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3324:24 • read_potentially_unassigned_final
-  error • The final variable 'checked' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3328:17 • read_potentially_unassigned_final
-  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:3344:1 • class_in_class
-  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:3356:1 • class_in_class
-  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:3356:26 • expected_class_member
-   info • The variable name 'StatefulWidget' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:3356:34 • non_constant_identifier_names
-  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:3356:34 • missing_method_parameters
-  error • The name '_FilterBottomSheet' isn't a class • lib/features/bond/presentation/bond_page.dart:3357:9 • creation_with_non_type
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3358:14 • expected_token
-  error • The getter 'initialDateIndex' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3358:19 • undefined_getter
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3359:14 • expected_token
-  error • The getter 'initialCustomRange' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3359:19 • undefined_getter
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3360:14 • expected_token
-  error • The getter 'initialFriendIds' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3360:19 • undefined_getter
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3361:14 • expected_token
-  error • The getter 'friendsStream' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3361:19 • undefined_getter
-warning • The value of the local variable 'initialDateIndex' isn't used • lib/features/bond/presentation/bond_page.dart:3364:13 • unused_local_variable
-warning • The value of the local variable 'initialCustomRange' isn't used • lib/features/bond/presentation/bond_page.dart:3365:24 • unused_local_variable
-warning • The value of the local variable 'initialFriendIds' isn't used • lib/features/bond/presentation/bond_page.dart:3366:21 • unused_local_variable
-warning • The value of the local variable 'friendsStream' isn't used • lib/features/bond/presentation/bond_page.dart:3367:36 • unused_local_variable
-  error • State isn't a type • lib/features/bond/presentation/bond_page.dart:3370:3 • not_a_type
-  error • The name '_FilterBottomSheet' isn't a type, so it can't be used as a type argument • lib/features/bond/presentation/bond_page.dart:3370:9 • non_type_as_type_argument
-warning • The declaration 'createState' isn't referenced • lib/features/bond/presentation/bond_page.dart:3370:29 • unused_element
-  error • The method '_FilterBottomSheetState' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3370:46 • undefined_method
-  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:3373:1 • class_in_class
-  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:3373:31 • expected_class_member
-   info • The variable name 'State' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:3373:39 • non_constant_identifier_names
-  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:3373:39 • missing_method_parameters
-  error • Can't have modifier 'static' here • lib/features/bond/presentation/bond_page.dart:3374:3 • extraneous_modifier
-   info • The local variable '_dateOptions' starts with an underscore • lib/features/bond/presentation/bond_page.dart:3374:16 • no_leading_underscores_for_local_identifiers
-   info • The local variable '_dateIndex' starts with an underscore • lib/features/bond/presentation/bond_page.dart:3376:12 • no_leading_underscores_for_local_identifiers
-   info • The local variable '_customRange' starts with an underscore • lib/features/bond/presentation/bond_page.dart:3377:18 • no_leading_underscores_for_local_identifiers
-   info • The local variable '_selectedFriendIds' starts with an underscore • lib/features/bond/presentation/bond_page.dart:3378:20 • no_leading_underscores_for_local_identifiers
-warning • The declaration 'initState' isn't referenced • lib/features/bond/presentation/bond_page.dart:3381:8 • unused_element
-  error • The getter 'initialDateIndex' isn't defined for the type 'FriendCreatePage' • lib/features/bond/presentation/bond_page.dart:3383:25 • undefined_getter
-  error • The getter 'initialCustomRange' isn't defined for the type 'FriendCreatePage' • lib/features/bond/presentation/bond_page.dart:3384:27 • undefined_getter
-  error • The getter 'initialFriendIds' isn't defined for the type 'FriendCreatePage' • lib/features/bond/presentation/bond_page.dart:3385:37 • undefined_getter
-   info • The local variable '_formatDate' starts with an underscore • lib/features/bond/presentation/bond_page.dart:3388:10 • no_leading_underscores_for_local_identifiers
-   info • The local variable '_pickCustomRange' starts with an underscore • lib/features/bond/presentation/bond_page.dart:3393:16 • no_leading_underscores_for_local_identifiers
-warning • The declaration 'build' isn't referenced • lib/features/bond/presentation/bond_page.dart:3411:10 • unused_element
-  error • The method '_FilterResult' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3435:25 • undefined_method
-  error • The method '_FilterOptionChip' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3461:29 • undefined_method
-  error • The getter 'friendsStream' isn't defined for the type 'FriendCreatePage' • lib/features/bond/presentation/bond_page.dart:3503:40 • undefined_getter
-  error • The method '_FilterFriendTile' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3520:38 • undefined_method
-  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:3550:1 • class_in_class
-  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:3550:25 • expected_class_member
-   info • The variable name 'StatelessWidget' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:3550:33 • non_constant_identifier_names
-  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:3550:33 • missing_method_parameters
-  error • The name 'StatelessWidget' is already defined • lib/features/bond/presentation/bond_page.dart:3550:33 • duplicate_definition
-  error • The name '_FilterOptionChip' isn't a class • lib/features/bond/presentation/bond_page.dart:3551:9 • creation_with_non_type
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3551:37 • expected_token
-  error • The getter 'label' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3551:42 • undefined_getter
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3551:58 • expected_token
-  error • The getter 'selected' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3551:63 • undefined_getter
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3551:82 • expected_token
-  error • The getter 'onTap' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3551:87 • undefined_getter
-warning • The declaration 'build' isn't referenced • lib/features/bond/presentation/bond_page.dart:3558:10 • unused_element
-  error • The final variable 'onTap' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3561:14 • read_potentially_unassigned_final
-  error • The final variable 'selected' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3565:18 • read_potentially_unassigned_final
-  error • The final variable 'selected' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3567:37 • read_potentially_unassigned_final
-  error • The final variable 'label' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3570:11 • read_potentially_unassigned_final
-  error • The final variable 'selected' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3571:78 • read_potentially_unassigned_final
-  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:3578:1 • class_in_class
-  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:3578:25 • expected_class_member
-   info • The variable name 'StatelessWidget' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:3578:33 • non_constant_identifier_names
-  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:3578:33 • missing_method_parameters
-  error • The name 'StatelessWidget' is already defined • lib/features/bond/presentation/bond_page.dart:3578:33 • duplicate_definition
-  error • The name '_FilterFriendTile' isn't a class • lib/features/bond/presentation/bond_page.dart:3579:9 • creation_with_non_type
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3579:37 • expected_token
-  error • The getter 'name' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3579:42 • undefined_getter
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3579:57 • expected_token
-  error • The getter 'imagePath' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3579:62 • undefined_getter
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3579:82 • expected_token
-  error • The getter 'checked' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3579:87 • undefined_getter
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3579:105 • expected_token
-  error • The getter 'onTap' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3579:110 • undefined_getter
-warning • The declaration 'build' isn't referenced • lib/features/bond/presentation/bond_page.dart:3587:10 • unused_element
-  error • The final variable 'name' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3588:21 • read_potentially_unassigned_final
-warning • Dead code • lib/features/bond/presentation/bond_page.dart:3590:18 • dead_code
-  error • The final variable 'imagePath' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3590:18 • read_potentially_unassigned_final
-  error • The final variable 'onTap' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3593:14 • read_potentially_unassigned_final
-  error • The final variable 'checked' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3597:18 • read_potentially_unassigned_final
-  error • The final variable 'checked' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3599:37 • read_potentially_unassigned_final
-  error • The final variable 'name' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3609:34 • read_potentially_unassigned_final
-  error • The final variable 'checked' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3610:18 • read_potentially_unassigned_final
-  error • The final variable 'checked' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3610:86 • read_potentially_unassigned_final
-  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:3618:1 • class_in_class
-  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:3626:1 • class_in_class
-  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:3626:31 • expected_class_member
-   info • The variable name 'StatefulWidget' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:3626:39 • non_constant_identifier_names
-  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:3626:39 • missing_method_parameters
-  error • The name 'StatefulWidget' is already defined • lib/features/bond/presentation/bond_page.dart:3626:39 • duplicate_definition
-  error • The name '_MultiSelectBottomSheet' isn't a class • lib/features/bond/presentation/bond_page.dart:3627:9 • creation_with_non_type
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3627:43 • expected_token
-  error • The getter 'title' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3627:48 • undefined_getter
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3627:64 • expected_token
-  error • The getter 'items' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3627:69 • undefined_getter
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3627:85 • expected_token
-  error • The getter 'initialSelected' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3627:90 • undefined_getter
-warning • The value of the local variable 'title' isn't used • lib/features/bond/presentation/bond_page.dart:3629:16 • unused_local_variable
-  error • The name '_SelectItem' isn't a type, so it can't be used as a type argument • lib/features/bond/presentation/bond_page.dart:3630:14 • non_type_as_type_argument
-warning • The value of the local variable 'items' isn't used • lib/features/bond/presentation/bond_page.dart:3630:27 • unused_local_variable
-warning • The value of the local variable 'initialSelected' isn't used • lib/features/bond/presentation/bond_page.dart:3631:21 • unused_local_variable
-  error • State isn't a type • lib/features/bond/presentation/bond_page.dart:3634:3 • not_a_type
-  error • The name '_MultiSelectBottomSheet' isn't a type, so it can't be used as a type argument • lib/features/bond/presentation/bond_page.dart:3634:9 • non_type_as_type_argument
-warning • The declaration 'createState' isn't referenced • lib/features/bond/presentation/bond_page.dart:3634:34 • unused_element
-  error • The method '_MultiSelectBottomSheetState' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3634:51 • undefined_method
-  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:3637:1 • class_in_class
-  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:3637:36 • expected_class_member
-   info • The variable name 'State' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:3637:44 • non_constant_identifier_names
-  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:3637:44 • missing_method_parameters
-  error • The name 'State' is already defined • lib/features/bond/presentation/bond_page.dart:3637:44 • duplicate_definition
-   info • The local variable '_selected' starts with an underscore • lib/features/bond/presentation/bond_page.dart:3638:26 • no_leading_underscores_for_local_identifiers
-  error • The getter 'initialSelected' isn't defined for the type 'FriendCreatePage' • lib/features/bond/presentation/bond_page.dart:3638:49 • undefined_getter
-warning • The declaration 'build' isn't referenced • lib/features/bond/presentation/bond_page.dart:3641:10 • unused_element
-  error • The getter 'title' isn't defined for the type 'FriendCreatePage' • lib/features/bond/presentation/bond_page.dart:3660:49 • undefined_getter
-  error • The getter 'items' isn't defined for the type 'FriendCreatePage' • lib/features/bond/presentation/bond_page.dart:3674:41 • undefined_getter
-  error • The getter 'items' isn't defined for the type 'FriendCreatePage' • lib/features/bond/presentation/bond_page.dart:3706:37 • undefined_getter
-  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:3717:1 • class_in_class
-  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:3717:25 • expected_class_member
-   info • The variable name 'StatelessWidget' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:3717:33 • non_constant_identifier_names
-  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:3717:33 • missing_method_parameters
-  error • The name 'StatelessWidget' is already defined • lib/features/bond/presentation/bond_page.dart:3717:33 • duplicate_definition
-  error • The name '_BottomSheetShell' isn't a class • lib/features/bond/presentation/bond_page.dart:3718:9 • creation_with_non_type
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3719:14 • expected_token
-  error • The getter 'title' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3719:19 • undefined_getter
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3720:14 • expected_token
-  error • The getter 'actionText' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3720:19 • undefined_getter
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3721:14 • expected_token
-  error • The getter 'onAction' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3721:19 • undefined_getter
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3722:14 • expected_token
-  error • The getter 'child' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3722:19 • undefined_getter
-warning • The declaration 'build' isn't referenced • lib/features/bond/presentation/bond_page.dart:3731:10 • unused_element
-  error • The final variable 'title' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3751:35 • read_potentially_unassigned_final
-  error • The final variable 'onAction' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3754:34 • read_potentially_unassigned_final
-  error • The final variable 'actionText' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3756:35 • read_potentially_unassigned_final
-  error • The final variable 'child' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3761:15 • read_potentially_unassigned_final
-  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:3770:1 • class_in_class
-  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:3770:21 • expected_class_member
-   info • The variable name 'StatelessWidget' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:3770:29 • non_constant_identifier_names
-  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:3770:29 • missing_method_parameters
-  error • The name 'StatelessWidget' is already defined • lib/features/bond/presentation/bond_page.dart:3770:29 • duplicate_definition
-  error • The name '_AvatarCircle' isn't a class • lib/features/bond/presentation/bond_page.dart:3771:9 • creation_with_non_type
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3771:33 • expected_token
-  error • The getter 'name' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3771:38 • undefined_getter
-  error • The getter 'imagePath' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3771:49 • undefined_getter
-warning • The declaration 'build' isn't referenced • lib/features/bond/presentation/bond_page.dart:3777:10 • unused_element
-  error • The final variable 'name' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3778:21 • read_potentially_unassigned_final
-warning • Dead code • lib/features/bond/presentation/bond_page.dart:3780:18 • dead_code
-  error • The final variable 'imagePath' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3780:18 • read_potentially_unassigned_final
-  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:3793:1 • class_in_class
-  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:3793:19 • expected_class_member
-   info • The variable name 'StatelessWidget' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:3793:27 • non_constant_identifier_names
-  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:3793:27 • missing_method_parameters
-  error • The name 'StatelessWidget' is already defined • lib/features/bond/presentation/bond_page.dart:3793:27 • duplicate_definition
-  error • The name '_IconSquare' isn't a class • lib/features/bond/presentation/bond_page.dart:3794:9 • creation_with_non_type
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3794:31 • expected_token
-  error • The getter 'color' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3794:36 • undefined_getter
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3794:52 • expected_token
-  error • The getter 'icon' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3794:57 • undefined_getter
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3794:72 • expected_token
-  error • The getter 'iconColor' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3794:77 • undefined_getter
-warning • The declaration 'build' isn't referenced • lib/features/bond/presentation/bond_page.dart:3801:10 • unused_element
-  error • The final variable 'color' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3805:40 • read_potentially_unassigned_final
-  error • The final variable 'icon' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3806:19 • read_potentially_unassigned_final
-  error • The final variable 'iconColor' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3806:32 • read_potentially_unassigned_final
-  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:3811:1 • class_in_class
-  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:3811:27 • expected_class_member
-   info • The variable name 'ConsumerWidget' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:3811:35 • non_constant_identifier_names
-  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:3811:35 • missing_method_parameters
-  error • The name '_SelectedAvatarsRow' isn't a class • lib/features/bond/presentation/bond_page.dart:3812:9 • creation_with_non_type
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3812:39 • expected_token
-  error • The getter 'selectedIds' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3812:44 • undefined_getter
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3812:66 • expected_token
-  error • The getter 'onTap' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3812:71 • undefined_getter
-warning • The declaration 'build' isn't referenced • lib/features/bond/presentation/bond_page.dart:3818:10 • unused_element
-  error • The final variable 'selectedIds' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3824:43 • read_potentially_unassigned_final
-  error • The final variable 'onTap' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3827:18 • read_potentially_unassigned_final
-  error • The method '_AvatarCircle' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3845:27 • undefined_method
-  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:3866:1 • class_in_class
-  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:3866:27 • expected_class_member
-   info • The variable name 'ConsumerWidget' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:3866:35 • non_constant_identifier_names
-  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:3866:35 • missing_method_parameters
-  error • The name 'ConsumerWidget' is already defined • lib/features/bond/presentation/bond_page.dart:3866:35 • duplicate_definition
-  error • The name 'EncounterDetailPage' isn't a class • lib/features/bond/presentation/bond_page.dart:3867:9 • creation_with_non_type
-  error • The getter 'key' isn't defined in a superclass of '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3867:36 • undefined_super_member
-  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3867:50 • expected_token
-  error • The getter 'encounterId' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3867:55 • undefined_getter
-warning • The declaration 'build' isn't referenced • lib/features/bond/presentation/bond_page.dart:3872:10 • unused_element
-  error • The final variable 'encounterId' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3878:40 • read_potentially_unassigned_final
-  error • The final variable 'encounterId' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:4027:111 • read_potentially_unassigned_final
-  error • The final variable 'encounterId' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:4029:129 • read_potentially_unassigned_final
-  error • The method '_AvatarCircle' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:4049:53 • undefined_method
-  error • The final variable 'encounterId' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:4064:111 • read_potentially_unassigned_final
-  error • The final variable 'encounterId' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:4067:91 • read_potentially_unassigned_final
-  error • The final variable 'encounterId' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:4068:93 • read_potentially_unassigned_final
-  error • The final variable 'encounterId' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:4069:93 • read_potentially_unassigned_final
-  error • The final variable 'encounterId' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:4070:91 • read_potentially_unassigned_final
-  error • The method '_ChipPill' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:4072:73 • undefined_method
-  error • The method '_ChipPill' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:4073:75 • undefined_method
-  error • The method '_ChipPill' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:4074:75 • undefined_method
-  error • The method '_ChipPill' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:4075:73 • undefined_method
-  error • Expected to find '}' • lib/features/bond/presentation/bond_page.dart:4133:1 • expected_token
-warning • Unused import: 'dart:math' • lib/features/goal/presentation/goal_page.dart:4:8 • unused_import
+  error • The name 'EncounterCreatePage' isn't a class • lib/features/bond/presentation/bond_page.dart:111:74 • creation_with_non_type
+  error • The method '_parseTags' isn't defined for the type '_FriendCard' • lib/features/bond/presentation/bond_page.dart:494:18 • undefined_method
+  error • The method '_formatDays' isn't defined for the type '_FriendCard' • lib/features/bond/presentation/bond_page.dart:496:22 • undefined_method
+  error • The method '_formatLastMeet' isn't defined for the type '_FriendCard' • lib/features/bond/presentation/bond_page.dart:497:26 • undefined_method
+  error • The method '_buildLocalImage' isn't defined for the type '_FriendCard' • lib/features/bond/presentation/bond_page.dart:524:25 • undefined_method
+  error • The method '_initialLetter' isn't defined for the type '_FriendCard' • lib/features/bond/presentation/bond_page.dart:536:31 • undefined_method
+  error • The method '_parseEncounterNoteParts' isn't defined for the type '_EncounterEventRow' • lib/features/bond/presentation/bond_page.dart:688:23 • undefined_method
+  error • The method '_eventLocationDisplay' isn't defined for the type '_EncounterEventRow' • lib/features/bond/presentation/bond_page.dart:691:29 • undefined_method
+  error • The method 'EncounterDetailPage' isn't defined for the type '_EncounterEventRow' • lib/features/bond/presentation/bond_page.dart:714:89 • undefined_method
+  error • The method '_collectLinkIds' isn't defined for the type '_EncounterEventRow' • lib/features/bond/presentation/bond_page.dart:759:43 • undefined_method
+  error • The method '_AvatarCircle' isn't defined for the type '_EncounterEventRow' • lib/features/bond/presentation/bond_page.dart:773:37 • undefined_method
+  error • The method '_initialLetter' isn't defined for the type '_FriendProfileCard' • lib/features/bond/presentation/bond_page.dart:1062:27 • undefined_method
+  error • The method '_buildLocalImage' isn't defined for the type '_FriendProfileCard' • lib/features/bond/presentation/bond_page.dart:1066:23 • undefined_method
+  error • The method '_formatDays' isn't defined for the type '_FriendProfileCard' • lib/features/bond/presentation/bond_page.dart:1078:32 • undefined_method
+  error • The method '_formatBirthday' isn't defined for the type '_FriendProfileCard' • lib/features/bond/presentation/bond_page.dart:1083:63 • undefined_method
+  error • The method '_formatOrFallback' isn't defined for the type '_FriendProfileCard' • lib/features/bond/presentation/bond_page.dart:1085:63 • undefined_method
+  error • The method '_formatOrFallback' isn't defined for the type '_FriendProfileCard' • lib/features/bond/presentation/bond_page.dart:1089:41 • undefined_method
+  error • The method '_formatOrFallback' isn't defined for the type '_FriendProfileCard' • lib/features/bond/presentation/bond_page.dart:1090:15 • undefined_method
+  error • The method '_formatOrFallback' isn't defined for the type '_FriendProfileCard' • lib/features/bond/presentation/bond_page.dart:1092:45 • undefined_method
+  error • The method '_tagsOrFallback' isn't defined for the type '_FriendProfileCard' • lib/features/bond/presentation/bond_page.dart:1106:37 • undefined_method
+  error • The method '_buildLocalImage' isn't defined for the type '_SingleImageMemoryCard' • lib/features/bond/presentation/bond_page.dart:1697:23 • undefined_method
+  error • The method '_buildLocalImage' isn't defined for the type '_MultiImageMemoryCard' • lib/features/bond/presentation/bond_page.dart:1842:27 • undefined_method
+  error • The method '_BottomSheetShell' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2083:18 • undefined_method
+  error • The method '_BottomSheetShell' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2117:16 • undefined_method
+  error • The named parameter 'error' is required, but there's no corresponding argument • lib/features/bond/presentation/bond_page.dart:2193:24 • missing_required_argument
+  error • The named parameter 'loading' is required, but there's no corresponding argument • lib/features/bond/presentation/bond_page.dart:2193:24 • missing_required_argument
+  error • The named parameter 'loading' isn't defined • lib/features/bond/presentation/bond_page.dart:2535:7 • undefined_named_parameter
+  error • The named parameter 'error' isn't defined • lib/features/bond/presentation/bond_page.dart:2536:7 • undefined_named_parameter
+  error • Expected to find ';' • lib/features/bond/presentation/bond_page.dart:2538:3 • expected_token
+  error • Expected to find ')' • lib/features/bond/presentation/bond_page.dart:2539:1 • expected_token
+  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:2541:1 • class_in_class
+  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:2541:27 • expected_class_member
+   info • The variable name 'ConsumerStatefulWidget' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:2541:35 • non_constant_identifier_names
+  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:2541:35 • missing_method_parameters
+  error • The name 'EncounterCreatePage' isn't a class • lib/features/bond/presentation/bond_page.dart:2542:9 • creation_with_non_type
+  error • The getter 'key' isn't defined in a superclass of '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2542:36 • undefined_super_member
+  error • ConsumerState isn't a type • lib/features/bond/presentation/bond_page.dart:2545:3 • not_a_type
+  error • The name 'EncounterCreatePage' isn't a type, so it can't be used as a type argument • lib/features/bond/presentation/bond_page.dart:2545:17 • non_type_as_type_argument
+warning • The declaration 'createState' isn't referenced • lib/features/bond/presentation/bond_page.dart:2545:38 • unused_element
+  error • The method '_EncounterCreatePageState' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2545:55 • undefined_method
+  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:2548:1 • class_in_class
+  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:2548:33 • expected_class_member
+   info • The variable name 'ConsumerState' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:2548:41 • non_constant_identifier_names
+  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:2548:41 • missing_method_parameters
+  error • Can't have modifier 'static' here • lib/features/bond/presentation/bond_page.dart:2549:3 • extraneous_modifier
+   info • The local variable '_uuid' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2549:16 • no_leading_underscores_for_local_identifiers
+   info • The local variable '_titleController' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2551:9 • no_leading_underscores_for_local_identifiers
+   info • The local variable '_moodController' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2552:9 • no_leading_underscores_for_local_identifiers
+   info • The local variable '_poiName' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2553:10 • no_leading_underscores_for_local_identifiers
+   info • The local variable '_poiAddress' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2554:10 • no_leading_underscores_for_local_identifiers
+   info • The local variable '_latitude' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2555:11 • no_leading_underscores_for_local_identifiers
+   info • The local variable '_longitude' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2556:11 • no_leading_underscores_for_local_identifiers
+   info • The local variable '_date' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2558:12 • no_leading_underscores_for_local_identifiers
+   info • The local variable '_imageUrls' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2559:22 • no_leading_underscores_for_local_identifiers
+   info • The local variable '_linkedFriendIds' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2561:21 • no_leading_underscores_for_local_identifiers
+   info • The local variable '_linkedFoodIds' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2562:21 • no_leading_underscores_for_local_identifiers
+   info • The local variable '_linkTravel' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2563:8 • no_leading_underscores_for_local_identifiers
+   info • The local variable '_linkGoal' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2564:8 • no_leading_underscores_for_local_identifiers
+warning • The declaration 'dispose' isn't referenced • lib/features/bond/presentation/bond_page.dart:2567:8 • unused_element
+   info • The local variable '_formatDate' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2573:10 • no_leading_underscores_for_local_identifiers
+   info • The local variable '_pickDate' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2578:16 • no_leading_underscores_for_local_identifiers
+   info • The local variable '_addPlaceholderImage' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2603:16 • no_leading_underscores_for_local_identifiers
+  error • Local variable '_persistImages' can't be referenced before it is declared • lib/features/bond/presentation/bond_page.dart:2607:26 • referenced_before_declaration
+   info • The local variable '_persistImages' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2612:24 • no_leading_underscores_for_local_identifiers
+   info • The local variable '_removeImageAt' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2616:8 • no_leading_underscores_for_local_identifiers
+   info • The local variable '_selectFriends' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2620:16 • no_leading_underscores_for_local_identifiers
+  error • The method '_AvatarCircle' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2635:30 • undefined_method
+   info • The local variable '_selectFoods' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2652:16 • no_leading_underscores_for_local_identifiers
+  error • The name '_IconSquare' isn't a class • lib/features/bond/presentation/bond_page.dart:2667:36 • creation_with_non_type
+   info • The local variable '_selectLocation' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2684:16 • no_leading_underscores_for_local_identifiers
+   info • The local variable '_save' starts with an underscore • lib/features/bond/presentation/bond_page.dart:2705:16 • no_leading_underscores_for_local_identifiers
+warning • The declaration 'build' isn't referenced • lib/features/bond/presentation/bond_page.dart:2770:10 • unused_element
+  error • The method '_CreateTopBar' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2777:13 • undefined_method
+  error • The method '_SectionCard' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2787:19 • undefined_method
+  error • The method '_SectionCard' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2799:19 • undefined_method
+  error • The method '_SelectedAvatarsRow' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2808:40 • undefined_method
+  error • The method '_FieldCard' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2835:32 • undefined_method
+  error • The method '_FieldCard' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2854:32 • undefined_method
+  error • The method '_SectionCard' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2895:19 • undefined_method
+  error • The method '_SectionCard' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2909:19 • undefined_method
+  error • The method '_PhotoAddTile' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2924:38 • undefined_method
+  error • The method '_PhotoTile' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2926:36 • undefined_method
+  error • The method '_SectionCard' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2933:19 • undefined_method
+  error • The method '_LinkToggleRow' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2938:25 • undefined_method
+  error • The method '_LinkToggleRow' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2948:25 • undefined_method
+  error • The method '_LinkToggleRow' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2958:25 • undefined_method
+  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:2980:1 • class_in_class
+  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:2980:17 • expected_class_member
+   info • The variable name 'StatelessWidget' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:2980:25 • non_constant_identifier_names
+  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:2980:25 • missing_method_parameters
+  error • The name '_ChipPill' isn't a class • lib/features/bond/presentation/bond_page.dart:2981:9 • creation_with_non_type
+  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:2981:29 • expected_token
+  error • The getter 'text' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2981:34 • undefined_getter
+warning • The declaration 'build' isn't referenced • lib/features/bond/presentation/bond_page.dart:2986:10 • unused_element
+  error • The final variable 'text' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:2990:19 • read_potentially_unassigned_final
+  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:2995:1 • class_in_class
+  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:2995:21 • expected_class_member
+   info • The variable name 'StatelessWidget' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:2995:29 • non_constant_identifier_names
+  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:2995:29 • missing_method_parameters
+  error • The name 'StatelessWidget' is already defined • lib/features/bond/presentation/bond_page.dart:2995:29 • duplicate_definition
+  error • The name '_CreateTopBar' isn't a class • lib/features/bond/presentation/bond_page.dart:2996:9 • creation_with_non_type
+  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:2997:14 • expected_token
+  error • The getter 'title' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2997:19 • undefined_getter
+  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:2998:14 • expected_token
+  error • The getter 'onCancel' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2998:19 • undefined_getter
+  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:2999:14 • expected_token
+  error • The getter 'actionText' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:2999:19 • undefined_getter
+  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3000:14 • expected_token
+  error • The getter 'onAction' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3000:19 • undefined_getter
+warning • The declaration 'build' isn't referenced • lib/features/bond/presentation/bond_page.dart:3009:10 • unused_element
+  error • The final variable 'onCancel' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3020:24 • read_potentially_unassigned_final
+  error • The final variable 'title' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3024:32 • read_potentially_unassigned_final
+  error • The final variable 'onAction' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3026:24 • read_potentially_unassigned_final
+  error • The final variable 'actionText' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3035:25 • read_potentially_unassigned_final
+  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:3043:1 • class_in_class
+  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:3043:20 • expected_class_member
+   info • The variable name 'StatelessWidget' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:3043:28 • non_constant_identifier_names
+  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:3043:28 • missing_method_parameters
+  error • The name 'StatelessWidget' is already defined • lib/features/bond/presentation/bond_page.dart:3043:28 • duplicate_definition
+  error • The name '_SectionCard' isn't a class • lib/features/bond/presentation/bond_page.dart:3044:9 • creation_with_non_type
+  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3044:32 • expected_token
+  error • The getter 'title' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3044:37 • undefined_getter
+  error • The getter 'trailing' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3044:49 • undefined_getter
+  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3044:68 • expected_token
+  error • The getter 'child' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3044:73 • undefined_getter
+warning • The declaration 'build' isn't referenced • lib/features/bond/presentation/bond_page.dart:3051:10 • unused_element
+  error • The final variable 'title' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3065:20 • read_potentially_unassigned_final
+warning • The operand must be 'null', so the condition is always 'false' • lib/features/bond/presentation/bond_page.dart:3067:19 • unnecessary_null_comparison
+  error • The final variable 'trailing' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3067:19 • read_potentially_unassigned_final
+  error • The final variable 'trailing' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3067:37 • read_potentially_unassigned_final
+warning • The '!' will have no effect because the receiver can't be null • lib/features/bond/presentation/bond_page.dart:3067:45 • unnecessary_non_null_assertion
+  error • The final variable 'child' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3071:11 • read_potentially_unassigned_final
+  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:3078:1 • class_in_class
+  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:3078:18 • expected_class_member
+   info • The variable name 'StatelessWidget' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:3078:26 • non_constant_identifier_names
+  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:3078:26 • missing_method_parameters
+  error • The name 'StatelessWidget' is already defined • lib/features/bond/presentation/bond_page.dart:3078:26 • duplicate_definition
+  error • The name '_FieldCard' isn't a class • lib/features/bond/presentation/bond_page.dart:3079:9 • creation_with_non_type
+  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3080:14 • expected_token
+  error • The getter 'label' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3080:19 • undefined_getter
+  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3081:14 • expected_token
+  error • The getter 'icon' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3081:19 • undefined_getter
+  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3082:14 • expected_token
+  error • The getter 'iconColor' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3082:19 • undefined_getter
+  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3083:14 • expected_token
+  error • The getter 'child' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3083:19 • undefined_getter
+warning • The declaration 'build' isn't referenced • lib/features/bond/presentation/bond_page.dart:3092:10 • unused_element
+  error • The final variable 'label' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3104:16 • read_potentially_unassigned_final
+  error • The final variable 'icon' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3108:20 • read_potentially_unassigned_final
+  error • The final variable 'iconColor' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3108:43 • read_potentially_unassigned_final
+  error • The final variable 'child' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3110:31 • read_potentially_unassigned_final
+  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:3119:1 • class_in_class
+  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:3119:18 • expected_class_member
+   info • The variable name 'StatelessWidget' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:3119:26 • non_constant_identifier_names
+  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:3119:26 • missing_method_parameters
+  error • The name 'StatelessWidget' is already defined • lib/features/bond/presentation/bond_page.dart:3119:26 • duplicate_definition
+  error • The name '_PhotoTile' isn't a class • lib/features/bond/presentation/bond_page.dart:3120:9 • creation_with_non_type
+  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3120:30 • expected_token
+  error • The getter 'url' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3120:35 • undefined_getter
+  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3120:49 • expected_token
+  error • The getter 'onRemove' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3120:54 • undefined_getter
+warning • The declaration 'build' isn't referenced • lib/features/bond/presentation/bond_page.dart:3126:10 • unused_element
+  error • The final variable 'url' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3132:28 • read_potentially_unassigned_final
+  error • The final variable 'onRemove' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3137:22 • read_potentially_unassigned_final
+  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:3152:1 • class_in_class
+  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:3152:21 • expected_class_member
+   info • The variable name 'StatelessWidget' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:3152:29 • non_constant_identifier_names
+  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:3152:29 • missing_method_parameters
+  error • The name 'StatelessWidget' is already defined • lib/features/bond/presentation/bond_page.dart:3152:29 • duplicate_definition
+  error • The name '_PhotoAddTile' isn't a class • lib/features/bond/presentation/bond_page.dart:3153:9 • creation_with_non_type
+  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3153:33 • expected_token
+  error • The getter 'onTap' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3153:38 • undefined_getter
+warning • The declaration 'build' isn't referenced • lib/features/bond/presentation/bond_page.dart:3158:10 • unused_element
+  error • The final variable 'onTap' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3161:14 • read_potentially_unassigned_final
+warning • The declaration '_tagsOrFallback' isn't referenced • lib/features/bond/presentation/bond_page.dart:3207:14 • unused_element
+warning • The declaration '_formatDays' isn't referenced • lib/features/bond/presentation/bond_page.dart:3212:8 • unused_element
+warning • The declaration '_formatLastMeet' isn't referenced • lib/features/bond/presentation/bond_page.dart:3221:8 • unused_element
+warning • The declaration '_formatBirthday' isn't referenced • lib/features/bond/presentation/bond_page.dart:3231:8 • unused_element
+warning • The declaration '_formatOrFallback' isn't referenced • lib/features/bond/presentation/bond_page.dart:3237:8 • unused_element
+  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:3242:1 • class_in_class
+  error • Undefined class '_EncounterNoteParts' • lib/features/bond/presentation/bond_page.dart:3254:1 • undefined_class
+  error • The name '_EncounterNoteParts' isn't a class • lib/features/bond/presentation/bond_page.dart:3257:18 • creation_with_non_type
+  error • The method '_EncounterNoteParts' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3287:10 • undefined_method
+  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:3322:1 • class_in_class
+  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:3322:22 • expected_class_member
+   info • The variable name 'StatelessWidget' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:3322:30 • non_constant_identifier_names
+  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:3322:30 • missing_method_parameters
+  error • The name 'StatelessWidget' is already defined • lib/features/bond/presentation/bond_page.dart:3322:30 • duplicate_definition
+  error • The name '_LinkToggleRow' isn't a class • lib/features/bond/presentation/bond_page.dart:3323:9 • creation_with_non_type
+  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3324:14 • expected_token
+  error • The getter 'title' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3324:19 • undefined_getter
+  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3325:14 • expected_token
+  error • The getter 'subtitle' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3325:19 • undefined_getter
+  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3326:14 • expected_token
+  error • The getter 'iconBackground' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3326:19 • undefined_getter
+  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3327:14 • expected_token
+  error • The getter 'icon' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3327:19 • undefined_getter
+  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3328:14 • expected_token
+  error • The getter 'iconColor' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3328:19 • undefined_getter
+  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3329:14 • expected_token
+  error • The getter 'checked' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3329:19 • undefined_getter
+  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3330:14 • expected_token
+  error • The getter 'onTap' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3330:19 • undefined_getter
+warning • The declaration 'build' isn't referenced • lib/features/bond/presentation/bond_page.dart:3342:10 • unused_element
+  error • The final variable 'onTap' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3345:14 • read_potentially_unassigned_final
+  error • The final variable 'checked' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3349:18 • read_potentially_unassigned_final
+  error • The final variable 'checked' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3351:37 • read_potentially_unassigned_final
+  error • The final variable 'iconBackground' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3358:48 • read_potentially_unassigned_final
+  error • The final variable 'icon' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3359:27 • read_potentially_unassigned_final
+  error • The final variable 'iconColor' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3359:40 • read_potentially_unassigned_final
+  error • The final variable 'title' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3366:24 • read_potentially_unassigned_final
+  error • The final variable 'subtitle' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3368:24 • read_potentially_unassigned_final
+  error • The final variable 'checked' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3372:17 • read_potentially_unassigned_final
+  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:3388:1 • class_in_class
+  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:3388:25 • expected_class_member
+   info • The variable name 'StatelessWidget' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:3388:33 • non_constant_identifier_names
+  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:3388:33 • missing_method_parameters
+  error • The name 'StatelessWidget' is already defined • lib/features/bond/presentation/bond_page.dart:3388:33 • duplicate_definition
+  error • The name '_BottomSheetShell' isn't a class • lib/features/bond/presentation/bond_page.dart:3389:9 • creation_with_non_type
+  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3390:14 • expected_token
+  error • The getter 'title' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3390:19 • undefined_getter
+  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3391:14 • expected_token
+  error • The getter 'actionText' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3391:19 • undefined_getter
+  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3392:14 • expected_token
+  error • The getter 'onAction' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3392:19 • undefined_getter
+  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3393:14 • expected_token
+  error • The getter 'child' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3393:19 • undefined_getter
+warning • The declaration 'build' isn't referenced • lib/features/bond/presentation/bond_page.dart:3402:10 • unused_element
+  error • The final variable 'title' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3422:35 • read_potentially_unassigned_final
+  error • The final variable 'onAction' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3425:34 • read_potentially_unassigned_final
+  error • The final variable 'actionText' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3427:35 • read_potentially_unassigned_final
+  error • The final variable 'child' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3432:15 • read_potentially_unassigned_final
+  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:3441:1 • class_in_class
+  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:3441:21 • expected_class_member
+   info • The variable name 'StatelessWidget' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:3441:29 • non_constant_identifier_names
+  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:3441:29 • missing_method_parameters
+  error • The name 'StatelessWidget' is already defined • lib/features/bond/presentation/bond_page.dart:3441:29 • duplicate_definition
+  error • The name '_AvatarCircle' isn't a class • lib/features/bond/presentation/bond_page.dart:3442:9 • creation_with_non_type
+  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3442:33 • expected_token
+  error • The getter 'name' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3442:38 • undefined_getter
+  error • The getter 'imagePath' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3442:49 • undefined_getter
+warning • The declaration 'build' isn't referenced • lib/features/bond/presentation/bond_page.dart:3448:10 • unused_element
+  error • The final variable 'name' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3449:21 • read_potentially_unassigned_final
+warning • Dead code • lib/features/bond/presentation/bond_page.dart:3451:18 • dead_code
+  error • The final variable 'imagePath' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3451:18 • read_potentially_unassigned_final
+  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:3464:1 • class_in_class
+  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:3464:19 • expected_class_member
+   info • The variable name 'StatelessWidget' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:3464:27 • non_constant_identifier_names
+  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:3464:27 • missing_method_parameters
+  error • The name 'StatelessWidget' is already defined • lib/features/bond/presentation/bond_page.dart:3464:27 • duplicate_definition
+  error • The name '_IconSquare' isn't a class • lib/features/bond/presentation/bond_page.dart:3465:9 • creation_with_non_type
+  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3465:31 • expected_token
+  error • The getter 'color' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3465:36 • undefined_getter
+  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3465:52 • expected_token
+  error • The getter 'icon' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3465:57 • undefined_getter
+  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3465:72 • expected_token
+  error • The getter 'iconColor' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3465:77 • undefined_getter
+warning • The declaration 'build' isn't referenced • lib/features/bond/presentation/bond_page.dart:3472:10 • unused_element
+  error • The final variable 'color' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3476:40 • read_potentially_unassigned_final
+  error • The final variable 'icon' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3477:19 • read_potentially_unassigned_final
+  error • The final variable 'iconColor' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3477:32 • read_potentially_unassigned_final
+  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:3482:1 • class_in_class
+  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:3482:27 • expected_class_member
+   info • The variable name 'ConsumerWidget' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:3482:35 • non_constant_identifier_names
+  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:3482:35 • missing_method_parameters
+  error • The name '_SelectedAvatarsRow' isn't a class • lib/features/bond/presentation/bond_page.dart:3483:9 • creation_with_non_type
+  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3483:39 • expected_token
+  error • The getter 'selectedIds' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3483:44 • undefined_getter
+  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3483:66 • expected_token
+  error • The getter 'onTap' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3483:71 • undefined_getter
+warning • The declaration 'build' isn't referenced • lib/features/bond/presentation/bond_page.dart:3489:10 • unused_element
+  error • The final variable 'selectedIds' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3495:43 • read_potentially_unassigned_final
+  error • The final variable 'onTap' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3498:18 • read_potentially_unassigned_final
+  error • The method '_AvatarCircle' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3516:27 • undefined_method
+  error • Classes can't be declared inside other classes • lib/features/bond/presentation/bond_page.dart:3537:1 • class_in_class
+  error • Expected a class member • lib/features/bond/presentation/bond_page.dart:3537:27 • expected_class_member
+   info • The variable name 'ConsumerWidget' isn't a lowerCamelCase identifier • lib/features/bond/presentation/bond_page.dart:3537:35 • non_constant_identifier_names
+  error • Methods must have an explicit list of parameters • lib/features/bond/presentation/bond_page.dart:3537:35 • missing_method_parameters
+  error • The name 'ConsumerWidget' is already defined • lib/features/bond/presentation/bond_page.dart:3537:35 • duplicate_definition
+  error • The name 'EncounterDetailPage' isn't a class • lib/features/bond/presentation/bond_page.dart:3538:9 • creation_with_non_type
+  error • The getter 'key' isn't defined in a superclass of '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3538:36 • undefined_super_member
+  error • Expected to find ',' • lib/features/bond/presentation/bond_page.dart:3538:50 • expected_token
+  error • The getter 'encounterId' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3538:55 • undefined_getter
+warning • The declaration 'build' isn't referenced • lib/features/bond/presentation/bond_page.dart:3543:10 • unused_element
+  error • The final variable 'encounterId' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3549:40 • read_potentially_unassigned_final
+  error • The final variable 'encounterId' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3698:111 • read_potentially_unassigned_final
+  error • The final variable 'encounterId' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3700:129 • read_potentially_unassigned_final
+  error • The method '_AvatarCircle' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3720:53 • undefined_method
+  error • The final variable 'encounterId' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3735:111 • read_potentially_unassigned_final
+  error • The final variable 'encounterId' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3738:91 • read_potentially_unassigned_final
+  error • The final variable 'encounterId' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3739:93 • read_potentially_unassigned_final
+  error • The final variable 'encounterId' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3740:93 • read_potentially_unassigned_final
+  error • The final variable 'encounterId' can't be read because it's potentially unassigned at this point • lib/features/bond/presentation/bond_page.dart:3741:91 • read_potentially_unassigned_final
+  error • The method '_ChipPill' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3743:73 • undefined_method
+  error • The method '_ChipPill' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3744:75 • undefined_method
+  error • The method '_ChipPill' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3745:75 • undefined_method
+  error • The method '_ChipPill' isn't defined for the type '_FriendCreatePageState' • lib/features/bond/presentation/bond_page.dart:3746:73 • undefined_method
+  error • Expected to find '}' • lib/features/bond/presentation/bond_page.dart:3804:1 • expected_token
+warning • The declaration '_initialLetter' isn't referenced • lib/features/bond/presentation/encounter_pages.dart:30:8 • unused_element
+warning • The declaration 'openMapPreview' isn't referenced • lib/features/bond/presentation/encounter_pages.dart:838:14 • unused_element
+   info • Unnecessary 'const' keyword • lib/features/bond/presentation/encounter_pages.dart:900:85 • unnecessary_const
 warning • The value of the local variable 'progress' isn't used • lib/features/goal/presentation/goal_page.dart:699:11 • unused_local_variable
 warning • A value for optional parameter 'onToggle' isn't ever given • lib/features/goal/presentation/goal_page.dart:844:67 • unused_element
 warning • The left operand can't be null, so the right operand is never executed • lib/features/goal/presentation/goal_page.dart:895:60 • dead_null_aware_expression
 warning • The left operand can't be null, so the right operand is never executed • lib/features/goal/presentation/goal_page.dart:1470:60 • dead_null_aware_expression
-  error • The named parameter 'item' is required, but there's no corresponding argument • lib/features/goal/presentation/goal_page.dart:4064:47 • missing_required_argument
-  error • Too many positional arguments: 0 expected, but 1 found • lib/features/goal/presentation/goal_page.dart:4064:64 • extra_positional_arguments_could_be_named
-  error • The argument type 'String?' can't be assigned to the parameter type 'String'.  • lib/features/goal/presentation/goal_page.dart:4098:22 • argument_type_not_assignable
-  error • The named parameter 'item' is required, but there's no corresponding argument • lib/features/goal/presentation/goal_page.dart:4505:85 • missing_required_argument
-  error • Too many positional arguments: 0 expected, but 1 found • lib/features/goal/presentation/goal_page.dart:4505:102 • extra_positional_arguments_could_be_named
-  error • The argument type 'String?' can't be assigned to the parameter type 'String'.  • lib/features/goal/presentation/goal_page.dart:4519:23 • argument_type_not_assignable
-warning • The declaration '_MemoryCard' isn't referenced • lib/features/goal/presentation/goal_page.dart:4613:7 • unused_element
-warning • The declaration '_TextMemoryCard' isn't referenced • lib/features/goal/presentation/goal_page.dart:4661:7 • unused_element
+  error • The function 'delete' isn't defined • lib/features/goal/presentation/goal_page.dart:2994:14 • undefined_function
+  error • The named parameter 'item' is required, but there's no corresponding argument • lib/features/goal/presentation/goal_page.dart:4086:47 • missing_required_argument
+  error • Too many positional arguments: 0 expected, but 1 found • lib/features/goal/presentation/goal_page.dart:4086:64 • extra_positional_arguments_could_be_named
+  error • The argument type 'String?' can't be assigned to the parameter type 'String'.  • lib/features/goal/presentation/goal_page.dart:4120:22 • argument_type_not_assignable
+  error • The named parameter 'item' is required, but there's no corresponding argument • lib/features/goal/presentation/goal_page.dart:4527:85 • missing_required_argument
+  error • Too many positional arguments: 0 expected, but 1 found • lib/features/goal/presentation/goal_page.dart:4527:102 • extra_positional_arguments_could_be_named
+  error • The argument type 'String?' can't be assigned to the parameter type 'String'.  • lib/features/goal/presentation/goal_page.dart:4541:23 • argument_type_not_assignable
+warning • The declaration '_MemoryCard' isn't referenced • lib/features/goal/presentation/goal_page.dart:4635:7 • unused_element
+393 issues found. (ran in 7.2s)
+warning • The declaration '_TextMemoryCard' isn't referenced • lib/features/goal/presentation/goal_page.dart:4683:7 • unused_element
 warning • Unused import: '../../bond/presentation/bond_page.dart' • lib/features/home_schedule/presentation/home_schedule_page.dart:16:8 • unused_import
   error • The method 'EncounterDetailPage' isn't defined for the type '_EventStream' • lib/features/home_schedule/presentation/home_schedule_page.dart:1319:66 • undefined_method
 warning • Unused import: 'dart:async' • lib/features/profile/presentation/data_management_page.dart:1:8 • unused_import
@@ -505,8 +387,13 @@ warning • The declaration '_DataManagementPageState' isn't referenced • lib/
    info • An uninitialized variable should have an explicit type annotation • lib/features/profile/presentation/data_management_page.dart:23:76 • prefer_typing_uninitialized_variables
   error • Variables must be declared using the keywords 'const', 'final', 'var' or a type name • lib/features/profile/presentation/data_management_page.dart:23:76 • missing_const_final_var_or_type
   error • Expected a method, getter, setter or operator declaration • lib/features/profile/presentation/data_management_page.dart:23:80 • expected_executable
-warning • The value of the field '_loadingSummary' isn't used • lib/features/profile/presentation/profile_page.dart:1211:8 • unused_field
-warning • The value of the field '_summaries' isn't used • lib/features/profile/presentation/profile_page.dart:1213:32 • unused_field
+warning • The value of the field '_loadingSummary' isn't used • lib/features/profile/presentation/profile_page.dart:1282:8 • unused_field
+warning • The value of the field '_summaries' isn't used • lib/features/profile/presentation/profile_page.dart:1284:32 • unused_field
+  error • Undefined class 'PdfGraphics' • lib/features/profile/presentation/profile_page.dart:1720:23 • undefined_class
+  error • Undefined class 'PdfGraphics' • lib/features/profile/presentation/profile_page.dart:1787:27 • undefined_class
+  error • The method 'cos' isn't defined for the type 'double' • lib/features/profile/presentation/profile_page.dart:1798:76 • undefined_method
+  error • The method 'sin' isn't defined for the type 'double' • lib/features/profile/presentation/profile_page.dart:1799:76 • undefined_method
+   info • Unnecessary braces in a string interpolation • lib/features/profile/presentation/profile_page.dart:1827:68 • unnecessary_brace_in_string_interps
+warning • The declaration '_buildPdfConclusionPage' isn't referenced • lib/features/profile/presentation/profile_page.dart:2167:11 • unused_element
 
-506 issues found. (ran in 7.1s)
 Error: Process completed with exit code 1.

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -1717,7 +1718,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
           width: 400,
           height: 200,
           child: pw.CustomPaint(
-            painter: (pw.PdfGraphics canvas, PdfPoint size) {
+            painter: (canvas, size) {
               final startX = 50.0;
               final startY = size.y - 30.0;
               final barWidth = 60.0;
@@ -1728,10 +1729,9 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
                 final height = (summaries[i].count / maxCount) * (size.y - 60.0);
                 final y = startY - height;
                 
-                canvas.drawRect(
-                  PdfRect(x, y, barWidth, height),
-                  color: colors[i % colors.length],
-                );
+                canvas.drawRect(x, y, barWidth, height);
+                canvas.setFillColor(colors[i % colors.length]);
+                canvas.fillPath();
               }
             },
           ),
@@ -1784,7 +1784,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
               width: 200,
               height: 200,
               child: pw.CustomPaint(
-                painter: (pw.PdfGraphics canvas, PdfPoint size) {
+                painter: (canvas, size) {
                   final centerX = size.x / 2;
                   final centerY = size.y / 2;
                   final radius = 80.0;
@@ -1795,12 +1795,13 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
                     
                     canvas.moveTo(centerX, centerY);
                     for (var angle = startAngle; angle <= startAngle + sweepAngle; angle += 0.01) {
-                      final x = centerX + radius * (angle * 180 / 3.14159).cos();
-                      final y = centerY + radius * (angle * 180 / 3.14159).sin();
+                      final x = centerX + radius * math.cos(angle);
+                      final y = centerY + radius * math.sin(angle);
                       canvas.lineTo(x, y);
                     }
                     canvas.closePath();
-                    canvas.fillPath(color: colors[i % colors.length]);
+                    canvas.setFillColor(colors[i % colors.length]);
+                    canvas.fillPath();
                     
                     startAngle += sweepAngle;
                   }
