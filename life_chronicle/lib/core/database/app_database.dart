@@ -16,17 +16,18 @@ part 'daos/sync_state_dao.dart';
 part 'daos/checklist_dao.dart';
 part 'daos/goal_postponement_dao.dart';
 part 'daos/goal_review_dao.dart';
+part 'daos/backup_log_dao.dart';
 
 @DriftDatabase(
-  tables: [FoodRecords, MomentRecords, FriendRecords, TravelRecords, Trips, GoalRecords, TimelineEvents, EntityLinks, LinkLogs, UserProfiles, AiProviders, ChangeLogs, SyncState, ChecklistItems, GoalPostponements, GoalReviews],
-  daos: [FoodDao, MomentDao, FriendDao, LinkDao, AiProviderDao, ChangeLogDao, SyncStateDao, ChecklistDao, GoalPostponementDao, GoalReviewDao],
+  tables: [FoodRecords, MomentRecords, FriendRecords, TravelRecords, Trips, GoalRecords, TimelineEvents, EntityLinks, LinkLogs, UserProfiles, AiProviders, ChangeLogs, SyncState, ChecklistItems, GoalPostponements, GoalReviews, BackupLogs],
+  daos: [FoodDao, MomentDao, FriendDao, LinkDao, AiProviderDao, ChangeLogDao, SyncStateDao, ChecklistDao, GoalPostponementDao, GoalReviewDao, BackupLogDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(dbconn.openConnection());
   AppDatabase.connect(super.executor);
 
   @override
-  int get schemaVersion => 15; // 升级到 15，goal_records 新增 tags 字段，moment_records.scene_tag 重命名为 tags
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -83,6 +84,7 @@ class AppDatabase extends _$AppDatabase {
           await ensureTable(checklistItems);
           await ensureTable(goalPostponements);
           await ensureTable(goalReviews);
+          await ensureTable(backupLogs);
 
           await ensureColumn(table: foodRecords, column: foodRecords.isFavorite);
           await ensureColumn(table: momentRecords, column: momentRecords.isFavorite);

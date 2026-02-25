@@ -4240,6 +4240,7 @@ class $GoalRecordsTable extends GoalRecords
         note,
         summary,
         category,
+        tags,
         progress,
         isCompleted,
         isPostponed,
@@ -4295,6 +4296,10 @@ class $GoalRecordsTable extends GoalRecords
     if (data.containsKey('category')) {
       context.handle(_categoryMeta,
           category.isAcceptableOrUnknown(data['category']!, _categoryMeta));
+    }
+    if (data.containsKey('tags')) {
+      context.handle(_tagsMeta,
+          tags.isAcceptableOrUnknown(data['tags']!, _tagsMeta));
     }
     if (data.containsKey('progress')) {
       context.handle(_progressMeta,
@@ -10142,7 +10147,7 @@ class $$MomentRecordsTableTableManager extends RootTableManager<
             Value<String?> images = const Value.absent(),
             Value<String> mood = const Value.absent(),
             Value<String?> moodColor = const Value.absent(),
-            Value<String?> sceneTag = const Value.absent(),
+            Value<String?> tags = const Value.absent(),
             Value<String?> poiName = const Value.absent(),
             Value<String?> poiAddress = const Value.absent(),
             Value<double?> latitude = const Value.absent(),
@@ -10180,7 +10185,7 @@ class $$MomentRecordsTableTableManager extends RootTableManager<
             Value<String?> images = const Value.absent(),
             required String mood,
             Value<String?> moodColor = const Value.absent(),
-            Value<String?> sceneTag = const Value.absent(),
+            Value<String?> tags = const Value.absent(),
             Value<String?> poiName = const Value.absent(),
             Value<String?> poiAddress = const Value.absent(),
             Value<double?> latitude = const Value.absent(),
@@ -10199,7 +10204,7 @@ class $$MomentRecordsTableTableManager extends RootTableManager<
             images: images,
             mood: mood,
             moodColor: moodColor,
-            sceneTag: sceneTag,
+            tags: tags,
             poiName: poiName,
             poiAddress: poiAddress,
             latitude: latitude,

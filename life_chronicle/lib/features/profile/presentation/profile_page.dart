@@ -1162,24 +1162,52 @@ class ChronicleGenerateConfigPage extends ConsumerStatefulWidget {
 }
 
 class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateConfigPage> {
-  static const _rangeOptions = ['近7天', '近30天', '近90天', '自定义'];
-  static const _moduleTitles = {
-    'food': '美食',
-    'travel': '旅行',
-    'moment': '小确幸',
-    'bond': '羁绊',
-    'goal': '目标',
-    'encounter': '相遇',
-  };
+  static const _rangeOptions = ['2024 年度', '近三年', '自定义'];
+  static const _modules = [
+    {
+      'key': 'food',
+      'title': '寻味美食',
+      'desc': '记录味蕾的感动瞬间',
+      'icon': Icons.restaurant,
+      'color': Color(0xFFFFA726),
+    },
+    {
+      'key': 'travel',
+      'title': '漫游足迹',
+      'desc': '探索世界的每一个角落',
+      'icon': Icons.flight_takeoff,
+      'color': Color(0xFF42A5F5),
+    },
+    {
+      'key': 'bond',
+      'title': '情感羁绊',
+      'desc': '与重要之人的温暖交集',
+      'icon': Icons.favorite,
+      'color': Color(0xFFEC407A),
+    },
+    {
+      'key': 'goal',
+      'title': '人生目标',
+      'desc': '每一个努力达成的小成就',
+      'icon': Icons.track_changes,
+      'color': Color(0xFFAB47BC),
+    },
+    {
+      'key': 'moment',
+      'title': '日常小确幸',
+      'desc': '平凡生活中的闪光时刻',
+      'icon': Icons.auto_awesome,
+      'color': Color(0xFFFFCA28),
+    },
+  ];
 
   final _titleController = TextEditingController();
-  final _aiController = TextEditingController();
-  final _userController = TextEditingController();
+  final _aiSummaryController = TextEditingController();
+  final _chatInputController = TextEditingController();
 
-  int _rangeIndex = 1;
+  int _rangeIndex = 0;
   DateTimeRange? _customRange;
   bool _loadingSummary = true;
-  bool _aiEdited = false;
   bool _generating = false;
   List<ChronicleModuleSummary> _summaries = const [];
   Map<String, bool> _moduleSelection = {};
@@ -1187,32 +1215,43 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
   @override
   void initState() {
     super.initState();
-    _moduleSelection = {for (final key in _moduleTitles.keys) key: true};
-    _refreshSummary(forceAi: true);
+    _moduleSelection = {
+      'food': true,
+      'travel': true,
+      'moment': true,
+      'bond': false,
+      'goal': false,
+    };
+    _refreshSummary();
   }
 
   @override
   void dispose() {
     _titleController.dispose();
-    _aiController.dispose();
-    _userController.dispose();
+    _aiSummaryController.dispose();
+    _chatInputController.dispose();
     super.dispose();
   }
 
   DateTimeRange _currentRange() {
     final now = DateTime.now();
-    if (_rangeIndex == 3 && _customRange != null) {
+    if (_rangeIndex == 2 && _customRange != null) {
       return _customRange!;
     }
-    final days = _rangeIndex == 0 ? 7 : (_rangeIndex == 1 ? 30 : 90);
+    if (_rangeIndex == 0) {
+      return DateTimeRange(
+        start: DateTime(2024, 1, 1),
+        end: DateTime(2024, 12, 31),
+      );
+    }
     final end = DateTime(now.year, now.month, now.day);
-    final start = end.subtract(Duration(days: days - 1));
+    final start = end.subtract(const Duration(days: 365 * 3 - 1));
     return DateTimeRange(start: start, end: end);
   }
 
-  String _rangeLabel() {
-    final range = _currentRange();
-    return '${_formatChronicleDate(range.start)} - ${_formatChronicleDate(range.end)}';
+  String _formatDate(DateTime date) {
+    String two(int v) => v.toString().padLeft(2, '0');
+    return '${date.year}.${two(date.month)}.${two(date.day)}';
   }
 
   Set<String> _selectedModules() {
@@ -1222,7 +1261,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
   Future<void> _pickCustomRange() async {
     final initial = _customRange ??
         DateTimeRange(
-          start: DateTime.now().subtract(const Duration(days: 7)),
+          start: DateTime.now().subtract(const Duration(days: 30)),
           end: DateTime.now(),
         );
     final picked = await showDateRangePicker(
@@ -1235,12 +1274,12 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
     if (picked == null) return;
     setState(() {
       _customRange = picked;
-      _rangeIndex = 3;
+      _rangeIndex = 2;
     });
     _refreshSummary();
   }
 
-  Future<void> _refreshSummary({bool forceAi = false}) async {
+  Future<void> _refreshSummary() async {
     setState(() => _loadingSummary = true);
     final range = _currentRange();
     final db = ref.read(appDatabaseProvider);
@@ -1249,10 +1288,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
     setState(() {
       _summaries = content.moduleSummaries;
       _loadingSummary = false;
-      if (!_aiEdited || forceAi) {
-        _aiController.text = content.aiSummary;
-        _aiEdited = false;
-      }
+      _aiSummaryController.text = content.aiSummary;
     });
   }
 
@@ -1365,17 +1401,6 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
         ),
       );
     }
-    if (modules.contains('encounter')) {
-      final records = await events('encounter');
-      summaries.add(
-        ChronicleModuleSummary(
-          key: 'encounter',
-          title: '相遇',
-          count: records.length,
-          highlights: records.map((e) => e.title.trim()).where((e) => e.isNotEmpty).take(3).toList(),
-        ),
-      );
-    }
     final aiSummary = _buildAiSummary(range, summaries);
     return ChronicleGeneratedContent(
       rangeStart: range.start,
@@ -1388,7 +1413,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
   String _buildAiSummary(DateTimeRange range, List<ChronicleModuleSummary> summaries) {
     final total = summaries.fold<int>(0, (prev, e) => prev + e.count);
     final summaryLines = <String>[
-      '时间范围：${_formatChronicleDate(range.start)} - ${_formatChronicleDate(range.end)}',
+      '时间范围：${_formatDate(range.start)} - ${_formatDate(range.end)}',
       '共整理 $total 条记录，覆盖 ${summaries.length} 个模块。',
     ];
     for (final item in summaries) {
@@ -1402,7 +1427,6 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
     String title,
     DateTimeRange range,
     String aiSummary,
-    String userSummary,
     List<ChronicleModuleSummary> summaries,
   ) async {
     final exportDir = await chronicleExportDir();
@@ -1414,10 +1438,10 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
     final pdfPath = p.join(exportDir.path, '$safeTitle-$stamp.pdf');
     final epubPath = p.join(exportDir.path, '$safeTitle-$stamp.epub');
 
-    final pdfBytes = await _buildPdfBytes(title, range, aiSummary, userSummary, summaries);
+    final pdfBytes = await _buildPdfBytes(title, range, aiSummary, summaries);
     await File(pdfPath).writeAsBytes(pdfBytes, flush: true);
 
-    final epubBytes = await _buildEpubBytes(title, range, aiSummary, userSummary, summaries);
+    final epubBytes = await _buildEpubBytes(title, range, aiSummary, summaries);
     await File(epubPath).writeAsBytes(epubBytes, flush: true);
 
     return _ChronicleExportResult(pdfPath: pdfPath, epubPath: epubPath);
@@ -1427,7 +1451,6 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
     String title,
     DateTimeRange range,
     String aiSummary,
-    String userSummary,
     List<ChronicleModuleSummary> summaries,
   ) async {
     final doc = pw.Document();
@@ -1438,17 +1461,11 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
           final widgets = <pw.Widget>[
             pw.Text(title, style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
             pw.SizedBox(height: 6),
-            pw.Text('时间范围：${_formatChronicleDate(range.start)} - ${_formatChronicleDate(range.end)}'),
+            pw.Text('时间范围：${_formatDate(range.start)} - ${_formatDate(range.end)}'),
             pw.SizedBox(height: 14),
-            pw.Text('AI 初步分析', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+            pw.Text('AI 总结', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
             pw.SizedBox(height: 6),
             pw.Text(aiSummary.isEmpty ? '暂无内容' : aiSummary),
-            if (userSummary.trim().isNotEmpty) ...[
-              pw.SizedBox(height: 14),
-              pw.Text('我的补充', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
-              pw.SizedBox(height: 6),
-              pw.Text(userSummary),
-            ],
             pw.SizedBox(height: 14),
             pw.Text('模块汇总', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
           ];
@@ -1476,18 +1493,13 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
     String title,
     DateTimeRange range,
     String aiSummary,
-    String userSummary,
     List<ChronicleModuleSummary> summaries,
   ) async {
     final buffer = StringBuffer();
     buffer.writeln('<h1>${_escapeHtml(title)}</h1>');
-    buffer.writeln('<p>时间范围：${_escapeHtml(_formatChronicleDate(range.start))} - ${_escapeHtml(_formatChronicleDate(range.end))}</p>');
-    buffer.writeln('<h2>AI 初步分析</h2>');
+    buffer.writeln('<p>时间范围：${_escapeHtml(_formatDate(range.start))} - ${_escapeHtml(_formatDate(range.end))}</p>');
+    buffer.writeln('<h2>AI 总结</h2>');
     buffer.writeln('<p>${_escapeHtml(aiSummary.isEmpty ? '暂无内容' : aiSummary).replaceAll('\n', '<br/>')}</p>');
-    if (userSummary.trim().isNotEmpty) {
-      buffer.writeln('<h2>我的补充</h2>');
-      buffer.writeln('<p>${_escapeHtml(userSummary).replaceAll('\n', '<br/>')}</p>');
-    }
     buffer.writeln('<h2>模块汇总</h2>');
     for (final summary in summaries) {
       buffer.writeln('<h3>${_escapeHtml(summary.title)}（${summary.count} 条）</h3>');
@@ -1529,215 +1541,617 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
       return;
     }
     setState(() => _generating = true);
-    final range = _currentRange();
-    final db = ref.read(appDatabaseProvider);
-    final content = await _collectChronicleData(db, range, selected);
-    final title = _titleController.text.trim().isEmpty
-        ? '${_formatChronicleDate(range.start)}-${_formatChronicleDate(range.end)} 编年史'
-        : _titleController.text.trim();
-    final aiSummary = _aiController.text.trim().isEmpty ? content.aiSummary : _aiController.text.trim();
-    final userSummary = _userController.text.trim();
-    final exportResult = await _exportChronicle(title, range, aiSummary, userSummary, content.moduleSummaries);
-    final stats = {for (final item in content.moduleSummaries) item.title: item.count};
-    final record = ChronicleRecord(
-      id: '${DateTime.now().millisecondsSinceEpoch}',
-      title: title,
-      rangeStart: range.start,
-      rangeEnd: range.end,
-      createdAt: DateTime.now(),
-      modules: [for (final key in selected) _moduleTitles[key] ?? key],
-      stats: stats,
-      aiSummary: aiSummary,
-      userSummary: userSummary,
-      pdfPath: exportResult.pdfPath,
-      epubPath: exportResult.epubPath,
-      isFeatured: false,
-    );
-    final records = await loadChronicleRecords();
-    final updated = [record, ...records];
-    await saveChronicleRecords(updated);
-    if (!mounted) return;
-    setState(() => _generating = false);
-    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const ChronicleManagePage()));
+    try {
+      final range = _currentRange();
+      final db = ref.read(appDatabaseProvider);
+      final content = await _collectChronicleData(db, range, selected);
+      final title = _titleController.text.trim().isEmpty
+          ? '${_formatDate(range.start)}-${_formatDate(range.end)} 编年史'
+          : _titleController.text.trim();
+      final aiSummary = _aiSummaryController.text.trim().isEmpty ? content.aiSummary : _aiSummaryController.text.trim();
+      final exportResult = await _exportChronicle(title, range, aiSummary, content.moduleSummaries);
+      final stats = {for (final item in content.moduleSummaries) item.title: item.count};
+      final record = ChronicleRecord(
+        id: '${DateTime.now().millisecondsSinceEpoch}',
+        title: title,
+        rangeStart: range.start,
+        rangeEnd: range.end,
+        createdAt: DateTime.now(),
+        modules: [for (final key in selected) key],
+        stats: stats,
+        aiSummary: aiSummary,
+        userSummary: '',
+        pdfPath: exportResult.pdfPath,
+        epubPath: exportResult.epubPath,
+        isFeatured: false,
+      );
+      final records = await loadChronicleRecords();
+      final updated = [record, ...records];
+      await saveChronicleRecords(updated);
+      if (!mounted) return;
+      setState(() => _generating = false);
+      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const ChronicleManagePage()));
+    } catch (e) {
+      if (mounted) {
+        setState(() => _generating = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('生成失败：$e')));
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    const background = Color(0xFFF2F4F6);
-    const primary = Color(0xFF2563EB);
+    const primary = AppTheme.primary;
+    const backgroundLight = AppTheme.backgroundLight;
+    const surface = AppTheme.surface;
+    const textMain = AppTheme.textMain;
+    const textMuted = AppTheme.textMuted;
+    
+    final range = _currentRange();
+    
     return Scaffold(
-      backgroundColor: background,
-      appBar: AppBar(
-        backgroundColor: Colors.white.withValues(alpha: 0.7),
-        title: const Text('编年史生成配置', style: TextStyle(fontWeight: FontWeight.w800)),
-      ),
+      backgroundColor: backgroundLight,
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+        bottom: false,
+        child: Stack(
           children: [
-            _ChronicleSection(
-              title: '时间范围',
-              child: Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  for (var i = 0; i < _rangeOptions.length; i++)
-                    _ChronicleChip(
-                      label: _rangeOptions[i],
-                      selected: _rangeIndex == i,
-                      onTap: () {
-                        FocusManager.instance.primaryFocus?.unfocus();
-                        if (i == 3) {
-                          _pickCustomRange();
-                        } else {
-                          setState(() => _rangeIndex = i);
-                          _refreshSummary();
-                        }
-                      },
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            _ChronicleSection(
-              title: '当前范围',
-              child: Text(_rangeLabel(), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF475569))),
-            ),
-            const SizedBox(height: 12),
-            _ChronicleSection(
-              title: '模块汇总',
-              child: Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  for (final entry in _moduleTitles.entries)
-                    _ChronicleChip(
-                      label: entry.value,
-                      selected: _moduleSelection[entry.key] ?? false,
-                      onTap: () {
-                        FocusManager.instance.primaryFocus?.unfocus();
-                        setState(() => _moduleSelection[entry.key] = !(_moduleSelection[entry.key] ?? false));
-                        _refreshSummary();
-                      },
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            _ChronicleSection(
-              title: '数据概览',
-              child: _loadingSummary
-                  ? const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (final summary in _summaries)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(color: const Color(0xFFF3F4F6)),
+            ListView(
+              padding: const EdgeInsets.only(top: 70, left: 16, right: 16, bottom: 100),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('定格时光', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: textMain)),
+                      const SizedBox(height: 4),
+                      Text('选择您想珍藏的记忆片段，生成专属编年史。', style: TextStyle(fontSize: 14, color: textMuted)),
+                    ],
+                  ),
+                ),
+                Container(
+                  decoration: BoxDecoration(
+                    color: surface,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              color: primary.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Center(
+                              child: Text('1', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: primary)),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text('时间胶囊', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: textMain)),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            for (var i = 0; i < _rangeOptions.length; i++) ...[
+                              _RangeChip(
+                                label: _rangeOptions[i],
+                                selected: _rangeIndex == i,
+                                onTap: () {
+                                  FocusManager.instance.primaryFocus?.unfocus();
+                                  if (i == 2) {
+                                    _pickCustomRange();
+                                  } else {
+                                    setState(() => _rangeIndex = i);
+                                    _refreshSummary();
+                                  }
+                                },
                               ),
+                              if (i < _rangeOptions.length - 1) const SizedBox(width: 12),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: [
+                            Expanded(
                               child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('${summary.title} · ${summary.count} 条',
-                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF111827))),
-                                  if (summary.highlights.isNotEmpty) ...[
-                                    const SizedBox(height: 6),
-                                    Text(summary.highlights.join('、'),
-                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B))),
-                                  ],
+                                  Text('开始日期', style: TextStyle(fontSize: 12, color: textMuted)),
+                                  const SizedBox(height: 4),
+                                  Text(_formatDate(range.start), style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: textMain)),
                                 ],
                               ),
                             ),
+                            Container(
+                              width: 1,
+                              height: 32,
+                              color: const Color(0xFFE2E8F0),
+                              margin: const EdgeInsets.symmetric(horizontal: 12),
+                            ),
+                            Expanded(
+                              child: Column(
+                                children: [
+                                  Text('结束日期', style: TextStyle(fontSize: 12, color: textMuted)),
+                                  const SizedBox(height: 4),
+                                  Text(_formatDate(range.end), style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: textMain)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  decoration: BoxDecoration(
+                    color: surface,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              color: primary.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Center(
+                              child: Text('2', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: primary)),
+                            ),
                           ),
-                        if (_summaries.isEmpty)
-                          const Text('当前范围暂无记录', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
-                      ],
-                    ),
-            ),
-            const SizedBox(height: 12),
-            _ChronicleSection(
-              title: 'AI 初步分析',
-              trailing: TextButton(
-                onPressed: () {
-                  FocusManager.instance.primaryFocus?.unfocus();
-                  _aiEdited = false;
-                  _refreshSummary(forceAi: true);
-                },
-                style: TextButton.styleFrom(foregroundColor: primary, textStyle: const TextStyle(fontWeight: FontWeight.w800)),
-                child: const Text('重新生成'),
-              ),
-              child: TextField(
-                controller: _aiController,
-                maxLines: 6,
-                onChanged: (_) => _aiEdited = true,
-                decoration: InputDecoration(
-                  hintText: '生成 AI 初步分析...',
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                          const SizedBox(width: 8),
+                          Text('记忆碎片', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: textMain)),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Column(
+                        children: [
+                          for (var i = 0; i < _modules.length; i++) ...[
+                            _ModuleItem(
+                              module: _modules[i],
+                              selected: _moduleSelection[_modules[i]['key']] ?? false,
+                              onTap: () {
+                                setState(() {
+                                  final key = _modules[i]['key'] as String;
+                                  _moduleSelection[key] = !(_moduleSelection[key] ?? false);
+                                });
+                                _refreshSummary();
+                              },
+                            ),
+                            if (i < _modules.length - 1) const SizedBox(height: 12),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF334155), height: 1.4),
+                const SizedBox(height: 16),
+                Container(
+                  decoration: BoxDecoration(
+                    color: surface,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              color: primary.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Center(
+                              child: Text('3', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: primary)),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text('AI 互动', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: textMain)),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        constraints: const BoxConstraints(maxHeight: 240),
+                        child: ListView(
+                          shrinkWrap: true,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: primary.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Icon(Icons.auto_awesome, color: primary, size: 18),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF1F5F9),
+                                      borderRadius: const BorderRadius.only(
+                                        topLeft: Radius.circular(4),
+                                        topRight: Radius.circular(16),
+                                        bottomLeft: Radius.circular(16),
+                                        bottomRight: Radius.circular(16),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      '你好！我已经准备好为你生成 ${_rangeOptions[_rangeIndex]} 的编年史。关于这些记忆，你有什么特别想强调的主题吗？',
+                                      style: TextStyle(fontSize: 14, color: textMain),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _chatInputController,
+                                decoration: InputDecoration(
+                                  hintText: '与 AI 助手讨论...',
+                                  hintStyle: TextStyle(color: textMuted),
+                                  border: InputBorder.none,
+                                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                                ),
+                                style: TextStyle(fontSize: 14, color: textMain),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton(
+                              icon: Icon(Icons.send, color: primary),
+                              onPressed: () {},
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  decoration: BoxDecoration(
+                    color: surface,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.description, color: primary, size: 20),
+                          const SizedBox(width: 8),
+                          Text('AI 总结', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: textMain)),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Stack(
+                        children: [
+                          TextField(
+                            controller: _aiSummaryController,
+                            maxLines: 6,
+                            decoration: InputDecoration(
+                              hintText: 'AI 生成的总结将显示在这里...',
+                              hintStyle: TextStyle(color: textMuted),
+                              filled: true,
+                              fillColor: const Color(0xFFF1F5F9),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
+                              contentPadding: const EdgeInsets.all(16),
+                            ),
+                            style: TextStyle(fontSize: 14, color: textMain, height: 1.5),
+                          ),
+                          Positioned(
+                            bottom: 12,
+                            right: 12,
+                            child: Icon(Icons.edit, color: textMuted, size: 18),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  decoration: BoxDecoration(
+                    color: surface,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('编年史标题', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: textMain)),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _titleController,
+                        decoration: InputDecoration(
+                          hintText: '给你的编年史起个名字...',
+                          hintStyle: TextStyle(color: textMuted),
+                          filled: true,
+                          fillColor: const Color(0xFFF1F5F9),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        ),
+                        style: TextStyle(fontSize: 14, color: textMain),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                height: 56,
+                decoration: BoxDecoration(
+                  color: surface.withValues(alpha: 0.8),
+                  border: Border(bottom: BorderSide(color: const Color(0xFFE2E8F0))),
+                ),
+                child: SafeArea(
+                  bottom: false,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Positioned(
+                        left: 12,
+                        child: IconButton(
+                          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+                          color: const Color(0xFF64748B),
+                          onPressed: () => Navigator.of(context).maybePop(),
+                          padding: const EdgeInsets.all(8),
+                          constraints: const BoxConstraints(),
+                        ),
+                      ),
+                      Text('生成配置', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: textMain)),
+                    ],
+                  ),
+                ),
               ),
             ),
-            const SizedBox(height: 12),
-            _ChronicleSection(
-              title: '我的补充',
-              child: TextField(
-                controller: _userController,
-                maxLines: 4,
-                decoration: InputDecoration(
-                  hintText: '补充你的感受或修正 AI 分析...',
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: surface.withValues(alpha: 0.9),
+                  border: Border(top: BorderSide(color: const Color(0xFFE2E8F0))),
                 ),
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF334155), height: 1.4),
-              ),
-            ),
-            const SizedBox(height: 12),
-            _ChronicleSection(
-              title: '编年史命名',
-              child: TextField(
-                controller: _titleController,
-                decoration: InputDecoration(
-                  hintText: '例如：2024 上半年精选',
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                padding: EdgeInsets.only(
+                  left: 24,
+                  right: 24,
+                  top: 16,
+                  bottom: 16 + MediaQuery.paddingOf(context).bottom,
                 ),
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
+                child: ElevatedButton(
+                  onPressed: _generating ? null : _generateChronicle,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    elevation: 0,
+                    shadowColor: Colors.transparent,
+                  ),
+                  child: _generating
+                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.auto_stories, size: 22),
+                            const SizedBox(width: 8),
+                            const Text('生成人生编年史', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                          ],
+                        ),
+                ),
               ),
             ),
           ],
         ),
       ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-          decoration: BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: Colors.black.withValues(alpha: 0.05)))),
-          child: ElevatedButton(
-            onPressed: _generating ? null : _generateChronicle,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-            ),
-            child: _generating
-                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Text('生成编年史'),
+    );
+  }
+}
+
+class _RangeChip extends StatelessWidget {
+  const _RangeChip({required this.label, required this.selected, required this.onTap});
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    const primary = AppTheme.primary;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? primary : const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: selected ? Colors.transparent : const Color(0xFFE2E8F0)),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: primary.withValues(alpha: 0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 0),
+                  ),
+                ]
+              : [],
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: selected ? Colors.white : const Color(0xFF64748B),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ModuleItem extends StatelessWidget {
+  const _ModuleItem({required this.module, required this.selected, required this.onTap});
+
+  final Map<String, dynamic> module;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    const primary = AppTheme.primary;
+    const textMain = AppTheme.textMain;
+    const textMuted = AppTheme.textMuted;
+    
+    final iconColor = module['color'] as Color;
+    final iconBgColor = iconColor.withValues(alpha: 0.1);
+    
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: selected ? primary.withValues(alpha: 0.3) : const Color(0xFFE2E8F0)),
+          color: selected ? primary.withValues(alpha: 0.05) : Colors.white,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: iconBgColor,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(module['icon'] as IconData, color: iconColor, size: 24),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(module['title'] as String, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textMain)),
+                  const SizedBox(height: 2),
+                  Text(module['desc'] as String, style: TextStyle(fontSize: 12, color: textMuted)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            SizedBox(
+              width: 24,
+              height: 24,
+              child: Stack(
+                children: [
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: selected ? primary : const Color(0xFFE2E8F0),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  if (selected)
+                    Center(
+                      child: Icon(Icons.check, color: Colors.white, size: 16),
+                    ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -1749,70 +2163,6 @@ class _ChronicleExportResult {
 
   final String pdfPath;
   final String epubPath;
-}
-
-class _ChronicleSection extends StatelessWidget {
-  const _ChronicleSection({required this.title, required this.child, this.trailing});
-
-  final String title;
-  final Widget child;
-  final Widget? trailing;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFF3F4F6)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-              if (trailing != null) ...[
-                const Spacer(),
-                trailing!,
-              ],
-            ],
-          ),
-          const SizedBox(height: 10),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-class _ChronicleChip extends StatelessWidget {
-  const _ChronicleChip({required this.label, required this.selected, required this.onTap});
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFFDBEAFE) : const Color(0xFFF8FAFC),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: selected ? const Color(0xFF93C5FD) : const Color(0xFFE2E8F0)),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: selected ? const Color(0xFF2563EB) : const Color(0xFF64748B)),
-        ),
-      ),
-    );
-  }
 }
 
 class _FavoriteItem {

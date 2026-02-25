@@ -285,3 +285,22 @@ class GoalReviews extends Table {
   @override
   Set<Column> get primaryKey => {id};
 }
+
+class BackupLogs extends Table {
+  TextColumn get id => text()();
+  TextColumn get backupType => text()();
+  TextColumn get storageType => text()();
+  TextColumn get fileName => text()();
+  TextColumn get filePath => text().nullable()();
+  IntColumn get fileSize => integer().nullable()();
+  TextColumn get status => text()();
+  TextColumn get errorMessage => text().nullable()();
+  IntColumn get recordCount => integer().nullable()();
+  IntColumn get mediaCount => integer().nullable()();
+  DateTimeColumn get startedAt => dateTime()();
+  DateTimeColumn get completedAt => dateTime().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}

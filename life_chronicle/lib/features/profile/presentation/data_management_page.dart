@@ -10,6 +10,7 @@ import '../../../app/app_theme.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/services/backup/backup.dart';
+import 'backup_log_page.dart';
 
 class DataManagementPage extends ConsumerStatefulWidget {
   const DataManagementPage({super.key});
@@ -1343,7 +1344,11 @@ class _DataManagementPageState extends ConsumerState&lt;DataManagementPage&gt; {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () {
-                    _showSnackBar('查看日志功能开发中');
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const BackupLogPage(),
+                      ),
+                    );
                   },
                   style: OutlinedButton.styleFrom(
                     backgroundColor: isDark ? const Color(0xFF1F2937) : const Color(0xFFF3F4F6),

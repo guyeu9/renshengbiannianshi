@@ -51,6 +51,61 @@ class BackupService {
     _progressController.close();
   }
 
+  Future<String> _createBackupLog({
+    required String backupType,
+    required String storageType,
+    required String fileName,
+    String? filePath,
+    DateTime? startedAt,
+  }) async {
+    final id = const Uuid().v4();
+    await db.backupLogDao.insert(BackupLogsCompanion(
+      id: Value(id),
+      backupType: Value(backupType),
+      storageType: Value(storageType),
+      fileName: Value(fileName),
+      filePath: Value(filePath),
+      status: const Value('in_progress'),
+      startedAt: Value(startedAt ?? DateTime.now()),
+      createdAt: Value(DateTime.now()),
+    ));
+    return id;
+  }
+
+  Future<void> _updateBackupLogSuccess({
+    required String logId,
+    int? fileSize,
+    int? recordCount,
+    int? mediaCount,
+    DateTime? completedAt,
+  }) async {
+    await db.backupLogDao.updateStatus(
+      logId,
+      'completed',
+      completedAt: completedAt ?? DateTime.now(),
+    );
+    
+    await (db.update(db.backupLogs)..where((t) => t.id.equals(logId))).write(
+      BackupLogsCompanion(
+        fileSize: Value(fileSize),
+        recordCount: Value(recordCount),
+        mediaCount: Value(mediaCount),
+      ),
+    );
+  }
+
+  Future<void> _updateBackupLogFailed({
+    required String logId,
+    required String errorMessage,
+  }) async {
+    await db.backupLogDao.updateStatus(
+      logId,
+      'failed',
+      errorMessage: errorMessage,
+      completedAt: DateTime.now(),
+    );
+  }
+
   Future<bool> isWifiConnected() async {
     final connectivityResult = await Connectivity().checkConnectivity();
     return connectivityResult == ConnectivityResult.wifi;
