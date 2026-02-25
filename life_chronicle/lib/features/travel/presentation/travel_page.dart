@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:drift/drift.dart' show Value, OrderingTerm, OrderingMode;
 import 'package:uuid/uuid.dart';
 
+import '../../../core/config/module_management_config.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/utils/media_storage.dart';
@@ -1922,8 +1923,13 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
 
   @override
   Widget build(BuildContext context) {
-    final tags = {..._availableTags, ..._selectedTags}.toList()..sort();
-    return Scaffold(
+    final configAsync = ref.watch(moduleManagementConfigProvider);
+    
+    return configAsync.when(
+      data: (config) {
+        final configTags = getTagsForModule(config, 'travel');
+        final tags = {...configTags, ..._availableTags, ..._selectedTags}.toList()..sort();
+        return Scaffold(
       backgroundColor: const Color(0xFFF6F8F8),
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(56),
@@ -2428,6 +2434,10 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
         ],
       ),
     );
+      },
+      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (_, __) => const Scaffold(body: Center(child: Text('加载配置失败'))),
+    );
   }
 }
 
@@ -2801,10 +2811,15 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
 
   @override
   Widget build(BuildContext context) {
-    final tags = {..._availableTags, ..._selectedTags}.toList()..sort();
-    return Scaffold(
-      backgroundColor: const Color(0xFFF6F8F8),
-      appBar: PreferredSize(
+    final configAsync = ref.watch(moduleManagementConfigProvider);
+    
+    return configAsync.when(
+      data: (config) {
+        final configTags = getTagsForModule(config, 'travel');
+        final tags = {...configTags, ..._availableTags, ..._selectedTags}.toList()..sort();
+        return Scaffold(
+          backgroundColor: const Color(0xFFF6F8F8),
+          appBar: PreferredSize(
         preferredSize: const Size.fromHeight(56),
         child: ClipRect(
           child: BackdropFilter(
@@ -3143,6 +3158,10 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
           ),
         ],
       ),
+    );
+      },
+      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (_, __) => const Scaffold(body: Center(child: Text('加载配置失败'))),
     );
   }
 

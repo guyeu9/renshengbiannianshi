@@ -1,3 +1,4 @@
+@Deprecated('Use moduleManagementConfigProvider and getTagsForModule() instead. This class is only used for default values in ModuleManagementConfig.defaults().')
 class ModuleTags {
   ModuleTags._();
 
