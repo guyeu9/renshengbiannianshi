@@ -1,9 +1,21 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/database/app_database.dart';
-import '../../../core/database/database_providers.dart';
-import '../../../core/utils/media_storage.dart';
+
+// 顶层辅助函数
+Widget _buildLocalImage(String path, {BoxFit fit = BoxFit.cover}) {
+  final trimmed = path.trim();
+  if (trimmed.isEmpty) {
+    return const SizedBox.shrink();
+  }
+  final isNetwork = trimmed.startsWith('http://') || trimmed.startsWith('https://');
+  if (isNetwork) {
+    return Image.network(trimmed, fit: fit, gaplessPlayback: true);
+  }
+  return Image.file(File(trimmed), fit: fit, gaplessPlayback: true);
+}
 
 // 筛选结果数据类
 class FilterResult {
