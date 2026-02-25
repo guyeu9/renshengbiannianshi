@@ -182,6 +182,8 @@ class BackupService {
     exportData['travel_records'] = await _exportTravelRecords();
     exportData['trips'] = await _exportTrips();
     exportData['goal_records'] = await _exportGoalRecords();
+    exportData['goal_postponements'] = await _exportGoalPostponements();
+    exportData['goal_reviews'] = await _exportGoalReviews();
     exportData['timeline_events'] = await _exportTimelineEvents();
     exportData['entity_links'] = await _exportEntityLinks();
     exportData['link_logs'] = await _exportLinkLogs();
@@ -254,6 +256,16 @@ class BackupService {
     return records.map((r) => r.toJson()).toList();
   }
 
+  Future<List<Map<String, dynamic>>> _exportGoalPostponements() async {
+    final records = await (db.select(db.goalPostponements)).get();
+    return records.map((r) => r.toJson()).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> _exportGoalReviews() async {
+    final records = await (db.select(db.goalReviews)).get();
+    return records.map((r) => r.toJson()).toList();
+  }
+
   Future<List<File>> collectAllMediaFiles() async {
     final mediaDir = await getMediaDir();
     if (!await mediaDir.exists()) {
@@ -287,6 +299,12 @@ class BackupService {
     }
     if (data.containsKey('goal_records')) {
       await _importGoalRecords(List<Map<String, dynamic>>.from(data['goal_records']), merge: merge);
+    }
+    if (data.containsKey('goal_postponements')) {
+      await _importGoalPostponements(List<Map<String, dynamic>>.from(data['goal_postponements']), merge: merge);
+    }
+    if (data.containsKey('goal_reviews')) {
+      await _importGoalReviews(List<Map<String, dynamic>>.from(data['goal_reviews']), merge: merge);
     }
     if (data.containsKey('timeline_events')) {
       await _importTimelineEvents(List<Map<String, dynamic>>.from(data['timeline_events']), merge: merge);
@@ -448,6 +466,30 @@ class BackupService {
         await db.into(db.checklistItems).insertOnConflictUpdate(companion);
       } else {
         await db.into(db.checklistItems).insert(companion);
+      }
+    }
+  }
+
+  Future<void> _importGoalPostponements(List<Map<String, dynamic>> records, {bool merge = true}) async {
+    for (final record in records) {
+      final entity = GoalPostponement.fromJson(record);
+      final companion = entity.toCompanion(false);
+      if (merge) {
+        await db.into(db.goalPostponements).insertOnConflictUpdate(companion);
+      } else {
+        await db.into(db.goalPostponements).insert(companion);
+      }
+    }
+  }
+
+  Future<void> _importGoalReviews(List<Map<String, dynamic>> records, {bool merge = true}) async {
+    for (final record in records) {
+      final entity = GoalReview.fromJson(record);
+      final companion = entity.toCompanion(false);
+      if (merge) {
+        await db.into(db.goalReviews).insertOnConflictUpdate(companion);
+      } else {
+        await db.into(db.goalReviews).insert(companion);
       }
     }
   }

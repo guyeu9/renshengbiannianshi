@@ -3,6 +3,9 @@ import 'package:workmanager/workmanager.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'webdav_config_service.dart';
+import 'backup_service.dart';
+import '../../database/app_database.dart';
+import '../../database/db_connection_io.dart' as dbconn;
 
 const String backupTaskName = 'life_chronicle_backup';
 const String backupTaskTag = 'backup';
@@ -10,6 +13,7 @@ const String backupTaskTag = 'backup';
 @pragma('vm:entry-point')
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
+    AppDatabase? db;
     try {
       final configService = WebDavConfigService();
       final config = await configService.loadConfig();
@@ -27,15 +31,84 @@ void callbackDispatcher() {
       
       final encryptionPassword = await configService.loadEncryptionPassword();
       if (encryptionPassword == null || encryptionPassword.isEmpty) {
+        await _showNotification(
+          title: '备份失败',
+          body: '未设置加密密码',
+          isError: true,
+        );
         return Future.value(false);
       }
       
+      db = AppDatabase.connect(dbconn.openConnection());
+      final backupService = BackupService(db);
+      
+      await _showNotification(
+        title: '开始备份',
+        body: '正在执行自动备份...',
+      );
+      
+      await backupService.performIncrementalBackup(
+        config: config,
+        encryptionPassword: encryptionPassword,
+      );
+      
+      await _showNotification(
+        title: '备份成功',
+        body: '自动备份已完成',
+      );
+      
+      await db.close();
       return Future.value(true);
     } catch (e) {
       debugPrint('Backup task failed: $e');
+      await _showNotification(
+        title: '备份失败',
+        body: '自动备份出错: $e',
+        isError: true,
+      );
+      if (db != null) {
+        try {
+          await db.close();
+        } catch (_) {}
+      }
       return Future.value(false);
     }
   });
+}
+
+Future<void> _showNotification({
+  required String title,
+  required String body,
+  bool isError = false,
+}) async {
+  final notifications = FlutterLocalNotificationsPlugin();
+  const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+  const iosSettings = DarwinInitializationSettings();
+  const settings = InitializationSettings(
+    android: androidSettings,
+    iOS: iosSettings,
+  );
+  await notifications.initialize(settings);
+  
+  const androidDetails = AndroidNotificationDetails(
+    'backup_channel',
+    '备份通知',
+    channelDescription: '数据备份相关通知',
+    importance: Importance.high,
+    priority: Priority.high,
+  );
+  const iosDetails = DarwinNotificationDetails();
+  const details = NotificationDetails(
+    android: androidDetails,
+    iOS: iosDetails,
+  );
+  
+  await notifications.show(
+    isError ? 2 : 1,
+    title,
+    body,
+    details,
+  );
 }
 
 class BackgroundBackupService {

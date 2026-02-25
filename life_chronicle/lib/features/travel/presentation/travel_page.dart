@@ -968,6 +968,24 @@ class TravelItem {
     required this.imageUrl,
   });
 
+  factory TravelItem.fromRecord(TravelRecord record) {
+    final images = record.images;
+    String? imageUrl;
+    if (images != null && images.isNotEmpty) {
+      final imageList = images.split(',');
+      imageUrl = imageList.first.trim();
+    }
+    return TravelItem(
+      travelId: record.id,
+      tripId: record.tripId,
+      recordDate: record.recordDate,
+      date: '${record.recordDate.year}-${record.recordDate.month.toString().padLeft(2, '0')}-${record.recordDate.day.toString().padLeft(2, '0')}',
+      title: record.title ?? '',
+      subtitle: record.destination ?? record.poiAddress ?? '',
+      imageUrl: imageUrl ?? '',
+    );
+  }
+
   final String travelId;
   final String tripId;
   final DateTime recordDate;

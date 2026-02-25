@@ -1,0 +1,44 @@
+  Future<void> importData(Map<String, dynamic> data, {bool merge = true}) async {
+    if (data.containsKey('food_records')) {
+      await _importFoodRecords(List<Map<String, dynamic>>.from(data['food_records']), merge: merge);
+    }
+    if (data.containsKey('moment_records')) {
+      await _importMomentRecords(List<Map<String, dynamic>>.from(data['moment_records']), merge: merge);
+    }
+    if (data.containsKey('friend_records')) {
+      await _importFriendRecords(List<Map<String, dynamic>>.from(data['friend_records']), merge: merge);
+    }
+    if (data.containsKey('travel_records')) {
+      await _importTravelRecords(List<Map<String, dynamic>>.from(data['travel_records']), merge: merge);
+    }
+    if (data.containsKey('trips')) {
+      await _importTrips(List<Map<String, dynamic>>.from(data['trips']), merge: merge);
+    }
+    if (data.containsKey('goal_records')) {
+      await _importGoalRecords(List<Map<String, dynamic>>.from(data['goal_records']), merge: merge);
+    }
+    if (data.containsKey('goal_postponements')) {
+      await _importGoalPostponements(List<Map<String, dynamic>>.from(data['goal_postponements']), merge: merge);
+    }
+    if (data.containsKey('goal_reviews')) {
+      await _importGoalReviews(List<Map<String, dynamic>>.from(data['goal_reviews']), merge: merge);
+    }
+    if (data.containsKey('timeline_events')) {
+      await _importTimelineEvents(List<Map<String, dynamic>>.from(data['timeline_events']), merge: merge);
+    }
+    if (data.containsKey('entity_links')) {
+      await _importEntityLinks(List<Map<String, dynamic>>.from(data['entity_links']), merge: merge);
+    }
+    if (data.containsKey('link_logs')) {
+      await _importLinkLogs(List<Map<String, dynamic>>.from(data['link_logs']), merge: merge);
+    }
+    if (data.containsKey('user_profiles')) {
+      await _importUserProfiles(List<Map<String, dynamic>>.from(data['user_profiles']), merge: merge);
+    }
+    if (data.containsKey('ai_providers')) {
+      await _importAiProviders(List<Map<String, dynamic>>.from(data['ai_providers']), merge: merge);
+    }
+    if (data.containsKey('checklist_items')) {
+      await _importChecklistItems(List<Map<String, dynamic>>.from(data['checklist_items']), merge: merge);
+    }
+  }

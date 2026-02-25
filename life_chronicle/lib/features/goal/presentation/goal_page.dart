@@ -4006,10 +4006,10 @@ class _FoodMemoryCard extends StatelessWidget {
                       child: SizedBox(
                         width: 128,
                         height: 128,
-                        child: food.imageUrl != null && food.imageUrl!.isNotEmpty
-                            ? (food.imageUrl!.startsWith('http')
-                                ? Image.network(food.imageUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildPlaceholder())
-                                : Image.file(File(food.imageUrl!), fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildPlaceholder()))
+                        child: food.images != null && food.images!.isNotEmpty
+                            ? (food.images!.startsWith('http')
+                                ? Image.network(food.images!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildPlaceholder())
+                                : Image.file(File(food.images!), fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildPlaceholder()))
                             : _buildPlaceholder(),
                       ),
                     ),
@@ -4028,7 +4028,7 @@ class _FoodMemoryCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(food.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
                 const SizedBox(height: 4),
-                Text(_formatDate(food.date), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF9CA3AF))),
+                Text(_formatDate(food.recordDate), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF9CA3AF))),
               ],
             ),
           ),
@@ -4075,10 +4075,10 @@ class _TravelMemoryCard extends StatelessWidget {
                       child: SizedBox(
                         width: 128,
                         height: 128,
-                        child: travel.imageUrl != null && travel.imageUrl!.isNotEmpty
-                            ? (travel.imageUrl!.startsWith('http')
-                                ? Image.network(travel.imageUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildPlaceholder())
-                                : Image.file(File(travel.imageUrl!), fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildPlaceholder()))
+                        child: travel.images != null && travel.images!.isNotEmpty
+                            ? (travel.images!.startsWith('http')
+                                ? Image.network(travel.images!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildPlaceholder())
+                                : Image.file(File(travel.images!), fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildPlaceholder()))
                             : _buildPlaceholder(),
                       ),
                     ),
@@ -4097,7 +4097,7 @@ class _TravelMemoryCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(travel.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
                 const SizedBox(height: 4),
-                Text(_formatDate(travel.startDate), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF9CA3AF))),
+                Text(_formatDate(travel.recordDate), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF9CA3AF))),
               ],
             ),
           ),
@@ -4144,10 +4144,10 @@ class _MomentMemoryCard extends StatelessWidget {
                       child: SizedBox(
                         width: 128,
                         height: 128,
-                        child: moment.imageUrl != null && moment.imageUrl!.isNotEmpty
-                            ? (moment.imageUrl!.startsWith('http')
-                                ? Image.network(moment.imageUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildPlaceholder())
-                                : Image.file(File(moment.imageUrl!), fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildPlaceholder()))
+                        child: moment.images != null && moment.images!.isNotEmpty
+                            ? (moment.images!.startsWith('http')
+                                ? Image.network(moment.images!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildPlaceholder())
+                                : Image.file(File(moment.images!), fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildPlaceholder()))
                             : _buildPlaceholder(),
                       ),
                     ),
@@ -4166,7 +4166,7 @@ class _MomentMemoryCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(moment.content?.isNotEmpty == true ? moment.content! : '小确幸', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
                 const SizedBox(height: 4),
-                Text(_formatDate(moment.date), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF9CA3AF))),
+                Text(_formatDate(moment.recordDate), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF9CA3AF))),
               ],
             ),
           ),
@@ -4213,10 +4213,10 @@ class _FriendMemoryCard extends StatelessWidget {
                       child: SizedBox(
                         width: 128,
                         height: 128,
-                        child: friend.avatarUrl != null && friend.avatarUrl!.isNotEmpty
-                            ? (friend.avatarUrl!.startsWith('http')
-                                ? Image.network(friend.avatarUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildPlaceholder(friend.name))
-                                : Image.file(File(friend.avatarUrl!), fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildPlaceholder(friend.name)))
+                        child: friend.avatarPath != null && friend.avatarPath!.isNotEmpty
+                            ? (friend.avatarPath!.startsWith('http')
+                                ? Image.network(friend.avatarPath!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildPlaceholder(friend.name))
+                                : Image.file(File(friend.avatarPath!), fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildPlaceholder(friend.name)))
                             : _buildPlaceholder(friend.name),
                       ),
                     ),
@@ -4235,7 +4235,7 @@ class _FriendMemoryCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(friend.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
                 const SizedBox(height: 4),
-                Text(_formatDate(friend.metDate), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF9CA3AF))),
+                Text(_formatDate(friend.meetDate), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF9CA3AF))),
               ],
             ),
           ),
@@ -4469,17 +4469,17 @@ class _FoodListItem extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(color: const Color(0xFFFED7AA), borderRadius: BorderRadius.circular(8)),
-            child: food.imageUrl != null && food.imageUrl!.isNotEmpty
+            child: food.images != null && food.images!.isNotEmpty
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: food.imageUrl!.startsWith('http')
-                        ? Image.network(food.imageUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.restaurant, color: Color(0xFFF97316)))
-                        : Image.file(File(food.imageUrl!), fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.restaurant, color: Color(0xFFF97316))),
+                    child: food.images!.startsWith('http')
+                        ? Image.network(food.images!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.restaurant, color: Color(0xFFF97316)))
+                        : Image.file(File(food.images!), fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.restaurant, color: Color(0xFFF97316))),
                   )
                 : const Icon(Icons.restaurant, color: Color(0xFFF97316)),
           ),
           title: Text(food.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
-          subtitle: Text(_formatDate(food.date), style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF))),
+          subtitle: Text(_formatDate(food.recordDate), style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF))),
           trailing: const Icon(Icons.chevron_right, color: Color(0xFFD1D5DB)),
         );
       },
@@ -4507,17 +4507,17 @@ class _TravelListItem extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(color: const Color(0xFFBFDBFE), borderRadius: BorderRadius.circular(8)),
-            child: travel.imageUrl != null && travel.imageUrl!.isNotEmpty
+            child: travel.images != null && travel.images!.isNotEmpty
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: travel.imageUrl!.startsWith('http')
-                        ? Image.network(travel.imageUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.airplanemode_active, color: Color(0xFF3B82F6)))
-                        : Image.file(File(travel.imageUrl!), fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.airplanemode_active, color: Color(0xFF3B82F6))),
+                    child: travel.images!.startsWith('http')
+                        ? Image.network(travel.images!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.airplanemode_active, color: Color(0xFF3B82F6)))
+                        : Image.file(File(travel.images!), fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.airplanemode_active, color: Color(0xFF3B82F6))),
                   )
                 : const Icon(Icons.airplanemode_active, color: Color(0xFF3B82F6)),
           ),
           title: Text(travel.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
-          subtitle: Text(_formatDate(travel.startDate), style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF))),
+          subtitle: Text(_formatDate(travel.recordDate), style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF))),
           trailing: const Icon(Icons.chevron_right, color: Color(0xFFD1D5DB)),
         );
       },
@@ -4545,17 +4545,17 @@ class _MomentListItem extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(color: const Color(0xFFFBCFE8), borderRadius: BorderRadius.circular(8)),
-            child: moment.imageUrl != null && moment.imageUrl!.isNotEmpty
+            child: moment.images != null && moment.images!.isNotEmpty
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: moment.imageUrl!.startsWith('http')
-                        ? Image.network(moment.imageUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.auto_awesome, color: Color(0xFFEC4899)))
-                        : Image.file(File(moment.imageUrl!), fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.auto_awesome, color: Color(0xFFEC4899))),
+                    child: moment.images!.startsWith('http')
+                        ? Image.network(moment.images!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.auto_awesome, color: Color(0xFFEC4899)))
+                        : Image.file(File(moment.images!), fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.auto_awesome, color: Color(0xFFEC4899))),
                   )
                 : const Icon(Icons.auto_awesome, color: Color(0xFFEC4899)),
           ),
           title: Text(moment.content?.isNotEmpty == true ? moment.content! : '小确幸', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
-          subtitle: Text(_formatDate(moment.date), style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF))),
+          subtitle: Text(_formatDate(moment.recordDate), style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF))),
           trailing: const Icon(Icons.chevron_right, color: Color(0xFFD1D5DB)),
         );
       },
@@ -4583,17 +4583,17 @@ class _FriendListItem extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(color: const Color(0xFFFECACA), shape: BoxShape.circle),
-            child: friend.avatarUrl != null && friend.avatarUrl!.isNotEmpty
+            child: friend.avatarPath != null && friend.avatarPath!.isNotEmpty
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(24),
-                    child: friend.avatarUrl!.startsWith('http')
-                        ? Image.network(friend.avatarUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildAvatarPlaceholder(friend.name))
-                        : Image.file(File(friend.avatarUrl!), fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildAvatarPlaceholder(friend.name)),
+                    child: friend.avatarPath!.startsWith('http')
+                        ? Image.network(friend.avatarPath!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildAvatarPlaceholder(friend.name))
+                        : Image.file(File(friend.avatarPath!), fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildAvatarPlaceholder(friend.name)),
                   )
                 : _buildAvatarPlaceholder(friend.name),
           ),
           title: Text(friend.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
-          subtitle: Text(_formatDate(friend.metDate), style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF))),
+          subtitle: Text(_formatDate(friend.meetDate), style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF))),
           trailing: const Icon(Icons.chevron_right, color: Color(0xFFD1D5DB)),
         );
       },
