@@ -4139,6 +4139,12 @@ class $GoalRecordsTable extends GoalRecords
   late final GeneratedColumn<String> category = GeneratedColumn<String>(
       'category', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _tagsMeta =
+      const VerificationMeta('tags');
+  @override
+  late final GeneratedColumn<String> tags = GeneratedColumn<String>(
+      'tags', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _progressMeta =
       const VerificationMeta('progress');
   @override
@@ -4804,6 +4810,7 @@ class GoalRecordsCompanion extends UpdateCompanion<GoalRecord> {
     this.note = const Value.absent(),
     this.summary = const Value.absent(),
     this.category = const Value.absent(),
+    this.tags = const Value.absent(),
     this.progress = const Value.absent(),
     this.isCompleted = const Value.absent(),
     this.isPostponed = const Value.absent(),
@@ -4831,6 +4838,7 @@ class GoalRecordsCompanion extends UpdateCompanion<GoalRecord> {
     Expression<String>? note,
     Expression<String>? summary,
     Expression<String>? category,
+    Expression<String>? tags,
     Expression<double>? progress,
     Expression<bool>? isCompleted,
     Expression<bool>? isPostponed,
@@ -4853,6 +4861,7 @@ class GoalRecordsCompanion extends UpdateCompanion<GoalRecord> {
       if (note != null) 'note': note,
       if (summary != null) 'summary': summary,
       if (category != null) 'category': category,
+      if (tags != null) 'tags': tags,
       if (progress != null) 'progress': progress,
       if (isCompleted != null) 'is_completed': isCompleted,
       if (isPostponed != null) 'is_postponed': isPostponed,
@@ -4877,6 +4886,7 @@ class GoalRecordsCompanion extends UpdateCompanion<GoalRecord> {
       Value<String?>? note,
       Value<String?>? summary,
       Value<String?>? category,
+      Value<String?>? tags,
       Value<double>? progress,
       Value<bool>? isCompleted,
       Value<bool>? isPostponed,
@@ -4898,6 +4908,7 @@ class GoalRecordsCompanion extends UpdateCompanion<GoalRecord> {
       note: note ?? this.note,
       summary: summary ?? this.summary,
       category: category ?? this.category,
+      tags: tags ?? this.tags,
       progress: progress ?? this.progress,
       isCompleted: isCompleted ?? this.isCompleted,
       isPostponed: isPostponed ?? this.isPostponed,
@@ -4937,6 +4948,9 @@ class GoalRecordsCompanion extends UpdateCompanion<GoalRecord> {
     }
     if (category.present) {
       map['category'] = Variable<String>(category.value);
+    }
+    if (tags.present) {
+      map['tags'] = Variable<String>(tags.value);
     }
     if (progress.present) {
       map['progress'] = Variable<double>(progress.value);
@@ -9889,7 +9903,7 @@ typedef $$MomentRecordsTableCreateCompanionBuilder = MomentRecordsCompanion
   Value<String?> images,
   required String mood,
   Value<String?> moodColor,
-  Value<String?> sceneTag,
+  Value<String?> tags,
   Value<String?> poiName,
   Value<String?> poiAddress,
   Value<double?> latitude,
@@ -9909,7 +9923,7 @@ typedef $$MomentRecordsTableUpdateCompanionBuilder = MomentRecordsCompanion
   Value<String?> images,
   Value<String> mood,
   Value<String?> moodColor,
-  Value<String?> sceneTag,
+  Value<String?> tags,
   Value<String?> poiName,
   Value<String?> poiAddress,
   Value<double?> latitude,
@@ -9947,8 +9961,8 @@ class $$MomentRecordsTableFilterComposer
   ColumnFilters<String> get moodColor => $composableBuilder(
       column: $table.moodColor, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<String> get sceneTag => $composableBuilder(
-      column: $table.sceneTag, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get tags => $composableBuilder(
+      column: $table.tags, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get poiName => $composableBuilder(
       column: $table.poiName, builder: (column) => ColumnFilters(column));
@@ -10005,8 +10019,8 @@ class $$MomentRecordsTableOrderingComposer
   ColumnOrderings<String> get moodColor => $composableBuilder(
       column: $table.moodColor, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<String> get sceneTag => $composableBuilder(
-      column: $table.sceneTag, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get tags => $composableBuilder(
+      column: $table.tags, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get poiName => $composableBuilder(
       column: $table.poiName, builder: (column) => ColumnOrderings(column));
@@ -10063,8 +10077,8 @@ class $$MomentRecordsTableAnnotationComposer
   GeneratedColumn<String> get moodColor =>
       $composableBuilder(column: $table.moodColor, builder: (column) => column);
 
-  GeneratedColumn<String> get sceneTag =>
-      $composableBuilder(column: $table.sceneTag, builder: (column) => column);
+  GeneratedColumn<String> get tags =>
+      $composableBuilder(column: $table.tags, builder: (column) => column);
 
   GeneratedColumn<String> get poiName =>
       $composableBuilder(column: $table.poiName, builder: (column) => column);
@@ -10147,7 +10161,7 @@ class $$MomentRecordsTableTableManager extends RootTableManager<
             images: images,
             mood: mood,
             moodColor: moodColor,
-            sceneTag: sceneTag,
+            tags: tags,
             poiName: poiName,
             poiAddress: poiAddress,
             latitude: latitude,
