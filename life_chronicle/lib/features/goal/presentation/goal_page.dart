@@ -4919,7 +4919,7 @@ class _GoalCreatePageState extends ConsumerState<GoalCreatePage> {
     const uuid = Uuid();
     final now = DateTime.now();
     final recordDate = DateTime(now.year, now.month, now.day);
-    final goalId = uuid.v4();
+    final goalId = _isEditMode ? widget.goal!.id : uuid.v4();
 
     final description = _descriptionController.text.trim();
     final noteParts = <String>[];
@@ -4929,41 +4929,68 @@ class _GoalCreatePageState extends ConsumerState<GoalCreatePage> {
     final note = noteParts.isEmpty ? null : noteParts.join('\n');
     final tagsJson = _selectedTags.isEmpty ? null : jsonEncode(_selectedTags.toList());
 
-    await db.into(db.goalRecords).insert(
-          GoalRecordsCompanion.insert(
-            id: goalId,
-            parentId: const Value(null),
-            level: 'year',
-            title: title,
-            note: Value(description.isEmpty ? null : description),
-            category: Value(_selectedGoalType),
-            tags: Value(tagsJson),
-            progress: const Value(0.0),
-            isCompleted: const Value(false),
-            isPostponed: const Value(false),
-            remindFrequency: Value(_remindFrequency),
-            targetYear: Value((_dueDate ?? recordDate).year),
-            dueDate: Value(_dueDate),
-            recordDate: recordDate,
-            createdAt: now,
-            updatedAt: now,
-          ),
-        );
+    if (_isEditMode) {
+      await (db.update(db.goalRecords)..where((t) => t.id.equals(goalId))).write(
+            GoalRecordsCompanion(
+              title: Value(title),
+              note: Value(description.isEmpty ? null : description),
+              category: Value(_selectedGoalType),
+              tags: Value(tagsJson),
+              remindFrequency: Value(_remindFrequency),
+              targetYear: Value((_dueDate ?? recordDate).year),
+              dueDate: Value(_dueDate),
+              updatedAt: Value(now),
+            ),
+          );
 
-    await db.into(db.timelineEvents).insertOnConflictUpdate(
-          TimelineEventsCompanion.insert(
-            id: goalId,
-            title: title,
-            eventType: 'goal',
-            startAt: Value(_dueDate ?? recordDate),
-            endAt: const Value(null),
-            note: Value(note),
-            tags: Value(tagsJson),
-            recordDate: recordDate,
-            createdAt: now,
-            updatedAt: now,
-          ),
-        );
+      await (db.update(db.timelineEvents)..where((t) => t.id.equals(goalId))).write(
+            TimelineEventsCompanion(
+              title: Value(title),
+              note: Value(note),
+              tags: Value(tagsJson),
+              startAt: Value(_dueDate ?? recordDate),
+              updatedAt: Value(now),
+            ),
+          );
+
+      await db.linkDao.deleteLinksBySource('goal', goalId);
+    } else {
+      await db.into(db.goalRecords).insert(
+            GoalRecordsCompanion.insert(
+              id: goalId,
+              parentId: const Value(null),
+              level: 'year',
+              title: title,
+              note: Value(description.isEmpty ? null : description),
+              category: Value(_selectedGoalType),
+              tags: Value(tagsJson),
+              progress: const Value(0.0),
+              isCompleted: const Value(false),
+              isPostponed: const Value(false),
+              remindFrequency: Value(_remindFrequency),
+              targetYear: Value((_dueDate ?? recordDate).year),
+              dueDate: Value(_dueDate),
+              recordDate: recordDate,
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+
+      await db.into(db.timelineEvents).insertOnConflictUpdate(
+            TimelineEventsCompanion.insert(
+              id: goalId,
+              title: title,
+              eventType: 'goal',
+              startAt: Value(_dueDate ?? recordDate),
+              endAt: const Value(null),
+              note: Value(note),
+              tags: Value(tagsJson),
+              recordDate: recordDate,
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+    }
 
     for (final id in _linkedMomentIds) {
       await db.linkDao.createLink(
@@ -5071,14 +5098,14 @@ class _GoalCreatePageState extends ConsumerState<GoalCreatePage> {
                     onPressed: () => Navigator.of(context).maybePop(),
                     child: const Text('取消', style: TextStyle(fontWeight: FontWeight.w900)),
                   ),
-                  const Expanded(
+                  Expanded(
                     child: Center(
-                      child: Text('新建目标', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                      child: Text(_isEditMode ? '编辑目标' : '新建目标', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
                     ),
                   ),
                   TextButton(
                     onPressed: _save,
-                    child: const Text('创建', style: TextStyle(fontWeight: FontWeight.w900)),
+                    child: Text(_isEditMode ? '保存' : '创建', style: const TextStyle(fontWeight: FontWeight.w900)),
                   ),
                 ],
               ),

@@ -106,6 +106,19 @@ class BackupService {
     );
   }
 
+  int _countRecords(Map<String, dynamic> data) {
+    int count = 0;
+    for (final key in data.keys) {
+      if (key.endsWith('_records') || key == 'trips' || key == 'checklist_items' || key == 'entity_links' || key == 'link_logs' || key == 'user_profiles' || key == 'ai_providers') {
+        final value = data[key];
+        if (value is List) {
+          count += value.length;
+        }
+      }
+    }
+    return count;
+  }
+
   Future<bool> isWifiConnected() async {
     final connectivityResult = await Connectivity().checkConnectivity();
     return connectivityResult == ConnectivityResult.wifi;
@@ -443,9 +456,21 @@ class BackupService {
     required WebDavConfig config,
     required String encryptionPassword,
   }) async {
+    final startedAt = DateTime.now();
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final fileName = 'life_chronicle_full_$timestamp.zip';
+    String? logId;
+    
     _emitProgress(BackupStatus.preparing, message: '准备备份...');
     
     try {
+      logId = await _createBackupLog(
+        backupType: 'full',
+        storageType: 'cloud',
+        fileName: fileName,
+        startedAt: startedAt,
+      );
+      
       if (config.backupOnWifiOnly) {
         await checkNetworkConstraint(wifiOnly: true);
       } else {
@@ -453,8 +478,7 @@ class BackupService {
       }
       
       final tempDir = await getTempDir();
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final zipPath = path.join(tempDir.path, 'life_chronicle_full_$timestamp.zip');
+      final zipPath = path.join(tempDir.path, fileName);
       
       _emitProgress(BackupStatus.exporting, progress: 0.1, message: '导出数据...');
       final data = await exportAllData();
@@ -499,8 +523,25 @@ class BackupService {
         timestamp,
       );
       
+      final fileSize = await encryptedFile.length();
+      final recordCount = _countRecords(data);
+      final mediaCount = mediaFiles.length;
+      
+      await _updateBackupLogSuccess(
+        logId: logId,
+        fileSize: fileSize,
+        recordCount: recordCount,
+        mediaCount: mediaCount,
+      );
+      
       _emitProgress(BackupStatus.completed, progress: 1.0, message: '备份完成！');
     } catch (e) {
+      if (logId != null) {
+        await _updateBackupLogFailed(
+          logId: logId,
+          errorMessage: e.toString(),
+        );
+      }
       _emitProgress(BackupStatus.failed, error: e.toString());
       rethrow;
     }
@@ -510,9 +551,21 @@ class BackupService {
     required WebDavConfig config,
     required String encryptionPassword,
   }) async {
+    final startedAt = DateTime.now();
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final fileName = 'life_chronicle_inc_$timestamp.zip';
+    String? logId;
+    
     _emitProgress(BackupStatus.preparing, message: '准备增量备份...');
     
     try {
+      logId = await _createBackupLog(
+        backupType: 'incremental',
+        storageType: 'cloud',
+        fileName: fileName,
+        startedAt: startedAt,
+      );
+      
       if (config.backupOnWifiOnly) {
         await checkNetworkConstraint(wifiOnly: true);
       } else {
@@ -524,6 +577,11 @@ class BackupService {
       
       final unsyncedChanges = await db.changeLogDao.findUnsynced();
       if (unsyncedChanges.isEmpty) {
+        await _updateBackupLogSuccess(
+          logId: logId,
+          recordCount: 0,
+          mediaCount: 0,
+        );
         _emitProgress(BackupStatus.completed, message: '没有需要备份的变更');
         return;
       }
@@ -540,8 +598,7 @@ class BackupService {
       }
       
       final tempDir = await getTempDir();
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final zipPath = path.join(tempDir.path, 'life_chronicle_inc_$timestamp.zip');
+      final zipPath = path.join(tempDir.path, fileName);
       
       _emitProgress(BackupStatus.exporting, progress: 0.1, message: '导出变更数据...');
       final incrementalData = await _exportIncrementalData(unsyncedChanges);
@@ -590,8 +647,25 @@ class BackupService {
         lastSyncChangeId,
       );
       
+      final fileSize = await encryptedFile.length();
+      final recordCount = _countRecords(incrementalData);
+      final mediaCount = changedMediaFiles.length;
+      
+      await _updateBackupLogSuccess(
+        logId: logId,
+        fileSize: fileSize,
+        recordCount: recordCount,
+        mediaCount: mediaCount,
+      );
+      
       _emitProgress(BackupStatus.completed, progress: 1.0, message: '增量备份完成！');
     } catch (e) {
+      if (logId != null) {
+        await _updateBackupLogFailed(
+          logId: logId,
+          errorMessage: e.toString(),
+        );
+      }
       _emitProgress(BackupStatus.failed, error: e.toString());
       rethrow;
     }

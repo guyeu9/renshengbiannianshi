@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../app/app_theme.dart';
 import '../../../core/database/app_database.dart';
@@ -175,13 +176,27 @@ class _DataManagementPageState extends ConsumerState&lt;DataManagementPage&gt; {
   Future&lt;void&gt; _performLocalBackup() async {
     final db = ref.read(appDatabaseProvider);
     final backupService = BackupService(db);
+    final startedAt = DateTime.now();
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final fileName = 'life_chronicle_local_$timestamp.zip';
+    String? logId;
 
     setState(() =&gt; _isBackingUp = true);
     
     try {
+      logId = const Uuid().v4();
+      await db.backupLogDao.insert(BackupLogsCompanion(
+        id: Value(logId),
+        backupType: const Value('full'),
+        storageType: const Value('local'),
+        fileName: Value(fileName),
+        status: const Value('in_progress'),
+        startedAt: Value(startedAt),
+        createdAt: Value(DateTime.now()),
+      ));
+      
       final tempDir = await backupService.getTempDir();
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final zipPath = path.join(tempDir.path, 'life_chronicle_local_$timestamp.zip');
+      final zipPath = path.join(tempDir.path, fileName);
       
       final data = await backupService.exportAllData();
       final mediaFiles = await backupService.collectAllMediaFiles();
@@ -194,11 +209,38 @@ class _DataManagementPageState extends ConsumerState&lt;DataManagementPage&gt; {
         await backupDir.create(recursive: true);
       }
       
-      final finalZipPath = path.join(backupDir.path, 'life_chronicle_local_$timestamp.zip');
+      final finalZipPath = path.join(backupDir.path, fileName);
       await File(zipPath).copy(finalZipPath);
+      
+      final fileSize = await File(finalZipPath).length();
+      final recordCount = _countRecords(data);
+      final mediaCount = mediaFiles.length;
+      
+      await db.backupLogDao.updateStatus(
+        logId,
+        'completed',
+        completedAt: DateTime.now(),
+      );
+      
+      await (db.update(db.backupLogs)..where((t) =&gt; t.id.equals(logId))).write(
+        BackupLogsCompanion(
+          filePath: Value(finalZipPath),
+          fileSize: Value(fileSize),
+          recordCount: Value(recordCount),
+          mediaCount: Value(mediaCount),
+        ),
+      );
       
       _showSnackBar('本地备份成功！文件已保存到: $finalZipPath');
     } catch (e) {
+      if (logId != null) {
+        await db.backupLogDao.updateStatus(
+          logId,
+          'failed',
+          errorMessage: e.toString(),
+          completedAt: DateTime.now(),
+        );
+      }
       _showSnackBar('本地备份失败: $e', isError: true);
     } finally {
       if (mounted) {
@@ -208,6 +250,19 @@ class _DataManagementPageState extends ConsumerState&lt;DataManagementPage&gt; {
         });
       }
     }
+  }
+  
+  int _countRecords(Map&lt;String, dynamic&gt; data) {
+    int count = 0;
+    for (final key in data.keys) {
+      if (key.endsWith('_records') || key == 'trips' || key == 'checklist_items' || key == 'entity_links' || key == 'link_logs' || key == 'user_profiles' || key == 'ai_providers') {
+        final value = data[key];
+        if (value is List) {
+          count += value.length;
+        }
+      }
+    }
+    return count;
   }
 
   Future&lt;void&gt; _restoreFromLocal() async {

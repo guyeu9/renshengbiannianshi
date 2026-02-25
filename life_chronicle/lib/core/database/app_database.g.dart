@@ -1000,8 +1000,7 @@ class $MomentRecordsTable extends MomentRecords
   late final GeneratedColumn<String> moodColor = GeneratedColumn<String>(
       'mood_color', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _tagsMeta =
-      const VerificationMeta('tags');
+  static const VerificationMeta _tagsMeta = const VerificationMeta('tags');
   @override
   late final GeneratedColumn<String> tags = GeneratedColumn<String>(
       'tags', aliasedName, true,
@@ -1126,8 +1125,8 @@ class $MomentRecordsTable extends MomentRecords
           moodColor.isAcceptableOrUnknown(data['mood_color']!, _moodColorMeta));
     }
     if (data.containsKey('tags')) {
-      context.handle(_tagsMeta,
-          tags.isAcceptableOrUnknown(data['tags']!, _tagsMeta));
+      context.handle(
+          _tagsMeta, tags.isAcceptableOrUnknown(data['tags']!, _tagsMeta));
     }
     if (data.containsKey('poi_name')) {
       context.handle(_poiNameMeta,
@@ -1317,9 +1316,7 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
       moodColor: moodColor == null && nullToAbsent
           ? const Value.absent()
           : Value(moodColor),
-      tags: tags == null && nullToAbsent
-          ? const Value.absent()
-          : Value(tags),
+      tags: tags == null && nullToAbsent ? const Value.absent() : Value(tags),
       poiName: poiName == null && nullToAbsent
           ? const Value.absent()
           : Value(poiName),
@@ -4139,8 +4136,7 @@ class $GoalRecordsTable extends GoalRecords
   late final GeneratedColumn<String> category = GeneratedColumn<String>(
       'category', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _tagsMeta =
-      const VerificationMeta('tags');
+  static const VerificationMeta _tagsMeta = const VerificationMeta('tags');
   @override
   late final GeneratedColumn<String> tags = GeneratedColumn<String>(
       'tags', aliasedName, true,
@@ -4298,8 +4294,8 @@ class $GoalRecordsTable extends GoalRecords
           category.isAcceptableOrUnknown(data['category']!, _categoryMeta));
     }
     if (data.containsKey('tags')) {
-      context.handle(_tagsMeta,
-          tags.isAcceptableOrUnknown(data['tags']!, _tagsMeta));
+      context.handle(
+          _tagsMeta, tags.isAcceptableOrUnknown(data['tags']!, _tagsMeta));
     }
     if (data.containsKey('progress')) {
       context.handle(_progressMeta,
@@ -4392,6 +4388,8 @@ class $GoalRecordsTable extends GoalRecords
           .read(DriftSqlType.string, data['${effectivePrefix}summary']),
       category: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}category']),
+      tags: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}tags']),
       progress: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}progress'])!,
       isCompleted: attachedDatabase.typeMapping
@@ -4528,9 +4526,7 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
       category: category == null && nullToAbsent
           ? const Value.absent()
           : Value(category),
-      tags: tags == null && nullToAbsent
-          ? const Value.absent()
-          : Value(tags),
+      tags: tags == null && nullToAbsent ? const Value.absent() : Value(tags),
       progress: Value(progress),
       isCompleted: Value(isCompleted),
       isPostponed: Value(isPostponed),
@@ -4699,6 +4695,7 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
           ..write('note: $note, ')
           ..write('summary: $summary, ')
           ..write('category: $category, ')
+          ..write('tags: $tags, ')
           ..write('progress: $progress, ')
           ..write('isCompleted: $isCompleted, ')
           ..write('isPostponed: $isPostponed, ')
@@ -4724,6 +4721,7 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
       note,
       summary,
       category,
+      tags,
       progress,
       isCompleted,
       isPostponed,
@@ -5009,6 +5007,7 @@ class GoalRecordsCompanion extends UpdateCompanion<GoalRecord> {
           ..write('note: $note, ')
           ..write('summary: $summary, ')
           ..write('category: $category, ')
+          ..write('tags: $tags, ')
           ..write('progress: $progress, ')
           ..write('isCompleted: $isCompleted, ')
           ..write('isPostponed: $isPostponed, ')
@@ -9436,6 +9435,662 @@ class GoalReviewsCompanion extends UpdateCompanion<GoalReview> {
   }
 }
 
+class $BackupLogsTable extends BackupLogs
+    with TableInfo<$BackupLogsTable, BackupLog> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BackupLogsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _backupTypeMeta =
+      const VerificationMeta('backupType');
+  @override
+  late final GeneratedColumn<String> backupType = GeneratedColumn<String>(
+      'backup_type', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _storageTypeMeta =
+      const VerificationMeta('storageType');
+  @override
+  late final GeneratedColumn<String> storageType = GeneratedColumn<String>(
+      'storage_type', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _fileNameMeta =
+      const VerificationMeta('fileName');
+  @override
+  late final GeneratedColumn<String> fileName = GeneratedColumn<String>(
+      'file_name', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _filePathMeta =
+      const VerificationMeta('filePath');
+  @override
+  late final GeneratedColumn<String> filePath = GeneratedColumn<String>(
+      'file_path', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _fileSizeMeta =
+      const VerificationMeta('fileSize');
+  @override
+  late final GeneratedColumn<int> fileSize = GeneratedColumn<int>(
+      'file_size', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+      'status', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _errorMessageMeta =
+      const VerificationMeta('errorMessage');
+  @override
+  late final GeneratedColumn<String> errorMessage = GeneratedColumn<String>(
+      'error_message', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _recordCountMeta =
+      const VerificationMeta('recordCount');
+  @override
+  late final GeneratedColumn<int> recordCount = GeneratedColumn<int>(
+      'record_count', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _mediaCountMeta =
+      const VerificationMeta('mediaCount');
+  @override
+  late final GeneratedColumn<int> mediaCount = GeneratedColumn<int>(
+      'media_count', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _startedAtMeta =
+      const VerificationMeta('startedAt');
+  @override
+  late final GeneratedColumn<DateTime> startedAt = GeneratedColumn<DateTime>(
+      'started_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _completedAtMeta =
+      const VerificationMeta('completedAt');
+  @override
+  late final GeneratedColumn<DateTime> completedAt = GeneratedColumn<DateTime>(
+      'completed_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        backupType,
+        storageType,
+        fileName,
+        filePath,
+        fileSize,
+        status,
+        errorMessage,
+        recordCount,
+        mediaCount,
+        startedAt,
+        completedAt,
+        createdAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'backup_logs';
+  @override
+  VerificationContext validateIntegrity(Insertable<BackupLog> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('backup_type')) {
+      context.handle(
+          _backupTypeMeta,
+          backupType.isAcceptableOrUnknown(
+              data['backup_type']!, _backupTypeMeta));
+    } else if (isInserting) {
+      context.missing(_backupTypeMeta);
+    }
+    if (data.containsKey('storage_type')) {
+      context.handle(
+          _storageTypeMeta,
+          storageType.isAcceptableOrUnknown(
+              data['storage_type']!, _storageTypeMeta));
+    } else if (isInserting) {
+      context.missing(_storageTypeMeta);
+    }
+    if (data.containsKey('file_name')) {
+      context.handle(_fileNameMeta,
+          fileName.isAcceptableOrUnknown(data['file_name']!, _fileNameMeta));
+    } else if (isInserting) {
+      context.missing(_fileNameMeta);
+    }
+    if (data.containsKey('file_path')) {
+      context.handle(_filePathMeta,
+          filePath.isAcceptableOrUnknown(data['file_path']!, _filePathMeta));
+    }
+    if (data.containsKey('file_size')) {
+      context.handle(_fileSizeMeta,
+          fileSize.isAcceptableOrUnknown(data['file_size']!, _fileSizeMeta));
+    }
+    if (data.containsKey('status')) {
+      context.handle(_statusMeta,
+          status.isAcceptableOrUnknown(data['status']!, _statusMeta));
+    } else if (isInserting) {
+      context.missing(_statusMeta);
+    }
+    if (data.containsKey('error_message')) {
+      context.handle(
+          _errorMessageMeta,
+          errorMessage.isAcceptableOrUnknown(
+              data['error_message']!, _errorMessageMeta));
+    }
+    if (data.containsKey('record_count')) {
+      context.handle(
+          _recordCountMeta,
+          recordCount.isAcceptableOrUnknown(
+              data['record_count']!, _recordCountMeta));
+    }
+    if (data.containsKey('media_count')) {
+      context.handle(
+          _mediaCountMeta,
+          mediaCount.isAcceptableOrUnknown(
+              data['media_count']!, _mediaCountMeta));
+    }
+    if (data.containsKey('started_at')) {
+      context.handle(_startedAtMeta,
+          startedAt.isAcceptableOrUnknown(data['started_at']!, _startedAtMeta));
+    } else if (isInserting) {
+      context.missing(_startedAtMeta);
+    }
+    if (data.containsKey('completed_at')) {
+      context.handle(
+          _completedAtMeta,
+          completedAt.isAcceptableOrUnknown(
+              data['completed_at']!, _completedAtMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  BackupLog map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BackupLog(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      backupType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}backup_type'])!,
+      storageType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}storage_type'])!,
+      fileName: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}file_name'])!,
+      filePath: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}file_path']),
+      fileSize: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}file_size']),
+      status: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}status'])!,
+      errorMessage: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}error_message']),
+      recordCount: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}record_count']),
+      mediaCount: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}media_count']),
+      startedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}started_at'])!,
+      completedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}completed_at']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+    );
+  }
+
+  @override
+  $BackupLogsTable createAlias(String alias) {
+    return $BackupLogsTable(attachedDatabase, alias);
+  }
+}
+
+class BackupLog extends DataClass implements Insertable<BackupLog> {
+  final String id;
+  final String backupType;
+  final String storageType;
+  final String fileName;
+  final String? filePath;
+  final int? fileSize;
+  final String status;
+  final String? errorMessage;
+  final int? recordCount;
+  final int? mediaCount;
+  final DateTime startedAt;
+  final DateTime? completedAt;
+  final DateTime createdAt;
+  const BackupLog(
+      {required this.id,
+      required this.backupType,
+      required this.storageType,
+      required this.fileName,
+      this.filePath,
+      this.fileSize,
+      required this.status,
+      this.errorMessage,
+      this.recordCount,
+      this.mediaCount,
+      required this.startedAt,
+      this.completedAt,
+      required this.createdAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['backup_type'] = Variable<String>(backupType);
+    map['storage_type'] = Variable<String>(storageType);
+    map['file_name'] = Variable<String>(fileName);
+    if (!nullToAbsent || filePath != null) {
+      map['file_path'] = Variable<String>(filePath);
+    }
+    if (!nullToAbsent || fileSize != null) {
+      map['file_size'] = Variable<int>(fileSize);
+    }
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || errorMessage != null) {
+      map['error_message'] = Variable<String>(errorMessage);
+    }
+    if (!nullToAbsent || recordCount != null) {
+      map['record_count'] = Variable<int>(recordCount);
+    }
+    if (!nullToAbsent || mediaCount != null) {
+      map['media_count'] = Variable<int>(mediaCount);
+    }
+    map['started_at'] = Variable<DateTime>(startedAt);
+    if (!nullToAbsent || completedAt != null) {
+      map['completed_at'] = Variable<DateTime>(completedAt);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  BackupLogsCompanion toCompanion(bool nullToAbsent) {
+    return BackupLogsCompanion(
+      id: Value(id),
+      backupType: Value(backupType),
+      storageType: Value(storageType),
+      fileName: Value(fileName),
+      filePath: filePath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(filePath),
+      fileSize: fileSize == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fileSize),
+      status: Value(status),
+      errorMessage: errorMessage == null && nullToAbsent
+          ? const Value.absent()
+          : Value(errorMessage),
+      recordCount: recordCount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(recordCount),
+      mediaCount: mediaCount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(mediaCount),
+      startedAt: Value(startedAt),
+      completedAt: completedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(completedAt),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory BackupLog.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BackupLog(
+      id: serializer.fromJson<String>(json['id']),
+      backupType: serializer.fromJson<String>(json['backupType']),
+      storageType: serializer.fromJson<String>(json['storageType']),
+      fileName: serializer.fromJson<String>(json['fileName']),
+      filePath: serializer.fromJson<String?>(json['filePath']),
+      fileSize: serializer.fromJson<int?>(json['fileSize']),
+      status: serializer.fromJson<String>(json['status']),
+      errorMessage: serializer.fromJson<String?>(json['errorMessage']),
+      recordCount: serializer.fromJson<int?>(json['recordCount']),
+      mediaCount: serializer.fromJson<int?>(json['mediaCount']),
+      startedAt: serializer.fromJson<DateTime>(json['startedAt']),
+      completedAt: serializer.fromJson<DateTime?>(json['completedAt']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'backupType': serializer.toJson<String>(backupType),
+      'storageType': serializer.toJson<String>(storageType),
+      'fileName': serializer.toJson<String>(fileName),
+      'filePath': serializer.toJson<String?>(filePath),
+      'fileSize': serializer.toJson<int?>(fileSize),
+      'status': serializer.toJson<String>(status),
+      'errorMessage': serializer.toJson<String?>(errorMessage),
+      'recordCount': serializer.toJson<int?>(recordCount),
+      'mediaCount': serializer.toJson<int?>(mediaCount),
+      'startedAt': serializer.toJson<DateTime>(startedAt),
+      'completedAt': serializer.toJson<DateTime?>(completedAt),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  BackupLog copyWith(
+          {String? id,
+          String? backupType,
+          String? storageType,
+          String? fileName,
+          Value<String?> filePath = const Value.absent(),
+          Value<int?> fileSize = const Value.absent(),
+          String? status,
+          Value<String?> errorMessage = const Value.absent(),
+          Value<int?> recordCount = const Value.absent(),
+          Value<int?> mediaCount = const Value.absent(),
+          DateTime? startedAt,
+          Value<DateTime?> completedAt = const Value.absent(),
+          DateTime? createdAt}) =>
+      BackupLog(
+        id: id ?? this.id,
+        backupType: backupType ?? this.backupType,
+        storageType: storageType ?? this.storageType,
+        fileName: fileName ?? this.fileName,
+        filePath: filePath.present ? filePath.value : this.filePath,
+        fileSize: fileSize.present ? fileSize.value : this.fileSize,
+        status: status ?? this.status,
+        errorMessage:
+            errorMessage.present ? errorMessage.value : this.errorMessage,
+        recordCount: recordCount.present ? recordCount.value : this.recordCount,
+        mediaCount: mediaCount.present ? mediaCount.value : this.mediaCount,
+        startedAt: startedAt ?? this.startedAt,
+        completedAt: completedAt.present ? completedAt.value : this.completedAt,
+        createdAt: createdAt ?? this.createdAt,
+      );
+  BackupLog copyWithCompanion(BackupLogsCompanion data) {
+    return BackupLog(
+      id: data.id.present ? data.id.value : this.id,
+      backupType:
+          data.backupType.present ? data.backupType.value : this.backupType,
+      storageType:
+          data.storageType.present ? data.storageType.value : this.storageType,
+      fileName: data.fileName.present ? data.fileName.value : this.fileName,
+      filePath: data.filePath.present ? data.filePath.value : this.filePath,
+      fileSize: data.fileSize.present ? data.fileSize.value : this.fileSize,
+      status: data.status.present ? data.status.value : this.status,
+      errorMessage: data.errorMessage.present
+          ? data.errorMessage.value
+          : this.errorMessage,
+      recordCount:
+          data.recordCount.present ? data.recordCount.value : this.recordCount,
+      mediaCount:
+          data.mediaCount.present ? data.mediaCount.value : this.mediaCount,
+      startedAt: data.startedAt.present ? data.startedAt.value : this.startedAt,
+      completedAt:
+          data.completedAt.present ? data.completedAt.value : this.completedAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BackupLog(')
+          ..write('id: $id, ')
+          ..write('backupType: $backupType, ')
+          ..write('storageType: $storageType, ')
+          ..write('fileName: $fileName, ')
+          ..write('filePath: $filePath, ')
+          ..write('fileSize: $fileSize, ')
+          ..write('status: $status, ')
+          ..write('errorMessage: $errorMessage, ')
+          ..write('recordCount: $recordCount, ')
+          ..write('mediaCount: $mediaCount, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('completedAt: $completedAt, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id,
+      backupType,
+      storageType,
+      fileName,
+      filePath,
+      fileSize,
+      status,
+      errorMessage,
+      recordCount,
+      mediaCount,
+      startedAt,
+      completedAt,
+      createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BackupLog &&
+          other.id == this.id &&
+          other.backupType == this.backupType &&
+          other.storageType == this.storageType &&
+          other.fileName == this.fileName &&
+          other.filePath == this.filePath &&
+          other.fileSize == this.fileSize &&
+          other.status == this.status &&
+          other.errorMessage == this.errorMessage &&
+          other.recordCount == this.recordCount &&
+          other.mediaCount == this.mediaCount &&
+          other.startedAt == this.startedAt &&
+          other.completedAt == this.completedAt &&
+          other.createdAt == this.createdAt);
+}
+
+class BackupLogsCompanion extends UpdateCompanion<BackupLog> {
+  final Value<String> id;
+  final Value<String> backupType;
+  final Value<String> storageType;
+  final Value<String> fileName;
+  final Value<String?> filePath;
+  final Value<int?> fileSize;
+  final Value<String> status;
+  final Value<String?> errorMessage;
+  final Value<int?> recordCount;
+  final Value<int?> mediaCount;
+  final Value<DateTime> startedAt;
+  final Value<DateTime?> completedAt;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const BackupLogsCompanion({
+    this.id = const Value.absent(),
+    this.backupType = const Value.absent(),
+    this.storageType = const Value.absent(),
+    this.fileName = const Value.absent(),
+    this.filePath = const Value.absent(),
+    this.fileSize = const Value.absent(),
+    this.status = const Value.absent(),
+    this.errorMessage = const Value.absent(),
+    this.recordCount = const Value.absent(),
+    this.mediaCount = const Value.absent(),
+    this.startedAt = const Value.absent(),
+    this.completedAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  BackupLogsCompanion.insert({
+    required String id,
+    required String backupType,
+    required String storageType,
+    required String fileName,
+    this.filePath = const Value.absent(),
+    this.fileSize = const Value.absent(),
+    required String status,
+    this.errorMessage = const Value.absent(),
+    this.recordCount = const Value.absent(),
+    this.mediaCount = const Value.absent(),
+    required DateTime startedAt,
+    this.completedAt = const Value.absent(),
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        backupType = Value(backupType),
+        storageType = Value(storageType),
+        fileName = Value(fileName),
+        status = Value(status),
+        startedAt = Value(startedAt),
+        createdAt = Value(createdAt);
+  static Insertable<BackupLog> custom({
+    Expression<String>? id,
+    Expression<String>? backupType,
+    Expression<String>? storageType,
+    Expression<String>? fileName,
+    Expression<String>? filePath,
+    Expression<int>? fileSize,
+    Expression<String>? status,
+    Expression<String>? errorMessage,
+    Expression<int>? recordCount,
+    Expression<int>? mediaCount,
+    Expression<DateTime>? startedAt,
+    Expression<DateTime>? completedAt,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (backupType != null) 'backup_type': backupType,
+      if (storageType != null) 'storage_type': storageType,
+      if (fileName != null) 'file_name': fileName,
+      if (filePath != null) 'file_path': filePath,
+      if (fileSize != null) 'file_size': fileSize,
+      if (status != null) 'status': status,
+      if (errorMessage != null) 'error_message': errorMessage,
+      if (recordCount != null) 'record_count': recordCount,
+      if (mediaCount != null) 'media_count': mediaCount,
+      if (startedAt != null) 'started_at': startedAt,
+      if (completedAt != null) 'completed_at': completedAt,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  BackupLogsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? backupType,
+      Value<String>? storageType,
+      Value<String>? fileName,
+      Value<String?>? filePath,
+      Value<int?>? fileSize,
+      Value<String>? status,
+      Value<String?>? errorMessage,
+      Value<int?>? recordCount,
+      Value<int?>? mediaCount,
+      Value<DateTime>? startedAt,
+      Value<DateTime?>? completedAt,
+      Value<DateTime>? createdAt,
+      Value<int>? rowid}) {
+    return BackupLogsCompanion(
+      id: id ?? this.id,
+      backupType: backupType ?? this.backupType,
+      storageType: storageType ?? this.storageType,
+      fileName: fileName ?? this.fileName,
+      filePath: filePath ?? this.filePath,
+      fileSize: fileSize ?? this.fileSize,
+      status: status ?? this.status,
+      errorMessage: errorMessage ?? this.errorMessage,
+      recordCount: recordCount ?? this.recordCount,
+      mediaCount: mediaCount ?? this.mediaCount,
+      startedAt: startedAt ?? this.startedAt,
+      completedAt: completedAt ?? this.completedAt,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (backupType.present) {
+      map['backup_type'] = Variable<String>(backupType.value);
+    }
+    if (storageType.present) {
+      map['storage_type'] = Variable<String>(storageType.value);
+    }
+    if (fileName.present) {
+      map['file_name'] = Variable<String>(fileName.value);
+    }
+    if (filePath.present) {
+      map['file_path'] = Variable<String>(filePath.value);
+    }
+    if (fileSize.present) {
+      map['file_size'] = Variable<int>(fileSize.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (errorMessage.present) {
+      map['error_message'] = Variable<String>(errorMessage.value);
+    }
+    if (recordCount.present) {
+      map['record_count'] = Variable<int>(recordCount.value);
+    }
+    if (mediaCount.present) {
+      map['media_count'] = Variable<int>(mediaCount.value);
+    }
+    if (startedAt.present) {
+      map['started_at'] = Variable<DateTime>(startedAt.value);
+    }
+    if (completedAt.present) {
+      map['completed_at'] = Variable<DateTime>(completedAt.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BackupLogsCompanion(')
+          ..write('id: $id, ')
+          ..write('backupType: $backupType, ')
+          ..write('storageType: $storageType, ')
+          ..write('fileName: $fileName, ')
+          ..write('filePath: $filePath, ')
+          ..write('fileSize: $fileSize, ')
+          ..write('status: $status, ')
+          ..write('errorMessage: $errorMessage, ')
+          ..write('recordCount: $recordCount, ')
+          ..write('mediaCount: $mediaCount, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('completedAt: $completedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -9456,6 +10111,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $GoalPostponementsTable goalPostponements =
       $GoalPostponementsTable(this);
   late final $GoalReviewsTable goalReviews = $GoalReviewsTable(this);
+  late final $BackupLogsTable backupLogs = $BackupLogsTable(this);
   late final FoodDao foodDao = FoodDao(this as AppDatabase);
   late final MomentDao momentDao = MomentDao(this as AppDatabase);
   late final FriendDao friendDao = FriendDao(this as AppDatabase);
@@ -9467,6 +10123,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final GoalPostponementDao goalPostponementDao =
       GoalPostponementDao(this as AppDatabase);
   late final GoalReviewDao goalReviewDao = GoalReviewDao(this as AppDatabase);
+  late final BackupLogDao backupLogDao = BackupLogDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -9487,7 +10144,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         syncState,
         checklistItems,
         goalPostponements,
-        goalReviews
+        goalReviews,
+        backupLogs
       ];
 }
 
@@ -11280,6 +11938,7 @@ typedef $$GoalRecordsTableCreateCompanionBuilder = GoalRecordsCompanion
   Value<String?> note,
   Value<String?> summary,
   Value<String?> category,
+  Value<String?> tags,
   Value<double> progress,
   Value<bool> isCompleted,
   Value<bool> isPostponed,
@@ -11303,6 +11962,7 @@ typedef $$GoalRecordsTableUpdateCompanionBuilder = GoalRecordsCompanion
   Value<String?> note,
   Value<String?> summary,
   Value<String?> category,
+  Value<String?> tags,
   Value<double> progress,
   Value<bool> isCompleted,
   Value<bool> isPostponed,
@@ -11347,6 +12007,9 @@ class $$GoalRecordsTableFilterComposer
 
   ColumnFilters<String> get category => $composableBuilder(
       column: $table.category, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get tags => $composableBuilder(
+      column: $table.tags, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<double> get progress => $composableBuilder(
       column: $table.progress, builder: (column) => ColumnFilters(column));
@@ -11415,6 +12078,9 @@ class $$GoalRecordsTableOrderingComposer
 
   ColumnOrderings<String> get category => $composableBuilder(
       column: $table.category, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get tags => $composableBuilder(
+      column: $table.tags, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<double> get progress => $composableBuilder(
       column: $table.progress, builder: (column) => ColumnOrderings(column));
@@ -11485,6 +12151,9 @@ class $$GoalRecordsTableAnnotationComposer
   GeneratedColumn<String> get category =>
       $composableBuilder(column: $table.category, builder: (column) => column);
 
+  GeneratedColumn<String> get tags =>
+      $composableBuilder(column: $table.tags, builder: (column) => column);
+
   GeneratedColumn<double> get progress =>
       $composableBuilder(column: $table.progress, builder: (column) => column);
 
@@ -11552,6 +12221,7 @@ class $$GoalRecordsTableTableManager extends RootTableManager<
             Value<String?> note = const Value.absent(),
             Value<String?> summary = const Value.absent(),
             Value<String?> category = const Value.absent(),
+            Value<String?> tags = const Value.absent(),
             Value<double> progress = const Value.absent(),
             Value<bool> isCompleted = const Value.absent(),
             Value<bool> isPostponed = const Value.absent(),
@@ -11574,6 +12244,7 @@ class $$GoalRecordsTableTableManager extends RootTableManager<
             note: note,
             summary: summary,
             category: category,
+            tags: tags,
             progress: progress,
             isCompleted: isCompleted,
             isPostponed: isPostponed,
@@ -11596,6 +12267,7 @@ class $$GoalRecordsTableTableManager extends RootTableManager<
             Value<String?> note = const Value.absent(),
             Value<String?> summary = const Value.absent(),
             Value<String?> category = const Value.absent(),
+            Value<String?> tags = const Value.absent(),
             Value<double> progress = const Value.absent(),
             Value<bool> isCompleted = const Value.absent(),
             Value<bool> isPostponed = const Value.absent(),
@@ -11618,6 +12290,7 @@ class $$GoalRecordsTableTableManager extends RootTableManager<
             note: note,
             summary: summary,
             category: category,
+            tags: tags,
             progress: progress,
             isCompleted: isCompleted,
             isPostponed: isPostponed,
@@ -13829,6 +14502,292 @@ typedef $$GoalReviewsTableProcessedTableManager = ProcessedTableManager<
     (GoalReview, BaseReferences<_$AppDatabase, $GoalReviewsTable, GoalReview>),
     GoalReview,
     PrefetchHooks Function()>;
+typedef $$BackupLogsTableCreateCompanionBuilder = BackupLogsCompanion Function({
+  required String id,
+  required String backupType,
+  required String storageType,
+  required String fileName,
+  Value<String?> filePath,
+  Value<int?> fileSize,
+  required String status,
+  Value<String?> errorMessage,
+  Value<int?> recordCount,
+  Value<int?> mediaCount,
+  required DateTime startedAt,
+  Value<DateTime?> completedAt,
+  required DateTime createdAt,
+  Value<int> rowid,
+});
+typedef $$BackupLogsTableUpdateCompanionBuilder = BackupLogsCompanion Function({
+  Value<String> id,
+  Value<String> backupType,
+  Value<String> storageType,
+  Value<String> fileName,
+  Value<String?> filePath,
+  Value<int?> fileSize,
+  Value<String> status,
+  Value<String?> errorMessage,
+  Value<int?> recordCount,
+  Value<int?> mediaCount,
+  Value<DateTime> startedAt,
+  Value<DateTime?> completedAt,
+  Value<DateTime> createdAt,
+  Value<int> rowid,
+});
+
+class $$BackupLogsTableFilterComposer
+    extends Composer<_$AppDatabase, $BackupLogsTable> {
+  $$BackupLogsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get backupType => $composableBuilder(
+      column: $table.backupType, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get storageType => $composableBuilder(
+      column: $table.storageType, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get fileName => $composableBuilder(
+      column: $table.fileName, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get filePath => $composableBuilder(
+      column: $table.filePath, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get fileSize => $composableBuilder(
+      column: $table.fileSize, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get errorMessage => $composableBuilder(
+      column: $table.errorMessage, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get recordCount => $composableBuilder(
+      column: $table.recordCount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get mediaCount => $composableBuilder(
+      column: $table.mediaCount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get startedAt => $composableBuilder(
+      column: $table.startedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get completedAt => $composableBuilder(
+      column: $table.completedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$BackupLogsTableOrderingComposer
+    extends Composer<_$AppDatabase, $BackupLogsTable> {
+  $$BackupLogsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get backupType => $composableBuilder(
+      column: $table.backupType, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get storageType => $composableBuilder(
+      column: $table.storageType, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get fileName => $composableBuilder(
+      column: $table.fileName, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get filePath => $composableBuilder(
+      column: $table.filePath, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get fileSize => $composableBuilder(
+      column: $table.fileSize, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get errorMessage => $composableBuilder(
+      column: $table.errorMessage,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get recordCount => $composableBuilder(
+      column: $table.recordCount, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get mediaCount => $composableBuilder(
+      column: $table.mediaCount, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get startedAt => $composableBuilder(
+      column: $table.startedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get completedAt => $composableBuilder(
+      column: $table.completedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$BackupLogsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $BackupLogsTable> {
+  $$BackupLogsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get backupType => $composableBuilder(
+      column: $table.backupType, builder: (column) => column);
+
+  GeneratedColumn<String> get storageType => $composableBuilder(
+      column: $table.storageType, builder: (column) => column);
+
+  GeneratedColumn<String> get fileName =>
+      $composableBuilder(column: $table.fileName, builder: (column) => column);
+
+  GeneratedColumn<String> get filePath =>
+      $composableBuilder(column: $table.filePath, builder: (column) => column);
+
+  GeneratedColumn<int> get fileSize =>
+      $composableBuilder(column: $table.fileSize, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get errorMessage => $composableBuilder(
+      column: $table.errorMessage, builder: (column) => column);
+
+  GeneratedColumn<int> get recordCount => $composableBuilder(
+      column: $table.recordCount, builder: (column) => column);
+
+  GeneratedColumn<int> get mediaCount => $composableBuilder(
+      column: $table.mediaCount, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get startedAt =>
+      $composableBuilder(column: $table.startedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get completedAt => $composableBuilder(
+      column: $table.completedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$BackupLogsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $BackupLogsTable,
+    BackupLog,
+    $$BackupLogsTableFilterComposer,
+    $$BackupLogsTableOrderingComposer,
+    $$BackupLogsTableAnnotationComposer,
+    $$BackupLogsTableCreateCompanionBuilder,
+    $$BackupLogsTableUpdateCompanionBuilder,
+    (BackupLog, BaseReferences<_$AppDatabase, $BackupLogsTable, BackupLog>),
+    BackupLog,
+    PrefetchHooks Function()> {
+  $$BackupLogsTableTableManager(_$AppDatabase db, $BackupLogsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BackupLogsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BackupLogsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BackupLogsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> backupType = const Value.absent(),
+            Value<String> storageType = const Value.absent(),
+            Value<String> fileName = const Value.absent(),
+            Value<String?> filePath = const Value.absent(),
+            Value<int?> fileSize = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<String?> errorMessage = const Value.absent(),
+            Value<int?> recordCount = const Value.absent(),
+            Value<int?> mediaCount = const Value.absent(),
+            Value<DateTime> startedAt = const Value.absent(),
+            Value<DateTime?> completedAt = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              BackupLogsCompanion(
+            id: id,
+            backupType: backupType,
+            storageType: storageType,
+            fileName: fileName,
+            filePath: filePath,
+            fileSize: fileSize,
+            status: status,
+            errorMessage: errorMessage,
+            recordCount: recordCount,
+            mediaCount: mediaCount,
+            startedAt: startedAt,
+            completedAt: completedAt,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String backupType,
+            required String storageType,
+            required String fileName,
+            Value<String?> filePath = const Value.absent(),
+            Value<int?> fileSize = const Value.absent(),
+            required String status,
+            Value<String?> errorMessage = const Value.absent(),
+            Value<int?> recordCount = const Value.absent(),
+            Value<int?> mediaCount = const Value.absent(),
+            required DateTime startedAt,
+            Value<DateTime?> completedAt = const Value.absent(),
+            required DateTime createdAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              BackupLogsCompanion.insert(
+            id: id,
+            backupType: backupType,
+            storageType: storageType,
+            fileName: fileName,
+            filePath: filePath,
+            fileSize: fileSize,
+            status: status,
+            errorMessage: errorMessage,
+            recordCount: recordCount,
+            mediaCount: mediaCount,
+            startedAt: startedAt,
+            completedAt: completedAt,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$BackupLogsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $BackupLogsTable,
+    BackupLog,
+    $$BackupLogsTableFilterComposer,
+    $$BackupLogsTableOrderingComposer,
+    $$BackupLogsTableAnnotationComposer,
+    $$BackupLogsTableCreateCompanionBuilder,
+    $$BackupLogsTableUpdateCompanionBuilder,
+    (BackupLog, BaseReferences<_$AppDatabase, $BackupLogsTable, BackupLog>),
+    BackupLog,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -13865,6 +14824,8 @@ class $AppDatabaseManager {
       $$GoalPostponementsTableTableManager(_db, _db.goalPostponements);
   $$GoalReviewsTableTableManager get goalReviews =>
       $$GoalReviewsTableTableManager(_db, _db.goalReviews);
+  $$BackupLogsTableTableManager get backupLogs =>
+      $$BackupLogsTableTableManager(_db, _db.backupLogs);
 }
 
 mixin _$FoodDaoMixin on DatabaseAccessor<AppDatabase> {
@@ -13898,4 +14859,7 @@ mixin _$GoalPostponementDaoMixin on DatabaseAccessor<AppDatabase> {
 }
 mixin _$GoalReviewDaoMixin on DatabaseAccessor<AppDatabase> {
   $GoalReviewsTable get goalReviews => attachedDatabase.goalReviews;
+}
+mixin _$BackupLogDaoMixin on DatabaseAccessor<AppDatabase> {
+  $BackupLogsTable get backupLogs => attachedDatabase.backupLogs;
 }
