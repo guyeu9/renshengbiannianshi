@@ -4733,6 +4733,7 @@ class _GoalCreatePageState extends ConsumerState<GoalCreatePage> {
       _selectedTags.addAll(_parseGoalTags(widget.goal!.tags));
       _dueDate = widget.goal!.dueDate;
       _remindFrequency = widget.goal!.remindFrequency ?? _remindOptions.first.value;
+      _loadExistingLinks();
     } else {
       _titleController = TextEditingController();
       _descriptionController = TextEditingController();
@@ -4740,6 +4741,35 @@ class _GoalCreatePageState extends ConsumerState<GoalCreatePage> {
       _dueDate = null;
       _remindFrequency = _remindOptions.first.value;
     }
+  }
+
+  Future<void> _loadExistingLinks() async {
+    if (!_isEditMode) return;
+    final db = ref.read(appDatabaseProvider);
+    final links = await db.linkDao.listLinksForEntity(
+      entityType: 'goal',
+      entityId: widget.goal!.id,
+    );
+    for (final link in links) {
+      final isSource = link.sourceType == 'goal' && link.sourceId == widget.goal!.id;
+      if (isSource) {
+        switch (link.targetType) {
+          case 'moment':
+            _linkedMomentIds.add(link.targetId);
+            break;
+          case 'food':
+            _linkedFoodIds.add(link.targetId);
+            break;
+          case 'friend':
+            _linkedFriendIds.add(link.targetId);
+            break;
+          case 'travel':
+            _linkedTravelIds.add(link.targetId);
+            break;
+        }
+      }
+    }
+    if (mounted) setState(() {});
   }
 
   List<String> _parseGoalTags(String? raw) {

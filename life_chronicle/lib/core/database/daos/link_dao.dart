@@ -269,6 +269,55 @@ class LinkDao extends DatabaseAccessor<AppDatabase> with _$LinkDaoMixin {
     );
   }
 
+  Future<void> deleteLinksBySource(String sourceType, String sourceId) async {
+    final now = DateTime.now();
+    final existingLinks = await (select(db.entityLinks)
+          ..where((t) => t.sourceType.equals(sourceType))
+          ..where((t) => t.sourceId.equals(sourceId)))
+        .get();
+    final linkIds = existingLinks.map((l) => l.id).toList();
+
+    await transaction(() async {
+      await (delete(db.entityLinks)
+            ..where((t) => t.sourceType.equals(sourceType))
+            ..where((t) => t.sourceId.equals(sourceId)))
+          .go();
+
+      for (final link in existingLinks) {
+        final logId = _uuid.v4();
+        await into(db.linkLogs).insert(
+          LinkLogsCompanion.insert(
+            id: logId,
+            sourceType: sourceType,
+            sourceId: sourceId,
+            targetType: link.targetType,
+            targetId: link.targetId,
+            action: 'delete',
+            linkType: Value(link.linkType),
+            createdAt: now,
+          ),
+        );
+      }
+    });
+
+    for (final linkId in linkIds) {
+      await _changeLogRecorder.recordDelete(
+        entityType: 'entity_links',
+        entityId: linkId,
+      );
+    }
+
+    for (final link in existingLinks) {
+      await _syncGoalsAfterLinkChange(
+        sourceType: sourceType,
+        sourceId: sourceId,
+        targetType: link.targetType,
+        targetId: link.targetId,
+        now: now,
+      );
+    }
+  }
+
   Future<void> _syncGoalsAfterLinkChange({
     required String sourceType,
     required String sourceId,
