@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 
-import 'package:drift/drift.dart' show OrderingMode, OrderingTerm, Value;
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
@@ -3474,13 +3474,9 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
     return ref.read(appDatabaseProvider).watchAllActiveTravelRecords();
   }
 
-  Stream<List<TimelineEvent>> _watchGoalEvents() {
+  Stream<List<GoalRecord>> _watchGoalEvents() {
     final db = ref.read(appDatabaseProvider);
-    return (db.select(db.timelineEvents)
-          ..where((t) => t.eventType.equals('goal'))
-          ..where((t) => t.isDeleted.equals(false))
-          ..orderBy([(t) => OrderingTerm(expression: t.recordDate, mode: OrderingMode.desc)]))
-        .watch();
+    return db.watchUncompletedYearGoals();
   }
 
   Future<void> _showLinkTravelsSheet(BuildContext context) async {
@@ -3601,10 +3597,10 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
                 children: [
                   ConstrainedBox(
                     constraints: const BoxConstraints(maxHeight: 420),
-                    child: StreamBuilder<List<TimelineEvent>>(
+                    child: StreamBuilder<List<GoalRecord>>(
                       stream: _watchGoalEvents(),
                       builder: (context, snapshot) {
-                        final items = snapshot.data ?? const <TimelineEvent>[];
+                        final items = snapshot.data ?? const <GoalRecord>[];
                         if (items.isEmpty) {
                           return const Padding(
                             padding: EdgeInsets.symmetric(vertical: 18),

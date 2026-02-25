@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
-import 'package:drift/drift.dart' show OrderingMode, OrderingTerm, Value;
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -875,13 +875,10 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
                           '关联旅行',
                           _mapNames(linkIds['travel'] ?? const <String>[], {for (final t in travels) t.id: _travelTitle(t)}),
                         );
-                        return StreamBuilder<List<TimelineEvent>>(
-                          stream: (db.select(db.timelineEvents)
-                                ..where((t) => t.isDeleted.equals(false))
-                                ..where((t) => t.eventType.equals('goal')))
-                              .watch(),
+                        return StreamBuilder<List<GoalRecord>>(
+                          stream: db.watchUncompletedYearGoals(),
                           builder: (context, goalSnapshot) {
-                            final goals = goalSnapshot.data ?? const <TimelineEvent>[];
+                            final goals = goalSnapshot.data ?? const <GoalRecord>[];
                             final goalLabels = _buildLinkLabels(
                               '人生目标',
                               _mapNames(linkIds['goal'] ?? const <String>[], {for (final g in goals) g.id: g.title}),
@@ -1807,20 +1804,15 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
 
   Future<void> _selectLinkedGoals() async {
     final db = ref.read(appDatabaseProvider);
-    final goalsStream = (db.select(db.timelineEvents)
-          ..where((t) => t.eventType.equals('goal'))
-          ..where((t) => t.isDeleted.equals(false))
-          ..orderBy([(t) => OrderingTerm(expression: t.recordDate, mode: OrderingMode.desc)]))
-        .watch();
     final selected = await showModalBottomSheet<Set<String>>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return StreamBuilder<List<TimelineEvent>>(
-          stream: goalsStream,
+        return StreamBuilder<List<GoalRecord>>(
+          stream: db.watchUncompletedYearGoals(),
           builder: (context, snapshot) {
-            final goals = snapshot.data ?? const <TimelineEvent>[];
+            final goals = snapshot.data ?? const <GoalRecord>[];
             return _MultiSelectBottomSheet(
               title: '关联人生目标',
               items: goals

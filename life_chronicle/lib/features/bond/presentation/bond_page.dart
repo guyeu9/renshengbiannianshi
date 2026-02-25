@@ -2903,13 +2903,13 @@ class _EncounterCreatePageState extends ConsumerState<EncounterCreatePage> {
       backgroundColor: Colors.transparent,
       builder: (context) {
         return StreamBuilder<List<GoalRecord>>(
-          stream: db.watchAllActiveGoalRecords(),
+          stream: db.watchUncompletedYearGoals(),
           builder: (context, snapshot) {
             final items = (snapshot.data ?? const <GoalRecord>[])
                 .map(
                   (g) => SelectItem(
                     id: g.id,
-                    title: g.summary ?? '目标记录',
+                    title: g.title,
                     leading: const _IconSquare(color: Color(0xFFF3E8FF), icon: Icons.flag, iconColor: Color(0xFFA855F7)),
                   ),
                 )

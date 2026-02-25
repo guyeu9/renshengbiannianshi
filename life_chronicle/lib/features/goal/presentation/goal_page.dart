@@ -4076,7 +4076,7 @@ class _RelatedMemoryList extends StatelessWidget {
               final link = links[index];
               return Padding(
                 padding: EdgeInsets.only(right: index < links.length - 1 ? 12 : 0),
-                child: _RelatedMemoryCard(link: link, db: db),
+                child: _RelatedMemoryCard(link: link, goalId: goalId, db: db),
               );
             },
           ),
@@ -4108,27 +4108,29 @@ class _RelatedMemoryList extends StatelessWidget {
 }
 
 class _RelatedMemoryCard extends StatelessWidget {
-  const _RelatedMemoryCard({required this.link, required this.db});
+  const _RelatedMemoryCard({required this.link, required this.goalId, required this.db});
 
   final EntityLink link;
+  final String goalId;
   final AppDatabase db;
 
   @override
   Widget build(BuildContext context) {
-    final targetType = link.targetType;
-    final targetId = link.targetId;
+    final isSource = link.sourceType == 'goal' && link.sourceId == goalId;
+    final otherType = isSource ? link.targetType : link.sourceType;
+    final otherId = isSource ? link.targetId : link.sourceId;
 
-    switch (targetType) {
+    switch (otherType) {
       case 'food':
-        return _FoodMemoryCard(foodId: targetId, db: db);
+        return _FoodMemoryCard(foodId: otherId, db: db);
       case 'travel':
-        return _TravelMemoryCard(travelId: targetId, db: db);
+        return _TravelMemoryCard(travelId: otherId, db: db);
       case 'moment':
-        return _MomentMemoryCard(momentId: targetId, db: db);
+        return _MomentMemoryCard(momentId: otherId, db: db);
       case 'friend':
-        return _FriendMemoryCard(friendId: targetId, db: db);
+        return _FriendMemoryCard(friendId: otherId, db: db);
       default:
-        return _DefaultMemoryCard(type: targetType);
+        return _DefaultMemoryCard(type: otherType);
     }
   }
 }
@@ -4492,7 +4494,13 @@ class _GoalAllLinksPageState extends ConsumerState<GoalAllLinksPage> {
               stream: db.linkDao.watchLinksForEntity(entityType: 'goal', entityId: widget.goalId),
               builder: (context, snapshot) {
                 final links = snapshot.data ?? const <EntityLink>[];
-                final filteredLinks = _selectedFilter == 'all' ? links : links.where((l) => l.targetType == _selectedFilter).toList();
+                final filteredLinks = _selectedFilter == 'all' 
+                    ? links 
+                    : links.where((l) {
+                        final isSource = l.sourceType == 'goal' && l.sourceId == widget.goalId;
+                        final otherType = isSource ? l.targetType : l.sourceType;
+                        return otherType == _selectedFilter;
+                      }).toList();
 
                 if (filteredLinks.isEmpty) {
                   return _buildEmptyState();
@@ -4505,7 +4513,7 @@ class _GoalAllLinksPageState extends ConsumerState<GoalAllLinksPage> {
                     final link = filteredLinks[index];
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
-                      child: _RelatedMemoryListItem(link: link, db: db),
+                      child: _RelatedMemoryListItem(link: link, goalId: widget.goalId, db: db),
                     );
                   },
                 );
@@ -4579,24 +4587,27 @@ class _FilterOption {
 }
 
 class _RelatedMemoryListItem extends StatelessWidget {
-  const _RelatedMemoryListItem({required this.link, required this.db});
+  const _RelatedMemoryListItem({required this.link, required this.goalId, required this.db});
 
   final EntityLink link;
+  final String goalId;
   final AppDatabase db;
 
   @override
   Widget build(BuildContext context) {
-    final targetType = link.targetType;
+    final isSource = link.sourceType == 'goal' && link.sourceId == goalId;
+    final otherType = isSource ? link.targetType : link.sourceType;
+    final otherId = isSource ? link.targetId : link.sourceId;
 
-    switch (targetType) {
+    switch (otherType) {
       case 'food':
-        return _FoodListItem(foodId: link.targetId, db: db);
+        return _FoodListItem(foodId: otherId, db: db);
       case 'travel':
-        return _TravelListItem(travelId: link.targetId, db: db);
+        return _TravelListItem(travelId: otherId, db: db);
       case 'moment':
-        return _MomentListItem(momentId: link.targetId, db: db);
+        return _MomentListItem(momentId: otherId, db: db);
       case 'friend':
-        return _FriendListItem(friendId: link.targetId, db: db);
+        return _FriendListItem(friendId: otherId, db: db);
       default:
         return ListTile(
           leading: Container(width: 48, height: 48, decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.link, color: Color(0xFF9CA3AF))),
