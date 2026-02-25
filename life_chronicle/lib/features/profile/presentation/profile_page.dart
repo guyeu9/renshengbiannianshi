@@ -182,18 +182,89 @@ class ChronicleModuleSummary {
   final List<String> highlights;
 }
 
+class ChronicleRecordDetail {
+  const ChronicleRecordDetail({
+    required this.id,
+    required this.moduleType,
+    required this.title,
+    required this.content,
+    required this.recordDate,
+    this.imagePaths = const [],
+    this.rating,
+    this.location,
+    this.mood,
+    this.destination,
+    this.friendName,
+    this.eventSummary,
+  });
+
+  final String id;
+  final String moduleType;
+  final String title;
+  final String content;
+  final DateTime recordDate;
+  final List<String> imagePaths;
+  final double? rating;
+  final String? location;
+  final String? mood;
+  final String? destination;
+  final String? friendName;
+  final String? eventSummary;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'moduleType': moduleType,
+      'title': title,
+      'content': content,
+      'recordDate': recordDate.toIso8601String(),
+      'imagePaths': imagePaths,
+      'rating': rating,
+      'location': location,
+      'mood': mood,
+      'destination': destination,
+      'friendName': friendName,
+      'eventSummary': eventSummary,
+    };
+  }
+
+  factory ChronicleRecordDetail.fromJson(Map<String, dynamic> json) {
+    final rawImagePaths = json['imagePaths'];
+    final imagePaths = <String>[];
+    if (rawImagePaths is List) {
+      imagePaths.addAll(rawImagePaths.map((e) => e.toString()));
+    }
+    return ChronicleRecordDetail(
+      id: (json['id'] ?? '').toString(),
+      moduleType: (json['moduleType'] ?? '').toString(),
+      title: (json['title'] ?? '').toString(),
+      content: (json['content'] ?? '').toString(),
+      recordDate: DateTime.tryParse(json['recordDate']?.toString() ?? '') ?? DateTime.now(),
+      imagePaths: imagePaths,
+      rating: json['rating'] is num ? json['rating'].toDouble() : null,
+      location: json['location']?.toString(),
+      mood: json['mood']?.toString(),
+      destination: json['destination']?.toString(),
+      friendName: json['friendName']?.toString(),
+      eventSummary: json['eventSummary']?.toString(),
+    );
+  }
+}
+
 class ChronicleGeneratedContent {
   const ChronicleGeneratedContent({
     required this.rangeStart,
     required this.rangeEnd,
     required this.moduleSummaries,
     required this.aiSummary,
+    this.recordDetails = const [],
   });
 
   final DateTime rangeStart;
   final DateTime rangeEnd;
   final List<ChronicleModuleSummary> moduleSummaries;
   final String aiSummary;
+  final List<ChronicleRecordDetail> recordDetails;
 }
 
 Future<File?> chronicleStoreFile() async {
@@ -1293,6 +1364,19 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
     });
   }
 
+  List<String> _parseImagePaths(String? imagesJson) {
+    if (imagesJson == null || imagesJson.trim().isEmpty) {
+      return const [];
+    }
+    try {
+      final decoded = jsonDecode(imagesJson);
+      if (decoded is List) {
+        return decoded.map((e) => e.toString()).toList();
+      }
+    } catch (_) {}
+    return const [];
+  }
+
   Future<ChronicleGeneratedContent> _collectChronicleData(
     AppDatabase db,
     DateTimeRange range,
@@ -1301,6 +1385,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
     final start = DateTime(range.start.year, range.start.month, range.start.day);
     final endExclusive = DateTime(range.end.year, range.end.month, range.end.day).add(const Duration(days: 1));
     final summaries = <ChronicleModuleSummary>[];
+    final recordDetails = <ChronicleRecordDetail>[];
 
     Future<List<FoodRecord>> foods() {
       return (db.select(db.foodRecords)
@@ -1353,6 +1438,30 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
           highlights: records.map((e) => e.title).where((e) => e.trim().isNotEmpty).take(3).toList(),
         ),
       );
+      for (final record in records) {
+        final locationParts = <String>[];
+        if (record.poiName != null && record.poiName!.trim().isNotEmpty) {
+          locationParts.add(record.poiName!);
+        }
+        if (record.poiAddress != null && record.poiAddress!.trim().isNotEmpty) {
+          locationParts.add(record.poiAddress!);
+        }
+        if (record.city != null && record.city!.trim().isNotEmpty) {
+          locationParts.add(record.city!);
+        }
+        recordDetails.add(
+          ChronicleRecordDetail(
+            id: record.id,
+            moduleType: 'food',
+            title: record.title,
+            content: record.content ?? '',
+            recordDate: record.recordDate,
+            imagePaths: _parseImagePaths(record.images),
+            rating: record.rating,
+            location: locationParts.isNotEmpty ? locationParts.join(' · ') : null,
+          ),
+        );
+      }
     }
     if (modules.contains('travel')) {
       final records = await travels();
@@ -1368,6 +1477,21 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
               .toList(),
         ),
       );
+      for (final record in records) {
+        final title = (record.title ?? '').trim().isNotEmpty ? (record.title ?? '') : (record.destination ?? '');
+        recordDetails.add(
+          ChronicleRecordDetail(
+            id: record.id,
+            moduleType: 'travel',
+            title: title,
+            content: record.content ?? '',
+            recordDate: record.recordDate,
+            imagePaths: _parseImagePaths(record.images),
+            destination: record.destination,
+            mood: record.mood,
+          ),
+        );
+      }
     }
     if (modules.contains('moment')) {
       final records = await moments();
@@ -1379,6 +1503,19 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
           highlights: records.map((e) => (e.content ?? '').trim()).where((e) => e.isNotEmpty).take(3).toList(),
         ),
       );
+      for (final record in records) {
+        recordDetails.add(
+          ChronicleRecordDetail(
+            id: record.id,
+            moduleType: 'moment',
+            title: '小确幸',
+            content: record.content ?? '',
+            recordDate: record.recordDate,
+            imagePaths: _parseImagePaths(record.images),
+            mood: record.mood,
+          ),
+        );
+      }
     }
     if (modules.contains('bond')) {
       final records = await friends();
@@ -1390,6 +1527,18 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
           highlights: records.map((e) => e.name).where((e) => e.trim().isNotEmpty).take(3).toList(),
         ),
       );
+      for (final record in records) {
+        recordDetails.add(
+          ChronicleRecordDetail(
+            id: record.id,
+            moduleType: 'bond',
+            title: record.name,
+            content: record.impressionTags ?? '',
+            recordDate: record.updatedAt,
+            friendName: record.name,
+          ),
+        );
+      }
     }
     if (modules.contains('goal')) {
       final records = await events('goal');
@@ -1401,6 +1550,32 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
           highlights: records.map((e) => e.title.trim()).where((e) => e.isNotEmpty).take(3).toList(),
         ),
       );
+      for (final record in records) {
+        recordDetails.add(
+          ChronicleRecordDetail(
+            id: record.id,
+            moduleType: 'goal',
+            title: record.title,
+            content: record.note ?? '',
+            recordDate: record.recordDate,
+          ),
+        );
+      }
+    }
+    if (modules.contains('encounter')) {
+      final records = await events('encounter');
+      for (final record in records) {
+        recordDetails.add(
+          ChronicleRecordDetail(
+            id: record.id,
+            moduleType: 'encounter',
+            title: record.title,
+            content: record.note ?? '',
+            recordDate: record.recordDate,
+            eventSummary: record.note,
+          ),
+        );
+      }
     }
     final aiSummary = _buildAiSummary(range, summaries);
     return ChronicleGeneratedContent(
@@ -1408,6 +1583,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
       rangeEnd: range.end,
       moduleSummaries: summaries,
       aiSummary: aiSummary,
+      recordDetails: recordDetails,
     );
   }
 
@@ -1429,6 +1605,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
     DateTimeRange range,
     String aiSummary,
     List<ChronicleModuleSummary> summaries,
+    List<ChronicleRecordDetail> recordDetails,
   ) async {
     final exportDir = await chronicleExportDir();
     if (exportDir == null) {
@@ -1439,7 +1616,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
     final pdfPath = p.join(exportDir.path, '$safeTitle-$stamp.pdf');
     final epubPath = p.join(exportDir.path, '$safeTitle-$stamp.epub');
 
-    final pdfBytes = await _buildPdfBytes(title, range, aiSummary, summaries);
+    final pdfBytes = await _buildPdfBytes(title, range, aiSummary, summaries, recordDetails);
     await File(pdfPath).writeAsBytes(pdfBytes, flush: true);
 
     final epubBytes = await _buildEpubBytes(title, range, aiSummary, summaries);
@@ -1448,19 +1625,671 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
     return _ChronicleExportResult(pdfPath: pdfPath, epubPath: epubPath);
   }
 
+  pw.Page _buildPdfCoverPage(
+    String title,
+    DateTimeRange range,
+  ) {
+    const primaryColor = PdfColor.fromInt(0xFF2BCDEE);
+    const lightPrimaryColor = PdfColor.fromInt(0xFFE6F9FC);
+    
+    return pw.Page(
+      pageFormat: PdfPageFormat.a4,
+      build: (context) {
+        return pw.Container(
+          decoration: pw.BoxDecoration(
+            gradient: pw.LinearGradient(
+              begin: pw.Alignment.topCenter,
+              end: pw.Alignment.bottomCenter,
+              colors: [lightPrimaryColor, PdfColors.white],
+            ),
+          ),
+          child: pw.Center(
+            child: pw.Column(
+              mainAxisAlignment: pw.MainAxisAlignment.center,
+              children: [
+                pw.Container(
+                  width: 120,
+                  height: 120,
+                  decoration: pw.BoxDecoration(
+                    color: primaryColor,
+                    shape: pw.BoxShape.circle,
+                  ),
+                  child: pw.Center(
+                    child: pw.Icon(
+                      const pw.IconData(0xe5ee),
+                      size: 72,
+                      color: PdfColors.white,
+                    ),
+                  ),
+                ),
+                pw.SizedBox(height: 40),
+                pw.Text(
+                  title,
+                  style: pw.TextStyle(
+                    fontSize: 32,
+                    fontWeight: pw.FontWeight.bold,
+                    color: primaryColor,
+                  ),
+                  textAlign: pw.TextAlign.center,
+                ),
+                pw.SizedBox(height: 20),
+                pw.Text(
+                  '${_formatDate(range.start)} - ${_formatDate(range.end)}',
+                  style: pw.TextStyle(
+                    fontSize: 16,
+                    color: PdfColors.grey700,
+                  ),
+                ),
+                pw.SizedBox(height: 60),
+                pw.Text(
+                  '人生编年史',
+                  style: pw.TextStyle(
+                    fontSize: 20,
+                    fontWeight: pw.FontWeight.bold,
+                    color: primaryColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  pw.Widget _buildBarChart(List<ChronicleModuleSummary> summaries) {
+    final colors = [
+      PdfColor(0xFF, 0xA7, 0x26),
+      PdfColor(0x42, 0xA5, 0xF5),
+      PdfColor(0xEC, 0x40, 0x7A),
+      PdfColor(0xAB, 0x47, 0xBC),
+      PdfColor(0xFF, 0xCA, 0x28),
+    ];
+    
+    final maxCount = summaries.isEmpty ? 1 : summaries.fold<int>(0, (max, s) => s.count > max ? s.count : max);
+    
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text('模块记录统计 - 柱状图', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+        pw.SizedBox(height: 10),
+        pw.Container(
+          width: 400,
+          height: 200,
+          child: pw.CustomPaint(
+            painter: (pw.PdfGraphics canvas, PdfPoint size) {
+              final startX = 50.0;
+              final startY = size.y - 30.0;
+              final barWidth = 60.0;
+              final spacing = 20.0;
+              
+              for (var i = 0; i < summaries.length; i++) {
+                final x = startX + i * (barWidth + spacing);
+                final height = (summaries[i].count / maxCount) * (size.y - 60.0);
+                final y = startY - height;
+                
+                canvas.drawRect(
+                  PdfRect(x, y, barWidth, height),
+                  color: colors[i % colors.length],
+                );
+              }
+            },
+          ),
+        ),
+        pw.SizedBox(height: 8),
+        pw.Row(
+          children: summaries.asMap().entries.map((entry) {
+            final i = entry.key;
+            final summary = entry.value;
+            return pw.Expanded(
+              child: pw.Column(
+                children: [
+                  pw.Container(
+                    width: 20,
+                    height: 20,
+                    decoration: pw.BoxDecoration(color: colors[i % colors.length]),
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(summary.title, style: pw.TextStyle(fontSize: 10)),
+                  pw.Text('${summary.count}', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                ],
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  pw.Widget _buildPieChart(List<ChronicleModuleSummary> summaries) {
+    final colors = [
+      PdfColor(0xFF, 0xA7, 0x26),
+      PdfColor(0x42, 0xA5, 0xF5),
+      PdfColor(0xEC, 0x40, 0x7A),
+      PdfColor(0xAB, 0x47, 0xBC),
+      PdfColor(0xFF, 0xCA, 0x28),
+    ];
+    
+    final total = summaries.fold<int>(0, (sum, s) => sum + s.count);
+    
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text('模块记录统计 - 饼图', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+        pw.SizedBox(height: 10),
+        pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Container(
+              width: 200,
+              height: 200,
+              child: pw.CustomPaint(
+                painter: (pw.PdfGraphics canvas, PdfPoint size) {
+                  final centerX = size.x / 2;
+                  final centerY = size.y / 2;
+                  final radius = 80.0;
+                  var startAngle = 0.0;
+                  
+                  for (var i = 0; i < summaries.length; i++) {
+                    final sweepAngle = (summaries[i].count / total) * 2 * 3.14159;
+                    
+                    canvas.moveTo(centerX, centerY);
+                    for (var angle = startAngle; angle <= startAngle + sweepAngle; angle += 0.01) {
+                      final x = centerX + radius * (angle * 180 / 3.14159).cos();
+                      final y = centerY + radius * (angle * 180 / 3.14159).sin();
+                      canvas.lineTo(x, y);
+                    }
+                    canvas.closePath();
+                    canvas.fillPath(color: colors[i % colors.length]);
+                    
+                    startAngle += sweepAngle;
+                  }
+                },
+              ),
+            ),
+            pw.SizedBox(width: 20),
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: summaries.asMap().entries.map((entry) {
+                final i = entry.key;
+                final summary = entry.value;
+                final percentage = total == 0 ? 0 : (summary.count / total * 100).toStringAsFixed(1);
+                return pw.Padding(
+                  padding: const pw.EdgeInsets.only(bottom: 8),
+                  child: pw.Row(
+                    children: [
+                      pw.Container(
+                        width: 16,
+                        height: 16,
+                        decoration: pw.BoxDecoration(color: colors[i % colors.length]),
+                      ),
+                      pw.SizedBox(width: 8),
+                      pw.Text('${summary.title}: ${summary.count} (${percentage}%)', style: pw.TextStyle(fontSize: 10)),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  pw.Widget _buildImageGrid(List<ChronicleRecordDetail> recordDetails) {
+    final imageWidgets = <pw.Widget>[];
+    final maxImages = 12;
+    var imageCount = 0;
+
+    for (final record in recordDetails) {
+      if (imageCount >= maxImages) break;
+      for (final imagePath in record.imagePaths) {
+        if (imageCount >= maxImages) break;
+        try {
+          final file = File(imagePath);
+          if (file.existsSync()) {
+            final bytes = file.readAsBytesSync();
+            imageWidgets.add(
+              pw.Container(
+                decoration: pw.BoxDecoration(
+                  border: pw.Border.all(color: PdfColors.grey300),
+                  borderRadius: pw.BorderRadius.circular(8),
+                ),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Container(
+                      height: 80,
+                      width: double.infinity,
+                      child: pw.Image(
+                        pw.MemoryImage(bytes),
+                        fit: pw.BoxFit.cover,
+                      ),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(
+                            _formatDate(record.recordDate),
+                            style: pw.TextStyle(
+                              fontSize: 8,
+                              color: PdfColors.grey600,
+                            ),
+                          ),
+                          pw.SizedBox(height: 2),
+                          pw.Text(
+                            record.title.isNotEmpty ? record.title : '记录',
+                            style: pw.TextStyle(
+                              fontSize: 9,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
+                            maxLines: 2,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+            imageCount++;
+          }
+        } catch (_) {
+          imageWidgets.add(
+            pw.Container(
+              height: 120,
+              decoration: pw.BoxDecoration(
+                color: PdfColors.grey100,
+                border: pw.Border.all(color: PdfColors.grey300),
+                borderRadius: pw.BorderRadius.circular(8),
+              ),
+              child: pw.Column(
+                mainAxisAlignment: pw.MainAxisAlignment.center,
+                children: [
+                  pw.Icon(
+                    const pw.IconData(0xe04f),
+                    size: 32,
+                    color: PdfColors.grey400,
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    '加载失败',
+                    style: pw.TextStyle(
+                      fontSize: 8,
+                      color: PdfColors.grey500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+          imageCount++;
+        }
+      }
+    }
+
+    if (imageWidgets.isEmpty) {
+      return pw.Container();
+    }
+
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(
+          '精彩瞬间',
+          style: pw.TextStyle(
+            fontSize: 16,
+            fontWeight: pw.FontWeight.bold,
+          ),
+        ),
+        pw.SizedBox(height: 10),
+        pw.GridView(
+          crossAxisCount: 3,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+          childAspectRatio: 1,
+          children: imageWidgets,
+        ),
+      ],
+    );
+  }
+
+  pw.Widget _buildModuleChapter(
+    ChronicleModuleSummary summary,
+    List<ChronicleRecordDetail> moduleRecords,
+  ) {
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Row(
+          children: [
+            pw.Container(
+              width: 48,
+              height: 48,
+              decoration: pw.BoxDecoration(
+                color: PdfColor.fromInt(0xFF2BCDEE),
+                shape: pw.BoxShape.circle,
+              ),
+              child: pw.Center(
+                child: pw.Icon(
+                  const pw.IconData(0xe5ee),
+                  size: 28,
+                  color: PdfColors.white,
+                ),
+              ),
+            ),
+            pw.SizedBox(width: 16),
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  summary.title,
+                  style: pw.TextStyle(
+                    fontSize: 24,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColor.fromInt(0xFF2BCDEE),
+                  ),
+                ),
+                pw.Text(
+                  '共 ${summary.count} 条记录',
+                  style: pw.TextStyle(
+                    fontSize: 14,
+                    color: PdfColors.grey600,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        pw.SizedBox(height: 20),
+        if (summary.highlights.isNotEmpty) ...[
+          pw.Text(
+            '精选内容',
+            style: pw.TextStyle(
+              fontSize: 16,
+              fontWeight: pw.FontWeight.bold,
+            ),
+          ),
+          pw.SizedBox(height: 10),
+          pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: summary.highlights.map((highlight) {
+              return pw.Padding(
+                padding: const pw.EdgeInsets.only(bottom: 6),
+                child: pw.Bullet(text: highlight),
+              );
+            }).toList(),
+          ),
+          pw.SizedBox(height: 20),
+        ],
+        if (moduleRecords.isNotEmpty) ...[
+          pw.Text(
+            '记录列表',
+            style: pw.TextStyle(
+              fontSize: 16,
+              fontWeight: pw.FontWeight.bold,
+            ),
+          ),
+          pw.SizedBox(height: 10),
+          pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: moduleRecords.take(10).map((record) {
+              return pw.Padding(
+                padding: const pw.EdgeInsets.only(bottom: 8),
+                child: pw.Container(
+                  padding: const pw.EdgeInsets.all(12),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.grey50,
+                    borderRadius: pw.BorderRadius.circular(8),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text(
+                            record.title.isNotEmpty ? record.title : '记录',
+                            style: pw.TextStyle(
+                              fontSize: 12,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
+                          ),
+                          pw.Text(
+                            _formatDate(record.recordDate),
+                            style: pw.TextStyle(
+                              fontSize: 10,
+                              color: PdfColors.grey600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (record.content.isNotEmpty) ...[
+                        pw.SizedBox(height: 6),
+                        pw.Text(
+                          record.content,
+                          style: pw.TextStyle(
+                            fontSize: 10,
+                            color: PdfColors.grey700,
+                          ),
+                          maxLines: 3,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          pw.SizedBox(height: 20),
+        ],
+        _buildImageGrid(moduleRecords),
+      ],
+    );
+  }
+
+  pw.Page _buildPdfClosingPage(
+    String title,
+    List<ChronicleModuleSummary> summaries,
+  ) {
+    const primaryColor = PdfColor.fromInt(0xFF2BCDEE);
+    const lightPrimaryColor = PdfColor.fromInt(0xFFE6F9FC);
+    
+    final totalRecords = summaries.fold<int>(0, (sum, s) => sum + s.count);
+    
+    return pw.Page(
+      pageFormat: PdfPageFormat.a4,
+      build: (context) {
+        return pw.Container(
+          decoration: pw.BoxDecoration(
+            gradient: pw.LinearGradient(
+              begin: pw.Alignment.topCenter,
+              end: pw.Alignment.bottomCenter,
+              colors: [lightPrimaryColor, PdfColors.white],
+            ),
+          ),
+          child: pw.Center(
+            child: pw.Column(
+              mainAxisAlignment: pw.MainAxisAlignment.center,
+              children: [
+                pw.Container(
+                  width: 120,
+                  height: 120,
+                  decoration: pw.BoxDecoration(
+                    color: primaryColor,
+                    shape: pw.BoxShape.circle,
+                  ),
+                  child: pw.Center(
+                    child: pw.Icon(
+                      const pw.IconData(0xe5ee),
+                      size: 72,
+                      color: PdfColors.white,
+                    ),
+                  ),
+                ),
+                pw.SizedBox(height: 40),
+                pw.Text(
+                  title,
+                  style: pw.TextStyle(
+                    fontSize: 28,
+                    fontWeight: pw.FontWeight.bold,
+                    color: primaryColor,
+                  ),
+                  textAlign: pw.TextAlign.center,
+                ),
+                pw.SizedBox(height: 20),
+                pw.Text(
+                  '共收录 $totalRecords 条珍贵记忆',
+                  style: pw.TextStyle(
+                    fontSize: 18,
+                    color: PdfColors.grey700,
+                  ),
+                ),
+                pw.SizedBox(height: 40),
+                pw.Container(
+                  padding: const pw.EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.white,
+                    borderRadius: pw.BorderRadius.circular(16),
+                    boxShadow: [
+                      pw.BoxShadow(
+                        color: PdfColors.grey300,
+                        blurRadius: 10,
+                        offset: const PdfPoint(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: pw.Column(
+                    children: [
+                      pw.Text(
+                        '感谢您使用人生编年史',
+                        style: pw.TextStyle(
+                          fontSize: 16,
+                          fontWeight: pw.FontWeight.bold,
+                          color: primaryColor,
+                        ),
+                      ),
+                      pw.SizedBox(height: 10),
+                      pw.Text(
+                        '愿这些珍贵的回忆，成为您人生中最美好的珍藏。',
+                        style: pw.TextStyle(
+                          fontSize: 12,
+                          color: PdfColors.grey600,
+                        ),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+                pw.SizedBox(height: 60),
+                pw.Text(
+                  '人生编年史',
+                  style: pw.TextStyle(
+                    fontSize: 20,
+                    fontWeight: pw.FontWeight.bold,
+                    color: primaryColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  pw.Page _buildPdfConclusionPage(
+    String title,
+    DateTimeRange range,
+  ) {
+    const primaryColor = PdfColor.fromInt(0xFF2BCDEE);
+    const lightPrimaryColor = PdfColor.fromInt(0xFFE6F9FC);
+    
+    return pw.Page(
+      pageFormat: PdfPageFormat.a4,
+      build: (context) {
+        return pw.Container(
+          decoration: pw.BoxDecoration(
+            gradient: pw.LinearGradient(
+              begin: pw.Alignment.topCenter,
+              end: pw.Alignment.bottomCenter,
+              colors: [PdfColors.white, lightPrimaryColor],
+            ),
+          ),
+          child: pw.Center(
+            child: pw.Column(
+              mainAxisAlignment: pw.MainAxisAlignment.center,
+              children: [
+                pw.Container(
+                  width: 100,
+                  height: 100,
+                  decoration: pw.BoxDecoration(
+                    color: primaryColor,
+                    shape: pw.BoxShape.circle,
+                  ),
+                  child: pw.Center(
+                    child: pw.Icon(
+                      const pw.IconData(0xe5ca),
+                      size: 60,
+                      color: PdfColors.white,
+                    ),
+                  ),
+                ),
+                pw.SizedBox(height: 40),
+                pw.Text(
+                  '感谢阅读',
+                  style: pw.TextStyle(
+                    fontSize: 28,
+                    fontWeight: pw.FontWeight.bold,
+                    color: primaryColor,
+                  ),
+                  textAlign: pw.TextAlign.center,
+                ),
+                pw.SizedBox(height: 20),
+                pw.Text(
+                  '每一次记录，都是对生活的热爱',
+                  style: pw.TextStyle(
+                    fontSize: 16,
+                    color: PdfColors.grey700,
+                  ),
+                  textAlign: pw.TextAlign.center,
+                ),
+                pw.SizedBox(height: 60),
+                pw.Text(
+                  '人生编年史',
+                  style: pw.TextStyle(
+                    fontSize: 20,
+                    fontWeight: pw.FontWeight.bold,
+                    color: primaryColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<List<int>> _buildPdfBytes(
     String title,
     DateTimeRange range,
     String aiSummary,
     List<ChronicleModuleSummary> summaries,
+    List<ChronicleRecordDetail> recordDetails,
   ) async {
     final doc = pw.Document();
+    
+    doc.addPage(_buildPdfCoverPage(title, range));
+    
     doc.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         build: (context) {
           final widgets = <pw.Widget>[
-            pw.Text(title, style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+            pw.Text('总览', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
             pw.SizedBox(height: 6),
             pw.Text('时间范围：${_formatDate(range.start)} - ${_formatDate(range.end)}'),
             pw.SizedBox(height: 14),
@@ -1468,25 +2297,35 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
             pw.SizedBox(height: 6),
             pw.Text(aiSummary.isEmpty ? '暂无内容' : aiSummary),
             pw.SizedBox(height: 14),
-            pw.Text('模块汇总', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+            pw.Text('数据可视化', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+            pw.SizedBox(height: 10),
+            if (summaries.isNotEmpty) ...[
+              _buildBarChart(summaries),
+              pw.SizedBox(height: 20),
+              _buildPieChart(summaries),
+            ],
           ];
-          for (final summary in summaries) {
-            widgets.addAll([
-              pw.SizedBox(height: 8),
-              pw.Text('${summary.title}（${summary.count} 条）', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-              if (summary.highlights.isEmpty)
-                pw.Text('暂无代表内容')
-              else
-                pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: summary.highlights.map((e) => pw.Bullet(text: e)).toList(),
-                ),
-            ]);
-          }
           return widgets;
         },
       ),
     );
+    
+    for (final summary in summaries) {
+      final moduleRecords = recordDetails
+          .where((record) => record.moduleType == summary.key)
+          .toList();
+      doc.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          build: (context) {
+            return [_buildModuleChapter(summary, moduleRecords)];
+          },
+        ),
+      );
+    }
+    
+    doc.addPage(_buildPdfClosingPage(title, summaries));
+    
     return doc.save();
   }
 
@@ -1496,32 +2335,73 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
     String aiSummary,
     List<ChronicleModuleSummary> summaries,
   ) async {
-    final buffer = StringBuffer();
-    buffer.writeln('<h1>${_escapeHtml(title)}</h1>');
-    buffer.writeln('<p>时间范围：${_escapeHtml(_formatDate(range.start))} - ${_escapeHtml(_formatDate(range.end))}</p>');
-    buffer.writeln('<h2>AI 总结</h2>');
-    buffer.writeln('<p>${_escapeHtml(aiSummary.isEmpty ? '暂无内容' : aiSummary).replaceAll('\n', '<br/>')}</p>');
-    buffer.writeln('<h2>模块汇总</h2>');
+    final chapters = <epub.EpubChapter>[];
+    
+    final coverBuffer = StringBuffer();
+    coverBuffer.writeln('<div style="text-align: center; padding-top: 100px;">');
+    coverBuffer.writeln('<h1 style="font-size: 36px; color: #2BCDEE;">${_escapeHtml(title)}</h1>');
+    coverBuffer.writeln('<p style="font-size: 18px; color: #666; margin-top: 20px;">时间范围：${_escapeHtml(_formatDate(range.start))} - ${_escapeHtml(_formatDate(range.end))}</p>');
+    coverBuffer.writeln('<p style="font-size: 24px; color: #2BCDEE; margin-top: 100px;">人生编年史</p>');
+    coverBuffer.writeln('</div>');
+    
+    chapters.add(
+      epub.EpubChapter()
+        ..Title = '封面'
+        ..HtmlContent = coverBuffer.toString()
+    );
+    
+    final overviewBuffer = StringBuffer();
+    overviewBuffer.writeln('<h1>总览</h1>');
+    overviewBuffer.writeln('<p>时间范围：${_escapeHtml(_formatDate(range.start))} - ${_escapeHtml(_formatDate(range.end))}</p>');
+    overviewBuffer.writeln('<h2>AI 总结</h2>');
+    overviewBuffer.writeln('<p>${_escapeHtml(aiSummary.isEmpty ? '暂无内容' : aiSummary).replaceAll('\n', '<br/>')}</p>');
+    
+    chapters.add(
+      epub.EpubChapter()
+        ..Title = '总览'
+        ..HtmlContent = overviewBuffer.toString()
+    );
+    
     for (final summary in summaries) {
-      buffer.writeln('<h3>${_escapeHtml(summary.title)}（${summary.count} 条）</h3>');
+      final chapterBuffer = StringBuffer();
+      chapterBuffer.writeln('<h1>${_escapeHtml(summary.title)}</h1>');
+      chapterBuffer.writeln('<p>共 ${summary.count} 条记录</p>');
+      chapterBuffer.writeln('<h2>代表内容</h2>');
       if (summary.highlights.isEmpty) {
-        buffer.writeln('<p>暂无代表内容</p>');
+        chapterBuffer.writeln('<p>暂无代表内容</p>');
       } else {
-        buffer.writeln('<ul>');
+        chapterBuffer.writeln('<ul>');
         for (final item in summary.highlights) {
-          buffer.writeln('<li>${_escapeHtml(item)}</li>');
+          chapterBuffer.writeln('<li>${_escapeHtml(item)}</li>');
         }
-        buffer.writeln('</ul>');
+        chapterBuffer.writeln('</ul>');
       }
+      
+      chapters.add(
+        epub.EpubChapter()
+          ..Title = summary.title
+          ..HtmlContent = chapterBuffer.toString()
+      );
     }
+    
+    final conclusionBuffer = StringBuffer();
+    conclusionBuffer.writeln('<div style="text-align: center; padding-top: 100px;">');
+    conclusionBuffer.writeln('<h1 style="font-size: 36px; color: #2BCDEE;">感谢阅读</h1>');
+    conclusionBuffer.writeln('<p style="font-size: 18px; color: #666; margin-top: 20px;">每一次记录，都是对生活的热爱</p>');
+    conclusionBuffer.writeln('<p style="font-size: 24px; color: #2BCDEE; margin-top: 100px;">人生编年史</p>');
+    conclusionBuffer.writeln('</div>');
+    
+    chapters.add(
+      epub.EpubChapter()
+        ..Title = '结语'
+        ..HtmlContent = conclusionBuffer.toString()
+    );
+    
     final book = epub.EpubBook()
       ..Title = title
       ..Author = '人生编年史'
-      ..Chapters = [
-        epub.EpubChapter()
-          ..Title = '编年史'
-          ..HtmlContent = buffer.toString()
-      ];
+      ..Chapters = chapters;
+      
     return epub.EpubWriter.writeBook(book) ?? <int>[];
   }
 
@@ -1550,7 +2430,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
           ? '${_formatDate(range.start)}-${_formatDate(range.end)} 编年史'
           : _titleController.text.trim();
       final aiSummary = _aiSummaryController.text.trim().isEmpty ? content.aiSummary : _aiSummaryController.text.trim();
-      final exportResult = await _exportChronicle(title, range, aiSummary, content.moduleSummaries);
+      final exportResult = await _exportChronicle(title, range, aiSummary, content.moduleSummaries, content.recordDetails);
       final stats = {for (final item in content.moduleSummaries) item.title: item.count};
       final record = ChronicleRecord(
         id: '${DateTime.now().millisecondsSinceEpoch}',

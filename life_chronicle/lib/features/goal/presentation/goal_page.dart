@@ -2976,6 +2976,28 @@ Future<void> _updateTaskCompletionForGoal(AppDatabase db, GoalRecord task, bool 
     ),
   );
 
+  if (task.level == 'daily') {
+    if (checked) {
+      final eventRecordDate = DateTime(task.recordDate.year, task.recordDate.month, task.recordDate.day);
+      await db.into(db.timelineEvents).insertOnConflictUpdate(
+        TimelineEventsCompanion.insert(
+          id: task.id,
+          title: task.title,
+          eventType: 'goal',
+          startAt: Value(task.recordDate),
+          recordDate: eventRecordDate,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+    } else {
+      await (delete(db.timelineEvents)
+            ..where((t) => t.id.equals(task.id))
+            ..where((t) => t.eventType.equals('goal')))
+          .go();
+    }
+  }
+
   final quarterId = task.parentId;
   if (quarterId != null) {
     final quarterTasks = await (db.select(db.goalRecords)
@@ -5000,21 +5022,6 @@ class _GoalCreatePageState extends ConsumerState<GoalCreatePage> {
               remindFrequency: Value(_remindFrequency),
               targetYear: Value((_dueDate ?? recordDate).year),
               dueDate: Value(_dueDate),
-              recordDate: recordDate,
-              createdAt: now,
-              updatedAt: now,
-            ),
-          );
-
-      await db.into(db.timelineEvents).insertOnConflictUpdate(
-            TimelineEventsCompanion.insert(
-              id: goalId,
-              title: title,
-              eventType: 'goal',
-              startAt: Value(_dueDate ?? recordDate),
-              endAt: const Value(null),
-              note: Value(note),
-              tags: Value(tagsJson),
               recordDate: recordDate,
               createdAt: now,
               updatedAt: now,
