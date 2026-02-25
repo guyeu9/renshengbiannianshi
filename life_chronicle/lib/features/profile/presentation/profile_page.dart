@@ -1986,7 +1986,7 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
       if (!record.isFavorite) continue;
       final images = _parseStringList(record.images);
       final mood = record.mood.trim();
-      final scene = (record.sceneTag ?? '').trim();
+      final scene = (record.tags ?? '').trim();
       items.add(
         _FavoriteItem(
           id: 'moment-${record.id}',
@@ -4348,7 +4348,7 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
   Map<String, int> _countMomentTags(List<MomentRecord> moments) {
     final counts = <String, int>{};
     for (final record in moments) {
-      final raw = (record.sceneTag ?? '').trim();
+      final raw = (record.tags ?? '').trim();
       if (raw.isEmpty) continue;
       List<String> tags;
       try {
@@ -4417,7 +4417,29 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
   }) async {
     final controller = TextEditingController(text: tag?.name ?? '');
     String selectedIcon = tag?.iconName ?? _momentIconOptions.first.name;
+    String? selectedColor = tag?.color;
     bool showOnCalendar = tag?.showOnCalendar ?? true;
+
+    const colorOptions = <String>[
+      '#EF4444',
+      '#F97316',
+      '#F59E0B',
+      '#EAB308',
+      '#84CC16',
+      '#22C55E',
+      '#10B981',
+      '#14B8A6',
+      '#06B6D4',
+      '#0EA5E9',
+      '#3B82F6',
+      '#6366F1',
+      '#8B5CF6',
+      '#A855F7',
+      '#D946EF',
+      '#EC4899',
+      '#F43F5E',
+      '#78716C',
+    ];
 
     await showModalBottomSheet<void>(
       context: context,
@@ -4461,6 +4483,49 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
                               border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(14))),
                               isDense: true,
                             ),
+                          ),
+                          const SizedBox(height: 16),
+                          const Text('标签颜色', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                          const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              InkWell(
+                                borderRadius: BorderRadius.circular(16),
+                                onTap: () => setSheetState(() => selectedColor = null),
+                                child: Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF3F4F6),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: selectedColor == null ? const Color(0xFF2BCDEE) : const Color(0xFFE5E7EB),
+                                      width: selectedColor == null ? 2 : 1,
+                                    ),
+                                  ),
+                                  child: selectedColor == null ? const Icon(Icons.close, size: 16, color: Color(0xFF9CA3AF)) : null,
+                                ),
+                              ),
+                              for (final colorHex in colorOptions)
+                                InkWell(
+                                  borderRadius: BorderRadius.circular(16),
+                                  onTap: () => setSheetState(() => selectedColor = colorHex),
+                                  child: Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      color: _colorFromHex(colorHex),
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: selectedColor == colorHex ? const Color(0xFF2BCDEE) : Colors.transparent,
+                                        width: 2,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                           if (module.key == 'moment') ...[
                             const SizedBox(height: 16),
@@ -4528,6 +4593,7 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
                                       id: _newTagId(module.key),
                                       name: name,
                                       iconName: module.key == 'moment' ? selectedIcon : null,
+                                      color: selectedColor,
                                       showOnCalendar: module.key == 'moment' ? showOnCalendar : true,
                                     ),
                                   );
@@ -4537,6 +4603,7 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
                                     updatedTags[index] = tag.copyWith(
                                       name: name,
                                       iconName: module.key == 'moment' ? selectedIcon : tag.iconName,
+                                      color: selectedColor,
                                       showOnCalendar: module.key == 'moment' ? showOnCalendar : tag.showOnCalendar,
                                     );
                                   }
@@ -4558,6 +4625,19 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
         );
       },
     );
+  }
+
+  Color _colorFromHex(String hex) {
+    try {
+      final buffer = StringBuffer();
+      if (hex.length == 6 || hex.length == 7) {
+        buffer.write('ff');
+      }
+      buffer.write(hex.replaceFirst('#', ''));
+      return Color(int.parse(buffer.toString(), radix: 16));
+    } catch (_) {
+      return const Color(0xFF6B7280);
+    }
   }
 
   Future<void> _confirmDeleteTag({
@@ -4683,11 +4763,11 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
       case 'moment':
         final moments = await db.select(db.momentRecords).get();
         for (final moment in moments) {
-          final tags = _parseStringList(moment.sceneTag);
+          final tags = _parseStringList(moment.tags);
           if (tags.contains(oldTagName)) {
             final newTags = tags.map((t) => t == oldTagName ? newTagName : t).toList();
             await (db.update(db.momentRecords)..where((t) => t.id.equals(moment.id)))
-                .write(MomentRecordsCompanion(sceneTag: Value(jsonEncode(newTags))));
+                .write(MomentRecordsCompanion(tags: Value(jsonEncode(newTags))));
           }
         }
         break;

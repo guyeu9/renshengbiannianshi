@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-import 'module_tags.dart';
 import '../database/database_providers.dart';
 
 class ModuleTag {
@@ -14,6 +13,7 @@ class ModuleTag {
     required this.id,
     required this.name,
     this.iconName,
+    this.color,
     this.showOnCalendar = true,
     this.isCustom = false,
     this.usageCount = 0,
@@ -22,6 +22,7 @@ class ModuleTag {
   final String id;
   final String name;
   final String? iconName;
+  final String? color;
   final bool showOnCalendar;
   final bool isCustom;
   final int usageCount;
@@ -30,6 +31,7 @@ class ModuleTag {
     String? id,
     String? name,
     String? iconName,
+    String? color,
     bool? showOnCalendar,
     bool? isCustom,
     int? usageCount,
@@ -38,6 +40,7 @@ class ModuleTag {
       id: id ?? this.id,
       name: name ?? this.name,
       iconName: iconName ?? this.iconName,
+      color: color ?? this.color,
       showOnCalendar: showOnCalendar ?? this.showOnCalendar,
       isCustom: isCustom ?? this.isCustom,
       usageCount: usageCount ?? this.usageCount,
@@ -49,6 +52,7 @@ class ModuleTag {
       'id': id,
       'name': name,
       'iconName': iconName,
+      'color': color,
       'showOnCalendar': showOnCalendar,
       'isCustom': isCustom,
       'usageCount': usageCount,
@@ -60,6 +64,7 @@ class ModuleTag {
       id: (json['id'] ?? '').toString(),
       name: (json['name'] ?? '').toString(),
       iconName: (json['iconName'] ?? '').toString().isEmpty ? null : json['iconName'].toString(),
+      color: (json['color'] ?? '').toString().isEmpty ? null : json['color'].toString(),
       showOnCalendar: json['showOnCalendar'] == null ? true : json['showOnCalendar'] == true,
       isCustom: json['isCustom'] == true,
       usageCount: json['usageCount'] is int ? json['usageCount'] : 0,
@@ -180,7 +185,16 @@ class ModuleManagementConfig {
           iconName: 'restaurant',
           tagTitle: '菜系标签管理',
           showOnCalendar: true,
-          tags: ModuleTags.food.asMap().entries.map((e) => ModuleTag(id: 'food-${e.key + 1}', name: e.value, showOnCalendar: true)).toList(),
+          tags: const [
+            ModuleTag(id: 'food-1', name: '必吃榜', showOnCalendar: true),
+            ModuleTag(id: 'food-2', name: '周末探店', showOnCalendar: true),
+            ModuleTag(id: 'food-3', name: '辣', showOnCalendar: true),
+            ModuleTag(id: 'food-4', name: '火锅', showOnCalendar: true),
+            ModuleTag(id: 'food-5', name: '烤肉', showOnCalendar: true),
+            ModuleTag(id: 'food-6', name: '日料', showOnCalendar: true),
+            ModuleTag(id: 'food-7', name: '甜品', showOnCalendar: true),
+            ModuleTag(id: 'food-8', name: '咖啡', showOnCalendar: true),
+          ],
         ),
         'travel': ModuleConfig(
           key: 'travel',
@@ -188,7 +202,12 @@ class ModuleManagementConfig {
           iconName: 'airplanemode_active',
           tagTitle: '目的地标签管理',
           showOnCalendar: true,
-          tags: ModuleTags.travel.asMap().entries.map((e) => ModuleTag(id: 'travel-${e.key + 1}', name: e.value, showOnCalendar: true)).toList(),
+          tags: const [
+            ModuleTag(id: 'travel-1', name: '国内游', showOnCalendar: true),
+            ModuleTag(id: 'travel-2', name: '露营', showOnCalendar: true),
+            ModuleTag(id: 'travel-3', name: '海岛', showOnCalendar: true),
+            ModuleTag(id: 'travel-4', name: '城市漫游', showOnCalendar: true),
+          ],
         ),
         'moment': ModuleConfig(
           key: 'moment',
@@ -196,7 +215,12 @@ class ModuleManagementConfig {
           iconName: 'self_improvement',
           tagTitle: '场景标签管理',
           showOnCalendar: true,
-          tags: ModuleTags.moment.asMap().entries.map((e) => ModuleTag(id: 'moment-${e.key + 1}', name: e.value, showOnCalendar: true)).toList(),
+          tags: const [
+            ModuleTag(id: 'moment-1', name: '读书', showOnCalendar: true),
+            ModuleTag(id: 'moment-2', name: '搬家', showOnCalendar: true),
+            ModuleTag(id: 'moment-3', name: '桌面布置', showOnCalendar: true),
+            ModuleTag(id: 'moment-4', name: '电影', showOnCalendar: true),
+          ],
         ),
         'bond': ModuleConfig(
           key: 'bond',
@@ -204,7 +228,20 @@ class ModuleManagementConfig {
           iconName: 'favorite',
           tagTitle: '印象标签管理',
           showOnCalendar: true,
-          tags: ModuleTags.bond.asMap().entries.map((e) => ModuleTag(id: 'bond-${e.key + 1}', name: e.value, showOnCalendar: true)).toList(),
+          tags: const [
+            ModuleTag(id: 'bond-1', name: '家人', showOnCalendar: true),
+            ModuleTag(id: 'bond-2', name: '同学', showOnCalendar: true),
+            ModuleTag(id: 'bond-3', name: '同事', showOnCalendar: true),
+            ModuleTag(id: 'bond-4', name: '闺蜜', showOnCalendar: true),
+            ModuleTag(id: 'bond-5', name: '饭搭子', showOnCalendar: true),
+            ModuleTag(id: 'bond-6', name: '旅行搭子', showOnCalendar: true),
+            ModuleTag(id: 'bond-7', name: '球友', showOnCalendar: true),
+            ModuleTag(id: 'bond-8', name: '靠谱', showOnCalendar: true),
+            ModuleTag(id: 'bond-9', name: '有趣', showOnCalendar: true),
+            ModuleTag(id: 'bond-10', name: '温柔', showOnCalendar: true),
+            ModuleTag(id: 'bond-11', name: '爱运动', showOnCalendar: true),
+            ModuleTag(id: 'bond-12', name: '爱拍照', showOnCalendar: true),
+          ],
         ),
         'goal': ModuleConfig(
           key: 'goal',
@@ -212,7 +249,11 @@ class ModuleManagementConfig {
           iconName: 'flag',
           tagTitle: '分类标签管理',
           showOnCalendar: true,
-          tags: ModuleTags.goal.asMap().entries.map((e) => ModuleTag(id: 'goal-${e.key + 1}', name: e.value, showOnCalendar: true)).toList(),
+          tags: const [
+            ModuleTag(id: 'goal-1', name: '职业发展', showOnCalendar: true),
+            ModuleTag(id: 'goal-2', name: '身心健康', showOnCalendar: true),
+            ModuleTag(id: 'goal-3', name: '环球旅行', showOnCalendar: true),
+          ],
         ),
       },
     );

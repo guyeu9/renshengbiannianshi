@@ -33,7 +33,7 @@ class MomentRecords extends Table {
   TextColumn get images => text().nullable()();
   TextColumn get mood => text()();
   TextColumn get moodColor => text().nullable()();
-  TextColumn get sceneTag => text().nullable()();
+  TextColumn get tags => text().nullable()();
   TextColumn get poiName => text().nullable()();
   TextColumn get poiAddress => text().nullable()();
   RealColumn get latitude => real().nullable()();
@@ -124,6 +124,7 @@ class GoalRecords extends Table {
   TextColumn get note => text().nullable()();
   TextColumn get summary => text().nullable()();
   TextColumn get category => text().nullable()();
+  TextColumn get tags => text().nullable()();
   RealColumn get progress => real().withDefault(const Constant(0))();
   BoolColumn get isCompleted => boolean().withDefault(const Constant(false))();
   BoolColumn get isPostponed => boolean().withDefault(const Constant(false))();

@@ -805,7 +805,7 @@ class _CalendarGrid extends StatelessWidget {
       for (final record in moments) {
         final date = record.recordDate;
         if (date.year != year || date.month != month) continue;
-        final tagName = (record.sceneTag ?? '').trim();
+        final tagName = (record.tags ?? '').trim();
         ModuleTag? match;
         if (tagName.isNotEmpty) {
           for (final tag in momentModule.tags) {

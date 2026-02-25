@@ -1000,11 +1000,11 @@ class $MomentRecordsTable extends MomentRecords
   late final GeneratedColumn<String> moodColor = GeneratedColumn<String>(
       'mood_color', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _sceneTagMeta =
-      const VerificationMeta('sceneTag');
+  static const VerificationMeta _tagsMeta =
+      const VerificationMeta('tags');
   @override
-  late final GeneratedColumn<String> sceneTag = GeneratedColumn<String>(
-      'scene_tag', aliasedName, true,
+  late final GeneratedColumn<String> tags = GeneratedColumn<String>(
+      'tags', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _poiNameMeta =
       const VerificationMeta('poiName');
@@ -1080,7 +1080,7 @@ class $MomentRecordsTable extends MomentRecords
         images,
         mood,
         moodColor,
-        sceneTag,
+        tags,
         poiName,
         poiAddress,
         latitude,
@@ -1125,9 +1125,9 @@ class $MomentRecordsTable extends MomentRecords
       context.handle(_moodColorMeta,
           moodColor.isAcceptableOrUnknown(data['mood_color']!, _moodColorMeta));
     }
-    if (data.containsKey('scene_tag')) {
-      context.handle(_sceneTagMeta,
-          sceneTag.isAcceptableOrUnknown(data['scene_tag']!, _sceneTagMeta));
+    if (data.containsKey('tags')) {
+      context.handle(_tagsMeta,
+          tags.isAcceptableOrUnknown(data['tags']!, _tagsMeta));
     }
     if (data.containsKey('poi_name')) {
       context.handle(_poiNameMeta,
@@ -1200,8 +1200,8 @@ class $MomentRecordsTable extends MomentRecords
           .read(DriftSqlType.string, data['${effectivePrefix}mood'])!,
       moodColor: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}mood_color']),
-      sceneTag: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}scene_tag']),
+      tags: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}tags']),
       poiName: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}poi_name']),
       poiAddress: attachedDatabase.typeMapping
@@ -1237,7 +1237,7 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
   final String? images;
   final String mood;
   final String? moodColor;
-  final String? sceneTag;
+  final String? tags;
   final String? poiName;
   final String? poiAddress;
   final double? latitude;
@@ -1254,7 +1254,7 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
       this.images,
       required this.mood,
       this.moodColor,
-      this.sceneTag,
+      this.tags,
       this.poiName,
       this.poiAddress,
       this.latitude,
@@ -1279,8 +1279,8 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
     if (!nullToAbsent || moodColor != null) {
       map['mood_color'] = Variable<String>(moodColor);
     }
-    if (!nullToAbsent || sceneTag != null) {
-      map['scene_tag'] = Variable<String>(sceneTag);
+    if (!nullToAbsent || tags != null) {
+      map['tags'] = Variable<String>(tags);
     }
     if (!nullToAbsent || poiName != null) {
       map['poi_name'] = Variable<String>(poiName);
@@ -1317,9 +1317,9 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
       moodColor: moodColor == null && nullToAbsent
           ? const Value.absent()
           : Value(moodColor),
-      sceneTag: sceneTag == null && nullToAbsent
+      tags: tags == null && nullToAbsent
           ? const Value.absent()
-          : Value(sceneTag),
+          : Value(tags),
       poiName: poiName == null && nullToAbsent
           ? const Value.absent()
           : Value(poiName),
@@ -1350,7 +1350,7 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
       images: serializer.fromJson<String?>(json['images']),
       mood: serializer.fromJson<String>(json['mood']),
       moodColor: serializer.fromJson<String?>(json['moodColor']),
-      sceneTag: serializer.fromJson<String?>(json['sceneTag']),
+      tags: serializer.fromJson<String?>(json['tags']),
       poiName: serializer.fromJson<String?>(json['poiName']),
       poiAddress: serializer.fromJson<String?>(json['poiAddress']),
       latitude: serializer.fromJson<double?>(json['latitude']),
@@ -1372,7 +1372,7 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
       'images': serializer.toJson<String?>(images),
       'mood': serializer.toJson<String>(mood),
       'moodColor': serializer.toJson<String?>(moodColor),
-      'sceneTag': serializer.toJson<String?>(sceneTag),
+      'tags': serializer.toJson<String?>(tags),
       'poiName': serializer.toJson<String?>(poiName),
       'poiAddress': serializer.toJson<String?>(poiAddress),
       'latitude': serializer.toJson<double?>(latitude),
@@ -1392,7 +1392,7 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
           Value<String?> images = const Value.absent(),
           String? mood,
           Value<String?> moodColor = const Value.absent(),
-          Value<String?> sceneTag = const Value.absent(),
+          Value<String?> tags = const Value.absent(),
           Value<String?> poiName = const Value.absent(),
           Value<String?> poiAddress = const Value.absent(),
           Value<double?> latitude = const Value.absent(),
@@ -1409,7 +1409,7 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
         images: images.present ? images.value : this.images,
         mood: mood ?? this.mood,
         moodColor: moodColor.present ? moodColor.value : this.moodColor,
-        sceneTag: sceneTag.present ? sceneTag.value : this.sceneTag,
+        tags: tags.present ? tags.value : this.tags,
         poiName: poiName.present ? poiName.value : this.poiName,
         poiAddress: poiAddress.present ? poiAddress.value : this.poiAddress,
         latitude: latitude.present ? latitude.value : this.latitude,
@@ -1428,7 +1428,7 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
       images: data.images.present ? data.images.value : this.images,
       mood: data.mood.present ? data.mood.value : this.mood,
       moodColor: data.moodColor.present ? data.moodColor.value : this.moodColor,
-      sceneTag: data.sceneTag.present ? data.sceneTag.value : this.sceneTag,
+      tags: data.tags.present ? data.tags.value : this.tags,
       poiName: data.poiName.present ? data.poiName.value : this.poiName,
       poiAddress:
           data.poiAddress.present ? data.poiAddress.value : this.poiAddress,
@@ -1453,7 +1453,7 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
           ..write('images: $images, ')
           ..write('mood: $mood, ')
           ..write('moodColor: $moodColor, ')
-          ..write('sceneTag: $sceneTag, ')
+          ..write('tags: $tags, ')
           ..write('poiName: $poiName, ')
           ..write('poiAddress: $poiAddress, ')
           ..write('latitude: $latitude, ')
@@ -1475,7 +1475,7 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
       images,
       mood,
       moodColor,
-      sceneTag,
+      tags,
       poiName,
       poiAddress,
       latitude,
@@ -1495,7 +1495,7 @@ class MomentRecord extends DataClass implements Insertable<MomentRecord> {
           other.images == this.images &&
           other.mood == this.mood &&
           other.moodColor == this.moodColor &&
-          other.sceneTag == this.sceneTag &&
+          other.tags == this.tags &&
           other.poiName == this.poiName &&
           other.poiAddress == this.poiAddress &&
           other.latitude == this.latitude &&
@@ -1514,7 +1514,7 @@ class MomentRecordsCompanion extends UpdateCompanion<MomentRecord> {
   final Value<String?> images;
   final Value<String> mood;
   final Value<String?> moodColor;
-  final Value<String?> sceneTag;
+  final Value<String?> tags;
   final Value<String?> poiName;
   final Value<String?> poiAddress;
   final Value<double?> latitude;
@@ -1532,7 +1532,7 @@ class MomentRecordsCompanion extends UpdateCompanion<MomentRecord> {
     this.images = const Value.absent(),
     this.mood = const Value.absent(),
     this.moodColor = const Value.absent(),
-    this.sceneTag = const Value.absent(),
+    this.tags = const Value.absent(),
     this.poiName = const Value.absent(),
     this.poiAddress = const Value.absent(),
     this.latitude = const Value.absent(),
@@ -1551,7 +1551,7 @@ class MomentRecordsCompanion extends UpdateCompanion<MomentRecord> {
     this.images = const Value.absent(),
     required String mood,
     this.moodColor = const Value.absent(),
-    this.sceneTag = const Value.absent(),
+    this.tags = const Value.absent(),
     this.poiName = const Value.absent(),
     this.poiAddress = const Value.absent(),
     this.latitude = const Value.absent(),
@@ -1574,7 +1574,7 @@ class MomentRecordsCompanion extends UpdateCompanion<MomentRecord> {
     Expression<String>? images,
     Expression<String>? mood,
     Expression<String>? moodColor,
-    Expression<String>? sceneTag,
+    Expression<String>? tags,
     Expression<String>? poiName,
     Expression<String>? poiAddress,
     Expression<double>? latitude,
@@ -1593,7 +1593,7 @@ class MomentRecordsCompanion extends UpdateCompanion<MomentRecord> {
       if (images != null) 'images': images,
       if (mood != null) 'mood': mood,
       if (moodColor != null) 'mood_color': moodColor,
-      if (sceneTag != null) 'scene_tag': sceneTag,
+      if (tags != null) 'tags': tags,
       if (poiName != null) 'poi_name': poiName,
       if (poiAddress != null) 'poi_address': poiAddress,
       if (latitude != null) 'latitude': latitude,
@@ -1614,7 +1614,7 @@ class MomentRecordsCompanion extends UpdateCompanion<MomentRecord> {
       Value<String?>? images,
       Value<String>? mood,
       Value<String?>? moodColor,
-      Value<String?>? sceneTag,
+      Value<String?>? tags,
       Value<String?>? poiName,
       Value<String?>? poiAddress,
       Value<double?>? latitude,
@@ -1632,7 +1632,7 @@ class MomentRecordsCompanion extends UpdateCompanion<MomentRecord> {
       images: images ?? this.images,
       mood: mood ?? this.mood,
       moodColor: moodColor ?? this.moodColor,
-      sceneTag: sceneTag ?? this.sceneTag,
+      tags: tags ?? this.tags,
       poiName: poiName ?? this.poiName,
       poiAddress: poiAddress ?? this.poiAddress,
       latitude: latitude ?? this.latitude,
@@ -1665,8 +1665,8 @@ class MomentRecordsCompanion extends UpdateCompanion<MomentRecord> {
     if (moodColor.present) {
       map['mood_color'] = Variable<String>(moodColor.value);
     }
-    if (sceneTag.present) {
-      map['scene_tag'] = Variable<String>(sceneTag.value);
+    if (tags.present) {
+      map['tags'] = Variable<String>(tags.value);
     }
     if (poiName.present) {
       map['poi_name'] = Variable<String>(poiName.value);
@@ -1712,7 +1712,7 @@ class MomentRecordsCompanion extends UpdateCompanion<MomentRecord> {
           ..write('images: $images, ')
           ..write('mood: $mood, ')
           ..write('moodColor: $moodColor, ')
-          ..write('sceneTag: $sceneTag, ')
+          ..write('tags: $tags, ')
           ..write('poiName: $poiName, ')
           ..write('poiAddress: $poiAddress, ')
           ..write('latitude: $latitude, ')
@@ -4422,6 +4422,7 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
   final String? note;
   final String? summary;
   final String? category;
+  final String? tags;
   final double progress;
   final bool isCompleted;
   final bool isPostponed;
@@ -4442,6 +4443,7 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
       this.note,
       this.summary,
       this.category,
+      this.tags,
       required this.progress,
       required this.isCompleted,
       required this.isPostponed,
@@ -4471,6 +4473,9 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
     }
     if (!nullToAbsent || category != null) {
       map['category'] = Variable<String>(category);
+    }
+    if (!nullToAbsent || tags != null) {
+      map['tags'] = Variable<String>(tags);
     }
     map['progress'] = Variable<double>(progress);
     map['is_completed'] = Variable<bool>(isCompleted);
@@ -4512,6 +4517,9 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
       category: category == null && nullToAbsent
           ? const Value.absent()
           : Value(category),
+      tags: tags == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tags),
       progress: Value(progress),
       isCompleted: Value(isCompleted),
       isPostponed: Value(isPostponed),
@@ -4548,6 +4556,7 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
       note: serializer.fromJson<String?>(json['note']),
       summary: serializer.fromJson<String?>(json['summary']),
       category: serializer.fromJson<String?>(json['category']),
+      tags: serializer.fromJson<String?>(json['tags']),
       progress: serializer.fromJson<double>(json['progress']),
       isCompleted: serializer.fromJson<bool>(json['isCompleted']),
       isPostponed: serializer.fromJson<bool>(json['isPostponed']),
@@ -4573,6 +4582,7 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
       'note': serializer.toJson<String?>(note),
       'summary': serializer.toJson<String?>(summary),
       'category': serializer.toJson<String?>(category),
+      'tags': serializer.toJson<String?>(tags),
       'progress': serializer.toJson<double>(progress),
       'isCompleted': serializer.toJson<bool>(isCompleted),
       'isPostponed': serializer.toJson<bool>(isPostponed),
@@ -4596,6 +4606,7 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
           Value<String?> note = const Value.absent(),
           Value<String?> summary = const Value.absent(),
           Value<String?> category = const Value.absent(),
+          Value<String?> tags = const Value.absent(),
           double? progress,
           bool? isCompleted,
           bool? isPostponed,
@@ -4616,6 +4627,7 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
         note: note.present ? note.value : this.note,
         summary: summary.present ? summary.value : this.summary,
         category: category.present ? category.value : this.category,
+        tags: tags.present ? tags.value : this.tags,
         progress: progress ?? this.progress,
         isCompleted: isCompleted ?? this.isCompleted,
         isPostponed: isPostponed ?? this.isPostponed,
@@ -4641,6 +4653,7 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
       note: data.note.present ? data.note.value : this.note,
       summary: data.summary.present ? data.summary.value : this.summary,
       category: data.category.present ? data.category.value : this.category,
+      tags: data.tags.present ? data.tags.value : this.tags,
       progress: data.progress.present ? data.progress.value : this.progress,
       isCompleted:
           data.isCompleted.present ? data.isCompleted.value : this.isCompleted,
@@ -4723,6 +4736,7 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
           other.note == this.note &&
           other.summary == this.summary &&
           other.category == this.category &&
+          other.tags == this.tags &&
           other.progress == this.progress &&
           other.isCompleted == this.isCompleted &&
           other.isPostponed == this.isPostponed &&
@@ -4745,6 +4759,7 @@ class GoalRecordsCompanion extends UpdateCompanion<GoalRecord> {
   final Value<String?> note;
   final Value<String?> summary;
   final Value<String?> category;
+  final Value<String?> tags;
   final Value<double> progress;
   final Value<bool> isCompleted;
   final Value<bool> isPostponed;
@@ -4766,6 +4781,7 @@ class GoalRecordsCompanion extends UpdateCompanion<GoalRecord> {
     this.note = const Value.absent(),
     this.summary = const Value.absent(),
     this.category = const Value.absent(),
+    this.tags = const Value.absent(),
     this.progress = const Value.absent(),
     this.isCompleted = const Value.absent(),
     this.isPostponed = const Value.absent(),

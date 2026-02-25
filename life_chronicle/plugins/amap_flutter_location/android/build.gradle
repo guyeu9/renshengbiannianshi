@@ -25,4 +25,5 @@ android {
 
 dependencies {
     compileOnly "com.amap.api:3dmap:10.0.600"
+    compileOnly "com.amap.api:location:6.5.1"
 }

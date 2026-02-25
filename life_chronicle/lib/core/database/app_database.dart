@@ -26,7 +26,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.connect(super.executor);
 
   @override
-  int get schemaVersion => 14; // 升级到 14，新增 travel_records.isJournal 字段
+  int get schemaVersion => 15; // 升级到 15，goal_records 新增 tags 字段，moment_records.scene_tag 重命名为 tags
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -133,13 +133,17 @@ class AppDatabase extends _$AppDatabase {
               "UPDATE timeline_events SET tags = json_array(substr(note, instr(note, '分类：') + 9)) WHERE tags IS NULL AND note LIKE '%分类：%'",
             );
           }
+
+          await ensureColumn(table: travelRecords, column: travelRecords.isJournal);
+
+          await ensureColumn(table: goalRecords, column: goalRecords.tags);
+
           if (await columnExists('moment_records', 'scene_tag')) {
             await customStatement(
               "UPDATE moment_records SET scene_tag = json_array(scene_tag) WHERE scene_tag IS NOT NULL AND scene_tag != '' AND json_valid(scene_tag) = 0",
             );
+            await customStatement('ALTER TABLE moment_records RENAME COLUMN scene_tag TO tags');
           }
-
-          await ensureColumn(table: travelRecords, column: travelRecords.isJournal);
         },
       );
 
@@ -172,6 +176,10 @@ class AppDatabase extends _$AppDatabase {
           ..where((t) => t.isDeleted.equals(false))
           ..orderBy([(t) => OrderingTerm(expression: t.recordDate, mode: OrderingMode.desc)]))
         .watch();
+  }
+
+  Stream<TravelRecord?> watchTravelById(String id) {
+    return (select(travelRecords)..where((t) => t.id.equals(id))).watchSingleOrNull();
   }
 
   Stream<List<TravelRecord>> watchTravelTrips() {

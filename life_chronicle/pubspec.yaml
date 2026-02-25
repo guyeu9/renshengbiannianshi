@@ -38,6 +38,8 @@ dependencies:
   device_info_plus: ^9.1.2
   crypto: ^3.0.5
   flutter_local_notifications: ^18.0.1
+  vibration: ^2.0.0
+  confetti: ^0.8.0
 
 dev_dependencies:
   flutter_test:

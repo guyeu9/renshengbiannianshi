@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
+import 'dart:math' as math;
 
+import 'package:confetti/confetti.dart';
 import 'package:drift/drift.dart' show OrderingMode, OrderingTerm, Value;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -11,12 +13,18 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
+import 'package:vibration/vibration.dart';
 
 import '../../../app/app_theme.dart';
+import '../../../core/config/module_management_config.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/utils/media_storage.dart';
 import '../../../core/widgets/ai_parse_button.dart';
+import '../../food/presentation/food_page.dart';
+import '../../travel/presentation/travel_page.dart';
+import '../../moment/presentation/moment_page.dart';
+import '../../bond/presentation/bond_page.dart';
 
 class _GoalTypeOption {
   const _GoalTypeOption({
@@ -617,15 +625,24 @@ class _GoalCategorySection extends StatelessWidget {
   }
 }
 
-class _AnnualGoalCard extends StatelessWidget {
+class _AnnualGoalCard extends StatefulWidget {
   const _AnnualGoalCard({required this.record, required this.db});
 
   final GoalRecord record;
   final AppDatabase db;
 
+  @override
+  State<_AnnualGoalCard> createState() => _AnnualGoalCardState();
+}
+
+class _AnnualGoalCardState extends State<_AnnualGoalCard> with SingleTickerProviderStateMixin {
+  late AnimationController _progressController;
+  late Animation<double> _progressAnimation;
+  double _previousProgress = 0;
+
   Stream<List<GoalRecord>> _watchQuarters() {
-    final query = db.select(db.goalRecords)
-      ..where((t) => t.parentId.equals(record.id))
+    final query = widget.db.select(widget.db.goalRecords)
+      ..where((t) => t.parentId.equals(widget.record.id))
       ..where((t) => t.level.equals('quarter'))
       ..where((t) => t.isDeleted.equals(false));
     return query.watch();
@@ -635,7 +652,7 @@ class _AnnualGoalCard extends StatelessWidget {
     if (quarterIds.isEmpty) {
       return Stream.value(const <GoalRecord>[]);
     }
-    final query = db.select(db.goalRecords)
+    final query = widget.db.select(widget.db.goalRecords)
       ..where((t) => t.parentId.isIn(quarterIds))
       ..where((t) => t.level.equals('daily'))
       ..where((t) => t.isDeleted.equals(false));
@@ -643,15 +660,49 @@ class _AnnualGoalCard extends StatelessWidget {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _previousProgress = widget.record.progress.clamp(0, 1).toDouble();
+    _progressController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+    _progressAnimation = Tween<double>(begin: 0, end: _previousProgress).animate(
+      CurvedAnimation(parent: _progressController, curve: Curves.easeOutCubic),
+    );
+    _progressController.forward();
+  }
+
+  @override
+  void didUpdateWidget(_AnnualGoalCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final newProgress = widget.record.progress.clamp(0, 1).toDouble();
+    if (newProgress != _previousProgress) {
+      _progressAnimation = Tween<double>(begin: _previousProgress, end: newProgress).animate(
+        CurvedAnimation(parent: _progressController, curve: Curves.easeOutCubic),
+      );
+      _progressController.reset();
+      _progressController.forward();
+      _previousProgress = newProgress;
+    }
+  }
+
+  @override
+  void dispose() {
+    _progressController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final accent = _goalAccentFor(record.category);
-    final progress = record.progress.clamp(0, 1).toDouble();
+    final accent = _goalAccentFor(widget.record.category);
+    final progress = widget.record.progress.clamp(0, 1).toDouble();
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(24),
       child: InkWell(
         borderRadius: BorderRadius.circular(24),
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => GoalDetailPage(record: record))),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => GoalDetailPage(record: widget.record))),
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -673,7 +724,7 @@ class _AnnualGoalCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      record.title,
+                      widget.record.title,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -681,19 +732,24 @@ class _AnnualGoalCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Text(
-                    '${(progress * 100).round()}%',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFFA855F7),
-                    ),
+                  AnimatedBuilder(
+                    animation: _progressAnimation,
+                    builder: (context, child) {
+                      return Text(
+                        '${(_progressAnimation.value * 100).round()}%',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFFA855F7),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
               const SizedBox(height: 4),
               Text(
-                _goalDeadlineLabel(record),
+                _goalDeadlineLabel(widget.record),
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
@@ -701,22 +757,27 @@ class _AnnualGoalCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              Container(
-                height: 8,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: FractionallySizedBox(
-                  widthFactor: progress,
-                  alignment: Alignment.centerLeft,
-                  child: Container(
+              AnimatedBuilder(
+                animation: _progressAnimation,
+                builder: (context, child) {
+                  return Container(
+                    height: 8,
                     decoration: BoxDecoration(
-                      color: accent,
+                      color: const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(999),
                     ),
-                  ),
-                ),
+                    child: FractionallySizedBox(
+                      widthFactor: _progressAnimation.value,
+                      alignment: Alignment.centerLeft,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: accent,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 24),
               StreamBuilder<List<GoalRecord>>(
@@ -779,46 +840,116 @@ class _AnnualGoalCard extends StatelessWidget {
   }
 }
 
-class _TaskItem extends StatelessWidget {
-  const _TaskItem({required this.task, required this.accent});
+class _TaskItem extends StatefulWidget {
+  const _TaskItem({required this.task, required this.accent, this.onToggle});
 
   final GoalRecord task;
   final Color accent;
+  final void Function(bool)? onToggle;
+
+  @override
+  State<_TaskItem> createState() => _TaskItemState();
+}
+
+class _TaskItemState extends State<_TaskItem> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _rotationAnimation;
+  bool _wasCompleted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _wasCompleted = widget.task.isCompleted;
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    );
+    _rotationAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    );
+    if (widget.task.isCompleted) {
+      _controller.value = 1.0;
+    }
+  }
+
+  @override
+  void didUpdateWidget(_TaskItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.task.isCompleted != _wasCompleted) {
+      _wasCompleted = widget.task.isCompleted;
+      if (widget.task.isCompleted) {
+        _controller.forward();
+        _triggerVibration();
+      } else {
+        _controller.reverse();
+      }
+    }
+  }
+
+  Future<void> _triggerVibration() async {
+    try {
+      final hasVibrator = await Vibration.hasVibrator() ?? false;
+      if (hasVibrator) {
+        await Vibration.vibrate(duration: 50, amplitude: 128);
+      }
+    } catch (_) {}
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Container(
-          width: 20,
-          height: 20,
-          decoration: BoxDecoration(
-            color: task.isCompleted ? const Color(0xFF22D3EE) : Colors.transparent,
-            shape: BoxShape.circle,
-            border: task.isCompleted
-                ? null
-                : Border.all(
-                    color: const Color(0xFFD1D5DB),
-                    width: 2,
+        AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return Transform.scale(
+              scale: _scaleAnimation.value,
+              child: Transform.rotate(
+                angle: _rotationAnimation.value * 2 * 3.14159,
+                child: Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: widget.task.isCompleted ? const Color(0xFF22D3EE) : Colors.transparent,
+                    shape: BoxShape.circle,
+                    border: widget.task.isCompleted
+                        ? null
+                        : Border.all(
+                            color: const Color(0xFFD1D5DB),
+                            width: 2,
+                          ),
                   ),
-          ),
-          child: task.isCompleted
-              ? const Icon(
-                  Icons.check,
-                  size: 14,
-                  color: Colors.white,
-                )
-              : null,
+                  child: widget.task.isCompleted
+                      ? const Icon(
+                          Icons.check,
+                          size: 14,
+                          color: Colors.white,
+                        )
+                      : null,
+                ),
+              ),
+            );
+          },
         ),
         const SizedBox(width: 12),
         Expanded(
           child: Text(
-            task.title,
+            widget.task.title,
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: task.isCompleted ? const Color(0xFF6B7280) : const Color(0xFF111827),
-              decoration: task.isCompleted ? TextDecoration.lineThrough : TextDecoration.none,
+              color: widget.task.isCompleted ? const Color(0xFF6B7280) : const Color(0xFF111827),
+              decoration: widget.task.isCompleted ? TextDecoration.lineThrough : TextDecoration.none,
               decorationColor: const Color(0xFFD1D5DB),
             ),
           ),
@@ -1311,6 +1442,38 @@ class _GoalBreakdownDetailPage extends ConsumerStatefulWidget {
 }
 
 class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPage> {
+  late ConfettiController _confettiController;
+  bool _hasShownCelebration = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _confettiController = ConfettiController(duration: const Duration(seconds: 3));
+  }
+
+  @override
+  void dispose() {
+    _confettiController.dispose();
+    super.dispose();
+  }
+
+  void _checkGoalCompletion(GoalRecord record) {
+    if (record.progress >= 1.0 && !_hasShownCelebration) {
+      _hasShownCelebration = true;
+      _confettiController.play();
+      _triggerCelebrationVibration();
+    }
+  }
+
+  Future<void> _triggerCelebrationVibration() async {
+    try {
+      final hasVibrator = await Vibration.hasVibrator() ?? false;
+      if (hasVibrator) {
+        await Vibration.vibrate(pattern: [0, 100, 50, 100, 50, 200], intensities: [0, 255, 0, 200, 0, 255]);
+      }
+    } catch (_) {}
+  }
+
   void _showActionMenu() async {
     final result = await showModalBottomSheet<String>(
       context: context,
@@ -1509,6 +1672,7 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
       stream: goalStream,
       builder: (context, snapshot) {
         final record = snapshot.data ?? widget.record;
+        _checkGoalCompletion(record);
         final now = DateTime.now();
         final dueDate = record.dueDate;
         final leftText = dueDate == null
@@ -1538,6 +1702,30 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
                     ),
                     const Expanded(child: SizedBox.shrink()),
                   ],
+                ),
+              ),
+              Align(
+                alignment: Alignment.topCenter,
+                child: ConfettiWidget(
+                  confettiController: _confettiController,
+                  blastDirectionality: BlastDirectionality.explosive,
+                  particleDrag: 0.05,
+                  emissionFrequency: 0.05,
+                  numberOfParticles: 30,
+                  gravity: 0.2,
+                  colors: const [
+                    Color(0xFF2BCDEE),
+                    Color(0xFFA855F7),
+                    Color(0xFF22D3EE),
+                    Color(0xFFF97316),
+                    Color(0xFFEC4899),
+                    Color(0xFF10B981),
+                  ],
+                  createParticlePath: (size) {
+                    final path = Path();
+                    path.addOval(Rect.fromCircle(center: Offset.zero, radius: 6));
+                    return path;
+                  },
                 ),
               ),
               SafeArea(
@@ -1851,40 +2039,16 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
                             children: [
                               const Expanded(child: Text('关联记忆', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827)))),
                               TextButton(
-                                onPressed: () {},
+                                onPressed: () => Navigator.of(context).push(
+                                  MaterialPageRoute(builder: (_) => GoalAllLinksPage(goalId: record.id)),
+                                ),
                                 style: TextButton.styleFrom(foregroundColor: AppTheme.primary, textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
                                 child: const Text('查看全部'),
                               ),
                             ],
                           ),
                           const SizedBox(height: 10),
-                          SizedBox(
-                            height: 186,
-                            child: ListView(
-                              scrollDirection: Axis.horizontal,
-                              children: const [
-                                _MemoryCard(
-                                  typeIcon: Icons.restaurant,
-                                  typeColor: Color(0xFFF97316),
-                                  title: '第一次尝试法式吐司',
-                                  date: '2023.04.15',
-                                  imageUrl:
-                                      'https://lh3.googleusercontent.com/aida-public/AB6AXuAIz9iyBW7XYz1OXJn7PODVjs8ztawCp0fymdJCX3pWnlHJRdwvyiy-ymkpQeIrJaOaUUT6P4TgmbmE_45c5D7O03bKoAuRJ8bKsKTry8bq97ZTyuffJXnLK8SH6aSBEw0bY6G2OFDTfluLPFwXs1LN1dJARFwA5UbeIE3SIZIsyJJPNrdGSBY-c65ENonTHuxpaG7AuQ_WI-AhTUZPNsqBbpEOrQN1BbI1Tgt-Te5clV1zGoLyKHYheS5Norc7Atu-Ni9puF3S3nc4',
-                                ),
-                                SizedBox(width: 12),
-                                _MemoryCard(
-                                  typeIcon: Icons.airplanemode_active,
-                                  typeColor: Color(0xFF3B82F6),
-                                  title: '巴黎旅行计划灵感',
-                                  date: '2023.05.01',
-                                  imageUrl:
-                                      'https://lh3.googleusercontent.com/aida-public/AB6AXuDGq_E_dEf6r-NRzup0qz7D171fL9-xHigTMP_23Po7lznnOefHD3aJUpMeGOUjkl06qbXk1GeaZQjnS-loSrAAJkg6KbRVvIaQGWn6cKcwV47NBSKNW0Jp6QhbDHVgmt-4mO6cI8zN9gTh6VwjuO_BJMTFTlHqgzdV5MFI0qy1k-LMK-fUteEQ-tdyJZqXwyTjMlIpBfEhPg5pFdAqTWcSKZ_RRvJhaiYhLPm4EaCq2pNBM2hBSTmL25iOS_glMDjJKULprE_EFm48',
-                                ),
-                                SizedBox(width: 12),
-                                _TextMemoryCard(title: '学习日记 #42', excerpt: '“今天背单词感觉很顺...”', date: '2023.05.12'),
-                              ],
-                            ),
-                          ),
+                          _RelatedMemoryList(goalId: record.id, db: db),
                         ],
                       ),
                     ),
@@ -3731,6 +3895,721 @@ class _DayTaskTile extends StatelessWidget {
   }
 }
 
+class _RelatedMemoryList extends StatelessWidget {
+  const _RelatedMemoryList({required this.goalId, required this.db});
+
+  final String goalId;
+  final AppDatabase db;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<EntityLink>>(
+      stream: db.linkDao.watchLinksForEntity(entityType: 'goal', entityId: goalId),
+      builder: (context, snapshot) {
+        final links = snapshot.data ?? const <EntityLink>[];
+        if (links.isEmpty) {
+          return _buildEmptyState(context);
+        }
+        return SizedBox(
+          height: 186,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: links.length,
+            itemBuilder: (context, index) {
+              final link = links[index];
+              return Padding(
+                padding: EdgeInsets.only(right: index < links.length - 1 ? 12 : 0),
+                child: _RelatedMemoryCard(link: link, db: db),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    return Container(
+      height: 120,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.link_off, size: 32, color: const Color(0xFF9CA3AF)),
+            const SizedBox(height: 8),
+            const Text('暂无关联记忆', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF6B7280))),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RelatedMemoryCard extends StatelessWidget {
+  const _RelatedMemoryCard({required this.link, required this.db});
+
+  final EntityLink link;
+  final AppDatabase db;
+
+  @override
+  Widget build(BuildContext context) {
+    final targetType = link.targetType;
+    final targetId = link.targetId;
+
+    switch (targetType) {
+      case 'food':
+        return _FoodMemoryCard(foodId: targetId, db: db);
+      case 'travel':
+        return _TravelMemoryCard(travelId: targetId, db: db);
+      case 'moment':
+        return _MomentMemoryCard(momentId: targetId, db: db);
+      case 'friend':
+        return _FriendMemoryCard(friendId: targetId, db: db);
+      default:
+        return _DefaultMemoryCard(type: targetType);
+    }
+  }
+}
+
+class _FoodMemoryCard extends StatelessWidget {
+  const _FoodMemoryCard({required this.foodId, required this.db});
+
+  final String foodId;
+  final AppDatabase db;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<FoodRecord?>(
+      stream: db.foodDao.watchById(foodId),
+      builder: (context, snapshot) {
+        final food = snapshot.data;
+        if (food == null) return const _DefaultMemoryCard(type: 'food');
+
+        return GestureDetector(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => FoodDetailPage(recordId: foodId)),
+          ),
+          child: SizedBox(
+            width: 128,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: SizedBox(
+                        width: 128,
+                        height: 128,
+                        child: food.imageUrl != null && food.imageUrl!.isNotEmpty
+                            ? (food.imageUrl!.startsWith('http')
+                                ? Image.network(food.imageUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildPlaceholder())
+                                : Image.file(File(food.imageUrl!), fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildPlaceholder()))
+                            : _buildPlaceholder(),
+                      ),
+                    ),
+                    Positioned(
+                      right: 8,
+                      bottom: 8,
+                      child: Container(
+                        width: 26,
+                        height: 26,
+                        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.92), shape: BoxShape.circle),
+                        child: const Icon(Icons.restaurant, size: 14, color: Color(0xFFF97316)),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(food.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                const SizedBox(height: 4),
+                Text(_formatDate(food.date), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF9CA3AF))),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPlaceholder() {
+    return Container(
+      color: const Color(0xFFFED7AA),
+      child: const Center(child: Icon(Icons.restaurant, size: 40, color: Color(0xFFF97316))),
+    );
+  }
+}
+
+class _TravelMemoryCard extends StatelessWidget {
+  const _TravelMemoryCard({required this.travelId, required this.db});
+
+  final String travelId;
+  final AppDatabase db;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<TravelRecord?>(
+      stream: db.watchTravelById(travelId),
+      builder: (context, snapshot) {
+        final travel = snapshot.data;
+        if (travel == null) return const _DefaultMemoryCard(type: 'travel');
+
+        return GestureDetector(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => TravelDetailPage(TravelItem.fromRecord(travel))),
+          ),
+          child: SizedBox(
+            width: 128,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: SizedBox(
+                        width: 128,
+                        height: 128,
+                        child: travel.imageUrl != null && travel.imageUrl!.isNotEmpty
+                            ? (travel.imageUrl!.startsWith('http')
+                                ? Image.network(travel.imageUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildPlaceholder())
+                                : Image.file(File(travel.imageUrl!), fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildPlaceholder()))
+                            : _buildPlaceholder(),
+                      ),
+                    ),
+                    Positioned(
+                      right: 8,
+                      bottom: 8,
+                      child: Container(
+                        width: 26,
+                        height: 26,
+                        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.92), shape: BoxShape.circle),
+                        child: const Icon(Icons.airplanemode_active, size: 14, color: Color(0xFF3B82F6)),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(travel.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                const SizedBox(height: 4),
+                Text(_formatDate(travel.startDate), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF9CA3AF))),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPlaceholder() {
+    return Container(
+      color: const Color(0xFFBFDBFE),
+      child: const Center(child: Icon(Icons.airplanemode_active, size: 40, color: Color(0xFF3B82F6))),
+    );
+  }
+}
+
+class _MomentMemoryCard extends StatelessWidget {
+  const _MomentMemoryCard({required this.momentId, required this.db});
+
+  final String momentId;
+  final AppDatabase db;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<MomentRecord?>(
+      stream: db.momentDao.watchById(momentId),
+      builder: (context, snapshot) {
+        final moment = snapshot.data;
+        if (moment == null) return const _DefaultMemoryCard(type: 'moment');
+
+        return GestureDetector(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => MomentDetailPage(recordId: momentId)),
+          ),
+          child: SizedBox(
+            width: 128,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: SizedBox(
+                        width: 128,
+                        height: 128,
+                        child: moment.imageUrl != null && moment.imageUrl!.isNotEmpty
+                            ? (moment.imageUrl!.startsWith('http')
+                                ? Image.network(moment.imageUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildPlaceholder())
+                                : Image.file(File(moment.imageUrl!), fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildPlaceholder()))
+                            : _buildPlaceholder(),
+                      ),
+                    ),
+                    Positioned(
+                      right: 8,
+                      bottom: 8,
+                      child: Container(
+                        width: 26,
+                        height: 26,
+                        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.92), shape: BoxShape.circle),
+                        child: const Icon(Icons.auto_awesome, size: 14, color: Color(0xFFEC4899)),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(moment.content?.isNotEmpty == true ? moment.content! : '小确幸', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                const SizedBox(height: 4),
+                Text(_formatDate(moment.date), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF9CA3AF))),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPlaceholder() {
+    return Container(
+      color: const Color(0xFFFBCFE8),
+      child: const Center(child: Icon(Icons.auto_awesome, size: 40, color: Color(0xFFEC4899))),
+    );
+  }
+}
+
+class _FriendMemoryCard extends StatelessWidget {
+  const _FriendMemoryCard({required this.friendId, required this.db});
+
+  final String friendId;
+  final AppDatabase db;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<FriendRecord?>(
+      stream: db.friendDao.watchById(friendId),
+      builder: (context, snapshot) {
+        final friend = snapshot.data;
+        if (friend == null) return const _DefaultMemoryCard(type: 'friend');
+
+        return GestureDetector(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => FriendProfilePage(friendId: friendId)),
+          ),
+          child: SizedBox(
+            width: 128,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: SizedBox(
+                        width: 128,
+                        height: 128,
+                        child: friend.avatarUrl != null && friend.avatarUrl!.isNotEmpty
+                            ? (friend.avatarUrl!.startsWith('http')
+                                ? Image.network(friend.avatarUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildPlaceholder(friend.name))
+                                : Image.file(File(friend.avatarUrl!), fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildPlaceholder(friend.name)))
+                            : _buildPlaceholder(friend.name),
+                      ),
+                    ),
+                    Positioned(
+                      right: 8,
+                      bottom: 8,
+                      child: Container(
+                        width: 26,
+                        height: 26,
+                        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.92), shape: BoxShape.circle),
+                        child: const Icon(Icons.people, size: 14, color: Color(0xFFEF4444)),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(friend.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                const SizedBox(height: 4),
+                Text(_formatDate(friend.metDate), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF9CA3AF))),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPlaceholder(String? name) {
+    return Container(
+      color: const Color(0xFFFECACA),
+      child: Center(
+        child: Text(
+          name?.isNotEmpty == true ? name!.substring(0, 1) : '?',
+          style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w900, color: Color(0xFFEF4444)),
+        ),
+      ),
+    );
+  }
+}
+
+class _DefaultMemoryCard extends StatelessWidget {
+  const _DefaultMemoryCard({required this.type});
+
+  final String type;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 128,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 128,
+            height: 128,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Center(child: Icon(Icons.link, size: 40, color: const Color(0xFF9CA3AF))),
+          ),
+          const SizedBox(height: 8),
+          const Text('已删除', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF9CA3AF))),
+        ],
+      ),
+    );
+  }
+}
+
+String _formatDate(DateTime? date) {
+  if (date == null) return '';
+  return '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';
+}
+
+class GoalAllLinksPage extends ConsumerStatefulWidget {
+  const GoalAllLinksPage({super.key, required this.goalId});
+
+  final String goalId;
+
+  @override
+  ConsumerState<GoalAllLinksPage> createState() => _GoalAllLinksPageState();
+}
+
+class _GoalAllLinksPageState extends ConsumerState<GoalAllLinksPage> {
+  String _selectedFilter = 'all';
+
+  static const List<_FilterOption> _filters = [
+    _FilterOption(value: 'all', label: '全部', icon: Icons.apps),
+    _FilterOption(value: 'food', label: '美食', icon: Icons.restaurant),
+    _FilterOption(value: 'travel', label: '旅行', icon: Icons.airplanemode_active),
+    _FilterOption(value: 'moment', label: '小确幸', icon: Icons.auto_awesome),
+    _FilterOption(value: 'friend', label: '羁绊', icon: Icons.people),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final db = ref.read(appDatabaseProvider);
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF111827)),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const Text('全部关联', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+        centerTitle: true,
+      ),
+      body: Column(
+        children: [
+          _buildFilterTabs(),
+          Expanded(
+            child: StreamBuilder<List<EntityLink>>(
+              stream: db.linkDao.watchLinksForEntity(entityType: 'goal', entityId: widget.goalId),
+              builder: (context, snapshot) {
+                final links = snapshot.data ?? const <EntityLink>[];
+                final filteredLinks = _selectedFilter == 'all' ? links : links.where((l) => l.targetType == _selectedFilter).toList();
+
+                if (filteredLinks.isEmpty) {
+                  return _buildEmptyState();
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: filteredLinks.length,
+                  itemBuilder: (context, index) {
+                    final link = filteredLinks[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _RelatedMemoryListItem(link: link, db: db),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterTabs() {
+    return Container(
+      height: 50,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: _filters.length,
+        itemBuilder: (context, index) {
+          final filter = _filters[index];
+          final isSelected = _selectedFilter == filter.value;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: FilterChip(
+              label: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(filter.icon, size: 14, color: isSelected ? Colors.white : const Color(0xFF6B7280)),
+                  const SizedBox(width: 4),
+                  Text(filter.label),
+                ],
+              ),
+              selected: isSelected,
+              onSelected: (_) => setState(() => _selectedFilter = filter.value),
+              backgroundColor: const Color(0xFFF1F5F9),
+              selectedColor: AppTheme.primary,
+              labelStyle: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: isSelected ? Colors.white : const Color(0xFF6B7280),
+              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              showCheckmark: false,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.link_off, size: 64, color: const Color(0xFFD1D5DB)),
+          const SizedBox(height: 16),
+          const Text('暂无关联记录', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF9CA3AF))),
+        ],
+      ),
+    );
+  }
+}
+
+class _FilterOption {
+  const _FilterOption({required this.value, required this.label, required this.icon});
+
+  final String value;
+  final String label;
+  final IconData icon;
+}
+
+class _RelatedMemoryListItem extends StatelessWidget {
+  const _RelatedMemoryListItem({required this.link, required this.db});
+
+  final EntityLink link;
+  final AppDatabase db;
+
+  @override
+  Widget build(BuildContext context) {
+    final targetType = link.targetType;
+
+    switch (targetType) {
+      case 'food':
+        return _FoodListItem(foodId: link.targetId, db: db);
+      case 'travel':
+        return _TravelListItem(travelId: link.targetId, db: db);
+      case 'moment':
+        return _MomentListItem(momentId: link.targetId, db: db);
+      case 'friend':
+        return _FriendListItem(friendId: link.targetId, db: db);
+      default:
+        return ListTile(
+          leading: Container(width: 48, height: 48, decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.link, color: Color(0xFF9CA3AF))),
+          title: const Text('已删除的记录', style: TextStyle(color: Color(0xFF9CA3AF))),
+        );
+    }
+  }
+}
+
+class _FoodListItem extends StatelessWidget {
+  const _FoodListItem({required this.foodId, required this.db});
+
+  final String foodId;
+  final AppDatabase db;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<FoodRecord?>(
+      stream: db.foodDao.watchById(foodId),
+      builder: (context, snapshot) {
+        final food = snapshot.data;
+        if (food == null) return const SizedBox.shrink();
+
+        return ListTile(
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => FoodDetailPage(recordId: foodId))),
+          leading: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(color: const Color(0xFFFED7AA), borderRadius: BorderRadius.circular(8)),
+            child: food.imageUrl != null && food.imageUrl!.isNotEmpty
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: food.imageUrl!.startsWith('http')
+                        ? Image.network(food.imageUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.restaurant, color: Color(0xFFF97316)))
+                        : Image.file(File(food.imageUrl!), fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.restaurant, color: Color(0xFFF97316))),
+                  )
+                : const Icon(Icons.restaurant, color: Color(0xFFF97316)),
+          ),
+          title: Text(food.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+          subtitle: Text(_formatDate(food.date), style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF))),
+          trailing: const Icon(Icons.chevron_right, color: Color(0xFFD1D5DB)),
+        );
+      },
+    );
+  }
+}
+
+class _TravelListItem extends StatelessWidget {
+  const _TravelListItem({required this.travelId, required this.db});
+
+  final String travelId;
+  final AppDatabase db;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<TravelRecord?>(
+      stream: db.watchTravelById(travelId),
+      builder: (context, snapshot) {
+        final travel = snapshot.data;
+        if (travel == null) return const SizedBox.shrink();
+
+        return ListTile(
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => TravelDetailPage(TravelItem.fromRecord(travel)))),
+          leading: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(color: const Color(0xFFBFDBFE), borderRadius: BorderRadius.circular(8)),
+            child: travel.imageUrl != null && travel.imageUrl!.isNotEmpty
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: travel.imageUrl!.startsWith('http')
+                        ? Image.network(travel.imageUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.airplanemode_active, color: Color(0xFF3B82F6)))
+                        : Image.file(File(travel.imageUrl!), fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.airplanemode_active, color: Color(0xFF3B82F6))),
+                  )
+                : const Icon(Icons.airplanemode_active, color: Color(0xFF3B82F6)),
+          ),
+          title: Text(travel.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+          subtitle: Text(_formatDate(travel.startDate), style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF))),
+          trailing: const Icon(Icons.chevron_right, color: Color(0xFFD1D5DB)),
+        );
+      },
+    );
+  }
+}
+
+class _MomentListItem extends StatelessWidget {
+  const _MomentListItem({required this.momentId, required this.db});
+
+  final String momentId;
+  final AppDatabase db;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<MomentRecord?>(
+      stream: db.momentDao.watchById(momentId),
+      builder: (context, snapshot) {
+        final moment = snapshot.data;
+        if (moment == null) return const SizedBox.shrink();
+
+        return ListTile(
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => MomentDetailPage(recordId: momentId))),
+          leading: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(color: const Color(0xFFFBCFE8), borderRadius: BorderRadius.circular(8)),
+            child: moment.imageUrl != null && moment.imageUrl!.isNotEmpty
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: moment.imageUrl!.startsWith('http')
+                        ? Image.network(moment.imageUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.auto_awesome, color: Color(0xFFEC4899)))
+                        : Image.file(File(moment.imageUrl!), fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.auto_awesome, color: Color(0xFFEC4899))),
+                  )
+                : const Icon(Icons.auto_awesome, color: Color(0xFFEC4899)),
+          ),
+          title: Text(moment.content?.isNotEmpty == true ? moment.content! : '小确幸', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+          subtitle: Text(_formatDate(moment.date), style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF))),
+          trailing: const Icon(Icons.chevron_right, color: Color(0xFFD1D5DB)),
+        );
+      },
+    );
+  }
+}
+
+class _FriendListItem extends StatelessWidget {
+  const _FriendListItem({required this.friendId, required this.db});
+
+  final String friendId;
+  final AppDatabase db;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<FriendRecord?>(
+      stream: db.friendDao.watchById(friendId),
+      builder: (context, snapshot) {
+        final friend = snapshot.data;
+        if (friend == null) return const SizedBox.shrink();
+
+        return ListTile(
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => FriendProfilePage(friendId: friendId))),
+          leading: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(color: const Color(0xFFFECACA), shape: BoxShape.circle),
+            child: friend.avatarUrl != null && friend.avatarUrl!.isNotEmpty
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: friend.avatarUrl!.startsWith('http')
+                        ? Image.network(friend.avatarUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildAvatarPlaceholder(friend.name))
+                        : Image.file(File(friend.avatarUrl!), fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildAvatarPlaceholder(friend.name)),
+                  )
+                : _buildAvatarPlaceholder(friend.name),
+          ),
+          title: Text(friend.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+          subtitle: Text(_formatDate(friend.metDate), style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF))),
+          trailing: const Icon(Icons.chevron_right, color: Color(0xFFD1D5DB)),
+        );
+      },
+    );
+  }
+
+  Widget _buildAvatarPlaceholder(String? name) {
+    return Center(
+      child: Text(
+        name?.isNotEmpty == true ? name!.substring(0, 1) : '?',
+        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFFEF4444)),
+      ),
+    );
+  }
+}
+
 class _MemoryCard extends StatelessWidget {
   const _MemoryCard({required this.typeIcon, required this.typeColor, required this.title, required this.date, required this.imageUrl});
 
@@ -3835,6 +4714,7 @@ class _GoalCreatePageState extends ConsumerState<GoalCreatePage> {
   final Set<String> _linkedFoodIds = {};
   final Set<String> _linkedFriendIds = {};
   final Set<String> _linkedTravelIds = {};
+  final Set<String> _selectedTags = {};
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
   late String _selectedGoalType;
@@ -3850,6 +4730,7 @@ class _GoalCreatePageState extends ConsumerState<GoalCreatePage> {
       _titleController = TextEditingController(text: widget.goal!.title);
       _descriptionController = TextEditingController(text: widget.goal!.note ?? '');
       _selectedGoalType = widget.goal!.category ?? _goalTypeOptions.first.value;
+      _selectedTags.addAll(_parseGoalTags(widget.goal!.tags));
       _dueDate = widget.goal!.dueDate;
       _remindFrequency = widget.goal!.remindFrequency ?? _remindOptions.first.value;
     } else {
@@ -3859,6 +4740,20 @@ class _GoalCreatePageState extends ConsumerState<GoalCreatePage> {
       _dueDate = null;
       _remindFrequency = _remindOptions.first.value;
     }
+  }
+
+  List<String> _parseGoalTags(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return const [];
+    final value = raw.trim();
+    if (value.startsWith('[')) {
+      try {
+        final decoded = jsonDecode(value);
+        if (decoded is List) {
+          return decoded.whereType<String>().map((e) => e.trim()).where((e) => e.isNotEmpty).toList(growable: false);
+        }
+      } catch (_) {}
+    }
+    return const [];
   }
 
   @override
@@ -4032,7 +4927,7 @@ class _GoalCreatePageState extends ConsumerState<GoalCreatePage> {
     if (_dueDate != null) noteParts.add('截止：${_formatDotDate(_dueDate!)}');
     if (description.isNotEmpty) noteParts.add(description);
     final note = noteParts.isEmpty ? null : noteParts.join('\n');
-    final tagsJson = _selectedGoalType.isEmpty ? null : jsonEncode([_goalLabelFor(_selectedGoalType)]);
+    final tagsJson = _selectedTags.isEmpty ? null : jsonEncode(_selectedTags.toList());
 
     await db.into(db.goalRecords).insert(
           GoalRecordsCompanion.insert(
@@ -4042,6 +4937,7 @@ class _GoalCreatePageState extends ConsumerState<GoalCreatePage> {
             title: title,
             note: Value(description.isEmpty ? null : description),
             category: Value(_selectedGoalType),
+            tags: Value(tagsJson),
             progress: const Value(0.0),
             isCompleted: const Value(false),
             isPostponed: const Value(false),
@@ -4156,7 +5052,13 @@ class _GoalCreatePageState extends ConsumerState<GoalCreatePage> {
   @override
   Widget build(BuildContext context) {
     final remindOption = _remindOptionFor(_remindFrequency);
-    return Scaffold(
+    final configAsync = ref.watch(moduleManagementConfigProvider);
+    
+    return configAsync.when(
+      data: (config) {
+        final configTags = getTagsForModule(config, 'goal');
+        final goalTypeOptions = _buildGoalTypeOptions(configTags);
+        return Scaffold(
       backgroundColor: const Color(0xFFF6F8F8),
       body: SafeArea(
         child: Column(
@@ -4199,7 +5101,7 @@ class _GoalCreatePageState extends ConsumerState<GoalCreatePage> {
                         const SizedBox(height: 10),
                         Row(
                           children: [
-                            for (final option in _goalTypeOptions) ...[
+                            for (final option in goalTypeOptions) ...[
                               Expanded(
                                 child: _GoalTypeCard(
                                   option: option,
@@ -4207,7 +5109,7 @@ class _GoalCreatePageState extends ConsumerState<GoalCreatePage> {
                                   onTap: () => setState(() => _selectedGoalType = option.value),
                                 ),
                               ),
-                              if (option != _goalTypeOptions.last) const SizedBox(width: 10),
+                              if (option != goalTypeOptions.last) const SizedBox(width: 10),
                             ],
                           ],
                         ),
@@ -4228,6 +5130,29 @@ class _GoalCreatePageState extends ConsumerState<GoalCreatePage> {
                           title: _dueDate == null ? '设定完成期限' : _formatDotDate(_dueDate!),
                           subtitle: _dueDate == null ? '点击选择日期' : '目标截止时间',
                           onTap: _pickDueDate,
+                        ),
+                        const SizedBox(height: 14),
+                        const Text('标签', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final tag in configTags)
+                              _TagChip(
+                                label: tag,
+                                selected: _selectedTags.contains(tag),
+                                onTap: () {
+                                  setState(() {
+                                    if (_selectedTags.contains(tag)) {
+                                      _selectedTags.remove(tag);
+                                    } else {
+                                      _selectedTags.add(tag);
+                                    }
+                                  });
+                                },
+                              ),
+                          ],
                         ),
                       ],
                     ),
@@ -4308,6 +5233,55 @@ class _GoalCreatePageState extends ConsumerState<GoalCreatePage> {
         ),
       ),
     );
+      },
+      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (_, __) => const Scaffold(body: Center(child: Text('加载配置失败'))),
+    );
+  }
+  
+  List<_GoalTypeOption> _buildGoalTypeOptions(List<String> tags) {
+    final defaultOptions = <_GoalTypeOption>[
+      const _GoalTypeOption(
+        value: '职业发展',
+        label: '职业发展',
+        icon: Icons.work,
+        accent: Color(0xFF3B82F6),
+        background: Color(0xFFEFF6FF),
+      ),
+      const _GoalTypeOption(
+        value: '身心健康',
+        label: '身心健康',
+        icon: Icons.favorite,
+        accent: Color(0xFFEF4444),
+        background: Color(0xFFFEE2E2),
+      ),
+      const _GoalTypeOption(
+        value: '环球旅行',
+        label: '环球旅行',
+        icon: Icons.airplanemode_active,
+        accent: Color(0xFF10B981),
+        background: Color(0xFFDCFCE7),
+      ),
+    ];
+    
+    if (tags.isEmpty) return defaultOptions;
+    
+    final options = <_GoalTypeOption>[];
+    for (final tag in tags) {
+      final existing = defaultOptions.where((o) => o.label == tag || o.value == tag).firstOrNull;
+      if (existing != null) {
+        options.add(existing);
+      } else {
+        options.add(_GoalTypeOption(
+          value: tag,
+          label: tag,
+          icon: Icons.flag,
+          accent: AppTheme.primary,
+          background: const Color(0xFFEFF6FF),
+        ));
+      }
+    }
+    return options;
   }
 }
 
@@ -4731,6 +5705,38 @@ class _FilterOptionChip extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: selected ? Colors.white : const Color(0xFF6B7280),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TagChip extends StatelessWidget {
+  const _TagChip({required this.label, required this.selected, required this.onTap});
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFF2BCDEE) : Colors.white,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: selected ? const Color(0xFF2BCDEE) : const Color(0xFFE5E7EB)),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
             fontWeight: FontWeight.w700,
             color: selected ? Colors.white : const Color(0xFF6B7280),
           ),

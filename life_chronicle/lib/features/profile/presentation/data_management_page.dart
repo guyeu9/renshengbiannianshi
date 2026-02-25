@@ -1,7 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 
+import '../../../app/app_theme.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/services/backup/backup.dart';
@@ -20,6 +25,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
   bool _isLoading = true;
   bool _isBackingUp = false;
   bool _isRestoring = false;
+  bool _isExporting = false;
   BackupProgress? _currentProgress;
   StreamSubscription<BackupProgress>? _progressSubscription;
   List<Map<String, dynamic>> _availableBackups = [];
@@ -28,6 +34,10 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _encryptionPasswordController = TextEditingController();
+
+  bool _obscurePassword = true;
+  bool _obscureEncryptionPassword = true;
+  String _backupFrequency = 'daily';
 
   @override
   void initState() {
@@ -54,6 +64,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
           _urlController.text = config.url;
           _usernameController.text = config.username;
           _passwordController.text = config.password;
+          _backupFrequency = config.autoBackupFrequency ?? 'daily';
         }
         _isLoading = false;
       });
@@ -107,6 +118,8 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
       enabled: _config?.enabled ?? true,
       autoBackup: _config?.autoBackup ?? false,
       encryptBackup: _config?.encryptBackup ?? true,
+      autoBackupFrequency: _backupFrequency,
+      backupOnWifiOnly: _config?.backupOnWifiOnly ?? true,
     );
 
     await _configService.saveConfig(newConfig);
@@ -154,6 +167,134 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
           _currentProgress = null;
         });
         _progressSubscription?.cancel();
+      }
+    }
+  }
+
+  Future<void> _performLocalBackup() async {
+    final db = ref.read(appDatabaseProvider);
+    final backupService = BackupService(db);
+
+    setState(() => _isBackingUp = true);
+    
+    try {
+      final tempDir = await backupService.getTempDir();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final zipPath = path.join(tempDir.path, 'life_chronicle_local_$timestamp.zip');
+      
+      final data = await backupService.exportAllData();
+      final mediaFiles = await backupService.collectAllMediaFiles();
+      
+      await EncryptionService.createZipArchive(mediaFiles, data, zipPath);
+      
+      final appDocDir = await getApplicationDocumentsDirectory();
+      final backupDir = Directory(path.join(appDocDir.path, 'backups'));
+      if (!await backupDir.exists()) {
+        await backupDir.create(recursive: true);
+      }
+      
+      final finalZipPath = path.join(backupDir.path, 'life_chronicle_local_$timestamp.zip');
+      await File(zipPath).copy(finalZipPath);
+      
+      _showSnackBar('本地备份成功！文件已保存到: $finalZipPath');
+    } catch (e) {
+      _showSnackBar('本地备份失败: $e', isError: true);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isBackingUp = false;
+          _currentProgress = null;
+        });
+      }
+    }
+  }
+
+  Future<void> _restoreFromLocal() async {
+    final db = ref.read(appDatabaseProvider);
+    final backupService = BackupService(db);
+
+    setState(() => _isRestoring = true);
+    
+    try {
+      final appDocDir = await getApplicationDocumentsDirectory();
+      final backupDir = Directory(path.join(appDocDir.path, 'backups'));
+      if (!await backupDir.exists()) {
+        _showSnackBar('未找到备份目录', isError: true);
+        return;
+      }
+
+      final files = await backupDir.list().toList();
+      final zipFiles = files.whereType<File>().where((f) => f.path.endsWith('.zip')).toList();
+      
+      if (zipFiles.isEmpty) {
+        _showSnackBar('未找到备份文件', isError: true);
+        return;
+      }
+      
+      zipFiles.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
+      final latestBackup = zipFiles.first;
+      
+      final tempDir = await backupService.getTempDir();
+      final extractDir = path.join(tempDir.path, 'extract');
+      
+      final (data, mediaFiles) = await EncryptionService.extractZipArchive(latestBackup, extractDir);
+      
+      await backupService.importData(data, merge: true);
+      await _restoreMediaFiles(mediaFiles);
+      
+      _showSnackBar('本地恢复成功！');
+    } catch (e) {
+      _showSnackBar('本地恢复失败: $e', isError: true);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRestoring = false;
+          _currentProgress = null;
+        });
+      }
+    }
+  }
+
+  Future<void> _restoreMediaFiles(List<File> mediaFiles) async {
+    final targetMediaDir = await Directory(path.join((await getApplicationDocumentsDirectory()).path, 'media'));
+    if (!await targetMediaDir.exists()) {
+      await targetMediaDir.create(recursive: true);
+    }
+    
+    for (final file in mediaFiles) {
+      final fileName = path.basename(file.path);
+      final targetPath = path.join(targetMediaDir.path, fileName);
+      await file.copy(targetPath);
+    }
+  }
+
+  Future<void> _exportToJson() async {
+    final db = ref.read(appDatabaseProvider);
+    final backupService = BackupService(db);
+
+    setState(() => _isExporting = true);
+    
+    try {
+      final data = await backupService.exportAllData();
+      final jsonString = jsonEncode(data);
+      
+      final appDocDir = await getApplicationDocumentsDirectory();
+      final exportDir = Directory(path.join(appDocDir.path, 'exports'));
+      if (!await exportDir.exists()) {
+        await exportDir.create(recursive: true);
+      }
+      
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final filePath = path.join(exportDir.path, 'life_chronicle_export_$timestamp.json');
+      final file = File(filePath);
+      await file.writeAsString(jsonString);
+      
+      _showSnackBar('JSON 导出成功！文件已保存到: $filePath');
+    } catch (e) {
+      _showSnackBar('JSON 导出失败: $e', isError: true);
+    } finally {
+      if (mounted) {
+        setState(() => _isExporting = false);
       }
     }
   }
@@ -249,336 +390,994 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final backgroundColor = isDark ? const Color(0xFF101F22) : const Color(0xFFF6F8F8);
+    final surfaceColor = isDark ? const Color(0xFF162A2E) : Colors.white;
+    final textMain = isDark ? Colors.white : const Color(0xFF1F2937);
+    final textMuted = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
+    final dividerColor = isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F4F6),
+      backgroundColor: backgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+          icon: const Icon(Icons.arrow_back_ios_new, color: AppTheme.primary),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
+        title: Text(
           '数据管理',
           style: TextStyle(
             fontSize: 18,
-            fontWeight: FontWeight.w800,
-            color: Colors.black87,
+            fontWeight: FontWeight.w600,
+            color: textMain,
           ),
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                _buildLastBackupSection(),
-                const SizedBox(height: 16),
-                _buildWebDavConfigSection(),
-                const SizedBox(height: 16),
-                _buildBackupOptionsSection(),
-                const SizedBox(height: 16),
-                _buildRestoreSection(),
-                const SizedBox(height: 16),
-                _buildLocalExportSection(),
-              ],
-            ),
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+          : Stack(
+            children: [
+              ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  _buildLastBackupSection(isDark, textMain, textMuted),
+                  const SizedBox(height: 24),
+                  _buildDataExportSection(isDark, surfaceColor, textMain, textMuted, dividerColor),
+                  const SizedBox(height: 24),
+                  _buildLocalBackupSection(isDark, surfaceColor, textMain, textMuted, dividerColor),
+                  const SizedBox(height: 24),
+                  _buildWebDavConfigSection(isDark, surfaceColor, textMain, textMuted, dividerColor),
+                  const SizedBox(height: 24),
+                  _buildAutomationSection(isDark, surfaceColor, textMain, textMuted, dividerColor),
+                  const SizedBox(height: 24),
+                  _buildRecoverySection(isDark, surfaceColor, textMain, textMuted),
+                  const SizedBox(height: 24),
+                  _buildFooterNote(isDark, textMuted),
+                  const SizedBox(height: 100),
+                ],
+              ),
+              _buildBottomActionBar(isDark, surfaceColor, textMain),
+            ],
+          ),
     );
   }
 
-  Widget _buildLastBackupSection() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFF3F4F6)),
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Consumer(
-        builder: (context, ref, _) {
-          final db = ref.watch(appDatabaseProvider);
-          return StreamBuilder<SyncStateData?>(
-            stream: db.syncStateDao.watchDefault(),
-            builder: (context, snapshot) {
-              final lastSyncTime = snapshot.data?.lastSyncTime;
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    '上次备份',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF1F2937),
+  Widget _buildLastBackupSection(bool isDark, Color textMain, Color textMuted) {
+    return Consumer(
+      builder: (context, ref, _) {
+        final db = ref.watch(appDatabaseProvider);
+        return StreamBuilder<SyncStateData?>(
+          stream: db.syncStateDao.watchDefault(),
+          builder: (context, snapshot) {
+            final lastSyncTime = snapshot.data?.lastSyncTime;
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '上次备份时间',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: textMuted,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      lastSyncTime != null
+                          ? '${lastSyncTime.year}-${lastSyncTime.month.toString().padLeft(2, '0')}-${lastSyncTime.day.toString().padLeft(2, '0')} ${lastSyncTime.hour.toString().padLeft(2, '0')}:${lastSyncTime.minute.toString().padLeft(2, '0')}'
+                          : '从未备份',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                        color: textMain,
+                      ),
+                    ),
+                  ],
+                ),
+                if (lastSyncTime != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF064E3B) : const Color(0xFFECFDF5),
+                      borderRadius: BorderRadius.circular(9999),
+                      border: Border.all(color: isDark ? const Color(0xFF065F46) : const Color(0xFFD1FAE5)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.check_circle,
+                          size: 16,
+                          color: isDark ? const Color(0xFF34D399) : const Color(0xFF10B981),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '已同步',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: isDark ? const Color(0xFF34D399) : const Color(0xFF10B981),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    lastSyncTime != null
-                        ? '${lastSyncTime.year}-${lastSyncTime.month.toString().padLeft(2, '0')}-${lastSyncTime.day.toString().padLeft(2, '0')} ${lastSyncTime.hour.toString().padLeft(2, '0')}:${lastSyncTime.minute.toString().padLeft(2, '0')}'
-                        : '从未备份',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: lastSyncTime != null ? const Color(0xFF4CAF50) : const Color(0xFF9CA3AF),
-                      fontWeight: FontWeight.w600,
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildDataExportSection(bool isDark, Color surfaceColor, Color textMain, Color textMuted, Color dividerColor) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4),
+          child: Text(
+            '数据导出',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: textMuted,
+              letterSpacing: 1.2,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: surfaceColor,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
+              ),
+            ],
+            border: Border.all(color: isDark ? const Color(0xFF1F2937) : const Color(0xFFF3F4F6)),
+          ),
+          child: Column(
+            children: [
+              _buildExportItem(
+                isDark,
+                textMain,
+                textMuted,
+                Icons.data_object,
+                Colors.orange,
+                'JSON 全量导出',
+                '适合开发者或数据迁移',
+                _isExporting ? null : _exportToJson,
+              ),
+              Divider(height: 1, color: dividerColor),
+              _buildExportItem(
+                isDark,
+                textMain,
+                textMuted,
+                Icons.picture_as_pdf,
+                Colors.red,
+                'Excel / PDF 导出',
+                '选择模块，适合阅读与打印',
+                null,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildExportItem(
+    bool isDark,
+    Color textMain,
+    Color textMuted,
+    IconData icon,
+    Color iconColor,
+    String title,
+    String subtitle,
+    VoidCallback? onTap,
+  ) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? iconColor.withValues(alpha: 0.1)
+                      : iconColor.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: iconColor),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: textMain,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right,
+                color: textMuted,
+                size: 20,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLocalBackupSection(bool isDark, Color surfaceColor, Color textMain, Color textMuted, Color dividerColor) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4),
+          child: Text(
+            '全量备份',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: textMuted,
+              letterSpacing: 1.2,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: surfaceColor,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
+              ),
+            ],
+            border: Border.all(color: isDark ? const Color(0xFF1F2937) : const Color(0xFFF3F4F6)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_currentProgress != null) _buildProgressIndicator(isDark, textMain, textMuted),
+              if (_currentProgress != null) const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: (_isBackingUp) ? null : _performLocalBackup,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
+                icon: const Icon(Icons.backup),
+                label: Text(_isBackingUp ? '备份中...' : '立即本地备份'),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWebDavConfigSection(bool isDark, Color surfaceColor, Color textMain, Color textMuted, Color dividerColor) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4),
+          child: Text(
+            'WebDAV 备份配置',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: textMuted,
+              letterSpacing: 1.2,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: surfaceColor,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
+              ),
+            ],
+            border: Border.all(color: isDark ? const Color(0xFF1F2937) : const Color(0xFFF3F4F6)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildInputField(
+                isDark,
+                textMain,
+                textMuted,
+                '服务器地址',
+                Icons.link,
+                _urlController,
+                'https://dav.example.com',
+                false,
+              ),
+              const SizedBox(height: 16),
+              _buildInputField(
+                isDark,
+                textMain,
+                textMuted,
+                '账户名称',
+                Icons.person,
+                _usernameController,
+                'username@example.com',
+                false,
+              ),
+              const SizedBox(height: 16),
+              _buildPasswordField(
+                isDark,
+                textMain,
+                textMuted,
+                '账户密码',
+                Icons.lock,
+                _passwordController,
+                'password123',
+              ),
+              const SizedBox(height: 16),
+              Divider(color: dividerColor),
+              const SizedBox(height: 16),
+              _buildSwitchRow(
+                isDark,
+                textMain,
+                textMuted,
+                '启用加密备份',
+                '推荐开启，保护隐私安全',
+                _config?.encryptBackup ?? true,
+                (value) async {
+                  if (_config != null) {
+                    final newConfig = _config!.copyWith(encryptBackup: value);
+                    await _configService.saveConfig(newConfig);
+                    setState(() => _config = newConfig);
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _isLoading ? null : _testConnection,
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        side: BorderSide(color: AppTheme.primary),
+                        foregroundColor: AppTheme.primary,
+                      ),
+                      child: const Text('测试连接'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _saveConfig,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text('保存配置'),
                     ),
                   ),
                 ],
-              );
-            },
-          );
-        },
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInputField(
+    bool isDark,
+    Color textMain,
+    Color textMuted,
+    String label,
+    IconData icon,
+    TextEditingController controller,
+    String hint,
+    bool obscure,
+  ) {
+    final fillColor = isDark ? const Color(0xFF111827) : const Color(0xFFF9FAFB);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: textMuted,
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          decoration: BoxDecoration(
+            color: fillColor,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: TextField(
+            controller: controller,
+            obscureText: obscure,
+            style: TextStyle(color: textMain, fontSize: 14),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: TextStyle(color: textMuted),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              prefixIcon: Icon(icon, color: textMuted, size: 20),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPasswordField(
+    bool isDark,
+    Color textMain,
+    Color textMuted,
+    String label,
+    IconData icon,
+    TextEditingController controller,
+    String hint,
+  ) {
+    final fillColor = isDark ? const Color(0xFF111827) : const Color(0xFFF9FAFB);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: textMuted,
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          decoration: BoxDecoration(
+            color: fillColor,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: TextField(
+            controller: controller,
+            obscureText: _obscurePassword,
+            style: TextStyle(color: textMain, fontSize: 14),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: TextStyle(color: textMuted),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              prefixIcon: Icon(icon, color: textMuted, size: 20),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                  color: textMuted,
+                  size: 20,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _obscurePassword = !_obscurePassword;
+                  });
+                },
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSwitchRow(
+    bool isDark,
+    Color textMain,
+    Color textMuted,
+    String title,
+    String subtitle,
+    bool value,
+    ValueChanged<bool> onChanged,
+  ) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: textMain,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: textMuted,
+                ),
+              ),
+            ],
+          ),
+        ),
+        _buildCustomSwitch(value, onChanged),
+      ],
+    );
+  }
+
+  Widget _buildCustomSwitch(bool value, ValueChanged<bool> onChanged) {
+    return GestureDetector(
+      onTap: () => onChanged(!value),
+      child: Container(
+        width: 52,
+        height: 32,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          color: value ? AppTheme.primary : const Color(0xFFE5E7EB),
+        ),
+        child: Stack(
+          children: [
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              left: value ? 22 : 2,
+              top: 2,
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 3,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildWebDavConfigSection() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFF3F4F6)),
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'WebDAV 配置',
+  Widget _buildAutomationSection(bool isDark, Color surfaceColor, Color textMain, Color textMuted, Color dividerColor) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4),
+          child: Text(
+            '自动化',
             style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF1F2937),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: textMuted,
+              letterSpacing: 1.2,
             ),
           ),
-          const SizedBox(height: 16),
-          _buildPresetButtons(),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _urlController,
-            decoration: InputDecoration(
-              labelText: '服务器地址',
-              hintText: 'https://dav.jianguoyun.com/dav/',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: surfaceColor,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
               ),
-              filled: true,
-              fillColor: const Color(0xFFF9FAFB),
-            ),
+            ],
+            border: Border.all(color: isDark ? const Color(0xFF1F2937) : const Color(0xFFF3F4F6)),
           ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _usernameController,
-            decoration: InputDecoration(
-              labelText: '用户名',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: _buildSwitchRow(
+                  isDark,
+                  textMain,
+                  textMuted,
+                  '自动备份',
+                  '在 Wi-Fi 环境下自动同步',
+                  _config?.autoBackup ?? false,
+                  (value) async {
+                    if (_config != null) {
+                      final newConfig = _config!.copyWith(autoBackup: value);
+                      await _configService.saveConfig(newConfig);
+                      if (value) {
+                        await _backgroundBackupService.registerPeriodicBackup(
+                          frequency: newConfig.autoBackupFrequency ?? 'daily',
+                          wifiOnly: newConfig.backupOnWifiOnly,
+                        );
+                      } else {
+                        await _backgroundBackupService.cancelBackup();
+                      }
+                      setState(() => _config = newConfig);
+                    }
+                  },
+                ),
               ),
-              filled: true,
-              fillColor: const Color(0xFFF9FAFB),
-            ),
+              if (_config?.autoBackup ?? false) ...[
+                Divider(height: 1, color: dividerColor),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '备份频率',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: textMuted,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF111827) : const Color(0xFFF9FAFB),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            _buildFrequencyButton('每日', 'daily', isDark, surfaceColor, textMain, textMuted),
+                            const SizedBox(width: 4),
+                            _buildFrequencyButton('每周', 'weekly', isDark, surfaceColor, textMain, textMuted),
+                            const SizedBox(width: 4),
+                            _buildFrequencyButton('每月', 'monthly', isDark, surfaceColor, textMain, textMuted),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
           ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _passwordController,
-            obscureText: true,
-            decoration: InputDecoration(
-              labelText: '密码/应用密码',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFrequencyButton(
+    String label, String value, bool isDark, Color surfaceColor, Color textMain, Color textMuted,
+  ) {
+    final isSelected = _backupFrequency == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () async {
+          if (_config != null) {
+            setState(() {
+              _backupFrequency = value;
+            });
+            final newConfig = _config!.copyWith(autoBackupFrequency: value);
+            await _configService.saveConfig(newConfig);
+            if (newConfig.autoBackup) {
+              await _backgroundBackupService.registerPeriodicBackup(
+                frequency: value,
+                wifiOnly: newConfig.backupOnWifiOnly,
+              );
+            }
+            setState(() => _config = newConfig);
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? surfaceColor
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(6),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 2,
+                      offset: const Offset(0, 1),
+                    ),
+                  ]
+                : [],
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: isSelected ? AppTheme.primary : textMuted,
               ),
-              filled: true,
-              fillColor: const Color(0xFFF9FAFB),
             ),
           ),
-          const SizedBox(height: 16),
-          Row(
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecoverySection(bool isDark, Color surfaceColor, Color textMain, Color textMuted) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4),
+          child: Text(
+            '数据恢复',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: textMuted,
+              letterSpacing: 1.2,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          children: [
+            _buildRecoveryCard(
+              isDark,
+              surfaceColor,
+              textMain,
+              textMuted,
+              Icons.cloud_download,
+              AppTheme.primary,
+              '从云端恢复',
+              () {
+                _loadAvailableBackups();
+              },
+            ),
+            _buildRecoveryCard(
+              isDark,
+              surfaceColor,
+              textMain,
+              textMuted,
+              Icons.folder_open,
+              textMuted,
+              '从本地文件恢复',
+              _isRestoring ? null : _restoreFromLocal,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRecoveryCard(
+    bool isDark,
+    Color surfaceColor,
+    Color textMain,
+    Color textMuted,
+    IconData icon,
+    Color iconColor,
+    String label,
+    VoidCallback? onTap,
+  ) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: surfaceColor,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
+              ),
+            ],
+            border: Border.all(color: isDark ? const Color(0xFF1F2937) : const Color(0xFFF3F4F6)),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: iconColor.withValues(alpha: 0.1),
+                ),
+                child: Icon(icon, color: iconColor),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: textMain,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFooterNote(bool isDark, Color textMuted) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.security, size: 16, color: textMuted),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    '您的数据仅存储在本地或您配置的云端，',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: textMuted,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            Text(
+              '人生博物馆无法查看任何内容。',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                color: textMuted,
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomActionBar(bool isDark, Color surfaceColor, Color textMain) {
+    return Positioned(
+      bottom: 0,
+      left: 0,
+      right: 0,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDark
+              ? const Color(0xFF101F22).withValues(alpha: 0.9)
+              : Colors.white.withValues(alpha: 0.9),
+          border: Border(
+            top: BorderSide(
+              color: isDark ? const Color(0xFF1F2937) : const Color(0xFFE5E7EB),
+            ),
+          ),
+        ),
+        child: SafeArea(
+          child: Row(
             children: [
               Expanded(
-                child: OutlinedButton(
-                  onPressed: _isLoading ? null : _testConnection,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    _showSnackBar('查看日志功能开发中');
+                  },
                   style: OutlinedButton.styleFrom(
+                    backgroundColor: isDark ? const Color(0xFF1F2937) : const Color(0xFFF3F4F6),
+                    foregroundColor: isDark ? const Color(0xFFD1D5DB) : const Color(0xFF4B5563),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
+                    side: BorderSide.none,
                   ),
-                  child: const Text('测试连接'),
+                  icon: const Icon(Icons.history, size: 20),
+                  label: const Text('查看日志', style: TextStyle(fontWeight: FontWeight.w500)),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _saveConfig,
+                flex: 2,
+                child: ElevatedButton.icon(
+                  onPressed: (_isBackingUp || _config == null) ? null : _performFullBackup,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF8AB4F8),
+                    backgroundColor: AppTheme.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
+                    elevation: 0,
                   ),
-                  child: const Text('保存配置'),
+                  icon: const Icon(Icons.sync, size: 20),
+                  label: Text(
+                    _isBackingUp ? '备份中...' : '立即备份',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildPresetButtons() {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: WebDavConfig.presets.map((preset) {
-        return ActionChip(
-          label: Text(preset['name']!),
-          onPressed: () {
-            _urlController.text = preset['url']!;
-          },
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildBackupOptionsSection() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFF3F4F6)),
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '备份选项',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF1F2937),
-            ),
-          ),
-          const SizedBox(height: 16),
-          SwitchListTile(
-            title: const Text('启用加密'),
-            subtitle: const Text('备份文件将使用 AES-256 加密'),
-            value: _config?.encryptBackup ?? true,
-            onChanged: (value) async {
-              if (_config != null) {
-                final newConfig = _config!.copyWith(encryptBackup: value);
-                await _configService.saveConfig(newConfig);
-                setState(() => _config = newConfig);
-              }
-            },
-          ),
-          if (_config?.encryptBackup ?? true) ...[
-            const SizedBox(height: 12),
-            TextField(
-              controller: _encryptionPasswordController,
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: '加密密码',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                filled: true,
-                fillColor: const Color(0xFFF9FAFB),
-              ),
-            ),
-          ],
-          const SizedBox(height: 16),
-          SwitchListTile(
-            title: const Text('自动备份'),
-            subtitle: const Text('定期自动备份到云端'),
-            value: _config?.autoBackup ?? false,
-            onChanged: (value) async {
-              if (_config != null) {
-                final newConfig = _config!.copyWith(autoBackup: value);
-                await _configService.saveConfig(newConfig);
-                if (value) {
-                  await _backgroundBackupService.registerPeriodicBackup(
-                    frequency: newConfig.autoBackupFrequency ?? 'daily',
-                    wifiOnly: newConfig.backupOnWifiOnly,
-                  );
-                } else {
-                  await _backgroundBackupService.cancelBackup();
-                }
-                setState(() => _config = newConfig);
-              }
-            },
-          ),
-          if (_config?.autoBackup ?? false) ...[
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: _config?.autoBackupFrequency ?? 'daily',
-              decoration: InputDecoration(
-                labelText: '备份频率',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                filled: true,
-                fillColor: const Color(0xFFF9FAFB),
-              ),
-              items: const [
-                DropdownMenuItem(value: 'daily', child: Text('每天')),
-                DropdownMenuItem(value: 'weekly', child: Text('每周')),
-                DropdownMenuItem(value: 'monthly', child: Text('每月')),
-              ],
-              onChanged: (value) async {
-                if (_config != null && value != null) {
-                  final newConfig = _config!.copyWith(autoBackupFrequency: value);
-                  await _configService.saveConfig(newConfig);
-                  if (newConfig.autoBackup) {
-                    await _backgroundBackupService.registerPeriodicBackup(
-                      frequency: value,
-                      wifiOnly: newConfig.backupOnWifiOnly,
-                    );
-                  }
-                  setState(() => _config = newConfig);
-                }
-              },
-            ),
-            const SizedBox(height: 12),
-            SwitchListTile(
-              title: const Text('仅 Wi-Fi 下备份'),
-              subtitle: const Text('避免消耗移动数据流量'),
-              value: _config?.backupOnWifiOnly ?? true,
-              onChanged: (value) async {
-                if (_config != null) {
-                  final newConfig = _config!.copyWith(backupOnWifiOnly: value);
-                  await _configService.saveConfig(newConfig);
-                  setState(() => _config = newConfig);
-                }
-              },
-            ),
-          ],
-          const SizedBox(height: 16),
-          if (_currentProgress != null) _buildProgressIndicator(),
-          const SizedBox(height: 16),
-          ElevatedButton.icon(
-            onPressed: (_isBackingUp || _config == null) ? null : _performFullBackup,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4CAF50),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              minimumSize: const Size(double.infinity, 0),
-            ),
-            icon: const Icon(Icons.cloud_upload),
-            label: Text(_isBackingUp ? '备份中...' : '立即备份'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProgressIndicator() {
+  Widget _buildProgressIndicator(bool isDark, Color textMain, Color textMuted) {
     final status = _currentProgress!.status;
     final statusText = {
           BackupStatus.idle: '准备中',
@@ -598,16 +1397,16 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
       children: [
         LinearProgressIndicator(
           value: _currentProgress!.progress,
-          backgroundColor: const Color(0xFFE5E7EB),
-          valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF8AB4F8)),
+          backgroundColor: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
+          valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primary),
         ),
         const SizedBox(height: 8),
         Text(
           _currentProgress!.message ?? statusText,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF6B7280),
+            color: textMuted,
           ),
         ),
         if (_currentProgress!.error != null) ...[
@@ -622,151 +1421,6 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
           ),
         ],
       ],
-    );
-  }
-
-  Widget _buildRestoreSection() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFF3F4F6)),
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '数据恢复',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF1F2937),
-            ),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton.icon(
-            onPressed: (_isRestoring || _config == null) ? null : _loadAvailableBackups,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF8AB4F8),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            icon: const Icon(Icons.refresh),
-            label: const Text('刷新备份列表'),
-          ),
-          const SizedBox(height: 16),
-          if (_availableBackups.isEmpty)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text(
-                  '暂无可用备份',
-                  style: TextStyle(
-                    color: Color(0xFF9CA3AF),
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            )
-          else
-            ..._availableBackups.map((backup) {
-              final timestamp = backup['timestamp'] as int?;
-              final fileName = backup['fileName'] as String?;
-              final type = backup['type'] as String?;
-              final date = timestamp != null
-                  ? DateTime.fromMillisecondsSinceEpoch(timestamp)
-                  : null;
-              
-              return ListTile(
-                title: Text(
-                  type == 'full' ? '全量备份' : '增量备份',
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-                subtitle: Text(
-                  date != null
-                      ? '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}'
-                      : fileName ?? '',
-                ),
-                trailing: IconButton(
-                  icon: const Icon(Icons.restore),
-                  onPressed: () {
-                    if (fileName != null) {
-                      _restoreBackup(fileName);
-                    }
-                  },
-                ),
-              );
-            }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLocalExportSection() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFF3F4F6)),
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '本地导出',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF1F2937),
-            ),
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            '导出到本地文件（开发中）',
-            style: TextStyle(
-              fontSize: 14,
-              color: Color(0xFF9CA3AF),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: null,
-                  icon: const Icon(Icons.description),
-                  label: const Text('JSON 全量'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: null,
-                  icon: const Icon(Icons.table_chart),
-                  label: const Text('Excel'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 }

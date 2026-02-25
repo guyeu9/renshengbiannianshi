@@ -449,7 +449,7 @@ class _MomentHomeBodyState extends ConsumerState<_MomentHomeBody> {
     if (query.isEmpty) return true;
     final title = _momentTitleFromRecord(record).toLowerCase();
     final content = _momentContentFromRecord(record).toLowerCase();
-    final tags = _parseSceneTags(record.sceneTag).join(' ').toLowerCase();
+    final tags = _parseSceneTags(record.tags).join(' ').toLowerCase();
     final location = (record.poiName ?? '').toLowerCase();
     final city = (record.city ?? '').toLowerCase();
     return title.contains(query) || content.contains(query) || tags.contains(query) || location.contains(query) || city.contains(query);
@@ -493,7 +493,7 @@ class _MomentHomeBodyState extends ConsumerState<_MomentHomeBody> {
           final accent = _parseMomentMoodColor(record.moodColor, const Color(0xFF2BCDEE));
           final title = _momentTitleFromRecord(record);
           final content = _momentContentFromRecord(record);
-          final tags = _parseSceneTags(record.sceneTag);
+          final tags = _parseSceneTags(record.tags);
           items.add(
             MomentCardData(
               recordId: record.id,
@@ -840,7 +840,7 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
         final moodColor = moodAccent.withValues(alpha: 0.12);
         final title = _momentTitle(record);
         final content = _momentContent(record);
-        final tags = _parseSceneTags(record.sceneTag);
+        final tags = _parseSceneTags(record.tags);
         final poiName = (record.poiName ?? '').trim().isNotEmpty ? record.poiName!.trim() : (record.city ?? '').trim();
         final poiAddress = (record.poiAddress ?? '').trim();
         final city = (record.city ?? '').trim();
@@ -1522,7 +1522,7 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
       _imageUrls
         ..clear()
         ..addAll(_parseMomentImages(record.images));
-      final tags = _parseSceneTags(record.sceneTag);
+      final tags = _parseSceneTags(record.tags);
       if (tags.isNotEmpty) {
         _selectedTags.addAll(tags);
       }
@@ -1879,7 +1879,7 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
         images: Value(_imageUrls.isEmpty ? null : jsonEncode(_imageUrls)),
         mood: mood.label,
         moodColor: Value('#${mood.color.value.toRadixString(16).padLeft(8, '0')}'),
-        sceneTag: Value(tag),
+        tags: Value(tag),
         poiName: Value(locationName.isEmpty ? null : locationName),
         poiAddress: Value(locationAddress.isEmpty ? null : locationAddress),
         city: Value(location.isEmpty ? null : location),

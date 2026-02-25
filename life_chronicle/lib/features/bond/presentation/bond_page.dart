@@ -753,6 +753,17 @@ class _EncounterEventRow extends ConsumerWidget {
   }
 }
 
+class FriendProfilePage extends ConsumerWidget {
+  const FriendProfilePage({super.key, required this.friendId});
+
+  final String friendId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return _BondFriendDetailPage(friendId: friendId);
+  }
+}
+
 class _BondFriendDetailPage extends ConsumerWidget {
   const _BondFriendDetailPage({required this.friendId});
 
