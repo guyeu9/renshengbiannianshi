@@ -229,6 +229,13 @@ class AppDatabase extends _$AppDatabase {
         .watch();
   }
 
+  Stream<List<GoalRecord>> watchAllActiveGoalRecords() {
+    return (select(goalRecords)
+          ..where((t) => t.isDeleted.equals(false))
+          ..orderBy([(t) => OrderingTerm(expression: t.recordDate, mode: OrderingMode.desc)]))
+        .watch();
+  }
+
   Stream<List<TimelineEvent>> watchEncountersForFriend(String friendId) {
     final query = select(timelineEvents).join([
       innerJoin(

@@ -38,25 +38,34 @@ extension FilterResultMatcher on FilterResult {
     final today = DateTime(now.year, now.month, now.day);
 
     DateTime? startDate;
+    DateTime? endDate;
     switch (dateIndex) {
       case 1:
         startDate = today;
+        endDate = today;
         break;
       case 2:
         startDate = today.subtract(const Duration(days: 7));
+        endDate = today;
         break;
       case 3:
         startDate = today.subtract(const Duration(days: 30));
+        endDate = today;
         break;
       case 4:
         if (customRange != null) {
           startDate = customRange!.start;
+          endDate = customRange!.end;
         }
         break;
     }
 
-    if (startDate == null) return true;
-    return true;
+    if (startDate == null || endDate == null) return true;
+
+    final meetDate = friend.meetDate;
+    if (meetDate == null) return false;
+    final meetDay = DateTime(meetDate.year, meetDate.month, meetDate.day);
+    return !meetDay.isBefore(startDate) && !meetDay.isAfter(endDate);
   }
 }
 
@@ -616,62 +625,172 @@ class _FriendCard extends StatelessWidget {
   }
 }
 
-class _EncounterTimeline extends ConsumerWidget {
+class _EncounterTimeline extends ConsumerStatefulWidget {
   const _EncounterTimeline();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_EncounterTimeline> createState() => _EncounterTimelineState();
+}
+
+class _EncounterTimelineState extends ConsumerState<_EncounterTimeline> {
+  int _filterDateIndex = 0;
+  DateTimeRange? _filterCustomRange;
+  Set<String> _filterFriendIds = {};
+
+  DateTimeRange? _resolveDateRange() {
+    if (_filterDateIndex == 0) return null;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    switch (_filterDateIndex) {
+      case 1:
+        return DateTimeRange(start: today, end: today);
+      case 2:
+        return DateTimeRange(start: today.subtract(const Duration(days: 6)), end: today);
+      case 3:
+        return DateTimeRange(start: today.subtract(const Duration(days: 29)), end: today);
+      case 4:
+        return _filterCustomRange;
+    }
+    return null;
+  }
+
+  Future<void> _openFilterSheet() async {
+    final result = await showModalBottomSheet<FilterResult>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Consumer(
+          builder: (context, ref, _) {
+            final db = ref.read(appDatabaseProvider);
+            return FilterBottomSheet(
+              initialDateIndex: _filterDateIndex,
+              initialCustomRange: _filterCustomRange,
+              initialFriendIds: _filterFriendIds,
+              friendsStream: db.friendDao.watchAllActive(),
+            );
+          },
+        );
+      },
+    );
+    if (result == null) return;
+    setState(() {
+      _filterDateIndex = result.dateIndex;
+      _filterCustomRange = result.customRange;
+      _filterFriendIds = result.friendIds;
+    });
+  }
+
+  bool _eventMatchesFilter(TimelineEvent event, List<String> linkedFriendIds) {
+    final dateRange = _resolveDateRange();
+    if (dateRange != null) {
+      final eventDate = DateTime(event.recordDate.year, event.recordDate.month, event.recordDate.day);
+      if (eventDate.isBefore(dateRange.start) || eventDate.isAfter(dateRange.end)) {
+        return false;
+      }
+    }
+    if (_filterFriendIds.isNotEmpty) {
+      final hasMatchingFriend = linkedFriendIds.any((id) => _filterFriendIds.contains(id));
+      if (!hasMatchingFriend) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final db = ref.watch(appDatabaseProvider);
     return StreamBuilder<List<TimelineEvent>>(
       key: const ValueKey('encounters'),
       stream: db.watchEncounterEvents(),
       builder: (context, snapshot) {
-        final events = snapshot.data ?? const <TimelineEvent>[];
+        final allEvents = snapshot.data ?? const <TimelineEvent>[];
 
-        if (events.isEmpty) {
-          return const Center(
-            child: Text('还没有相遇记录，去新建一次相遇吧', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
-          );
-        }
-
-        return Stack(
+        return Column(
           children: [
-            Positioned(
-              left: 36,
-              top: 0,
-              bottom: 0,
-              child: Container(width: 2, color: const Color(0xFFE5E7EB)),
-            ),
-            ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 140),
-              itemCount: events.length + 1,
-              separatorBuilder: (_, __) => const SizedBox(height: 18),
-              itemBuilder: (context, index) {
-                if (index == events.length) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 26),
-                    child: Center(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.55),
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
-                        ),
-                        child: const Text('已加载全部相遇', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
-                      ),
+            if (allEvents.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: Row(
+                  children: [
+                    const Spacer(),
+                    TextButton.icon(
+                      onPressed: _openFilterSheet,
+                      icon: const Icon(Icons.filter_list, size: 18),
+                      label: Text(_filterDateIndex == 0 && _filterFriendIds.isEmpty ? '筛选' : '已筛选'),
                     ),
-                  );
-                }
+                  ],
+                ),
+              ),
+            Expanded(
+              child: FutureBuilder<Map<String, List<String>>>(
+                future: _loadEventFriendLinks(db, allEvents),
+                builder: (context, linksSnapshot) {
+                  final eventFriendLinks = linksSnapshot.data ?? {};
+                  final events = allEvents.where((event) {
+                    final linkedFriendIds = eventFriendLinks[event.id] ?? const <String>[];
+                    return _eventMatchesFilter(event, linkedFriendIds);
+                  }).toList();
 
-                final event = events[index];
-                return _EncounterEventRow(event: event);
-              },
+                  if (events.isEmpty) {
+                    return const Center(
+                      child: Text('还没有相遇记录，去新建一次相遇吧', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+                    );
+                  }
+
+                  return Stack(
+                    children: [
+                      Positioned(
+                        left: 36,
+                        top: 0,
+                        bottom: 0,
+                        child: Container(width: 2, color: const Color(0xFFE5E7EB)),
+                      ),
+                      ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 140),
+                        itemCount: events.length + 1,
+                        separatorBuilder: (_, __) => const SizedBox(height: 18),
+                        itemBuilder: (context, index) {
+                          if (index == events.length) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 26),
+                              child: Center(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.55),
+                                    borderRadius: BorderRadius.circular(999),
+                                    border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
+                                  ),
+                                  child: const Text('已加载全部相遇', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+                                ),
+                              ),
+                            );
+                          }
+
+                          final event = events[index];
+                          return _EncounterEventRow(event: event);
+                        },
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
           ],
         );
       },
     );
+  }
+
+  Future<Map<String, List<String>>> _loadEventFriendLinks(AppDatabase db, List<TimelineEvent> events) async {
+    final result = <String, List<String>>{};
+    for (final event in events) {
+      final links = await db.linkDao.listLinksForEntity(entityType: 'encounter', entityId: event.id);
+      result[event.id] = links.where((l) => l.targetType == 'friend').map((l) => l.targetId).toList();
+    }
+    return result;
   }
 }
 
@@ -981,7 +1100,14 @@ class _BondFriendDetailPage extends ConsumerWidget {
                         Center(
                           child: InkWell(
                             borderRadius: BorderRadius.circular(999),
-                            onTap: () {},
+                            onTap: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('AI 洞察报告功能正在开发中，敬请期待'),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            },
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                               decoration: BoxDecoration(
@@ -1187,6 +1313,8 @@ class _FriendMemorySliver extends ConsumerStatefulWidget {
 
 class _FriendMemorySliverState extends ConsumerState<_FriendMemorySliver> {
   var _filterIndex = 0;
+  int _filterDateIndex = 0;
+  DateTimeRange? _filterCustomRange;
 
   Map<String, List<String>> _groupLinkIds(List<EntityLink> links, String selfType, String selfId) {
     final result = <String, List<String>>{};
@@ -1197,6 +1325,56 @@ class _FriendMemorySliverState extends ConsumerState<_FriendMemorySliver> {
       (result[otherType] ??= <String>[]).add(otherId);
     }
     return result;
+  }
+
+  Future<void> _openFilterSheet() async {
+    final result = await showModalBottomSheet<FilterResult>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Consumer(
+          builder: (context, ref, _) {
+            final db = ref.read(appDatabaseProvider);
+            return FilterBottomSheet(
+              initialDateIndex: _filterDateIndex,
+              initialCustomRange: _filterCustomRange,
+              initialFriendIds: const <String>{},
+              friendsStream: db.friendDao.watchAllActive(),
+            );
+          },
+        );
+      },
+    );
+    if (result == null) return;
+    setState(() {
+      _filterDateIndex = result.dateIndex;
+      _filterCustomRange = result.customRange;
+    });
+  }
+
+  DateTimeRange? _resolveDateRange() {
+    if (_filterDateIndex == 0) return null;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    switch (_filterDateIndex) {
+      case 1:
+        return DateTimeRange(start: today, end: today);
+      case 2:
+        return DateTimeRange(start: today.subtract(const Duration(days: 6)), end: today);
+      case 3:
+        return DateTimeRange(start: today.subtract(const Duration(days: 29)), end: today);
+      case 4:
+        return _filterCustomRange;
+    }
+    return null;
+  }
+
+  bool _itemMatchesDateFilter(_FriendMemoryItem item) {
+    final dateRange = _resolveDateRange();
+    if (dateRange == null) return true;
+    final itemDate = DateTime(item.recordDate.year, item.recordDate.month, item.recordDate.day);
+    return !itemDate.isBefore(dateRange.start) && !itemDate.isAfter(dateRange.end);
   }
 
   Stream<List<MomentRecord>> _watchMomentsByIds(AppDatabase db, List<String> ids) {
@@ -1439,7 +1617,7 @@ class _FriendMemorySliverState extends ConsumerState<_FriendMemorySliver> {
                           ..._parseTravels(travels),
                         ]..sort((a, b) => b.recordDate.compareTo(a.recordDate));
 
-                        final displayItems = _filterIndex == 0
+                        final typeFilteredItems = _filterIndex == 0
                             ? items
                             : items
                                 .where((e) {
@@ -1449,6 +1627,8 @@ class _FriendMemorySliverState extends ConsumerState<_FriendMemorySliver> {
                                   return true;
                                 })
                                 .toList(growable: false);
+
+                        final displayItems = typeFilteredItems.where(_itemMatchesDateFilter).toList();
 
                         return SliverList(
                           delegate: SliverChildBuilderDelegate(
@@ -1471,9 +1651,9 @@ class _FriendMemorySliverState extends ConsumerState<_FriendMemorySliver> {
                                             ),
                                           ),
                                           TextButton.icon(
-                                            onPressed: () {},
+                                            onPressed: _openFilterSheet,
                                             icon: const Icon(Icons.filter_list, size: 18),
-                                            label: const Text('筛选'),
+                                            label: Text(_filterDateIndex == 0 ? '筛选' : '已筛选'),
                                             style: TextButton.styleFrom(foregroundColor: const Color(0xFF2BCDEE), textStyle: const TextStyle(fontWeight: FontWeight.w900)),
                                           ),
                                         ],
@@ -2562,8 +2742,8 @@ class _EncounterCreatePageState extends ConsumerState<EncounterCreatePage> {
 
   final Set<String> _linkedFriendIds = {};
   final Set<String> _linkedFoodIds = {};
-  bool _linkTravel = false;
-  bool _linkGoal = false;
+  final Set<String> _linkedTravelIds = {};
+  final Set<String> _linkedGoalIds = {};
 
   @override
   void dispose() {
@@ -2683,6 +2863,70 @@ class _EncounterCreatePageState extends ConsumerState<EncounterCreatePage> {
     });
   }
 
+  Future<void> _selectTravels() async {
+    final db = ref.read(appDatabaseProvider);
+    final selected = await showModalBottomSheet<Set<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StreamBuilder<List<TravelRecord>>(
+          stream: db.watchAllActiveTravelRecords(),
+          builder: (context, snapshot) {
+            final items = (snapshot.data ?? const <TravelRecord>[])
+                .map(
+                  (t) => SelectItem(
+                    id: t.id,
+                    title: t.title ?? '旅行记录',
+                    leading: const _IconSquare(color: Color(0xFFE0F2FE), icon: Icons.airplanemode_active, iconColor: Color(0xFF0095FF)),
+                  ),
+                )
+                .toList(growable: false);
+            return MultiSelectBottomSheet(title: '关联旅行', items: items, initialSelected: _linkedTravelIds);
+          },
+        );
+      },
+    );
+    if (selected == null) return;
+    setState(() {
+      _linkedTravelIds
+        ..clear()
+        ..addAll(selected);
+    });
+  }
+
+  Future<void> _selectGoals() async {
+    final db = ref.read(appDatabaseProvider);
+    final selected = await showModalBottomSheet<Set<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StreamBuilder<List<GoalRecord>>(
+          stream: db.watchAllActiveGoalRecords(),
+          builder: (context, snapshot) {
+            final items = (snapshot.data ?? const <GoalRecord>[])
+                .map(
+                  (g) => SelectItem(
+                    id: g.id,
+                    title: g.summary ?? '目标记录',
+                    leading: const _IconSquare(color: Color(0xFFF3E8FF), icon: Icons.flag, iconColor: Color(0xFFA855F7)),
+                  ),
+                )
+                .toList(growable: false);
+            return MultiSelectBottomSheet(title: '关联目标', items: items, initialSelected: _linkedGoalIds);
+          },
+        );
+      },
+    );
+    if (selected == null) return;
+    setState(() {
+      _linkedGoalIds
+        ..clear()
+        ..addAll(selected);
+    });
+  }
+
   Future<void> _selectLocation() async {
     final result = await Navigator.of(context).push<AmapLocationPickResult>(
       MaterialPageRoute(
@@ -2759,6 +3003,24 @@ class _EncounterCreatePageState extends ConsumerState<EncounterCreatePage> {
         sourceType: 'encounter',
         sourceId: encounterId,
         targetType: 'food',
+        targetId: id,
+        now: now,
+      );
+    }
+    for (final id in _linkedTravelIds) {
+      await db.linkDao.createLink(
+        sourceType: 'encounter',
+        sourceId: encounterId,
+        targetType: 'travel',
+        targetId: id,
+        now: now,
+      );
+    }
+    for (final id in _linkedGoalIds) {
+      await db.linkDao.createLink(
+        sourceType: 'encounter',
+        sourceId: encounterId,
+        targetType: 'goal',
         targetId: id,
         now: now,
       );
@@ -2949,22 +3211,22 @@ class _EncounterCreatePageState extends ConsumerState<EncounterCreatePage> {
                         const SizedBox(height: 10),
                         _LinkToggleRow(
                           title: '关联旅行',
-                          subtitle: '是在旅途中相遇吗?',
+                          subtitle: _linkedTravelIds.isEmpty ? '是在旅途中相遇吗?' : '已选 ${_linkedTravelIds.length} 条',
                           iconBackground: const Color(0xFFE0F2FE),
                           icon: Icons.airplanemode_active,
                           iconColor: const Color(0xFF0095FF),
-                          checked: _linkTravel,
-                          onTap: () => setState(() => _linkTravel = !_linkTravel),
+                          checked: _linkedTravelIds.isNotEmpty,
+                          onTap: _selectTravels,
                         ),
                         const SizedBox(height: 10),
                         _LinkToggleRow(
                           title: '关联目标',
-                          subtitle: '是否达成了共同目标?',
+                          subtitle: _linkedGoalIds.isEmpty ? '是否达成了共同目标?' : '已选 ${_linkedGoalIds.length} 条',
                           iconBackground: const Color(0xFFF3E8FF),
                           icon: Icons.flag,
                           iconColor: const Color(0xFFA855F7),
-                          checked: _linkGoal,
-                          onTap: () => setState(() => _linkGoal = !_linkGoal),
+                          checked: _linkedGoalIds.isNotEmpty,
+                          onTap: _selectGoals,
                         ),
                       ],
                     ),
