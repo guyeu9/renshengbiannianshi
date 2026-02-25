@@ -1455,8 +1455,13 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
     super.dispose();
   }
 
-  void _onTaskCompleted(GoalRecord record) {
-    final newProgress = record.progress.clamp(0, 1).toDouble();
+  void _onTaskCompleted() async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    if (!mounted) return;
+    final db = ref.read(appDatabaseProvider);
+    final updatedRecord = await (db.select(db.goalRecords)..where((t) => t.id.equals(widget.record.id))).getSingleOrNull();
+    if (updatedRecord == null || !mounted) return;
+    final newProgress = updatedRecord.progress.clamp(0, 1).toDouble();
     if (newProgress > _previousProgress) {
       _confettiController.play();
       _triggerCelebrationVibration();
@@ -2968,81 +2973,85 @@ String? _taskSubtitleFor(GoalRecord task) {
 
 Future<void> _updateTaskCompletionForGoal(AppDatabase db, GoalRecord task, bool checked, String goalId) async {
   final now = DateTime.now();
-  await (db.update(db.goalRecords)..where((t) => t.id.equals(task.id))).write(
-    GoalRecordsCompanion(
-      isCompleted: Value(checked),
-      updatedAt: Value(now),
-    ),
-  );
+  
+  await db.transaction(() async {
+    await (db.update(db.goalRecords)..where((t) => t.id.equals(task.id))).write(
+      GoalRecordsCompanion(
+        isCompleted: Value(checked),
+        updatedAt: Value(now),
+      ),
+    );
 
-  if (task.level == 'daily') {
-    if (checked) {
-      final eventRecordDate = DateTime(task.recordDate.year, task.recordDate.month, task.recordDate.day);
-      await db.into(db.timelineEvents).insertOnConflictUpdate(
-        TimelineEventsCompanion.insert(
-          id: task.id,
-          title: task.title,
-          eventType: 'goal',
-          startAt: Value(task.recordDate),
-          recordDate: eventRecordDate,
-          createdAt: now,
-          updatedAt: now,
+    if (task.level == 'daily') {
+      if (checked) {
+        final eventRecordDate = DateTime(task.recordDate.year, task.recordDate.month, task.recordDate.day);
+        await db.into(db.timelineEvents).insertOnConflictUpdate(
+          TimelineEventsCompanion.insert(
+            id: task.id,
+            title: task.title,
+            eventType: 'goal',
+            startAt: Value(task.recordDate),
+            recordDate: eventRecordDate,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+      } else {
+        final deletedCount = await (db.delete(db.timelineEvents)
+              ..where((t) => t.id.equals(task.id))
+              ..where((t) => t.eventType.equals('goal')))
+            .go();
+        debugPrint('Goal task ${task.id} unchecked, deleted $deletedCount timeline events');
+      }
+    }
+
+    final quarterId = task.parentId;
+    if (quarterId != null) {
+      final quarterTasks = await (db.select(db.goalRecords)
+            ..where((t) => t.parentId.equals(quarterId))
+            ..where((t) => t.level.equals('daily'))
+            ..where((t) => t.isDeleted.equals(false)))
+          .get();
+      final quarterProgress = quarterTasks.isEmpty ? 0.0 : quarterTasks.where((t) => t.isCompleted).length / quarterTasks.length;
+      await (db.update(db.goalRecords)..where((t) => t.id.equals(quarterId))).write(
+        GoalRecordsCompanion(
+          progress: Value(quarterProgress),
+          isCompleted: Value(quarterProgress >= 1 && quarterTasks.isNotEmpty),
+          updatedAt: Value(now),
         ),
       );
-    } else {
-      await (db.delete(db.timelineEvents)
-            ..where((t) => t.id.equals(task.id))
-            ..where((t) => t.eventType.equals('goal')))
-          .go();
     }
-  }
 
-  final quarterId = task.parentId;
-  if (quarterId != null) {
-    final quarterTasks = await (db.select(db.goalRecords)
-          ..where((t) => t.parentId.equals(quarterId))
+    final quarters = await (db.select(db.goalRecords)
+          ..where((t) => t.parentId.equals(goalId))
+          ..where((t) => t.level.equals('quarter'))
+          ..where((t) => t.isDeleted.equals(false)))
+        .get();
+    final quarterIds = quarters.map((q) => q.id).toList();
+    if (quarterIds.isEmpty) {
+      await (db.update(db.goalRecords)..where((t) => t.id.equals(goalId))).write(
+        GoalRecordsCompanion(
+          progress: const Value(0),
+          isCompleted: const Value(false),
+          updatedAt: Value(now),
+        ),
+      );
+      return;
+    }
+    final tasks = await (db.select(db.goalRecords)
+          ..where((t) => t.parentId.isIn(quarterIds))
           ..where((t) => t.level.equals('daily'))
           ..where((t) => t.isDeleted.equals(false)))
         .get();
-    final quarterProgress = quarterTasks.isEmpty ? 0.0 : quarterTasks.where((t) => t.isCompleted).length / quarterTasks.length;
-    await (db.update(db.goalRecords)..where((t) => t.id.equals(quarterId))).write(
-      GoalRecordsCompanion(
-        progress: Value(quarterProgress),
-        isCompleted: Value(quarterProgress >= 1 && quarterTasks.isNotEmpty),
-        updatedAt: Value(now),
-      ),
-    );
-  }
-
-  final quarters = await (db.select(db.goalRecords)
-        ..where((t) => t.parentId.equals(goalId))
-        ..where((t) => t.level.equals('quarter'))
-        ..where((t) => t.isDeleted.equals(false)))
-      .get();
-  final quarterIds = quarters.map((q) => q.id).toList();
-  if (quarterIds.isEmpty) {
+    final goalProgress = tasks.isEmpty ? 0.0 : tasks.where((t) => t.isCompleted).length / tasks.length;
     await (db.update(db.goalRecords)..where((t) => t.id.equals(goalId))).write(
       GoalRecordsCompanion(
-        progress: const Value(0),
-        isCompleted: const Value(false),
+        progress: Value(goalProgress),
+        isCompleted: Value(goalProgress >= 1 && tasks.isNotEmpty),
         updatedAt: Value(now),
       ),
     );
-    return;
-  }
-  final tasks = await (db.select(db.goalRecords)
-        ..where((t) => t.parentId.isIn(quarterIds))
-        ..where((t) => t.level.equals('daily'))
-        ..where((t) => t.isDeleted.equals(false)))
-      .get();
-  final goalProgress = tasks.isEmpty ? 0.0 : tasks.where((t) => t.isCompleted).length / tasks.length;
-  await (db.update(db.goalRecords)..where((t) => t.id.equals(goalId))).write(
-    GoalRecordsCompanion(
-      progress: Value(goalProgress),
-      isCompleted: Value(goalProgress >= 1 && tasks.isNotEmpty),
-      updatedAt: Value(now),
-    ),
-  );
+  });
 }
 
 class GoalPostponePage extends ConsumerStatefulWidget {

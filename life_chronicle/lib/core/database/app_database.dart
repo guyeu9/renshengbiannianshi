@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
 import 'db_connection_io.dart' if (dart.library.html) 'db_connection_web.dart' as dbconn;

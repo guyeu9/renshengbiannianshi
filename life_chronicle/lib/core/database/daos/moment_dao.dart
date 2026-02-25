@@ -30,11 +30,12 @@ class MomentDao extends DatabaseAccessor<AppDatabase> with _$MomentDaoMixin {
 
   Future<void> deleteById(String id) async {
     await transaction(() async {
-      await (delete(db.timelineEvents)
+      final timelineDeleted = await (delete(db.timelineEvents)
             ..where((t) => t.id.equals(id))
             ..where((t) => t.eventType.equals('moment')))
           .go();
-      await (delete(db.momentRecords)..where((t) => t.id.equals(id))).go();
+      final momentDeleted = await (delete(db.momentRecords)..where((t) => t.id.equals(id))).go();
+      debugPrint('Moment $id deleted: timeline=$timelineDeleted, moment=$momentDeleted');
     });
     await _changeLogRecorder.recordDelete(
       entityType: 'moment_records',
