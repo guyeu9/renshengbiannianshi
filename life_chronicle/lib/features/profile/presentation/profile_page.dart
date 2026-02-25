@@ -1873,18 +1873,12 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
                         children: [
                           pw.Text(
                             _formatDate(record.recordDate),
-                            style: pw.TextStyle(
-                              fontSize: 8,
-                              color: PdfColors.grey600,
-                            ),
+                            style: pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
                           ),
                           pw.SizedBox(height: 2),
                           pw.Text(
                             record.title.isNotEmpty ? record.title : '记录',
-                            style: pw.TextStyle(
-                              fontSize: 9,
-                              fontWeight: pw.FontWeight.bold,
-                            ),
+                            style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
                             maxLines: 2,
                           ),
                         ],
@@ -1916,10 +1910,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
                   pw.SizedBox(height: 4),
                   pw.Text(
                     '加载失败',
-                    style: pw.TextStyle(
-                      fontSize: 8,
-                      color: PdfColors.grey500,
-                    ),
+                    style: pw.TextStyle(fontSize: 8, color: PdfColors.grey500),
                   ),
                 ],
               ),
@@ -1939,10 +1930,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
       children: [
         pw.Text(
           '精彩瞬间',
-          style: pw.TextStyle(
-            fontSize: 16,
-            fontWeight: pw.FontWeight.bold,
-          ),
+          style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
         ),
         pw.SizedBox(height: 10),
         pw.GridView(
@@ -1994,10 +1982,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
                 ),
                 pw.Text(
                   '共 ${summary.count} 条记录',
-                  style: pw.TextStyle(
-                    fontSize: 14,
-                    color: PdfColors.grey600,
-                  ),
+                  style: pw.TextStyle(fontSize: 14, color: PdfColors.grey600),
                 ),
               ],
             ),
@@ -2007,10 +1992,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
         if (summary.highlights.isNotEmpty) ...[
           pw.Text(
             '精选内容',
-            style: pw.TextStyle(
-              fontSize: 16,
-              fontWeight: pw.FontWeight.bold,
-            ),
+            style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
           ),
           pw.SizedBox(height: 10),
           pw.Column(
@@ -2027,10 +2009,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
         if (moduleRecords.isNotEmpty) ...[
           pw.Text(
             '记录列表',
-            style: pw.TextStyle(
-              fontSize: 16,
-              fontWeight: pw.FontWeight.bold,
-            ),
+            style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
           ),
           pw.SizedBox(height: 10),
           pw.Column(
@@ -2052,17 +2031,11 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
                         children: [
                           pw.Text(
                             record.title.isNotEmpty ? record.title : '记录',
-                            style: pw.TextStyle(
-                              fontSize: 12,
-                              fontWeight: pw.FontWeight.bold,
-                            ),
+                            style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
                           ),
                           pw.Text(
                             _formatDate(record.recordDate),
-                            style: pw.TextStyle(
-                              fontSize: 10,
-                              color: PdfColors.grey600,
-                            ),
+                            style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600),
                           ),
                         ],
                       ),
@@ -2070,10 +2043,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
                         pw.SizedBox(height: 6),
                         pw.Text(
                           record.content,
-                          style: pw.TextStyle(
-                            fontSize: 10,
-                            color: PdfColors.grey700,
-                          ),
+                          style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
                           maxLines: 3,
                         ),
                       ],
@@ -2142,10 +2112,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
                 pw.SizedBox(height: 20),
                 pw.Text(
                   '共收录 $totalRecords 条珍贵记忆',
-                  style: pw.TextStyle(
-                    fontSize: 18,
-                    color: PdfColors.grey700,
-                  ),
+                  style: pw.TextStyle(fontSize: 18, color: PdfColors.grey700),
                 ),
                 pw.SizedBox(height: 40),
                 pw.Container(
@@ -2174,10 +2141,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
                       pw.SizedBox(height: 10),
                       pw.Text(
                         '愿这些珍贵的回忆，成为您人生中最美好的珍藏。',
-                        style: pw.TextStyle(
-                          fontSize: 12,
-                          color: PdfColors.grey600,
-                        ),
+                        style: pw.TextStyle(fontSize: 12, color: PdfColors.grey600),
                         textAlign: pw.TextAlign.center,
                       ),
                     ],

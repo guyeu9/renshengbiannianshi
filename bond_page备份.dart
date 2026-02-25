@@ -17,49 +17,6 @@ import '../../../core/widgets/amap_location_page.dart';
 import '../../../core/widgets/custom_bottom_sheet.dart';
 import 'bond_filter_components.dart';
 
-// ==================== Provider ====================
-
-final friendsStreamProvider = StreamProvider<List<FriendRecord>>((ref) {
-  final db = ref.watch(appDatabaseProvider);
-  return db.friendDao.watchAllActive();
-});
-
-// ==================== 扩展方法 ====================
-
-extension FilterResultMatcher on FilterResult {
-  bool matches(FriendRecord friend) {
-    if (friendIds.isNotEmpty && !friendIds.contains(friend.id)) {
-      return false;
-    }
-
-    if (dateIndex == 0) return true;
-
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-
-    DateTime? startDate;
-    switch (dateIndex) {
-      case 1:
-        startDate = today;
-        break;
-      case 2:
-        startDate = today.subtract(const Duration(days: 7));
-        break;
-      case 3:
-        startDate = today.subtract(const Duration(days: 30));
-        break;
-      case 4:
-        if (customRange != null) {
-          startDate = customRange!.start;
-        }
-        break;
-    }
-
-    if (startDate == null) return true;
-    return true;
-  }
-}
-
 class BondPage extends StatefulWidget {
   const BondPage({super.key});
 
