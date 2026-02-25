@@ -2021,7 +2021,7 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
                                                       title: task.title,
                                                       subtitle: _taskSubtitleFor(task),
                                                       onChanged: (v) => _updateTaskCompletionForGoal(db, task, v, record.id),
-                                                      onTaskCompleted: () => _onTaskCompleted(record),
+                                                      onTaskCompleted: _onTaskCompleted,
                                                     ),
                                                 ],
                                               ),
