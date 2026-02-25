@@ -428,67 +428,16 @@ warning • The value of the local variable 'progress' isn't used • lib/featur
 warning • A value for optional parameter 'onToggle' isn't ever given • lib/features/goal/presentation/goal_page.dart:844:67 • unused_element
 warning • The left operand can't be null, so the right operand is never executed • lib/features/goal/presentation/goal_page.dart:895:60 • dead_null_aware_expression
 warning • The left operand can't be null, so the right operand is never executed • lib/features/goal/presentation/goal_page.dart:1470:60 • dead_null_aware_expression
-  error • The getter 'imageUrl' isn't defined for the type 'FoodRecord' • lib/features/goal/presentation/goal_page.dart:4009:37 • undefined_getter
-  error • The getter 'imageUrl' isn't defined for the type 'FoodRecord' • lib/features/goal/presentation/goal_page.dart:4009:62 • undefined_getter
-  error • The getter 'imageUrl' isn't defined for the type 'FoodRecord' • lib/features/goal/presentation/goal_page.dart:4010:37 • undefined_getter
-  error • The getter 'imageUrl' isn't defined for the type 'FoodRecord' • lib/features/goal/presentation/goal_page.dart:4011:54 • undefined_getter
-  error • The getter 'imageUrl' isn't defined for the type 'FoodRecord' • lib/features/goal/presentation/goal_page.dart:4012:56 • undefined_getter
-  error • The getter 'date' isn't defined for the type 'FoodRecord' • lib/features/goal/presentation/goal_page.dart:4031:39 • undefined_getter
   error • The named parameter 'item' is required, but there's no corresponding argument • lib/features/goal/presentation/goal_page.dart:4064:47 • missing_required_argument
   error • Too many positional arguments: 0 expected, but 1 found • lib/features/goal/presentation/goal_page.dart:4064:64 • extra_positional_arguments_could_be_named
-  error • The method 'fromRecord' isn't defined for the type 'TravelItem' • lib/features/goal/presentation/goal_page.dart:4064:75 • undefined_method
-  error • The getter 'imageUrl' isn't defined for the type 'TravelRecord' • lib/features/goal/presentation/goal_page.dart:4078:39 • undefined_getter
-  error • The getter 'imageUrl' isn't defined for the type 'TravelRecord' • lib/features/goal/presentation/goal_page.dart:4078:66 • undefined_getter
-  error • The getter 'imageUrl' isn't defined for the type 'TravelRecord' • lib/features/goal/presentation/goal_page.dart:4079:39 • undefined_getter
-  error • The getter 'imageUrl' isn't defined for the type 'TravelRecord' • lib/features/goal/presentation/goal_page.dart:4080:56 • undefined_getter
-  error • The getter 'imageUrl' isn't defined for the type 'TravelRecord' • lib/features/goal/presentation/goal_page.dart:4081:58 • undefined_getter
   error • The argument type 'String?' can't be assigned to the parameter type 'String'.  • lib/features/goal/presentation/goal_page.dart:4098:22 • argument_type_not_assignable
-  error • The getter 'startDate' isn't defined for the type 'TravelRecord' • lib/features/goal/presentation/goal_page.dart:4100:41 • undefined_getter
-  error • The getter 'imageUrl' isn't defined for the type 'MomentRecord' • lib/features/goal/presentation/goal_page.dart:4147:39 • undefined_getter
-  error • The getter 'imageUrl' isn't defined for the type 'MomentRecord' • lib/features/goal/presentation/goal_page.dart:4147:66 • undefined_getter
-  error • The getter 'imageUrl' isn't defined for the type 'MomentRecord' • lib/features/goal/presentation/goal_page.dart:4148:39 • undefined_getter
-  error • The getter 'imageUrl' isn't defined for the type 'MomentRecord' • lib/features/goal/presentation/goal_page.dart:4149:56 • undefined_getter
-  error • The getter 'imageUrl' isn't defined for the type 'MomentRecord' • lib/features/goal/presentation/goal_page.dart:4150:58 • undefined_getter
-  error • The getter 'date' isn't defined for the type 'MomentRecord' • lib/features/goal/presentation/goal_page.dart:4169:41 • undefined_getter
-  error • The getter 'avatarUrl' isn't defined for the type 'FriendRecord' • lib/features/goal/presentation/goal_page.dart:4216:39 • undefined_getter
-  error • The getter 'avatarUrl' isn't defined for the type 'FriendRecord' • lib/features/goal/presentation/goal_page.dart:4216:67 • undefined_getter
-  error • The getter 'avatarUrl' isn't defined for the type 'FriendRecord' • lib/features/goal/presentation/goal_page.dart:4217:39 • undefined_getter
-  error • The getter 'avatarUrl' isn't defined for the type 'FriendRecord' • lib/features/goal/presentation/goal_page.dart:4218:56 • undefined_getter
-  error • The getter 'avatarUrl' isn't defined for the type 'FriendRecord' • lib/features/goal/presentation/goal_page.dart:4219:58 • undefined_getter
-  error • The getter 'metDate' isn't defined for the type 'FriendRecord' • lib/features/goal/presentation/goal_page.dart:4238:41 • undefined_getter
-  error • The getter 'imageUrl' isn't defined for the type 'FoodRecord' • lib/features/goal/presentation/goal_page.dart:4472:25 • undefined_getter
-  error • The getter 'imageUrl' isn't defined for the type 'FoodRecord' • lib/features/goal/presentation/goal_page.dart:4472:50 • undefined_getter
-  error • The getter 'imageUrl' isn't defined for the type 'FoodRecord' • lib/features/goal/presentation/goal_page.dart:4475:33 • undefined_getter
-  error • The getter 'imageUrl' isn't defined for the type 'FoodRecord' • lib/features/goal/presentation/goal_page.dart:4476:46 • undefined_getter
-  error • The getter 'imageUrl' isn't defined for the type 'FoodRecord' • lib/features/goal/presentation/goal_page.dart:4477:48 • undefined_getter
-  error • The getter 'date' isn't defined for the type 'FoodRecord' • lib/features/goal/presentation/goal_page.dart:4482:43 • undefined_getter
   error • The named parameter 'item' is required, but there's no corresponding argument • lib/features/goal/presentation/goal_page.dart:4505:85 • missing_required_argument
   error • Too many positional arguments: 0 expected, but 1 found • lib/features/goal/presentation/goal_page.dart:4505:102 • extra_positional_arguments_could_be_named
-  error • The method 'fromRecord' isn't defined for the type 'TravelItem' • lib/features/goal/presentation/goal_page.dart:4505:113 • undefined_method
-  error • The getter 'imageUrl' isn't defined for the type 'TravelRecord' • lib/features/goal/presentation/goal_page.dart:4510:27 • undefined_getter
-  error • The getter 'imageUrl' isn't defined for the type 'TravelRecord' • lib/features/goal/presentation/goal_page.dart:4510:54 • undefined_getter
-  error • The getter 'imageUrl' isn't defined for the type 'TravelRecord' • lib/features/goal/presentation/goal_page.dart:4513:35 • undefined_getter
-  error • The getter 'imageUrl' isn't defined for the type 'TravelRecord' • lib/features/goal/presentation/goal_page.dart:4514:48 • undefined_getter
-  error • The getter 'imageUrl' isn't defined for the type 'TravelRecord' • lib/features/goal/presentation/goal_page.dart:4515:50 • undefined_getter
   error • The argument type 'String?' can't be assigned to the parameter type 'String'.  • lib/features/goal/presentation/goal_page.dart:4519:23 • argument_type_not_assignable
-  error • The getter 'startDate' isn't defined for the type 'TravelRecord' • lib/features/goal/presentation/goal_page.dart:4520:45 • undefined_getter
-  error • The getter 'imageUrl' isn't defined for the type 'MomentRecord' • lib/features/goal/presentation/goal_page.dart:4548:27 • undefined_getter
-  error • The getter 'imageUrl' isn't defined for the type 'MomentRecord' • lib/features/goal/presentation/goal_page.dart:4548:54 • undefined_getter
-  error • The getter 'imageUrl' isn't defined for the type 'MomentRecord' • lib/features/goal/presentation/goal_page.dart:4551:35 • undefined_getter
-  error • The getter 'imageUrl' isn't defined for the type 'MomentRecord' • lib/features/goal/presentation/goal_page.dart:4552:48 • undefined_getter
-  error • The getter 'imageUrl' isn't defined for the type 'MomentRecord' • lib/features/goal/presentation/goal_page.dart:4553:50 • undefined_getter
-  error • The getter 'date' isn't defined for the type 'MomentRecord' • lib/features/goal/presentation/goal_page.dart:4558:45 • undefined_getter
-  error • The getter 'avatarUrl' isn't defined for the type 'FriendRecord' • lib/features/goal/presentation/goal_page.dart:4586:27 • undefined_getter
-  error • The getter 'avatarUrl' isn't defined for the type 'FriendRecord' • lib/features/goal/presentation/goal_page.dart:4586:55 • undefined_getter
-  error • The getter 'avatarUrl' isn't defined for the type 'FriendRecord' • lib/features/goal/presentation/goal_page.dart:4589:35 • undefined_getter
-  error • The getter 'avatarUrl' isn't defined for the type 'FriendRecord' • lib/features/goal/presentation/goal_page.dart:4590:48 • undefined_getter
-  error • The getter 'avatarUrl' isn't defined for the type 'FriendRecord' • lib/features/goal/presentation/goal_page.dart:4591:50 • undefined_getter
-  error • The getter 'metDate' isn't defined for the type 'FriendRecord' • lib/features/goal/presentation/goal_page.dart:4596:45 • undefined_getter
 warning • The declaration '_MemoryCard' isn't referenced • lib/features/goal/presentation/goal_page.dart:4613:7 • unused_element
 warning • The declaration '_TextMemoryCard' isn't referenced • lib/features/goal/presentation/goal_page.dart:4661:7 • unused_element
 warning • Unused import: '../../bond/presentation/bond_page.dart' • lib/features/home_schedule/presentation/home_schedule_page.dart:16:8 • unused_import
   error • The method 'EncounterDetailPage' isn't defined for the type '_EventStream' • lib/features/home_schedule/presentation/home_schedule_page.dart:1319:66 • undefined_method
-   info • The imported package 'intl' isn't a dependency of the importing package • lib/features/profile/presentation/backup_log_page.dart:3:8 • depend_on_referenced_packages
 warning • Unused import: 'dart:async' • lib/features/profile/presentation/data_management_page.dart:1:8 • unused_import
 warning • Unused import: 'dart:convert' • lib/features/profile/presentation/data_management_page.dart:2:8 • unused_import
 warning • Unused import: 'dart:io' • lib/features/profile/presentation/data_management_page.dart:3:8 • unused_import
@@ -550,32 +499,14 @@ warning • The declaration '_DataManagementPageState' isn't referenced • lib/
    info • An uninitialized variable should have an explicit type annotation • lib/features/profile/presentation/data_management_page.dart:23:57 • prefer_typing_uninitialized_variables
    info • The variable name 'DataManagementPage' isn't a lowerCamelCase identifier • lib/features/profile/presentation/data_management_page.dart:23:57 • non_constant_identifier_names
   error • Expected to find ';' • lib/features/profile/presentation/data_management_page.dart:23:57 • expected_token
-575 issues found. (ran in 6.6s)
   error • The name 'DataManagementPage' is already defined • lib/features/profile/presentation/data_management_page.dart:23:57 • duplicate_definition
   error • Variables must be declared using the keywords 'const', 'final', 'var' or a type name • lib/features/profile/presentation/data_management_page.dart:23:57 • missing_const_final_var_or_type
   error • Expected a method, getter, setter or operator declaration • lib/features/profile/presentation/data_management_page.dart:23:75 • expected_executable
    info • An uninitialized variable should have an explicit type annotation • lib/features/profile/presentation/data_management_page.dart:23:76 • prefer_typing_uninitialized_variables
   error • Variables must be declared using the keywords 'const', 'final', 'var' or a type name • lib/features/profile/presentation/data_management_page.dart:23:76 • missing_const_final_var_or_type
   error • Expected a method, getter, setter or operator declaration • lib/features/profile/presentation/data_management_page.dart:23:80 • expected_executable
-warning • The value of the field '_loadingSummary' isn't used • lib/features/profile/presentation/profile_page.dart:1210:8 • unused_field
-warning • The value of the field '_summaries' isn't used • lib/features/profile/presentation/profile_page.dart:1212:32 • unused_field
-  error • Const variables must be initialized with a constant value • lib/features/profile/presentation/profile_page.dart:1584:21 • const_initialized_with_non_constant_value
-  error • Undefined name 'AppTheme' • lib/features/profile/presentation/profile_page.dart:1584:21 • undefined_identifier
-  error • Const variables must be initialized with a constant value • lib/features/profile/presentation/profile_page.dart:1585:29 • const_initialized_with_non_constant_value
-  error • Undefined name 'AppTheme' • lib/features/profile/presentation/profile_page.dart:1585:29 • undefined_identifier
-  error • Const variables must be initialized with a constant value • lib/features/profile/presentation/profile_page.dart:1586:21 • const_initialized_with_non_constant_value
-  error • Undefined name 'AppTheme' • lib/features/profile/presentation/profile_page.dart:1586:21 • undefined_identifier
-  error • Const variables must be initialized with a constant value • lib/features/profile/presentation/profile_page.dart:1587:22 • const_initialized_with_non_constant_value
-  error • Undefined name 'AppTheme' • lib/features/profile/presentation/profile_page.dart:1587:22 • undefined_identifier
-  error • Const variables must be initialized with a constant value • lib/features/profile/presentation/profile_page.dart:1588:23 • const_initialized_with_non_constant_value
-  error • Undefined name 'AppTheme' • lib/features/profile/presentation/profile_page.dart:1588:23 • undefined_identifier
-  error • Const variables must be initialized with a constant value • lib/features/profile/presentation/profile_page.dart:2052:21 • const_initialized_with_non_constant_value
-  error • Undefined name 'AppTheme' • lib/features/profile/presentation/profile_page.dart:2052:21 • undefined_identifier
-  error • Const variables must be initialized with a constant value • lib/features/profile/presentation/profile_page.dart:2094:21 • const_initialized_with_non_constant_value
-  error • Undefined name 'AppTheme' • lib/features/profile/presentation/profile_page.dart:2094:21 • undefined_identifier
-  error • Const variables must be initialized with a constant value • lib/features/profile/presentation/profile_page.dart:2095:22 • const_initialized_with_non_constant_value
-  error • Undefined name 'AppTheme' • lib/features/profile/presentation/profile_page.dart:2095:22 • undefined_identifier
-  error • Const variables must be initialized with a constant value • lib/features/profile/presentation/profile_page.dart:2096:23 • const_initialized_with_non_constant_value
-  error • Undefined name 'AppTheme' • lib/features/profile/presentation/profile_page.dart:2096:23 • undefined_identifier
+warning • The value of the field '_loadingSummary' isn't used • lib/features/profile/presentation/profile_page.dart:1211:8 • unused_field
+warning • The value of the field '_summaries' isn't used • lib/features/profile/presentation/profile_page.dart:1213:32 • unused_field
 
+506 issues found. (ran in 7.1s)
 Error: Process completed with exit code 1.
