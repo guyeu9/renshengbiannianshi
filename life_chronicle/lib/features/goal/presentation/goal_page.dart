@@ -1440,12 +1440,13 @@ class _GoalBreakdownDetailPage extends ConsumerStatefulWidget {
 
 class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPage> {
   late ConfettiController _confettiController;
-  bool _hasShownCelebration = false;
+  double _previousProgress = 0;
 
   @override
   void initState() {
     super.initState();
     _confettiController = ConfettiController(duration: const Duration(seconds: 3));
+    _previousProgress = widget.record.progress.clamp(0, 1).toDouble();
   }
 
   @override
@@ -1454,12 +1455,13 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
     super.dispose();
   }
 
-  void _checkGoalCompletion(GoalRecord record) {
-    if (record.progress >= 1.0 && !_hasShownCelebration) {
-      _hasShownCelebration = true;
+  void _onTaskCompleted(GoalRecord record) {
+    final newProgress = record.progress.clamp(0, 1).toDouble();
+    if (newProgress > _previousProgress) {
       _confettiController.play();
       _triggerCelebrationVibration();
     }
+    _previousProgress = newProgress;
   }
 
   Future<void> _triggerCelebrationVibration() async {
@@ -1669,7 +1671,6 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
       stream: goalStream,
       builder: (context, snapshot) {
         final record = snapshot.data ?? widget.record;
-        _checkGoalCompletion(record);
         final now = DateTime.now();
         final dueDate = record.dueDate;
         final leftText = dueDate == null
@@ -2015,6 +2016,7 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
                                                       title: task.title,
                                                       subtitle: _taskSubtitleFor(task),
                                                       onChanged: (v) => _updateTaskCompletionForGoal(db, task, v, record.id),
+                                                      onTaskCompleted: () => _onTaskCompleted(record),
                                                     ),
                                                 ],
                                               ),
@@ -3607,11 +3609,67 @@ class _PostponementHistoryItem extends StatelessWidget {
   }
 }
 
-class _HeroProgressRing extends StatelessWidget {
+class _HeroProgressRing extends StatefulWidget {
   const _HeroProgressRing({required this.progress, required this.percentText});
 
   final double progress;
   final String percentText;
+
+  @override
+  State<_HeroProgressRing> createState() => _HeroProgressRingState();
+}
+
+class _HeroProgressRingState extends State<_HeroProgressRing> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _progressAnimation;
+  double _previousProgress = 0;
+  int _displayPercent = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _previousProgress = widget.progress.clamp(0, 1).toDouble();
+    _displayPercent = (_previousProgress * 100).round();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _progressAnimation = Tween<double>(begin: 0, end: _previousProgress).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    );
+    _controller.addListener(_updatePercent);
+    _controller.forward();
+  }
+
+  void _updatePercent() {
+    final newPercent = (_progressAnimation.value * 100).round();
+    if (newPercent != _displayPercent) {
+      setState(() {
+        _displayPercent = newPercent;
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(_HeroProgressRing oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final newProgress = widget.progress.clamp(0, 1).toDouble();
+    if ((newProgress - _previousProgress).abs() > 0.001) {
+      _progressAnimation = Tween<double>(begin: _previousProgress, end: newProgress).animate(
+        CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+      );
+      _controller.reset();
+      _controller.forward();
+      _previousProgress = newProgress;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_updatePercent);
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -3631,24 +3689,32 @@ class _HeroProgressRing extends StatelessWidget {
                 valueColor: const AlwaysStoppedAnimation(Color(0xFFE5E7EB)),
               ),
             ),
-            SizedBox(
-              width: 192,
-              height: 192,
-              child: CircularProgressIndicator(
-                value: progress.clamp(0, 1).toDouble(),
-                strokeWidth: 12,
-                valueColor: const AlwaysStoppedAnimation(AppTheme.primary),
-              ),
+            AnimatedBuilder(
+              animation: _progressAnimation,
+              builder: (context, child) {
+                return SizedBox(
+                  width: 192,
+                  height: 192,
+                  child: CircularProgressIndicator(
+                    value: _progressAnimation.value.clamp(0, 1).toDouble(),
+                    strokeWidth: 12,
+                    valueColor: const AlwaysStoppedAnimation(AppTheme.primary),
+                  ),
+                );
+              },
             ),
             Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  percentText,
+                  '$_displayPercent%',
                   style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w900, color: AppTheme.primary, height: 1),
                 ),
                 const SizedBox(height: 6),
-                const Text('进行中', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF9CA3AF))),
+                Text(
+                  _displayPercent >= 100 ? '已完成' : '进行中',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF9CA3AF)),
+                ),
               ],
             ),
           ],
@@ -3845,7 +3911,7 @@ class _MonthCard extends StatelessWidget {
 
 enum _DayTaskStyle { done, today, future }
 
-class _DayTaskTile extends StatelessWidget {
+class _DayTaskTile extends StatefulWidget {
   const _DayTaskTile({
     required this.checked,
     required this.enabled,
@@ -3853,6 +3919,7 @@ class _DayTaskTile extends StatelessWidget {
     required this.title,
     this.subtitle,
     this.onChanged,
+    this.onTaskCompleted,
   });
 
   final bool checked;
@@ -3861,17 +3928,77 @@ class _DayTaskTile extends StatelessWidget {
   final String title;
   final String? subtitle;
   final ValueChanged<bool>? onChanged;
+  final VoidCallback? onTaskCompleted;
+
+  @override
+  State<_DayTaskTile> createState() => _DayTaskTileState();
+}
+
+class _DayTaskTileState extends State<_DayTaskTile> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _rotationAnimation;
+  bool _wasChecked = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _wasChecked = widget.checked;
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    );
+    _rotationAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    );
+    if (widget.checked) {
+      _controller.value = 1.0;
+    }
+  }
+
+  @override
+  void didUpdateWidget(_DayTaskTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.checked != _wasChecked) {
+      _wasChecked = widget.checked;
+      if (widget.checked) {
+        _controller.forward();
+        _triggerVibration();
+        widget.onTaskCompleted?.call();
+      } else {
+        _controller.reverse();
+      }
+    }
+  }
+
+  Future<void> _triggerVibration() async {
+    try {
+      final hasVibrator = await Vibration.hasVibrator();
+      if (hasVibrator == true) {
+        await Vibration.vibrate(duration: 50, amplitude: 128);
+      }
+    } catch (_) {}
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = style == _DayTaskStyle.today ? AppTheme.primary.withValues(alpha: 0.30) : const Color(0xFFF3F4F6);
-    final fillColor = enabled ? Colors.white : Colors.white.withValues(alpha: 0.50);
-    final opacity = enabled ? 1.0 : 0.60;
+    final borderColor = widget.style == _DayTaskStyle.today ? AppTheme.primary.withValues(alpha: 0.30) : const Color(0xFFF3F4F6);
+    final fillColor = widget.enabled ? Colors.white : Colors.white.withValues(alpha: 0.50);
+    final opacity = widget.enabled ? 1.0 : 0.60;
     final titleStyle = TextStyle(
       fontSize: 13,
-      fontWeight: style == _DayTaskStyle.today ? FontWeight.w900 : FontWeight.w800,
-      color: checked ? const Color(0xFF9CA3AF) : const Color(0xFF374151),
-      decoration: checked ? TextDecoration.lineThrough : TextDecoration.none,
+      fontWeight: widget.style == _DayTaskStyle.today ? FontWeight.w900 : FontWeight.w800,
+      color: widget.checked ? const Color(0xFF9CA3AF) : const Color(0xFF374151),
+      decoration: widget.checked ? TextDecoration.lineThrough : TextDecoration.none,
     );
 
     return Opacity(
@@ -3880,28 +4007,39 @@ class _DayTaskTile extends StatelessWidget {
         color: fillColor,
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
-          onTap: enabled && onChanged != null ? () => onChanged!(!checked) : null,
+          onTap: widget.enabled && widget.onChanged != null ? () => widget.onChanged!(!widget.checked) : null,
           borderRadius: BorderRadius.circular(14),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), border: Border.all(color: borderColor)),
             child: Row(
               children: [
-                Checkbox.adaptive(
-                  value: checked,
-                  onChanged: enabled && onChanged != null ? (v) => onChanged!(v ?? false) : null,
-                  activeColor: AppTheme.primary,
+                AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, child) {
+                    return Transform.scale(
+                      scale: _scaleAnimation.value,
+                      child: Transform.rotate(
+                        angle: _rotationAnimation.value * 2 * 3.14159,
+                        child: Checkbox.adaptive(
+                          value: widget.checked,
+                          onChanged: widget.enabled && widget.onChanged != null ? (v) => widget.onChanged!(v ?? false) : null,
+                          activeColor: AppTheme.primary,
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(width: 6),
                 Expanded(
-                  child: subtitle == null
-                      ? Text(title, style: titleStyle)
+                  child: widget.subtitle == null
+                      ? Text(widget.title, style: titleStyle)
                       : Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(title, style: titleStyle.copyWith(color: const Color(0xFF111827), decoration: TextDecoration.none)),
+                            Text(widget.title, style: titleStyle.copyWith(color: const Color(0xFF111827), decoration: TextDecoration.none)),
                             const SizedBox(height: 2),
-                            Text(subtitle!, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppTheme.primary)),
+                            Text(widget.subtitle!, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppTheme.primary)),
                           ],
                         ),
                 ),
