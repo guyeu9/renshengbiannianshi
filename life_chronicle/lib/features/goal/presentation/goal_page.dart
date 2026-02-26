@@ -1520,7 +1520,7 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
     try {
       final hasVibrator = await Vibration.hasVibrator();
       if (hasVibrator == true) {
-        await Vibration.vibrate(pattern: [0, 100, 50, 100, 50, 200], intensities: [0, 255, 0, 200, 0, 255]);
+        await Vibration.vibrate(duration: 50, amplitude: 128);
       }
     } catch (_) {}
   }
