@@ -5273,23 +5273,14 @@ class _ChecklistCard extends StatefulWidget {
 
 class _ChecklistCardState extends State<_ChecklistCard> {
   int _previousDoneCount = 0;
-  bool _showConfetti = false;
+  late ConfettiController _confettiController;
 
   @override
   void didUpdateWidget(_ChecklistCard oldWidget) {
     super.didUpdateWidget(oldWidget);
     final currentDoneCount = widget.items.where((item) => item.isDone).length;
     if (currentDoneCount > _previousDoneCount) {
-      setState(() {
-        _showConfetti = true;
-      });
-      Future.delayed(const Duration(milliseconds: 800), () {
-        if (mounted) {
-          setState(() {
-            _showConfetti = false;
-          });
-        }
-      });
+      _confettiController.play();
     }
     _previousDoneCount = currentDoneCount;
   }
@@ -5297,7 +5288,14 @@ class _ChecklistCardState extends State<_ChecklistCard> {
   @override
   void initState() {
     super.initState();
+    _confettiController = ConfettiController(duration: const Duration(milliseconds: 800));
     _previousDoneCount = widget.items.where((item) => item.isDone).length;
+  }
+
+  @override
+  void dispose() {
+    _confettiController.dispose();
+    super.dispose();
   }
 
   @override
@@ -5342,25 +5340,23 @@ class _ChecklistCardState extends State<_ChecklistCard> {
             ],
           ),
         ),
-        if (_showConfetti)
-          Positioned.fill(
-            child: ConfettiWidget(
-              blastDirectionality: BlastDirectionality.explosive,
-              particleCount: 15,
-              blastDirection: -3.14159 / 2,
-              emissionFrequency: 0.1,
-              numberOfParticles: 15,
-              gravity: 0.3,
-              colors: const [
-                Color(0xFF2BCDEE),
-                Color(0xFFFFD700),
-                Color(0xFFFF6B6B),
-                Color(0xFF4CAF50),
-              ],
-              createParticlePath: (size) => Path()..addOval(Rect.fromCircle(center: Offset.zero, radius: 4)),
-              child: const SizedBox.expand(),
-            ),
+        Positioned.fill(
+          child: ConfettiWidget(
+            confettiController: _confettiController,
+            blastDirectionality: BlastDirectionality.explosive,
+            blastDirection: -3.14159 / 2,
+            emissionFrequency: 0.1,
+            numberOfParticles: 15,
+            gravity: 0.3,
+            colors: const [
+              Color(0xFF2BCDEE),
+              Color(0xFFFFD700),
+              Color(0xFFFF6B6B),
+              Color(0xFF4CAF50),
+            ],
+            createParticlePath: (size) => Path()..addOval(Rect.fromCircle(center: Offset.zero, radius: 4)),
           ),
+        ),
       ],
     );
   }
