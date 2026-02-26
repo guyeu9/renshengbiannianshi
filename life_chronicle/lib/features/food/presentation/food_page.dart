@@ -2637,7 +2637,7 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
               const SizedBox(height: 16),
               _buildRestaurantInfoCard(),
               const SizedBox(height: 16),
-              _buildDetailsCard(context, allTags),
+              _buildDetailsCard(context, allTags, config),
               const SizedBox(height: 16),
               _buildLocationCard(context),
               const SizedBox(height: 16),
@@ -2794,7 +2794,21 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
     );
   }
 
-  Widget _buildDetailsCard(BuildContext context, List<String> allTags) {
+  Widget _buildDetailsCard(BuildContext context, List<String> allTags, ModuleManagementConfig config) {
+    final module = config.moduleOf('food');
+    final tagColorMap = <String, String?>{};
+    for (final t in module.tags) {
+      tagColorMap[t.name] = t.color;
+    }
+    Color _colorFromHex(String? hex) {
+      if (hex == null || hex.isEmpty) return const Color(0xFFF3F4F6);
+      try {
+        final cleanHex = hex.replaceFirst('#', '');
+        return Color(int.parse('FF$cleanHex', radix: 16));
+      } catch (_) {
+        return const Color(0xFFF3F4F6);
+      }
+    }
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -2873,35 +2887,43 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
               runSpacing: 10,
               children: [
                 for (final t in allTags)
-                  InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: () {
-                      final selected = _selectedTags.contains(t);
-                      setState(() {
-                        if (selected) {
-                          _selectedTags.remove(t);
-                        } else {
-                          _selectedTags.add(t);
-                        }
-                      });
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: _selectedTags.contains(t) ? const Color(0x1A2BCDEE) : const Color(0xFFF3F4F6),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: _selectedTags.contains(t) ? const Color(0x332BCDEE) : const Color(0xFFF3F4F6)),
-                      ),
-                      child: Text(
-                        '# $t',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                          color: _selectedTags.contains(t) ? const Color(0xFF22BEBE) : const Color(0xFF6B7280),
+                  Builder(builder: (context) {
+                    final isSelected = _selectedTags.contains(t);
+                    final tagColorHex = tagColorMap[t];
+                    final tagColor = _colorFromHex(tagColorHex);
+                    final unselectedBg = tagColorHex != null ? tagColor.withValues(alpha: 0.15) : const Color(0xFFF3F4F6);
+                    final bgColor = isSelected ? const Color(0x1A2BCDEE) : unselectedBg;
+                    final borderColor = isSelected ? const Color(0x332BCDEE) : unselectedBg;
+                    final textColor = isSelected ? const Color(0xFF22BEBE) : (tagColorHex != null ? tagColor : const Color(0xFF6B7280));
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () {
+                        setState(() {
+                          if (isSelected) {
+                            _selectedTags.remove(t);
+                          } else {
+                            _selectedTags.add(t);
+                          }
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: bgColor,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: borderColor),
+                        ),
+                        child: Text(
+                          '# $t',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: textColor,
+                          ),
                         ),
                       ),
-                    ),
-                  ),
+                    );
+                  }),
                 InkWell(
                   borderRadius: BorderRadius.circular(12),
                   onTap: () => _showEditTagsSheet(context, allTags),

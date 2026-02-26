@@ -2375,6 +2375,20 @@ class _FriendCreatePageState extends ConsumerState<FriendCreatePage> {
       data: (config) {
         final availableTags = getTagsForModule(config, 'bond');
         final allTags = {...availableTags, ..._selectedTags}.toList();
+        final module = config.moduleOf('bond');
+        final tagColorMap = <String, String?>{};
+        for (final t in module.tags) {
+          tagColorMap[t.name] = t.color;
+        }
+        Color colorFromHex(String? hex) {
+          if (hex == null || hex.isEmpty) return const Color(0xFFF3F4F6);
+          try {
+            final cleanHex = hex.replaceFirst('#', '');
+            return Color(int.parse('FF$cleanHex', radix: 16));
+          } catch (_) {
+            return const Color(0xFFF3F4F6);
+          }
+        }
         return Scaffold(
           backgroundColor: const Color(0xFFF8FAFC),
           body: Stack(
@@ -2619,33 +2633,41 @@ class _FriendCreatePageState extends ConsumerState<FriendCreatePage> {
                       runSpacing: 10,
                       children: [
                         for (final tag in allTags)
-                          InkWell(
-                            borderRadius: BorderRadius.circular(12),
-                            onTap: () {
-                              setState(() {
-                                if (_selectedTags.contains(tag)) {
-                                  _selectedTags.remove(tag);
-                                } else {
-                                  _selectedTags.add(tag);
-                                }
-                              });
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: _selectedTags.contains(tag) ? const Color(0x1A0EA5E9) : const Color(0xFFF3F4F6),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                tag,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w900,
-                                  color: _selectedTags.contains(tag) ? const Color(0xFF0EA5E9) : const Color(0xFF64748B),
+                          Builder(builder: (context) {
+                            final isSelected = _selectedTags.contains(tag);
+                            final tagColorHex = tagColorMap[tag];
+                            final tagColor = colorFromHex(tagColorHex);
+                            final unselectedBg = tagColorHex != null ? tagColor.withValues(alpha: 0.15) : const Color(0xFFF3F4F6);
+                            final bgColor = isSelected ? const Color(0x1A0EA5E9) : unselectedBg;
+                            final textColor = isSelected ? const Color(0xFF0EA5E9) : (tagColorHex != null ? tagColor : const Color(0xFF64748B));
+                            return InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () {
+                                setState(() {
+                                  if (isSelected) {
+                                    _selectedTags.remove(tag);
+                                  } else {
+                                    _selectedTags.add(tag);
+                                  }
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: bgColor,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  tag,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w900,
+                                    color: textColor,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ),
+                            );
+                          }),
                         InkWell(
                           borderRadius: BorderRadius.circular(12),
                           onTap: _addCustomTag,

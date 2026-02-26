@@ -1983,6 +1983,20 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
       data: (config) {
         final availableTags = getTagsForModule(config, 'moment');
         final allTags = {...availableTags, ..._selectedTags}.toList();
+        final module = config.moduleOf('moment');
+        final tagColorMap = <String, String?>{};
+        for (final t in module.tags) {
+          tagColorMap[t.name] = t.color;
+        }
+        Color colorFromHex(String? hex) {
+          if (hex == null || hex.isEmpty) return const Color(0xFFF3F4F6);
+          try {
+            final cleanHex = hex.replaceFirst('#', '');
+            return Color(int.parse('FF$cleanHex', radix: 16));
+          } catch (_) {
+            return const Color(0xFFF3F4F6);
+          }
+        }
         return Scaffold(
           backgroundColor: const Color(0xFFF6F8F8),
           body: SafeArea(
@@ -2038,6 +2052,12 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
                           itemBuilder: (context, index) {
                             final tag = allTags[index];
                             final selected = _selectedTags.contains(tag);
+                            final tagColorHex = tagColorMap[tag];
+                            final tagColor = colorFromHex(tagColorHex);
+                            final unselectedBg = tagColorHex != null ? tagColor.withValues(alpha: 0.15) : Colors.white;
+                            final bgColor = selected ? const Color(0xFF2BCDEE).withValues(alpha: 0.12) : unselectedBg;
+                            final borderColor = selected ? const Color(0xFF2BCDEE).withValues(alpha: 0.25) : (tagColorHex != null ? tagColor.withValues(alpha: 0.25) : const Color(0xFFF3F4F6));
+                            final textColor = selected ? const Color(0xFF2BCDEE) : (tagColorHex != null ? tagColor : const Color(0xFF64748B));
                             return InkWell(
                               borderRadius: BorderRadius.circular(999),
                               onTap: () {
@@ -2052,16 +2072,16 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                 decoration: BoxDecoration(
-                                  color: selected ? const Color(0xFF2BCDEE).withValues(alpha: 0.12) : Colors.white,
+                                  color: bgColor,
                                   borderRadius: BorderRadius.circular(999),
-                                  border: Border.all(color: selected ? const Color(0xFF2BCDEE).withValues(alpha: 0.25) : const Color(0xFFF3F4F6)),
+                                  border: Border.all(color: borderColor),
                                 ),
                                 child: Text(
                                   '# $tag',
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w800,
-                                    color: selected ? const Color(0xFF2BCDEE) : const Color(0xFF64748B),
+                                    color: textColor,
                                   ),
                                 ),
                               ),

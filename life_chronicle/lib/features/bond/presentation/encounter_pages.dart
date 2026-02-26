@@ -1001,9 +1001,10 @@ class _EncounterDetailPageState extends ConsumerState<EncounterDetailPage> {
                       children: [
                         OutlinedButton.icon(
                           onPressed: () async {
+                            final messenger = ScaffoldMessenger.of(context);
                             await db.updateEncounterFavorite(event.id, isFavorite: !event.isFavorite, now: DateTime.now());
                             if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              messenger.showSnackBar(
                                 SnackBar(
                                   content: Text(event.isFavorite ? '已取消收藏' : '已添加到收藏'),
                                   duration: const Duration(seconds: 1),

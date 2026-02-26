@@ -1948,6 +1948,20 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
       data: (config) {
         final configTags = getTagsForModule(config, 'travel');
         final tags = {...configTags, ..._availableTags, ..._selectedTags}.toList()..sort();
+        final module = config.moduleOf('travel');
+        final tagColorMap = <String, String?>{};
+        for (final t in module.tags) {
+          tagColorMap[t.name] = t.color;
+        }
+        Color colorFromHex(String? hex) {
+          if (hex == null || hex.isEmpty) return const Color(0xFFF1F5F9);
+          try {
+            final cleanHex = hex.replaceFirst('#', '');
+            return Color(int.parse('FF$cleanHex', radix: 16));
+          } catch (_) {
+            return const Color(0xFFF1F5F9);
+          }
+        }
         return Scaffold(
       backgroundColor: const Color(0xFFF6F8F8),
       appBar: PreferredSize(
@@ -2247,49 +2261,54 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
                       runSpacing: 10,
                       children: [
                         for (final tag in tags)
-                          InkWell(
-                            borderRadius: BorderRadius.circular(12),
-                            onTap: () {
-                              setState(() {
-                                if (_selectedTags.contains(tag)) {
-                                  _selectedTags.remove(tag);
-                                } else {
-                                  _selectedTags.add(tag);
-                                }
-                              });
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: _selectedTags.contains(tag)
-                                    ? const Color(0xFF2BCDEE).withValues(alpha: 0.10)
-                                    : const Color(0xFFF1F5F9),
-                                borderRadius: BorderRadius.circular(12),
-                                border: _selectedTags.contains(tag)
-                                    ? Border.all(color: const Color(0xFF2BCDEE).withValues(alpha: 0.20))
-                                    : null,
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    '#$tag',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w900,
-                                      color: _selectedTags.contains(tag) ? const Color(0xFF22A4BE) : const Color(0xFF64748B),
+                          Builder(builder: (context) {
+                            final isSelected = _selectedTags.contains(tag);
+                            final tagColorHex = tagColorMap[tag];
+                            final tagColor = colorFromHex(tagColorHex);
+                            final unselectedBg = tagColorHex != null ? tagColor.withValues(alpha: 0.15) : const Color(0xFFF1F5F9);
+                            final bgColor = isSelected ? const Color(0xFF2BCDEE).withValues(alpha: 0.10) : unselectedBg;
+                            final borderColor = isSelected ? const Color(0xFF2BCDEE).withValues(alpha: 0.20) : null;
+                            final textColor = isSelected ? const Color(0xFF22A4BE) : (tagColorHex != null ? tagColor : const Color(0xFF64748B));
+                            return InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () {
+                                setState(() {
+                                  if (isSelected) {
+                                    _selectedTags.remove(tag);
+                                  } else {
+                                    _selectedTags.add(tag);
+                                  }
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: bgColor,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: isSelected ? Border.all(color: borderColor!) : null,
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      '#$tag',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w900,
+                                        color: textColor,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Icon(
-                                    _selectedTags.contains(tag) ? Icons.close : Icons.add,
-                                    size: 14,
-                                    color: const Color(0xFF64748B),
-                                  ),
-                                ],
+                                    const SizedBox(width: 8),
+                                    Icon(
+                                      isSelected ? Icons.close : Icons.add,
+                                      size: 14,
+                                      color: const Color(0xFF64748B),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ),
+                            );
+                          }),
                         InkWell(
                           borderRadius: BorderRadius.circular(12),
                           onTap: _addCustomTag,
@@ -2836,6 +2855,20 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
       data: (config) {
         final configTags = getTagsForModule(config, 'travel');
         final tags = {...configTags, ..._availableTags, ..._selectedTags}.toList()..sort();
+        final module = config.moduleOf('travel');
+        final tagColorMap = <String, String?>{};
+        for (final t in module.tags) {
+          tagColorMap[t.name] = t.color;
+        }
+        Color colorFromHex(String? hex) {
+          if (hex == null || hex.isEmpty) return const Color(0xFFF1F5F9);
+          try {
+            final cleanHex = hex.replaceFirst('#', '');
+            return Color(int.parse('FF$cleanHex', radix: 16));
+          } catch (_) {
+            return const Color(0xFFF1F5F9);
+          }
+        }
         return Scaffold(
           backgroundColor: const Color(0xFFF6F8F8),
           appBar: PreferredSize(
@@ -3083,49 +3116,54 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
                         runSpacing: 10,
                         children: [
                           for (final tag in tags)
-                            InkWell(
-                              borderRadius: BorderRadius.circular(12),
-                              onTap: () {
-                                setState(() {
-                                  if (_selectedTags.contains(tag)) {
-                                    _selectedTags.remove(tag);
-                                  } else {
-                                    _selectedTags.add(tag);
-                                  }
-                                });
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: _selectedTags.contains(tag)
-                                      ? const Color(0xFF2BCDEE).withValues(alpha: 0.10)
-                                      : const Color(0xFFF1F5F9),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: _selectedTags.contains(tag)
-                                      ? Border.all(color: const Color(0xFF2BCDEE).withValues(alpha: 0.20))
-                                      : null,
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      '#$tag',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w900,
-                                        color: _selectedTags.contains(tag) ? const Color(0xFF22A4BE) : const Color(0xFF64748B),
+                            Builder(builder: (context) {
+                              final isSelected = _selectedTags.contains(tag);
+                              final tagColorHex = tagColorMap[tag];
+                              final tagColor = colorFromHex(tagColorHex);
+                              final unselectedBg = tagColorHex != null ? tagColor.withValues(alpha: 0.15) : const Color(0xFFF1F5F9);
+                              final bgColor = isSelected ? const Color(0xFF2BCDEE).withValues(alpha: 0.10) : unselectedBg;
+                              final borderColor = isSelected ? const Color(0xFF2BCDEE).withValues(alpha: 0.20) : null;
+                              final textColor = isSelected ? const Color(0xFF22A4BE) : (tagColorHex != null ? tagColor : const Color(0xFF64748B));
+                              return InkWell(
+                                borderRadius: BorderRadius.circular(12),
+                                onTap: () {
+                                  setState(() {
+                                    if (isSelected) {
+                                      _selectedTags.remove(tag);
+                                    } else {
+                                      _selectedTags.add(tag);
+                                    }
+                                  });
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: bgColor,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: isSelected ? Border.all(color: borderColor!) : null,
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        '#$tag',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w900,
+                                          color: textColor,
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Icon(
-                                      _selectedTags.contains(tag) ? Icons.close : Icons.add,
-                                      size: 14,
-                                      color: const Color(0xFF64748B),
-                                    ),
-                                  ],
+                                      const SizedBox(width: 8),
+                                      Icon(
+                                        isSelected ? Icons.close : Icons.add,
+                                        size: 14,
+                                        color: const Color(0xFF64748B),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ),
+                              );
+                            }),
                           InkWell(
                             borderRadius: BorderRadius.circular(12),
                             onTap: _addCustomTag,
