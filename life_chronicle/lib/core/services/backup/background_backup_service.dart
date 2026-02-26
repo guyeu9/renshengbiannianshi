@@ -161,7 +161,7 @@ class BackgroundBackupService {
       constraints: Constraints(
         networkType: wifiOnly ? NetworkType.unmetered : NetworkType.connected,
       ),
-      existingWorkPolicy: ExistingWorkPolicy.replace,
+      existingWorkPolicy: ExistingPeriodicWorkPolicy.replace,
     );
   }
 

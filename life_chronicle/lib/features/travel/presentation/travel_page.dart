@@ -16,6 +16,7 @@ import '../../../core/database/database_providers.dart';
 import '../../../core/utils/media_storage.dart';
 import '../../../core/widgets/ai_parse_button.dart';
 import '../../../core/widgets/amap_location_page.dart';
+import '../../bond/presentation/bond_page.dart' show FriendProfilePage;
 
 class TravelPage extends StatefulWidget {
   const TravelPage({super.key});
@@ -1274,6 +1275,72 @@ class TravelDetailPage extends ConsumerWidget {
                                               ),
                                             ),
                                           if (tagList.isNotEmpty) const SizedBox(height: 14),
+                                          StreamBuilder<List<ChecklistItem>>(
+                                            stream: db.checklistDao.watchByTripId(tripId ?? ''),
+                                            builder: (context, checklistSnapshot) {
+                                              final checklistItems = checklistSnapshot.data ?? const <ChecklistItem>[];
+                                              if (checklistItems.isEmpty) return const SizedBox.shrink();
+                                              return _ChecklistCard(
+                                                items: checklistItems,
+                                                onToggle: (item, isDone) async {
+                                                  await db.checklistDao.updateDone(
+                                                    item.id,
+                                                    isDone: isDone,
+                                                    now: DateTime.now(),
+                                                  );
+                                                },
+                                              );
+                                            },
+                                          ),
+                                          StreamBuilder<List<ChecklistItem>>(
+                                            stream: db.checklistDao.watchByTripId(tripId ?? ''),
+                                            builder: (context, checklistSnapshot) {
+                                              final checklistItems = checklistSnapshot.data ?? const <ChecklistItem>[];
+                                              if (checklistItems.isEmpty) return const SizedBox.shrink();
+                                              return const SizedBox(height: 14);
+                                            },
+                                          ),
+                                          Builder(
+                                            builder: (context) {
+                                              final travelIdForLink = recordId;
+                                              final linkedFriendIds = <String>{};
+                                              for (final link in links) {
+                                                if (link.sourceType == 'travel' && link.sourceId == travelIdForLink && link.targetType == 'friend') {
+                                                  linkedFriendIds.add(link.targetId);
+                                                } else if (link.targetType == 'travel' && link.targetId == travelIdForLink && link.sourceType == 'friend') {
+                                                  linkedFriendIds.add(link.sourceId);
+                                                }
+                                              }
+                                              final linkedFriends = friends.where((f) => linkedFriendIds.contains(f.id)).toList();
+                                              if (linkedFriends.isEmpty) return const SizedBox.shrink();
+                                              return _CompanionAvatars(
+                                                friends: linkedFriends,
+                                                onTap: (friend) {
+                                                  Navigator.of(context).push(
+                                                    MaterialPageRoute(
+                                                      builder: (_) => FriendProfilePage(friendId: friend.id),
+                                                    ),
+                                                  );
+                                                },
+                                              );
+                                            },
+                                          ),
+                                          Builder(
+                                            builder: (context) {
+                                              final travelIdForLink = recordId;
+                                              final linkedFriendIds = <String>{};
+                                              for (final link in links) {
+                                                if (link.sourceType == 'travel' && link.sourceId == travelIdForLink && link.targetType == 'friend') {
+                                                  linkedFriendIds.add(link.targetId);
+                                                } else if (link.targetType == 'travel' && link.targetId == travelIdForLink && link.sourceType == 'friend') {
+                                                  linkedFriendIds.add(link.sourceId);
+                                                }
+                                              }
+                                              final linkedFriends = friends.where((f) => linkedFriendIds.contains(f.id)).toList();
+                                              if (linkedFriends.isEmpty) return const SizedBox.shrink();
+                                              return const SizedBox(height: 14);
+                                            },
+                                          ),
                                           _TravelTimeline(
                                             trip: trip,
                                             journals: journals,
@@ -3681,17 +3748,7 @@ class _TimelineJournalCard extends StatelessWidget {
           ),
           if (images.isNotEmpty) ...[
             const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final image in images.take(4))
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: SizedBox(width: 72, height: 72, child: _buildLocalImage(image, fit: BoxFit.cover)),
-                  ),
-              ],
-            ),
+            _buildWechatStyleImages(context, images, record, trip),
           ],
           if (content.isNotEmpty) ...[
             const SizedBox(height: 10),
@@ -3712,6 +3769,74 @@ class _TimelineJournalCard extends StatelessWidget {
       ),
     );
   }
+}
+
+Widget _buildWechatStyleImages(BuildContext context, List<String> images, TravelRecord record, Trip? trip) {
+  if (images.isEmpty) return const SizedBox.shrink();
+
+  void navigateToDetail() {
+    final item = _buildTravelItem(record, trip);
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => TravelDetailPage(item: item)));
+  }
+
+  if (images.length == 1) {
+    return GestureDetector(
+      onTap: navigateToDetail,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: SizedBox(
+          width: double.infinity,
+          height: 180,
+          child: _buildLocalImage(images.first, fit: BoxFit.cover),
+        ),
+      ),
+    );
+  }
+
+  final displayImages = images.length > 4 ? images.take(4).toList() : images;
+  final remainingCount = images.length > 4 ? images.length - 4 : 0;
+
+  return GestureDetector(
+    onTap: navigateToDetail,
+    child: GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 4,
+        crossAxisSpacing: 4,
+        childAspectRatio: 1,
+      ),
+      itemCount: displayImages.length,
+      itemBuilder: (context, index) {
+        final isLast = index == displayImages.length - 1;
+        final showOverlay = isLast && remainingCount > 0;
+
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              _buildLocalImage(displayImages[index], fit: BoxFit.cover),
+              if (showOverlay)
+                Container(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  alignment: Alignment.center,
+                  child: Text(
+                    '+$remainingCount',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    ),
+  );
 }
 
 class _TimelineFoodCard extends StatelessWidget {
@@ -5128,5 +5253,202 @@ class _TinyLetterAvatar extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(letter, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF3B82F6))),
     );
+  }
+}
+
+class _ChecklistCard extends StatelessWidget {
+  const _ChecklistCard({
+    required this.items,
+    required this.onToggle,
+  });
+
+  final List<ChecklistItem> items;
+  final void Function(ChecklistItem item, bool isDone) onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final doneCount = items.where((item) => item.isDone).length;
+    final totalCount = items.length;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.checklist, size: 18, color: Color(0xFF2BCDEE)),
+              const SizedBox(width: 8),
+              const Text(
+                '待办事项',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
+              ),
+              const Spacer(),
+              Text(
+                '$doneCount/$totalCount',
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...items.map((item) => _ChecklistItemTile(item: item, onToggle: onToggle)),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChecklistItemTile extends StatelessWidget {
+  const _ChecklistItemTile({
+    required this.item,
+    required this.onToggle,
+  });
+
+  final ChecklistItem item;
+  final void Function(ChecklistItem item, bool isDone) onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: GestureDetector(
+        onTap: () => onToggle(item, !item.isDone),
+        behavior: HitTestBehavior.opaque,
+        child: Row(
+          children: [
+            Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: item.isDone ? const Color(0xFF2BCDEE) : Colors.transparent,
+                border: Border.all(
+                  color: item.isDone ? const Color(0xFF2BCDEE) : const Color(0xFFD1D5DB),
+                  width: 2,
+                ),
+              ),
+              child: item.isDone
+                  ? const Icon(Icons.check, size: 12, color: Colors.white)
+                  : null,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                item.title,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: item.isDone ? const Color(0xFF94A3B8) : const Color(0xFF374151),
+                  decoration: item.isDone ? TextDecoration.lineThrough : TextDecoration.none,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CompanionAvatars extends StatelessWidget {
+  const _CompanionAvatars({
+    required this.friends,
+    required this.onTap,
+  });
+
+  final List<FriendRecord> friends;
+  final void Function(FriendRecord friend) onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final displayFriends = friends.take(3).toList();
+    final remainingCount = friends.length > 3 ? friends.length - 3 : 0;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 52 + (displayFriends.length > 1 ? (displayFriends.length - 1) * 18 : 0),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                for (int i = 0; i < displayFriends.length; i++)
+                  Positioned(
+                    left: i * 18,
+                    child: GestureDetector(
+                      onTap: () => onTap(displayFriends[i]),
+                      child: _buildFriendAvatar(displayFriends[i]),
+                    ),
+                  ),
+                if (remainingCount > 0)
+                  Positioned(
+                    left: 3 * 18,
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '+$remainingCount',
+                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF64748B)),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                text: '与 ',
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
+                children: _buildFriendSpans(displayFriends, remainingCount),
+              ),
+            ),
+          ),
+          const Icon(Icons.group, color: Color(0xFFCBD5E1), size: 18),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFriendAvatar(FriendRecord friend) {
+    final avatarPath = (friend.avatarPath ?? '').trim();
+    if (avatarPath.isNotEmpty) {
+      return _TinyAvatar(url: avatarPath, size: 32);
+    }
+    return _TinyLetterAvatar(name: friend.name);
+  }
+
+  List<TextSpan> _buildFriendSpans(List<FriendRecord> displayFriends, int remainingCount) {
+    final spans = <TextSpan>[];
+    for (int i = 0; i < displayFriends.length; i++) {
+      spans.add(
+        TextSpan(text: '@${displayFriends[i].name}', style: const TextStyle(color: Color(0xFF2BCDEE), fontWeight: FontWeight.w900)),
+      );
+      if (i != displayFriends.length - 1) {
+        spans.add(const TextSpan(text: ', ', style: TextStyle(color: Color(0xFF64748B))));
+      }
+    }
+    if (remainingCount > 0) {
+      spans.add(TextSpan(text: ' 等${friends.length}人', style: const TextStyle(color: Color(0xFF64748B))));
+    } else {
+      spans.add(const TextSpan(text: ' 同行', style: TextStyle(color: Color(0xFF64748B))));
+    }
+    return spans;
   }
 }
