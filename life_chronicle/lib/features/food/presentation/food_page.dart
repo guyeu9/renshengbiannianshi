@@ -2800,7 +2800,7 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
     for (final t in module.tags) {
       tagColorMap[t.name] = t.color;
     }
-    Color _colorFromHex(String? hex) {
+    Color colorFromHex(String? hex) {
       if (hex == null || hex.isEmpty) return const Color(0xFFF3F4F6);
       try {
         final cleanHex = hex.replaceFirst('#', '');
@@ -2890,7 +2890,7 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
                   Builder(builder: (context) {
                     final isSelected = _selectedTags.contains(t);
                     final tagColorHex = tagColorMap[t];
-                    final tagColor = _colorFromHex(tagColorHex);
+                    final tagColor = colorFromHex(tagColorHex);
                     final unselectedBg = tagColorHex != null ? tagColor.withValues(alpha: 0.15) : const Color(0xFFF3F4F6);
                     final bgColor = isSelected ? const Color(0x1A2BCDEE) : unselectedBg;
                     final borderColor = isSelected ? const Color(0x332BCDEE) : unselectedBg;
