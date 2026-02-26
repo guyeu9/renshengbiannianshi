@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:drift/drift.dart' show Value, OrderingTerm, OrderingMode;
 import 'package:uuid/uuid.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../core/config/module_management_config.dart';
 import '../../../core/database/app_database.dart';
@@ -1099,6 +1100,41 @@ class TravelDetailPage extends ConsumerWidget {
                                                     onTap: () => Navigator.of(context).maybePop(),
                                                   ),
                                                   const Spacer(),
+                                                  _FrostedCircleIconButton(
+                                                    icon: Icons.delete_outline,
+                                                    onTap: () async {
+                                                      final confirmed = await showDialog<bool>(
+                                                        context: context,
+                                                        builder: (context) => AlertDialog(
+                                                          title: const Text('删除旅行'),
+                                                          content: const Text('确定要删除这个旅行吗？相关的游记也会被删除。'),
+                                                          actions: [
+                                                            TextButton(
+                                                              onPressed: () => Navigator.of(context).pop(false),
+                                                              child: const Text('取消'),
+                                                            ),
+                                                            TextButton(
+                                                              onPressed: () => Navigator.of(context).pop(true),
+                                                              style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                                              child: const Text('删除'),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      );
+                                                      if (confirmed == true) {
+                                                        await (db.update(db.travelRecords)..where((t) => t.tripId.equals(tripId))).write(
+                                                          TravelRecordsCompanion(
+                                                            isDeleted: Value(true),
+                                                            updatedAt: Value(DateTime.now()),
+                                                          ),
+                                                        );
+                                                        if (context.mounted) {
+                                                          Navigator.of(context).pop();
+                                                        }
+                                                      }
+                                                    },
+                                                  ),
+                                                  const SizedBox(width: 10),
                                                   _FrostedCircleIconButton(icon: Icons.bookmark_border, onTap: () {}),
                                                   const SizedBox(width: 10),
                                                   _FrostedCircleIconButton(
@@ -1123,9 +1159,12 @@ class TravelDetailPage extends ConsumerWidget {
                                                   ),
                                                   const SizedBox(width: 10),
                                                   _PrimaryPillButton(
-                                                    icon: Icons.ios_share,
-                                                    label: '一键导出',
-                                                    onTap: () {},
+                                                    icon: Icons.share,
+                                                    label: '分享',
+                                                    onTap: () {
+                                                      final shareText = '【$title】\n$place · $dateLabel';
+                                                      Share.share(shareText, subject: title);
+                                                    },
                                                   ),
                                                 ],
                                               ),
