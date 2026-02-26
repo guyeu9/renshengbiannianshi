@@ -9,6 +9,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:drift/drift.dart' show Value, OrderingTerm, OrderingMode;
 import 'package:uuid/uuid.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:confetti/confetti.dart';
+import 'package:vibration/vibration.dart';
 
 import '../../../core/config/module_management_config.dart';
 import '../../../core/database/app_database.dart';
@@ -5256,7 +5258,7 @@ class _TinyLetterAvatar extends StatelessWidget {
   }
 }
 
-class _ChecklistCard extends StatelessWidget {
+class _ChecklistCard extends StatefulWidget {
   const _ChecklistCard({
     required this.items,
     required this.onToggle,
@@ -5266,43 +5268,104 @@ class _ChecklistCard extends StatelessWidget {
   final void Function(ChecklistItem item, bool isDone) onToggle;
 
   @override
+  State<_ChecklistCard> createState() => _ChecklistCardState();
+}
+
+class _ChecklistCardState extends State<_ChecklistCard> {
+  int _previousDoneCount = 0;
+  bool _showConfetti = false;
+
+  @override
+  void didUpdateWidget(_ChecklistCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final currentDoneCount = widget.items.where((item) => item.isDone).length;
+    if (currentDoneCount > _previousDoneCount) {
+      setState(() {
+        _showConfetti = true;
+      });
+      Future.delayed(const Duration(milliseconds: 800), () {
+        if (mounted) {
+          setState(() {
+            _showConfetti = false;
+          });
+        }
+      });
+    }
+    _previousDoneCount = currentDoneCount;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _previousDoneCount = widget.items.where((item) => item.isDone).length;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final doneCount = items.where((item) => item.isDone).length;
-    final totalCount = items.length;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    final doneCount = widget.items.where((item) => item.isDone).length;
+    final totalCount = widget.items.length;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.checklist, size: 18, color: Color(0xFF2BCDEE)),
-              const SizedBox(width: 8),
-              const Text(
-                '待办事项',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
+              Row(
+                children: [
+                  const Icon(Icons.checklist, size: 18, color: Color(0xFF2BCDEE)),
+                  const SizedBox(width: 8),
+                  const Text(
+                    '待办事项',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '$doneCount/$totalCount',
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF)),
+                  ),
+                ],
               ),
-              const Spacer(),
-              Text(
-                '$doneCount/$totalCount',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF)),
-              ),
+              const SizedBox(height: 12),
+              ...widget.items.map((item) => _ChecklistItemTile(
+                item: item,
+                onToggle: (item, isDone) {
+                  widget.onToggle(item, isDone);
+                },
+              )),
             ],
           ),
-          const SizedBox(height: 12),
-          ...items.map((item) => _ChecklistItemTile(item: item, onToggle: onToggle)),
-        ],
-      ),
+        ),
+        if (_showConfetti)
+          Positioned.fill(
+            child: Confetti(
+              particleCount: 15,
+              blastDirectionality: BlastDirectionality.explosive,
+              blastDirection: -3.14159 / 2,
+              emissionFrequency: 0.1,
+              numberOfParticles: 15,
+              gravity: 0.3,
+              colors: const [
+                Color(0xFF2BCDEE),
+                Color(0xFFFFD700),
+                Color(0xFFFF6B6B),
+                Color(0xFF4CAF50),
+              ],
+              child: const SizedBox.expand(),
+            ),
+          ),
+      ],
     );
   }
 }
 
-class _ChecklistItemTile extends StatelessWidget {
+class _ChecklistItemTile extends StatefulWidget {
   const _ChecklistItemTile({
     required this.item,
     required this.onToggle,
@@ -5312,42 +5375,99 @@ class _ChecklistItemTile extends StatelessWidget {
   final void Function(ChecklistItem item, bool isDone) onToggle;
 
   @override
+  State<_ChecklistItemTile> createState() => _ChecklistItemTileState();
+}
+
+class _ChecklistItemTileState extends State<_ChecklistItemTile> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _rotationAnimation;
+  bool _wasDone = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _wasDone = widget.item.isDone;
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.2).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
+    );
+    _rotationAnimation = Tween<double>(begin: 0.0, end: 0.1).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+  }
+
+  @override
+  void didUpdateWidget(_ChecklistItemTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.item.isDone && !_wasDone) {
+      _controller.forward().then((_) {
+        _controller.reverse();
+      });
+      Vibration.vibrate(duration: 50);
+    }
+    _wasDone = widget.item.isDone;
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: GestureDetector(
-        onTap: () => onToggle(item, !item.isDone),
+        onTap: () => widget.onToggle(widget.item, !widget.item.isDone),
         behavior: HitTestBehavior.opaque,
-        child: Row(
-          children: [
-            Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: item.isDone ? const Color(0xFF2BCDEE) : Colors.transparent,
-                border: Border.all(
-                  color: item.isDone ? const Color(0xFF2BCDEE) : const Color(0xFFD1D5DB),
-                  width: 2,
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return Transform.scale(
+              scale: _scaleAnimation.value,
+              child: Transform.rotate(
+                angle: _rotationAnimation.value,
+                child: child,
+              ),
+            );
+          },
+          child: Row(
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: widget.item.isDone ? const Color(0xFF2BCDEE) : Colors.transparent,
+                  border: Border.all(
+                    color: widget.item.isDone ? const Color(0xFF2BCDEE) : const Color(0xFFD1D5DB),
+                    width: 2,
+                  ),
+                ),
+                child: widget.item.isDone
+                    ? const Icon(Icons.check, size: 12, color: Colors.white)
+                    : null,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  widget.item.title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: widget.item.isDone ? const Color(0xFF94A3B8) : const Color(0xFF374151),
+                    decoration: widget.item.isDone ? TextDecoration.lineThrough : TextDecoration.none,
+                  ),
                 ),
               ),
-              child: item.isDone
-                  ? const Icon(Icons.check, size: 12, color: Colors.white)
-                  : null,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                item.title,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: item.isDone ? const Color(0xFF94A3B8) : const Color(0xFF374151),
-                  decoration: item.isDone ? TextDecoration.lineThrough : TextDecoration.none,
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
