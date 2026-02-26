@@ -3108,6 +3108,116 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
     });
   }
 
+  Future<void> _unfavoriteSelected(AppDatabase db, List<_FavoriteItem> allItems) async {
+    if (_selectedIds.isEmpty) return;
+    final now = DateTime.now();
+    final selectedItems = allItems.where((item) => _selectedIds.contains(item.id)).toList();
+    
+    for (final item in selectedItems) {
+      final id = item.id;
+      if (id.startsWith('food-')) {
+        await db.foodDao.updateFavorite(id.substring(5), isFavorite: false, now: now);
+      } else if (id.startsWith('travel-')) {
+        await (db.update(db.travelRecords)..where((t) => t.id.equals(id.substring(7)))).write(
+          TravelRecordsCompanion(isFavorite: const Value(false), updatedAt: Value(now)),
+        );
+      } else if (id.startsWith('moment-')) {
+        await db.momentDao.updateFavorite(id.substring(7), isFavorite: false, now: now);
+      } else if (id.startsWith('bond-')) {
+        await db.friendDao.updateFavorite(id.substring(5), isFavorite: false, now: now);
+      } else if (id.startsWith('goal-')) {
+        await db.updateGoalFavorite(id.substring(5), isFavorite: false, now: now);
+      } else if (id.startsWith('encounter-')) {
+        await db.updateEncounterFavorite(id.substring(10), isFavorite: false, now: now);
+      }
+    }
+    
+    setState(() {
+      _selectedIds.clear();
+      _selectionMode = false;
+    });
+  }
+
+  Future<void> _exportToPdf(List<_FavoriteItem> allItems) async {
+    if (_selectedIds.isEmpty) return;
+    
+    final selectedItems = allItems.where((item) => _selectedIds.contains(item.id)).toList();
+    
+    try {
+      final pdf = pw.Document();
+      
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(32),
+          build: (context) {
+            return [
+              pw.Header(
+                level: 0,
+                child: pw.Text(
+                  '我的收藏',
+                  style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
+                ),
+              ),
+              pw.SizedBox(height: 20),
+              ...selectedItems.map((item) => pw.Padding(
+                padding: const pw.EdgeInsets.only(bottom: 16),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Container(
+                      padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: pw.BoxDecoration(
+                        color: PdfColors.grey200,
+                        borderRadius: pw.BorderRadius.circular(4),
+                      ),
+                      child: pw.Text(
+                        item.category,
+                        style: const pw.TextStyle(fontSize: 10),
+                      ),
+                    ),
+                    pw.SizedBox(height: 8),
+                    pw.Text(
+                      item.title,
+                      style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+                    ),
+                    pw.SizedBox(height: 4),
+                    pw.Text(
+                      '${item.tag} · ${_formatDate(item.date)}',
+                      style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600),
+                    ),
+                    pw.Divider(),
+                  ],
+                ),
+              )),
+            ];
+          },
+        ),
+      );
+      
+      final output = await getApplicationDocumentsDirectory();
+      final file = File('${output.path}/收藏导出_${DateTime.now().millisecondsSinceEpoch}.pdf');
+      await file.writeAsBytes(await pdf.save());
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('PDF已保存到: ${file.path}')),
+        );
+      }
+      
+      setState(() {
+        _selectedIds.clear();
+        _selectionMode = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('导出失败: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   List<String> _parseStringList(String? raw) {
     if (raw == null || raw.trim().isEmpty) return const [];
     try {
@@ -3243,6 +3353,7 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
       );
     }
     for (final record in goals) {
+      if (!record.isFavorite) continue;
       final title = record.title.trim();
       items.add(
         _FavoriteItem(
@@ -3258,6 +3369,7 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
       );
     }
     for (final record in encounters) {
+      if (!record.isFavorite) continue;
       final title = record.title.trim();
       items.add(
         _FavoriteItem(
@@ -3380,17 +3492,17 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
                                               ),
                                               const Spacer(),
                                               TextButton.icon(
-                                                onPressed: selectedCount == 0 ? null : () {},
+                                                onPressed: selectedCount == 0 ? null : () => _exportToPdf(allItems),
                                                 style: TextButton.styleFrom(foregroundColor: const Color(0xFF64748B), textStyle: const TextStyle(fontWeight: FontWeight.w800)),
-                                                icon: const Icon(Icons.ios_share, size: 18),
-                                                label: Text('批量导出${selectedCount == 0 ? '' : ' ($selectedCount)'}'),
+                                                icon: const Icon(Icons.picture_as_pdf, size: 18),
+                                                label: Text('导出PDF${selectedCount == 0 ? '' : ' ($selectedCount)'}'),
                                               ),
                                               const SizedBox(width: 8),
                                               TextButton.icon(
-                                                onPressed: selectedCount == 0 ? null : () {},
+                                                onPressed: selectedCount == 0 ? null : () => _unfavoriteSelected(db, allItems),
                                                 style: TextButton.styleFrom(foregroundColor: const Color(0xFFF43F5E), textStyle: const TextStyle(fontWeight: FontWeight.w800)),
-                                                icon: const Icon(Icons.delete, size: 18),
-                                                label: const Text('删除'),
+                                                icon: const Icon(Icons.bookmark_remove, size: 18),
+                                                label: const Text('取消收藏'),
                                               ),
                                             ],
                                           ),

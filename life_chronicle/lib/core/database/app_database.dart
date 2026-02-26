@@ -28,7 +28,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.connect(super.executor);
 
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 17;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -140,6 +140,9 @@ class AppDatabase extends _$AppDatabase {
           await ensureColumn(table: travelRecords, column: travelRecords.isJournal);
 
           await ensureColumn(table: goalRecords, column: goalRecords.tags);
+
+          await ensureColumn(table: goalRecords, column: goalRecords.isFavorite);
+          await ensureColumn(table: timelineEvents, column: timelineEvents.isFavorite);
 
           if (await columnExists('moment_records', 'scene_tag')) {
             await customStatement(
@@ -261,5 +264,23 @@ class AppDatabase extends _$AppDatabase {
     query.orderBy([OrderingTerm.desc(timelineEvents.recordDate)]);
 
     return query.map((row) => row.readTable(timelineEvents)).watch();
+  }
+
+  Future<void> updateGoalFavorite(String id, {required bool isFavorite, required DateTime now}) async {
+    await (update(goalRecords)..where((t) => t.id.equals(id))).write(
+      GoalRecordsCompanion(
+        isFavorite: Value(isFavorite),
+        updatedAt: Value(now),
+      ),
+    );
+  }
+
+  Future<void> updateEncounterFavorite(String id, {required bool isFavorite, required DateTime now}) async {
+    await (update(timelineEvents)..where((t) => t.id.equals(id))).write(
+      TimelineEventsCompanion(
+        isFavorite: Value(isFavorite),
+        updatedAt: Value(now),
+      ),
+    );
   }
 }

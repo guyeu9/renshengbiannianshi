@@ -1697,6 +1697,7 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
     if (result == null) return;
     final tag = result.replaceAll('#', '').trim();
     if (tag.isEmpty) return;
+    await syncTagToModuleConfig('travel', tag);
     setState(() {
       if (!_availableTags.contains(tag)) {
         _availableTags.add(tag);

@@ -1689,6 +1689,7 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
     if (result == null) return;
     final tag = result.replaceAll('#', '').trim();
     if (tag.isEmpty) return;
+    await syncTagToModuleConfig('moment', tag);
     setState(() {
       _selectedTags.add(tag);
     });

@@ -334,3 +334,43 @@ final moduleManagementConfigProvider = FutureProvider<ModuleManagementConfig>((r
 List<String> getTagsForModule(ModuleManagementConfig config, String moduleKey) {
   return config.moduleOf(moduleKey).tags.map((t) => t.name).toList();
 }
+
+Future<bool> syncTagToModuleConfig(String moduleKey, String tagName) async {
+  if (tagName.trim().isEmpty) return false;
+
+  final config = await loadModuleManagementConfig();
+  final module = config.moduleOf(moduleKey);
+  final existingTagNames = module.tags.map((t) => t.name).toSet();
+
+  if (existingTagNames.contains(tagName)) return false;
+
+  final updatedTags = [...module.tags];
+  updatedTags.add(ModuleTag(
+    id: '$moduleKey-${DateTime.now().millisecondsSinceEpoch}',
+    name: tagName,
+    isCustom: true,
+  ));
+
+  final updatedModule = module.copyWith(tags: updatedTags);
+  final modules = Map<String, ModuleConfig>.from(config.modules);
+  modules[moduleKey] = updatedModule;
+
+  await saveModuleManagementConfig(ModuleManagementConfig(modules: modules));
+  return true;
+}
+
+Future<void> syncTagsToModuleConfig(
+  String moduleKey,
+  Iterable<String> tags,
+  WidgetRef ref,
+) async {
+  bool needsRefresh = false;
+  for (final tag in tags) {
+    if (await syncTagToModuleConfig(moduleKey, tag)) {
+      needsRefresh = true;
+    }
+  }
+  if (needsRefresh) {
+    ref.read(moduleManagementRevisionProvider.notifier).state += 1;
+  }
+}

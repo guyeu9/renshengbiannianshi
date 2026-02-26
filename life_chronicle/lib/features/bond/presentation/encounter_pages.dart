@@ -809,19 +809,24 @@ class _EncounterCreatePageState extends ConsumerState<EncounterCreatePage> {
 }
 
 // 相遇详情页面
-class EncounterDetailPage extends ConsumerWidget {
+class EncounterDetailPage extends ConsumerStatefulWidget {
   const EncounterDetailPage({super.key, required this.encounterId});
 
   final String encounterId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<EncounterDetailPage> createState() => _EncounterDetailPageState();
+}
+
+class _EncounterDetailPageState extends ConsumerState<EncounterDetailPage> {
+  @override
+  Widget build(BuildContext context) {
     final db = ref.watch(appDatabaseProvider);
 
     Stream<TimelineEvent?> watchEvent() {
       return (db.select(db.timelineEvents)
             ..where((t) => t.isDeleted.equals(false))
-            ..where((t) => t.id.equals(encounterId))
+            ..where((t) => t.id.equals(widget.encounterId))
             ..limit(1))
           .watchSingleOrNull();
     }
@@ -933,11 +938,11 @@ class EncounterDetailPage extends ConsumerWidget {
                                   const Text('参与者', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
                                   const SizedBox(height: 10),
                                   StreamBuilder<List<EntityLink>>(
-                                    stream: db.linkDao.watchLinksForEntity(entityType: 'encounter', entityId: encounterId),
+                                    stream: db.linkDao.watchLinksForEntity(entityType: 'encounter', entityId: widget.encounterId),
                                     builder: (context, linkSnapshot) {
                                       final friendIds = <String>{};
                                       for (final link in linkSnapshot.data ?? const <EntityLink>[]) {
-                                        final isSource = link.sourceType == 'encounter' && link.sourceId == encounterId;
+                                        final isSource = link.sourceType == 'encounter' && link.sourceId == widget.encounterId;
                                         final otherType = isSource ? link.targetType : link.sourceType;
                                         if (otherType == 'friend') {
                                           friendIds.add(isSource ? link.targetId : link.sourceId);
@@ -982,6 +987,60 @@ class EncounterDetailPage extends ConsumerWidget {
               ),
             ],
           ),
+          bottomNavigationBar: event == null
+              ? null
+              : SafeArea(
+                  top: false,
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.95),
+                      border: const Border(top: BorderSide(color: Color(0xFFE5E7EB))),
+                    ),
+                    child: Row(
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: () async {
+                            await db.updateEncounterFavorite(event.id, isFavorite: !event.isFavorite, now: DateTime.now());
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(event.isFavorite ? '已取消收藏' : '已添加到收藏'),
+                                  duration: const Duration(seconds: 1),
+                                ),
+                              );
+                            }
+                          },
+                          icon: Icon(event.isFavorite ? Icons.bookmark : Icons.bookmark_border, size: 18),
+                          label: Text(event.isFavorite ? '已收藏' : '收藏'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: event.isFavorite ? const Color(0xFF2BCDEE) : const Color(0xFF6B7280),
+                            side: BorderSide(color: event.isFavorite ? const Color(0xFF2BCDEE) : const Color(0xFFE5E7EB)),
+                            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                            textStyle: const TextStyle(fontWeight: FontWeight.w900),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () {},
+                            icon: const Icon(Icons.edit, size: 18),
+                            label: const Text('编辑'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2BCDEE),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              textStyle: const TextStyle(fontWeight: FontWeight.w900),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              elevation: 0,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
         );
       },
     );

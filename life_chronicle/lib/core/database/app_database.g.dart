@@ -4169,6 +4169,16 @@ class $GoalRecordsTable extends GoalRecords
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'CHECK ("is_postponed" IN (0, 1))'),
       defaultValue: const Constant(false));
+  static const VerificationMeta _isFavoriteMeta =
+      const VerificationMeta('isFavorite');
+  @override
+  late final GeneratedColumn<bool> isFavorite = GeneratedColumn<bool>(
+      'is_favorite', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_favorite" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _remindFrequencyMeta =
       const VerificationMeta('remindFrequency');
   @override
@@ -4240,6 +4250,7 @@ class $GoalRecordsTable extends GoalRecords
         progress,
         isCompleted,
         isPostponed,
+        isFavorite,
         remindFrequency,
         targetYear,
         targetQuarter,
@@ -4312,6 +4323,12 @@ class $GoalRecordsTable extends GoalRecords
           _isPostponedMeta,
           isPostponed.isAcceptableOrUnknown(
               data['is_postponed']!, _isPostponedMeta));
+    }
+    if (data.containsKey('is_favorite')) {
+      context.handle(
+          _isFavoriteMeta,
+          isFavorite.isAcceptableOrUnknown(
+              data['is_favorite']!, _isFavoriteMeta));
     }
     if (data.containsKey('remind_frequency')) {
       context.handle(
@@ -4396,6 +4413,8 @@ class $GoalRecordsTable extends GoalRecords
           .read(DriftSqlType.bool, data['${effectivePrefix}is_completed'])!,
       isPostponed: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_postponed'])!,
+      isFavorite: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_favorite'])!,
       remindFrequency: attachedDatabase.typeMapping.read(
           DriftSqlType.string, data['${effectivePrefix}remind_frequency']),
       targetYear: attachedDatabase.typeMapping
@@ -4435,6 +4454,7 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
   final double progress;
   final bool isCompleted;
   final bool isPostponed;
+  final bool isFavorite;
   final String? remindFrequency;
   final int? targetYear;
   final int? targetQuarter;
@@ -4456,6 +4476,7 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
       required this.progress,
       required this.isCompleted,
       required this.isPostponed,
+      required this.isFavorite,
       this.remindFrequency,
       this.targetYear,
       this.targetQuarter,
@@ -4489,6 +4510,7 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
     map['progress'] = Variable<double>(progress);
     map['is_completed'] = Variable<bool>(isCompleted);
     map['is_postponed'] = Variable<bool>(isPostponed);
+    map['is_favorite'] = Variable<bool>(isFavorite);
     if (!nullToAbsent || remindFrequency != null) {
       map['remind_frequency'] = Variable<String>(remindFrequency);
     }
@@ -4530,6 +4552,7 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
       progress: Value(progress),
       isCompleted: Value(isCompleted),
       isPostponed: Value(isPostponed),
+      isFavorite: Value(isFavorite),
       remindFrequency: remindFrequency == null && nullToAbsent
           ? const Value.absent()
           : Value(remindFrequency),
@@ -4567,6 +4590,7 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
       progress: serializer.fromJson<double>(json['progress']),
       isCompleted: serializer.fromJson<bool>(json['isCompleted']),
       isPostponed: serializer.fromJson<bool>(json['isPostponed']),
+      isFavorite: serializer.fromJson<bool>(json['isFavorite']),
       remindFrequency: serializer.fromJson<String?>(json['remindFrequency']),
       targetYear: serializer.fromJson<int?>(json['targetYear']),
       targetQuarter: serializer.fromJson<int?>(json['targetQuarter']),
@@ -4593,6 +4617,7 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
       'progress': serializer.toJson<double>(progress),
       'isCompleted': serializer.toJson<bool>(isCompleted),
       'isPostponed': serializer.toJson<bool>(isPostponed),
+      'isFavorite': serializer.toJson<bool>(isFavorite),
       'remindFrequency': serializer.toJson<String?>(remindFrequency),
       'targetYear': serializer.toJson<int?>(targetYear),
       'targetQuarter': serializer.toJson<int?>(targetQuarter),
@@ -4617,6 +4642,7 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
           double? progress,
           bool? isCompleted,
           bool? isPostponed,
+          bool? isFavorite,
           Value<String?> remindFrequency = const Value.absent(),
           Value<int?> targetYear = const Value.absent(),
           Value<int?> targetQuarter = const Value.absent(),
@@ -4638,6 +4664,7 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
         progress: progress ?? this.progress,
         isCompleted: isCompleted ?? this.isCompleted,
         isPostponed: isPostponed ?? this.isPostponed,
+        isFavorite: isFavorite ?? this.isFavorite,
         remindFrequency: remindFrequency.present
             ? remindFrequency.value
             : this.remindFrequency,
@@ -4666,6 +4693,8 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
           data.isCompleted.present ? data.isCompleted.value : this.isCompleted,
       isPostponed:
           data.isPostponed.present ? data.isPostponed.value : this.isPostponed,
+      isFavorite:
+          data.isFavorite.present ? data.isFavorite.value : this.isFavorite,
       remindFrequency: data.remindFrequency.present
           ? data.remindFrequency.value
           : this.remindFrequency,
@@ -4699,6 +4728,7 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
           ..write('progress: $progress, ')
           ..write('isCompleted: $isCompleted, ')
           ..write('isPostponed: $isPostponed, ')
+          ..write('isFavorite: $isFavorite, ')
           ..write('remindFrequency: $remindFrequency, ')
           ..write('targetYear: $targetYear, ')
           ..write('targetQuarter: $targetQuarter, ')
@@ -4713,27 +4743,29 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
   }
 
   @override
-  int get hashCode => Object.hash(
-      id,
-      parentId,
-      level,
-      title,
-      note,
-      summary,
-      category,
-      tags,
-      progress,
-      isCompleted,
-      isPostponed,
-      remindFrequency,
-      targetYear,
-      targetQuarter,
-      targetMonth,
-      dueDate,
-      recordDate,
-      createdAt,
-      updatedAt,
-      isDeleted);
+  int get hashCode => Object.hashAll([
+        id,
+        parentId,
+        level,
+        title,
+        note,
+        summary,
+        category,
+        tags,
+        progress,
+        isCompleted,
+        isPostponed,
+        isFavorite,
+        remindFrequency,
+        targetYear,
+        targetQuarter,
+        targetMonth,
+        dueDate,
+        recordDate,
+        createdAt,
+        updatedAt,
+        isDeleted
+      ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -4749,6 +4781,7 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
           other.progress == this.progress &&
           other.isCompleted == this.isCompleted &&
           other.isPostponed == this.isPostponed &&
+          other.isFavorite == this.isFavorite &&
           other.remindFrequency == this.remindFrequency &&
           other.targetYear == this.targetYear &&
           other.targetQuarter == this.targetQuarter &&
@@ -4772,6 +4805,7 @@ class GoalRecordsCompanion extends UpdateCompanion<GoalRecord> {
   final Value<double> progress;
   final Value<bool> isCompleted;
   final Value<bool> isPostponed;
+  final Value<bool> isFavorite;
   final Value<String?> remindFrequency;
   final Value<int?> targetYear;
   final Value<int?> targetQuarter;
@@ -4794,6 +4828,7 @@ class GoalRecordsCompanion extends UpdateCompanion<GoalRecord> {
     this.progress = const Value.absent(),
     this.isCompleted = const Value.absent(),
     this.isPostponed = const Value.absent(),
+    this.isFavorite = const Value.absent(),
     this.remindFrequency = const Value.absent(),
     this.targetYear = const Value.absent(),
     this.targetQuarter = const Value.absent(),
@@ -4817,6 +4852,7 @@ class GoalRecordsCompanion extends UpdateCompanion<GoalRecord> {
     this.progress = const Value.absent(),
     this.isCompleted = const Value.absent(),
     this.isPostponed = const Value.absent(),
+    this.isFavorite = const Value.absent(),
     this.remindFrequency = const Value.absent(),
     this.targetYear = const Value.absent(),
     this.targetQuarter = const Value.absent(),
@@ -4845,6 +4881,7 @@ class GoalRecordsCompanion extends UpdateCompanion<GoalRecord> {
     Expression<double>? progress,
     Expression<bool>? isCompleted,
     Expression<bool>? isPostponed,
+    Expression<bool>? isFavorite,
     Expression<String>? remindFrequency,
     Expression<int>? targetYear,
     Expression<int>? targetQuarter,
@@ -4868,6 +4905,7 @@ class GoalRecordsCompanion extends UpdateCompanion<GoalRecord> {
       if (progress != null) 'progress': progress,
       if (isCompleted != null) 'is_completed': isCompleted,
       if (isPostponed != null) 'is_postponed': isPostponed,
+      if (isFavorite != null) 'is_favorite': isFavorite,
       if (remindFrequency != null) 'remind_frequency': remindFrequency,
       if (targetYear != null) 'target_year': targetYear,
       if (targetQuarter != null) 'target_quarter': targetQuarter,
@@ -4893,6 +4931,7 @@ class GoalRecordsCompanion extends UpdateCompanion<GoalRecord> {
       Value<double>? progress,
       Value<bool>? isCompleted,
       Value<bool>? isPostponed,
+      Value<bool>? isFavorite,
       Value<String?>? remindFrequency,
       Value<int?>? targetYear,
       Value<int?>? targetQuarter,
@@ -4915,6 +4954,7 @@ class GoalRecordsCompanion extends UpdateCompanion<GoalRecord> {
       progress: progress ?? this.progress,
       isCompleted: isCompleted ?? this.isCompleted,
       isPostponed: isPostponed ?? this.isPostponed,
+      isFavorite: isFavorite ?? this.isFavorite,
       remindFrequency: remindFrequency ?? this.remindFrequency,
       targetYear: targetYear ?? this.targetYear,
       targetQuarter: targetQuarter ?? this.targetQuarter,
@@ -4964,6 +5004,9 @@ class GoalRecordsCompanion extends UpdateCompanion<GoalRecord> {
     if (isPostponed.present) {
       map['is_postponed'] = Variable<bool>(isPostponed.value);
     }
+    if (isFavorite.present) {
+      map['is_favorite'] = Variable<bool>(isFavorite.value);
+    }
     if (remindFrequency.present) {
       map['remind_frequency'] = Variable<String>(remindFrequency.value);
     }
@@ -5011,6 +5054,7 @@ class GoalRecordsCompanion extends UpdateCompanion<GoalRecord> {
           ..write('progress: $progress, ')
           ..write('isCompleted: $isCompleted, ')
           ..write('isPostponed: $isPostponed, ')
+          ..write('isFavorite: $isFavorite, ')
           ..write('remindFrequency: $remindFrequency, ')
           ..write('targetYear: $targetYear, ')
           ..write('targetQuarter: $targetQuarter, ')
@@ -5093,6 +5137,16 @@ class $TimelineEventsTable extends TimelineEvents
   late final GeneratedColumn<double> longitude = GeneratedColumn<double>(
       'longitude', aliasedName, true,
       type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _isFavoriteMeta =
+      const VerificationMeta('isFavorite');
+  @override
+  late final GeneratedColumn<bool> isFavorite = GeneratedColumn<bool>(
+      'is_favorite', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_favorite" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _recordDateMeta =
       const VerificationMeta('recordDate');
   @override
@@ -5134,6 +5188,7 @@ class $TimelineEventsTable extends TimelineEvents
         poiAddress,
         latitude,
         longitude,
+        isFavorite,
         recordDate,
         createdAt,
         updatedAt,
@@ -5200,6 +5255,12 @@ class $TimelineEventsTable extends TimelineEvents
       context.handle(_longitudeMeta,
           longitude.isAcceptableOrUnknown(data['longitude']!, _longitudeMeta));
     }
+    if (data.containsKey('is_favorite')) {
+      context.handle(
+          _isFavoriteMeta,
+          isFavorite.isAcceptableOrUnknown(
+              data['is_favorite']!, _isFavoriteMeta));
+    }
     if (data.containsKey('record_date')) {
       context.handle(
           _recordDateMeta,
@@ -5255,6 +5316,8 @@ class $TimelineEventsTable extends TimelineEvents
           .read(DriftSqlType.double, data['${effectivePrefix}latitude']),
       longitude: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}longitude']),
+      isFavorite: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_favorite'])!,
       recordDate: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}record_date'])!,
       createdAt: attachedDatabase.typeMapping
@@ -5284,6 +5347,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
   final String? poiAddress;
   final double? latitude;
   final double? longitude;
+  final bool isFavorite;
   final DateTime recordDate;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -5300,6 +5364,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
       this.poiAddress,
       this.latitude,
       this.longitude,
+      required this.isFavorite,
       required this.recordDate,
       required this.createdAt,
       required this.updatedAt,
@@ -5334,6 +5399,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
     if (!nullToAbsent || longitude != null) {
       map['longitude'] = Variable<double>(longitude);
     }
+    map['is_favorite'] = Variable<bool>(isFavorite);
     map['record_date'] = Variable<DateTime>(recordDate);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -5365,6 +5431,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
       longitude: longitude == null && nullToAbsent
           ? const Value.absent()
           : Value(longitude),
+      isFavorite: Value(isFavorite),
       recordDate: Value(recordDate),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -5387,6 +5454,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
       poiAddress: serializer.fromJson<String?>(json['poiAddress']),
       latitude: serializer.fromJson<double?>(json['latitude']),
       longitude: serializer.fromJson<double?>(json['longitude']),
+      isFavorite: serializer.fromJson<bool>(json['isFavorite']),
       recordDate: serializer.fromJson<DateTime>(json['recordDate']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -5408,6 +5476,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
       'poiAddress': serializer.toJson<String?>(poiAddress),
       'latitude': serializer.toJson<double?>(latitude),
       'longitude': serializer.toJson<double?>(longitude),
+      'isFavorite': serializer.toJson<bool>(isFavorite),
       'recordDate': serializer.toJson<DateTime>(recordDate),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -5427,6 +5496,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
           Value<String?> poiAddress = const Value.absent(),
           Value<double?> latitude = const Value.absent(),
           Value<double?> longitude = const Value.absent(),
+          bool? isFavorite,
           DateTime? recordDate,
           DateTime? createdAt,
           DateTime? updatedAt,
@@ -5443,6 +5513,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
         poiAddress: poiAddress.present ? poiAddress.value : this.poiAddress,
         latitude: latitude.present ? latitude.value : this.latitude,
         longitude: longitude.present ? longitude.value : this.longitude,
+        isFavorite: isFavorite ?? this.isFavorite,
         recordDate: recordDate ?? this.recordDate,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
@@ -5462,6 +5533,8 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
           data.poiAddress.present ? data.poiAddress.value : this.poiAddress,
       latitude: data.latitude.present ? data.latitude.value : this.latitude,
       longitude: data.longitude.present ? data.longitude.value : this.longitude,
+      isFavorite:
+          data.isFavorite.present ? data.isFavorite.value : this.isFavorite,
       recordDate:
           data.recordDate.present ? data.recordDate.value : this.recordDate,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
@@ -5484,6 +5557,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
           ..write('poiAddress: $poiAddress, ')
           ..write('latitude: $latitude, ')
           ..write('longitude: $longitude, ')
+          ..write('isFavorite: $isFavorite, ')
           ..write('recordDate: $recordDate, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -5505,6 +5579,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
       poiAddress,
       latitude,
       longitude,
+      isFavorite,
       recordDate,
       createdAt,
       updatedAt,
@@ -5524,6 +5599,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
           other.poiAddress == this.poiAddress &&
           other.latitude == this.latitude &&
           other.longitude == this.longitude &&
+          other.isFavorite == this.isFavorite &&
           other.recordDate == this.recordDate &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -5542,6 +5618,7 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
   final Value<String?> poiAddress;
   final Value<double?> latitude;
   final Value<double?> longitude;
+  final Value<bool> isFavorite;
   final Value<DateTime> recordDate;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -5559,6 +5636,7 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
     this.poiAddress = const Value.absent(),
     this.latitude = const Value.absent(),
     this.longitude = const Value.absent(),
+    this.isFavorite = const Value.absent(),
     this.recordDate = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -5577,6 +5655,7 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
     this.poiAddress = const Value.absent(),
     this.latitude = const Value.absent(),
     this.longitude = const Value.absent(),
+    this.isFavorite = const Value.absent(),
     required DateTime recordDate,
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -5600,6 +5679,7 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
     Expression<String>? poiAddress,
     Expression<double>? latitude,
     Expression<double>? longitude,
+    Expression<bool>? isFavorite,
     Expression<DateTime>? recordDate,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -5618,6 +5698,7 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
       if (poiAddress != null) 'poi_address': poiAddress,
       if (latitude != null) 'latitude': latitude,
       if (longitude != null) 'longitude': longitude,
+      if (isFavorite != null) 'is_favorite': isFavorite,
       if (recordDate != null) 'record_date': recordDate,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -5638,6 +5719,7 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
       Value<String?>? poiAddress,
       Value<double?>? latitude,
       Value<double?>? longitude,
+      Value<bool>? isFavorite,
       Value<DateTime>? recordDate,
       Value<DateTime>? createdAt,
       Value<DateTime>? updatedAt,
@@ -5655,6 +5737,7 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
       poiAddress: poiAddress ?? this.poiAddress,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
+      isFavorite: isFavorite ?? this.isFavorite,
       recordDate: recordDate ?? this.recordDate,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -5699,6 +5782,9 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
     if (longitude.present) {
       map['longitude'] = Variable<double>(longitude.value);
     }
+    if (isFavorite.present) {
+      map['is_favorite'] = Variable<bool>(isFavorite.value);
+    }
     if (recordDate.present) {
       map['record_date'] = Variable<DateTime>(recordDate.value);
     }
@@ -5731,6 +5817,7 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
           ..write('poiAddress: $poiAddress, ')
           ..write('latitude: $latitude, ')
           ..write('longitude: $longitude, ')
+          ..write('isFavorite: $isFavorite, ')
           ..write('recordDate: $recordDate, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -11942,6 +12029,7 @@ typedef $$GoalRecordsTableCreateCompanionBuilder = GoalRecordsCompanion
   Value<double> progress,
   Value<bool> isCompleted,
   Value<bool> isPostponed,
+  Value<bool> isFavorite,
   Value<String?> remindFrequency,
   Value<int?> targetYear,
   Value<int?> targetQuarter,
@@ -11966,6 +12054,7 @@ typedef $$GoalRecordsTableUpdateCompanionBuilder = GoalRecordsCompanion
   Value<double> progress,
   Value<bool> isCompleted,
   Value<bool> isPostponed,
+  Value<bool> isFavorite,
   Value<String?> remindFrequency,
   Value<int?> targetYear,
   Value<int?> targetQuarter,
@@ -12019,6 +12108,9 @@ class $$GoalRecordsTableFilterComposer
 
   ColumnFilters<bool> get isPostponed => $composableBuilder(
       column: $table.isPostponed, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isFavorite => $composableBuilder(
+      column: $table.isFavorite, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get remindFrequency => $composableBuilder(
       column: $table.remindFrequency,
@@ -12090,6 +12182,9 @@ class $$GoalRecordsTableOrderingComposer
 
   ColumnOrderings<bool> get isPostponed => $composableBuilder(
       column: $table.isPostponed, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isFavorite => $composableBuilder(
+      column: $table.isFavorite, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get remindFrequency => $composableBuilder(
       column: $table.remindFrequency,
@@ -12163,6 +12258,9 @@ class $$GoalRecordsTableAnnotationComposer
   GeneratedColumn<bool> get isPostponed => $composableBuilder(
       column: $table.isPostponed, builder: (column) => column);
 
+  GeneratedColumn<bool> get isFavorite => $composableBuilder(
+      column: $table.isFavorite, builder: (column) => column);
+
   GeneratedColumn<String> get remindFrequency => $composableBuilder(
       column: $table.remindFrequency, builder: (column) => column);
 
@@ -12225,6 +12323,7 @@ class $$GoalRecordsTableTableManager extends RootTableManager<
             Value<double> progress = const Value.absent(),
             Value<bool> isCompleted = const Value.absent(),
             Value<bool> isPostponed = const Value.absent(),
+            Value<bool> isFavorite = const Value.absent(),
             Value<String?> remindFrequency = const Value.absent(),
             Value<int?> targetYear = const Value.absent(),
             Value<int?> targetQuarter = const Value.absent(),
@@ -12248,6 +12347,7 @@ class $$GoalRecordsTableTableManager extends RootTableManager<
             progress: progress,
             isCompleted: isCompleted,
             isPostponed: isPostponed,
+            isFavorite: isFavorite,
             remindFrequency: remindFrequency,
             targetYear: targetYear,
             targetQuarter: targetQuarter,
@@ -12271,6 +12371,7 @@ class $$GoalRecordsTableTableManager extends RootTableManager<
             Value<double> progress = const Value.absent(),
             Value<bool> isCompleted = const Value.absent(),
             Value<bool> isPostponed = const Value.absent(),
+            Value<bool> isFavorite = const Value.absent(),
             Value<String?> remindFrequency = const Value.absent(),
             Value<int?> targetYear = const Value.absent(),
             Value<int?> targetQuarter = const Value.absent(),
@@ -12294,6 +12395,7 @@ class $$GoalRecordsTableTableManager extends RootTableManager<
             progress: progress,
             isCompleted: isCompleted,
             isPostponed: isPostponed,
+            isFavorite: isFavorite,
             remindFrequency: remindFrequency,
             targetYear: targetYear,
             targetQuarter: targetQuarter,
@@ -12337,6 +12439,7 @@ typedef $$TimelineEventsTableCreateCompanionBuilder = TimelineEventsCompanion
   Value<String?> poiAddress,
   Value<double?> latitude,
   Value<double?> longitude,
+  Value<bool> isFavorite,
   required DateTime recordDate,
   required DateTime createdAt,
   required DateTime updatedAt,
@@ -12356,6 +12459,7 @@ typedef $$TimelineEventsTableUpdateCompanionBuilder = TimelineEventsCompanion
   Value<String?> poiAddress,
   Value<double?> latitude,
   Value<double?> longitude,
+  Value<bool> isFavorite,
   Value<DateTime> recordDate,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
@@ -12404,6 +12508,9 @@ class $$TimelineEventsTableFilterComposer
 
   ColumnFilters<double> get longitude => $composableBuilder(
       column: $table.longitude, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isFavorite => $composableBuilder(
+      column: $table.isFavorite, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get recordDate => $composableBuilder(
       column: $table.recordDate, builder: (column) => ColumnFilters(column));
@@ -12460,6 +12567,9 @@ class $$TimelineEventsTableOrderingComposer
   ColumnOrderings<double> get longitude => $composableBuilder(
       column: $table.longitude, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<bool> get isFavorite => $composableBuilder(
+      column: $table.isFavorite, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get recordDate => $composableBuilder(
       column: $table.recordDate, builder: (column) => ColumnOrderings(column));
 
@@ -12515,6 +12625,9 @@ class $$TimelineEventsTableAnnotationComposer
   GeneratedColumn<double> get longitude =>
       $composableBuilder(column: $table.longitude, builder: (column) => column);
 
+  GeneratedColumn<bool> get isFavorite => $composableBuilder(
+      column: $table.isFavorite, builder: (column) => column);
+
   GeneratedColumn<DateTime> get recordDate => $composableBuilder(
       column: $table.recordDate, builder: (column) => column);
 
@@ -12566,6 +12679,7 @@ class $$TimelineEventsTableTableManager extends RootTableManager<
             Value<String?> poiAddress = const Value.absent(),
             Value<double?> latitude = const Value.absent(),
             Value<double?> longitude = const Value.absent(),
+            Value<bool> isFavorite = const Value.absent(),
             Value<DateTime> recordDate = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
@@ -12584,6 +12698,7 @@ class $$TimelineEventsTableTableManager extends RootTableManager<
             poiAddress: poiAddress,
             latitude: latitude,
             longitude: longitude,
+            isFavorite: isFavorite,
             recordDate: recordDate,
             createdAt: createdAt,
             updatedAt: updatedAt,
@@ -12602,6 +12717,7 @@ class $$TimelineEventsTableTableManager extends RootTableManager<
             Value<String?> poiAddress = const Value.absent(),
             Value<double?> latitude = const Value.absent(),
             Value<double?> longitude = const Value.absent(),
+            Value<bool> isFavorite = const Value.absent(),
             required DateTime recordDate,
             required DateTime createdAt,
             required DateTime updatedAt,
@@ -12620,6 +12736,7 @@ class $$TimelineEventsTableTableManager extends RootTableManager<
             poiAddress: poiAddress,
             latitude: latitude,
             longitude: longitude,
+            isFavorite: isFavorite,
             recordDate: recordDate,
             createdAt: createdAt,
             updatedAt: updatedAt,
@@ -14830,36 +14947,138 @@ class $AppDatabaseManager {
 
 mixin _$FoodDaoMixin on DatabaseAccessor<AppDatabase> {
   $FoodRecordsTable get foodRecords => attachedDatabase.foodRecords;
+  FoodDaoManager get managers => FoodDaoManager(this);
 }
+
+class FoodDaoManager {
+  final _$FoodDaoMixin _db;
+  FoodDaoManager(this._db);
+  $$FoodRecordsTableTableManager get foodRecords =>
+      $$FoodRecordsTableTableManager(_db.attachedDatabase, _db.foodRecords);
+}
+
 mixin _$MomentDaoMixin on DatabaseAccessor<AppDatabase> {
   $MomentRecordsTable get momentRecords => attachedDatabase.momentRecords;
+  MomentDaoManager get managers => MomentDaoManager(this);
 }
+
+class MomentDaoManager {
+  final _$MomentDaoMixin _db;
+  MomentDaoManager(this._db);
+  $$MomentRecordsTableTableManager get momentRecords =>
+      $$MomentRecordsTableTableManager(_db.attachedDatabase, _db.momentRecords);
+}
+
 mixin _$FriendDaoMixin on DatabaseAccessor<AppDatabase> {
   $FriendRecordsTable get friendRecords => attachedDatabase.friendRecords;
+  FriendDaoManager get managers => FriendDaoManager(this);
 }
+
+class FriendDaoManager {
+  final _$FriendDaoMixin _db;
+  FriendDaoManager(this._db);
+  $$FriendRecordsTableTableManager get friendRecords =>
+      $$FriendRecordsTableTableManager(_db.attachedDatabase, _db.friendRecords);
+}
+
 mixin _$LinkDaoMixin on DatabaseAccessor<AppDatabase> {
   $EntityLinksTable get entityLinks => attachedDatabase.entityLinks;
   $LinkLogsTable get linkLogs => attachedDatabase.linkLogs;
+  LinkDaoManager get managers => LinkDaoManager(this);
 }
+
+class LinkDaoManager {
+  final _$LinkDaoMixin _db;
+  LinkDaoManager(this._db);
+  $$EntityLinksTableTableManager get entityLinks =>
+      $$EntityLinksTableTableManager(_db.attachedDatabase, _db.entityLinks);
+  $$LinkLogsTableTableManager get linkLogs =>
+      $$LinkLogsTableTableManager(_db.attachedDatabase, _db.linkLogs);
+}
+
 mixin _$AiProviderDaoMixin on DatabaseAccessor<AppDatabase> {
   $AiProvidersTable get aiProviders => attachedDatabase.aiProviders;
+  AiProviderDaoManager get managers => AiProviderDaoManager(this);
 }
+
+class AiProviderDaoManager {
+  final _$AiProviderDaoMixin _db;
+  AiProviderDaoManager(this._db);
+  $$AiProvidersTableTableManager get aiProviders =>
+      $$AiProvidersTableTableManager(_db.attachedDatabase, _db.aiProviders);
+}
+
 mixin _$ChangeLogDaoMixin on DatabaseAccessor<AppDatabase> {
   $ChangeLogsTable get changeLogs => attachedDatabase.changeLogs;
+  ChangeLogDaoManager get managers => ChangeLogDaoManager(this);
 }
+
+class ChangeLogDaoManager {
+  final _$ChangeLogDaoMixin _db;
+  ChangeLogDaoManager(this._db);
+  $$ChangeLogsTableTableManager get changeLogs =>
+      $$ChangeLogsTableTableManager(_db.attachedDatabase, _db.changeLogs);
+}
+
 mixin _$SyncStateDaoMixin on DatabaseAccessor<AppDatabase> {
   $SyncStateTable get syncState => attachedDatabase.syncState;
+  SyncStateDaoManager get managers => SyncStateDaoManager(this);
 }
+
+class SyncStateDaoManager {
+  final _$SyncStateDaoMixin _db;
+  SyncStateDaoManager(this._db);
+  $$SyncStateTableTableManager get syncState =>
+      $$SyncStateTableTableManager(_db.attachedDatabase, _db.syncState);
+}
+
 mixin _$ChecklistDaoMixin on DatabaseAccessor<AppDatabase> {
   $ChecklistItemsTable get checklistItems => attachedDatabase.checklistItems;
+  ChecklistDaoManager get managers => ChecklistDaoManager(this);
 }
+
+class ChecklistDaoManager {
+  final _$ChecklistDaoMixin _db;
+  ChecklistDaoManager(this._db);
+  $$ChecklistItemsTableTableManager get checklistItems =>
+      $$ChecklistItemsTableTableManager(
+          _db.attachedDatabase, _db.checklistItems);
+}
+
 mixin _$GoalPostponementDaoMixin on DatabaseAccessor<AppDatabase> {
   $GoalPostponementsTable get goalPostponements =>
       attachedDatabase.goalPostponements;
+  GoalPostponementDaoManager get managers => GoalPostponementDaoManager(this);
 }
+
+class GoalPostponementDaoManager {
+  final _$GoalPostponementDaoMixin _db;
+  GoalPostponementDaoManager(this._db);
+  $$GoalPostponementsTableTableManager get goalPostponements =>
+      $$GoalPostponementsTableTableManager(
+          _db.attachedDatabase, _db.goalPostponements);
+}
+
 mixin _$GoalReviewDaoMixin on DatabaseAccessor<AppDatabase> {
   $GoalReviewsTable get goalReviews => attachedDatabase.goalReviews;
+  GoalReviewDaoManager get managers => GoalReviewDaoManager(this);
 }
+
+class GoalReviewDaoManager {
+  final _$GoalReviewDaoMixin _db;
+  GoalReviewDaoManager(this._db);
+  $$GoalReviewsTableTableManager get goalReviews =>
+      $$GoalReviewsTableTableManager(_db.attachedDatabase, _db.goalReviews);
+}
+
 mixin _$BackupLogDaoMixin on DatabaseAccessor<AppDatabase> {
   $BackupLogsTable get backupLogs => attachedDatabase.backupLogs;
+  BackupLogDaoManager get managers => BackupLogDaoManager(this);
+}
+
+class BackupLogDaoManager {
+  final _$BackupLogDaoMixin _db;
+  BackupLogDaoManager(this._db);
+  $$BackupLogsTableTableManager get backupLogs =>
+      $$BackupLogsTableTableManager(_db.attachedDatabase, _db.backupLogs);
 }

@@ -3268,10 +3268,11 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           textStyle: const TextStyle(fontWeight: FontWeight.w900),
                         ),
-                        onPressed: () {
+                        onPressed: () async {
                           final v = controller.text.trim();
                           if (v.isEmpty) return;
                           if (localTags.contains(v)) return;
+                          await syncTagToModuleConfig('food', v);
                           setState(() {
                             localTags.add(v);
                             _selectedTags.add(v);

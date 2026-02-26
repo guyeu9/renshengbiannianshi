@@ -2118,6 +2118,30 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
               ),
               child: Row(
                 children: [
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      final db = ref.read(appDatabaseProvider);
+                      await db.updateGoalFavorite(record.id, isFavorite: !record.isFavorite, now: DateTime.now());
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(record.isFavorite ? '已取消收藏' : '已添加到收藏'),
+                            duration: const Duration(seconds: 1),
+                          ),
+                        );
+                      }
+                    },
+                    icon: Icon(record.isFavorite ? Icons.bookmark : Icons.bookmark_border, size: 18),
+                    label: Text(record.isFavorite ? '已收藏' : '收藏'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: record.isFavorite ? AppTheme.primary : const Color(0xFF6B7280),
+                      side: BorderSide(color: record.isFavorite ? AppTheme.primary : const Color(0xFFE5E7EB)),
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                      textStyle: const TextStyle(fontWeight: FontWeight.w900),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () => Navigator.of(context).push(MaterialPageRoute(
@@ -2134,7 +2158,7 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                   Expanded(
                     flex: 2,
                     child: ElevatedButton.icon(
@@ -5061,6 +5085,10 @@ class _GoalCreatePageState extends ConsumerState<GoalCreatePage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请先填写目标标题')));
       return;
+    }
+
+    if (_selectedGoalType.isNotEmpty) {
+      await syncTagToModuleConfig('goal', _selectedGoalType);
     }
 
     final db = ref.read(appDatabaseProvider);

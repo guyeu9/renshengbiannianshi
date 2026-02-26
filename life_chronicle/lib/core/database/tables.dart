@@ -128,6 +128,7 @@ class GoalRecords extends Table {
   RealColumn get progress => real().withDefault(const Constant(0))();
   BoolColumn get isCompleted => boolean().withDefault(const Constant(false))();
   BoolColumn get isPostponed => boolean().withDefault(const Constant(false))();
+  BoolColumn get isFavorite => boolean().withDefault(const Constant(false))();
   TextColumn get remindFrequency => text().nullable()();
   IntColumn get targetYear => integer().nullable()();
   IntColumn get targetQuarter => integer().nullable()();
@@ -154,6 +155,7 @@ class TimelineEvents extends Table {
   TextColumn get poiAddress => text().nullable()();
   RealColumn get latitude => real().nullable()();
   RealColumn get longitude => real().nullable()();
+  BoolColumn get isFavorite => boolean().withDefault(const Constant(false))();
   DateTimeColumn get recordDate => dateTime()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
