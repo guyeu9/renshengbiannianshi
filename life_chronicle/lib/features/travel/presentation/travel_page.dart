@@ -1276,7 +1276,7 @@ class TravelDetailPage extends ConsumerWidget {
                                             ),
                                           if (tagList.isNotEmpty) const SizedBox(height: 14),
                                           StreamBuilder<List<ChecklistItem>>(
-                                            stream: db.checklistDao.watchByTripId(tripId ?? ''),
+                                            stream: db.checklistDao.watchByTripId(tripId),
                                             builder: (context, checklistSnapshot) {
                                               final checklistItems = checklistSnapshot.data ?? const <ChecklistItem>[];
                                               if (checklistItems.isEmpty) return const SizedBox.shrink();
@@ -1293,7 +1293,7 @@ class TravelDetailPage extends ConsumerWidget {
                                             },
                                           ),
                                           StreamBuilder<List<ChecklistItem>>(
-                                            stream: db.checklistDao.watchByTripId(tripId ?? ''),
+                                            stream: db.checklistDao.watchByTripId(tripId),
                                             builder: (context, checklistSnapshot) {
                                               final checklistItems = checklistSnapshot.data ?? const <ChecklistItem>[];
                                               if (checklistItems.isEmpty) return const SizedBox.shrink();
