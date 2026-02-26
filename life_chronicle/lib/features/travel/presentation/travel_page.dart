@@ -5344,9 +5344,9 @@ class _ChecklistCardState extends State<_ChecklistCard> {
         ),
         if (_showConfetti)
           Positioned.fill(
-            child: Confetti(
-              particleCount: 15,
+            child: ConfettiWidget(
               blastDirectionality: BlastDirectionality.explosive,
+              particleCount: 15,
               blastDirection: -3.14159 / 2,
               emissionFrequency: 0.1,
               numberOfParticles: 15,
@@ -5357,6 +5357,7 @@ class _ChecklistCardState extends State<_ChecklistCard> {
                 Color(0xFFFF6B6B),
                 Color(0xFF4CAF50),
               ],
+              createParticlePath: (size) => Path()..addOval(Rect.fromCircle(center: Offset.zero, radius: 4)),
               child: const SizedBox.expand(),
             ),
           ),
