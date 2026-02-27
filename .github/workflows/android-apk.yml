@@ -24,6 +24,8 @@ jobs:
           java-version: 17
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: 11076708
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -43,6 +45,7 @@ jobs:
           echo "storeFile=life-chronicle-release.jks" >> life_chronicle/android/key.properties
       - name: Install Android SDK platforms
         run: |
+          yes | sdkmanager --licenses || true
           sdkmanager "platforms;android-36" "platforms;android-35" "platforms;android-31" "platforms;android-29" "build-tools;36.0.0"
       - name: Cache Pub
         uses: actions/cache@v4
