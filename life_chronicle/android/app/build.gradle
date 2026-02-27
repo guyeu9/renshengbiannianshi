@@ -81,6 +81,7 @@ android {
 
     packaging {
         jniLibs {
+            useLegacyPackaging = true
             pickFirsts.addAll([
                 "lib/arm64-v8a/libssl.so",
                 "lib/arm64-v8a/libcrypto.so",
