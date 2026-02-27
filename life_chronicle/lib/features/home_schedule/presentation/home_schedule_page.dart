@@ -1397,7 +1397,7 @@ class _EventStream extends ConsumerWidget {
       String? currentParentId = record.parentId;
       while (currentParentId != null) {
         final parent = await (db.select(db.goalRecords)
-              ..where((t) => t.id.equals(currentParentId))
+              ..where((t) => t.id.equals(currentParentId!))
               ..where((t) => t.isDeleted.equals(false))
               ..limit(1))
             .getSingleOrNull();
