@@ -27,6 +27,7 @@ class AMapWebViewMap extends StatefulWidget {
     this.onPoiSelected,
     this.onMapReady,
     this.onError,
+    this.onLocationWithAddress,
   });
 
   final double? initialLatitude;
@@ -43,6 +44,7 @@ class AMapWebViewMap extends StatefulWidget {
   final void Function(String name, String address, double lat, double lng)? onPoiSelected;
   final VoidCallback? onMapReady;
   final void Function(String error)? onError;
+  final void Function(double lat, double lng, String city, String address, String description)? onLocationWithAddress;
 
   @override
   State<AMapWebViewMap> createState() => _AMapWebViewMapState();
@@ -80,7 +82,8 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
     _locationPlugin = AMapFlutterLocation();
     _locationPlugin?.setLocationOption(AMapLocationOption(
       onceLocation: true,
-      needAddress: false,
+      needAddress: true,
+      geoLanguage: GeoLanguage.ZH,
       locationMode: AMapLocationMode.Hight_Accuracy,
     ));
   }
@@ -183,6 +186,9 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
     final isPreviewMode = widget.isPreviewMode;
     final enablePoiClick = widget.enablePoiClick && !widget.isPreviewMode;
     final hasMarker = isPreviewMode && markerLat != null && markerLng != null;
+
+    debugPrint('AMapWebViewMap: Building HTML with webKey=$webKey, securityCode=${securityCode.isNotEmpty ? "已配置" : "未配置"}');
+    debugPrint('AMapWebViewMap: Initial position: lat=$initialLat, lng=$initialLng, zoom=$initialZoom');
 
     return '''
 <!DOCTYPE html>
@@ -385,6 +391,7 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
       
       log('Loading AMap JS API v2.0...');
       log('Key: $webKey');
+      log('Security Code: ${securityCode.isNotEmpty ? "已配置" : "未配置"}');
       
       // 安全密钥配置
       window._AMapSecurityConfig = {
@@ -394,8 +401,11 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
       var script = document.createElement('script');
       script.src = 'https://webapi.amap.com/maps?v=2.0&key=$webKey&callback=initAMap';
       script.async = true;
-      script.onerror = function() {
-        log('Script load failed');
+      script.onload = function() {
+        log('Script loaded successfully');
+      };
+      script.onerror = function(e) {
+        log('Script load failed: ' + (e || 'unknown error'));
         showError('地图脚本加载失败，请检查网络');
       };
       document.head.appendChild(script);
@@ -500,12 +510,21 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
           
           final lat = result['latitude'] as double?;
           final lng = result['longitude'] as double?;
+          final city = (result['city'] as String?) ?? '';
+          final address = (result['address'] as String?) ?? '';
+          final description = (result['description'] as String?) ?? '';
+          final district = (result['district'] as String?) ?? '';
+          final street = (result['street'] as String?) ?? '';
+          final streetNumber = (result['streetNumber'] as String?) ?? '';
+          
+          debugPrint('AMapWebViewMap: Location details - city=$city, address=$address, description=$description, district=$district, street=$street');
           
           if (lat != null && lng != null && mounted) {
             _controller?.runJavaScript('if(window.setCenter) window.setCenter($lng, $lat)');
             widget.onLocationSelected?.call(lat, lng);
+            widget.onLocationWithAddress?.call(lat, lng, city, address, description);
             setState(() => _isLocating = false);
-            debugPrint('AMapWebViewMap: Location success: lat=$lat, lng=$lng');
+            debugPrint('AMapWebViewMap: Location success: lat=$lat, lng=$lng, city=$city, address=$address');
           } else {
             debugPrint('AMapWebViewMap: Location result invalid: $result');
             if (mounted) {

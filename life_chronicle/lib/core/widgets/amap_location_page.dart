@@ -109,6 +109,12 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
   var _loading = false;
   var _errorText = '';
   var _pois = <_AmapPoi>[];
+  
+  String? _currentLocationName;
+  String? _currentLocationAddress;
+  String? _currentLocationCity;
+  double? _currentLocationLat;
+  double? _currentLocationLng;
 
   String get _pickedPoiName => _poiNameController.text.trim();
   String get _pickedAddress => _addressController.text.trim();
@@ -538,6 +544,17 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
                                     _pickedLongitude = lng;
                                   });
                                 },
+                          onLocationWithAddress: isPreview
+                              ? null
+                              : (lat, lng, city, address, description) {
+                                  setState(() {
+                                    _currentLocationLat = lat;
+                                    _currentLocationLng = lng;
+                                    _currentLocationCity = city;
+                                    _currentLocationAddress = address;
+                                    _currentLocationName = description.isNotEmpty ? description : address;
+                                  });
+                                },
                           onError: (error) {
                             if (kDebugMode) {
                               debugPrint('WebView Map Error: $error');
@@ -636,6 +653,71 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
             if (_errorText.isNotEmpty) ...[
               const SizedBox(height: 10),
               Text(_errorText, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFFEF4444))),
+            ],
+            if (_currentLocationName != null || _currentLocationAddress != null) ...[
+              const SizedBox(height: 12),
+              InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () {
+                  setState(() {
+                    _poiNameController.text = _currentLocationName ?? '';
+                    _addressController.text = _currentLocationAddress ?? '';
+                    _cityController.text = _currentLocationCity ?? '';
+                    _pickedLatitude = _currentLocationLat;
+                    _pickedLongitude = _currentLocationLng;
+                  });
+                  _syncMarkerAndCamera();
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F8FB),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: _primary.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.my_location, color: _primary, size: 20),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '当前位置',
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: _primary),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              _currentLocationName ?? _currentLocationAddress ?? '未知位置',
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (_currentLocationAddress != null && _currentLocationName != null) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                _currentLocationAddress!,
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                            if (_currentLocationCity != null && _currentLocationCity!.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                _currentLocationCity!,
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
+                    ],
+                  ),
+                ),
+              ),
             ],
             const SizedBox(height: 12),
             if (!_hasWebKey)

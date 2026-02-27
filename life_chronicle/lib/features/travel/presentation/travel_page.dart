@@ -1039,7 +1039,7 @@ class TravelDetailPage extends ConsumerWidget {
               stream: _watchTravelRecordsByTripId(db, tripId),
               builder: (context, travelSnapshot) {
                 final allRecords = travelSnapshot.data ?? const <TravelRecord>[];
-                final journals = allRecords.where((r) => r.id != recordId && !r.isWishlist).toList(growable: false);
+                final journals = allRecords.where((r) => r.id != recordId && !r.isWishlist && r.isJournal).toList(growable: false);
                 return StreamBuilder<List<EntityLink>>(
                   stream: db.select(db.entityLinks).watch(),
                   builder: (context, linkSnapshot) {
@@ -1304,12 +1304,17 @@ class TravelDetailPage extends ConsumerWidget {
                                           ),
                                           Builder(
                                             builder: (context) {
-                                              final travelIdForLink = recordId;
+                                              final allTravelIds = <String>{recordId};
+                                              for (final r in allRecords) {
+                                                if (r.tripId == tripId) {
+                                                  allTravelIds.add(r.id);
+                                                }
+                                              }
                                               final linkedFriendIds = <String>{};
                                               for (final link in links) {
-                                                if (link.sourceType == 'travel' && link.sourceId == travelIdForLink && link.targetType == 'friend') {
+                                                if (link.sourceType == 'travel' && allTravelIds.contains(link.sourceId) && link.targetType == 'friend') {
                                                   linkedFriendIds.add(link.targetId);
-                                                } else if (link.targetType == 'travel' && link.targetId == travelIdForLink && link.sourceType == 'friend') {
+                                                } else if (link.targetType == 'travel' && allTravelIds.contains(link.targetId) && link.sourceType == 'friend') {
                                                   linkedFriendIds.add(link.sourceId);
                                                 }
                                               }
@@ -1329,12 +1334,17 @@ class TravelDetailPage extends ConsumerWidget {
                                           ),
                                           Builder(
                                             builder: (context) {
-                                              final travelIdForLink = recordId;
+                                              final allTravelIds = <String>{recordId};
+                                              for (final r in allRecords) {
+                                                if (r.tripId == tripId) {
+                                                  allTravelIds.add(r.id);
+                                                }
+                                              }
                                               final linkedFriendIds = <String>{};
                                               for (final link in links) {
-                                                if (link.sourceType == 'travel' && link.sourceId == travelIdForLink && link.targetType == 'friend') {
+                                                if (link.sourceType == 'travel' && allTravelIds.contains(link.sourceId) && link.targetType == 'friend') {
                                                   linkedFriendIds.add(link.targetId);
-                                                } else if (link.targetType == 'travel' && link.targetId == travelIdForLink && link.sourceType == 'friend') {
+                                                } else if (link.targetType == 'travel' && allTravelIds.contains(link.targetId) && link.sourceType == 'friend') {
                                                   linkedFriendIds.add(link.sourceId);
                                                 }
                                               }
