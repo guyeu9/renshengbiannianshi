@@ -453,7 +453,16 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
   }
 
   Future<void> _handleLocationRequest() async {
-    if (_isLocating) return;
+    if (_isLocating) {
+      debugPrint('AMapWebViewMap: Already locating, skip');
+      return;
+    }
+
+    _locationSubscription?.cancel();
+    _locationSubscription = null;
+
+    _locationPlugin?.destroy();
+    _initLocationPlugin();
     
     if (!_locationPermissionGranted) {
       await _requestLocationPermission();
@@ -471,34 +480,61 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
     setState(() => _isLocating = true);
     
     try {
-      _locationSubscription?.cancel();
-      _locationSubscription = _locationPlugin?.onLocationChanged().listen((result) {
-        _locationSubscription?.cancel();
-        
-        final lat = result['latitude'] as double?;
-        final lng = result['longitude'] as double?;
-        
-        if (lat != null && lng != null && mounted) {
-          _controller?.runJavaScript('if(window.setCenter) window.setCenter($lng, $lat)');
-          widget.onLocationSelected?.call(lat, lng);
-          debugPrint('AMapWebViewMap: Location result: lat=$lat, lng=$lng');
-        } else {
-          debugPrint('AMapWebViewMap: Location result invalid: $result');
+      _locationSubscription = _locationPlugin?.onLocationChanged().listen(
+        (result) {
+          debugPrint('AMapWebViewMap: Location result: $result');
+          _locationSubscription?.cancel();
+          
+          final errorCode = result['errorCode'];
+          if (errorCode != null && errorCode != 0) {
+            final errorInfo = result['errorInfo'] ?? '定位失败';
+            debugPrint('AMapWebViewMap: Location error code=$errorCode, info=$errorInfo');
+            if (mounted) {
+              setState(() => _isLocating = false);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('定位失败: $errorInfo')),
+              );
+            }
+            return;
+          }
+          
+          final lat = result['latitude'] as double?;
+          final lng = result['longitude'] as double?;
+          
+          if (lat != null && lng != null && mounted) {
+            _controller?.runJavaScript('if(window.setCenter) window.setCenter($lng, $lat)');
+            widget.onLocationSelected?.call(lat, lng);
+            setState(() => _isLocating = false);
+            debugPrint('AMapWebViewMap: Location success: lat=$lat, lng=$lng');
+          } else {
+            debugPrint('AMapWebViewMap: Location result invalid: $result');
+            if (mounted) {
+              setState(() => _isLocating = false);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('定位结果无效，请重试')),
+              );
+            }
+          }
+          
+          _locationPlugin?.stopLocation();
+        },
+        onError: (error) {
+          debugPrint('AMapWebViewMap: Location stream error: $error');
           if (mounted) {
+            setState(() => _isLocating = false);
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('定位失败，请重试')),
+              SnackBar(content: Text('定位失败: $error')),
             );
           }
-        }
-        
-        _locationPlugin?.stopLocation();
-        if (mounted) setState(() => _isLocating = false);
-      });
+        },
+      );
       
       _locationPlugin?.startLocation();
+      debugPrint('AMapWebViewMap: Location started, waiting for result...');
       
       await Future.delayed(const Duration(seconds: 15));
       if (_isLocating && mounted) {
+        debugPrint('AMapWebViewMap: Location timeout after 15 seconds');
         _locationSubscription?.cancel();
         _locationPlugin?.stopLocation();
         setState(() => _isLocating = false);

@@ -35,6 +35,14 @@ public class AMapLocationClientImpl implements AMapLocationListener {
 
         try {
             if (locationClient == null) {
+                try {
+                    AMapLocationClient.updatePrivacyShow(mContext, true, true);
+                    AMapLocationClient.updatePrivacyAgree(mContext, true);
+                    Log.d(TAG, "Privacy settings applied");
+                } catch (Exception e) {
+                    Log.w(TAG, "Privacy settings may already be set: " + e.getMessage());
+                }
+                
                 locationClient = new AMapLocationClient(mContext);
                 Log.d(TAG, "Created new AMapLocationClient");
             }
@@ -80,15 +88,24 @@ public class AMapLocationClientImpl implements AMapLocationListener {
 
     @Override
     public void onLocationChanged(AMapLocation location) {
-        Log.d(TAG, "onLocationChanged: " + (location != null ? "errorCode=" + location.getErrorCode() : "null"));
+        Log.d(TAG, "onLocationChanged: " + (location != null ? "errorCode=" + location.getErrorCode() + ", errorInfo=" + location.getErrorInfo() : "null"));
 
         if (mEventSink == null) {
             Log.w(TAG, "EventSink is null, cannot send location result");
             return;
         }
 
+        if (location != null) {
+            Log.d(TAG, "Location details: lat=" + location.getLatitude() + 
+                       ", lng=" + location.getLongitude() + 
+                       ", type=" + location.getLocationType() +
+                       ", accuracy=" + location.getAccuracy());
+        }
+
         Map<String, Object> result = Utils.buildLocationResultMap(location);
         result.put("pluginKey", mPluginKey);
+        
+        Log.d(TAG, "Sending location result to Flutter: pluginKey=" + mPluginKey);
         mEventSink.success(result);
     }
 

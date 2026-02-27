@@ -8,18 +8,13 @@ class AMapFlutterLocation {
   static const String _CHANNEL_STREAM_LOCATION = "amap_flutter_location_stream";
 
   static const MethodChannel _methodChannel =
-      const MethodChannel(_CHANNEL_METHOD_LOCATION);
+      MethodChannel(_CHANNEL_METHOD_LOCATION);
 
   static const EventChannel _eventChannel =
-      const EventChannel(_CHANNEL_STREAM_LOCATION);
-
-  static Stream<Map<String, Object>> _onLocationChanged = _eventChannel
-      .receiveBroadcastStream()
-      .asBroadcastStream()
-      .map<Map<String, Object>>((element) => element.cast<String, Object>());
+      EventChannel(_CHANNEL_STREAM_LOCATION);
 
   StreamController<Map<String, Object>>? _receiveStream;
-  StreamSubscription<Map<String, Object>>? _subscription;
+  StreamSubscription<dynamic>? _subscription;
   String? _pluginKey;
 
   Future<AMapAccuracyAuthorization> getSystemAccuracyAuthorization() async {
@@ -62,26 +57,43 @@ class AMapFlutterLocation {
   }
 
   void destroy() {
-    _methodChannel.invokeListMethod('destroy', {'pluginKey': _pluginKey});
-    if (_subscription != null) {
-      _receiveStream?.close();
-      _subscription?.cancel();
-      _receiveStream = null;
-      _subscription = null;
-    }
+    _methodChannel.invokeMethod('destroy', {'pluginKey': _pluginKey});
+    _subscription?.cancel();
+    _subscription = null;
+    _receiveStream?.close();
+    _receiveStream = null;
   }
 
   Stream<Map<String, Object>> onLocationChanged() {
-    if (_receiveStream == null) {
-      _receiveStream = StreamController();
-      _subscription = _onLocationChanged.listen((Map<String, Object> event) {
-        if (event['pluginKey'] == _pluginKey) {
-          Map<String, Object> newEvent = Map<String, Object>.of(event);
-          newEvent.remove('pluginKey');
-          _receiveStream?.add(newEvent);
-        }
-      });
-    }
+    _subscription?.cancel();
+    _receiveStream?.close();
+
+    _receiveStream = StreamController<Map<String, Object>>.broadcast();
+
+    _subscription = _eventChannel
+        .receiveBroadcastStream()
+        .map<Map<String, Object>>((element) {
+          if (element is Map) {
+            return Map<String, Object>.from(element);
+          }
+          return <String, Object>{};
+        })
+        .listen(
+          (Map<String, Object> event) {
+            if (event['pluginKey'] == _pluginKey) {
+              Map<String, Object> newEvent = Map<String, Object>.of(event);
+              newEvent.remove('pluginKey');
+              _receiveStream?.add(newEvent);
+            }
+          },
+          onError: (error) {
+            _receiveStream?.addError(error);
+          },
+          onDone: () {
+            _receiveStream?.close();
+          },
+        );
+
     return _receiveStream!.stream;
   }
 

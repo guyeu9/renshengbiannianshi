@@ -283,4 +283,55 @@ class AppDatabase extends _$AppDatabase {
       ),
     );
   }
+
+  Stream<List<FoodRecord>> watchFoodRecordsWithFriends() {
+    final query = select(foodRecords).join([
+      innerJoin(
+        entityLinks,
+        entityLinks.sourceId.equalsExp(foodRecords.id) &
+            entityLinks.sourceType.equals('food') &
+            entityLinks.targetType.equals('friend'),
+      )
+    ]);
+
+    query.where(foodRecords.isDeleted.equals(false));
+    query.distinct();
+    query.orderBy([OrderingTerm.desc(foodRecords.recordDate)]);
+
+    return query.map((row) => row.readTable(foodRecords)).watch();
+  }
+
+  Stream<List<MomentRecord>> watchMomentRecordsWithFriends() {
+    final query = select(momentRecords).join([
+      innerJoin(
+        entityLinks,
+        entityLinks.sourceId.equalsExp(momentRecords.id) &
+            entityLinks.sourceType.equals('moment') &
+            entityLinks.targetType.equals('friend'),
+      )
+    ]);
+
+    query.where(momentRecords.isDeleted.equals(false));
+    query.distinct();
+    query.orderBy([OrderingTerm.desc(momentRecords.recordDate)]);
+
+    return query.map((row) => row.readTable(momentRecords)).watch();
+  }
+
+  Stream<List<TravelRecord>> watchTravelRecordsWithFriends() {
+    final query = select(travelRecords).join([
+      innerJoin(
+        entityLinks,
+        entityLinks.sourceId.equalsExp(travelRecords.id) &
+            entityLinks.sourceType.equals('travel') &
+            entityLinks.targetType.equals('friend'),
+      )
+    ]);
+
+    query.where(travelRecords.isDeleted.equals(false));
+    query.distinct();
+    query.orderBy([OrderingTerm.desc(travelRecords.recordDate)]);
+
+    return query.map((row) => row.readTable(travelRecords)).watch();
+  }
 }
