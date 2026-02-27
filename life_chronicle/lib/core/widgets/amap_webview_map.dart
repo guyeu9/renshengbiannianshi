@@ -28,6 +28,7 @@ class AMapWebViewMap extends StatefulWidget {
     this.onMapReady,
     this.onError,
     this.onLocationWithAddress,
+    this.onLocationReadyForNearbySearch,
   });
 
   final double? initialLatitude;
@@ -45,6 +46,7 @@ class AMapWebViewMap extends StatefulWidget {
   final VoidCallback? onMapReady;
   final void Function(String error)? onError;
   final void Function(double lat, double lng, String city, String address, String description)? onLocationWithAddress;
+  final void Function(double lat, double lng)? onLocationReadyForNearbySearch;
 
   @override
   State<AMapWebViewMap> createState() => _AMapWebViewMapState();
@@ -520,6 +522,7 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
             _controller?.runJavaScript('if(window.setCenter) window.setCenter($lng, $lat)');
             widget.onLocationSelected?.call(lat, lng);
             widget.onLocationWithAddress?.call(lat, lng, city, address, description);
+            widget.onLocationReadyForNearbySearch?.call(lat, lng);
             setState(() => _isLocating = false);
             debugPrint('AMapWebViewMap: Location success: lat=$lat, lng=$lng, city=$city, address=$address');
           } else {

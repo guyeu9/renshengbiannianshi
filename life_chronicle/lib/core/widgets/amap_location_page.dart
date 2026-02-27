@@ -115,6 +115,9 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
   String? _currentLocationCity;
   double? _currentLocationLat;
   double? _currentLocationLng;
+  
+  var _nearbyPois = <_AmapPoi>[];
+  bool _loadingNearby = false;
 
   String get _pickedPoiName => _poiNameController.text.trim();
   String get _pickedAddress => _addressController.text.trim();
@@ -277,6 +280,77 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
       if (mounted) {
         setState(() => _loading = false);
       }
+    }
+  }
+
+  Future<void> _searchNearbyPois(double lat, double lng) async {
+    if (!_hasWebKey) return;
+    
+    setState(() {
+      _loadingNearby = true;
+      _nearbyPois = [];
+    });
+
+    try {
+      final uri = Uri.https('restapi.amap.com', '/v3/place/around', {
+        'location': '$lng,$lat',
+        'keywords': '',
+        'types': '',
+        'radius': '1000',
+        'offset': '10',
+        'page': '1',
+        'extensions': 'base',
+        'key': _amapWebKey,
+      });
+      final client = HttpClient();
+      final request = await client.getUrl(uri);
+      final response = await request.close();
+      final body = await response.transform(utf8.decoder).join();
+      client.close(force: true);
+
+      final decoded = jsonDecode(body);
+      if (decoded is! Map) {
+        throw const FormatException('invalid json');
+      }
+      final status = '${decoded['status'] ?? ''}'.trim();
+      if (status != '1') {
+        final info = '${decoded['info'] ?? '周边搜索失败'}';
+        throw Exception(info);
+      }
+      final poisRaw = decoded['pois'];
+      final next = <_AmapPoi>[];
+      if (poisRaw is List) {
+        for (final p in poisRaw) {
+          if (p is! Map) continue;
+          final name = '${p['name'] ?? ''}'.trim();
+          final address = '${p['address'] ?? ''}'.trim();
+          final city = '${p['cityname'] ?? p['city'] ?? p['adname'] ?? ''}'.trim();
+          final location = '${p['location'] ?? ''}'.trim();
+          double? poiLng;
+          double? poiLat;
+          if (location.contains(',')) {
+            final parts = location.split(',');
+            if (parts.length >= 2) {
+              poiLng = double.tryParse(parts[0].trim());
+              poiLat = double.tryParse(parts[1].trim());
+            }
+          }
+          if (name.isEmpty) continue;
+          next.add(_AmapPoi(name: name, address: address, latitude: poiLat, longitude: poiLng, city: city));
+        }
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _nearbyPois = next;
+        _loadingNearby = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loadingNearby = false;
+      });
+      debugPrint('Nearby POI search failed: $e');
     }
   }
 
@@ -555,6 +629,11 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
                                     _currentLocationName = description.isNotEmpty ? description : address;
                                   });
                                 },
+                          onLocationReadyForNearbySearch: isPreview
+                              ? null
+                              : (lat, lng) {
+                                  _searchNearbyPois(lat, lng);
+                                },
                           onError: (error) {
                             if (kDebugMode) {
                               debugPrint('WebView Map Error: $error');
@@ -654,69 +733,54 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
               const SizedBox(height: 10),
               Text(_errorText, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFFEF4444))),
             ],
-            if (_currentLocationName != null || _currentLocationAddress != null) ...[
+            if (_currentLocationName != null || _currentLocationAddress != null || _nearbyPois.isNotEmpty) ...[
               const SizedBox(height: 12),
-              InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: () {
-                  setState(() {
-                    _poiNameController.text = _currentLocationName ?? '';
-                    _addressController.text = _currentLocationAddress ?? '';
-                    _cityController.text = _currentLocationCity ?? '';
-                    _pickedLatitude = _currentLocationLat;
-                    _pickedLongitude = _currentLocationLng;
-                  });
-                  _syncMarkerAndCamera();
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE8F8FB),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: _primary.withValues(alpha: 0.3)),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.my_location, color: _primary, size: 20),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '当前位置',
-                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: _primary),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              _currentLocationName ?? _currentLocationAddress ?? '未知位置',
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            if (_currentLocationAddress != null && _currentLocationName != null) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                _currentLocationAddress!,
-                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                            if (_currentLocationCity != null && _currentLocationCity!.isNotEmpty) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                _currentLocationCity!,
-                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)),
-                              ),
-                            ],
-                          ],
-                        ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (_currentLocationName != null || _currentLocationAddress != null) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(left: 2, bottom: 8),
+                      child: Text(
+                        '附近位置',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.grey.shade600),
                       ),
-                      Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
-                    ],
+                    ),
+                  ],
+                  SizedBox(
+                    height: 100,
+                    child: _loadingNearby
+                        ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
+                        : ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: (_currentLocationName != null || _currentLocationAddress != null ? 1 : 0) + _nearbyPois.length,
+                            separatorBuilder: (_, __) => const SizedBox(width: 10),
+                            itemBuilder: (context, index) {
+                              if (index == 0 && (_currentLocationName != null || _currentLocationAddress != null)) {
+                                return _buildNearbyPoiCard(
+                                  name: _currentLocationName ?? '当前位置',
+                                  address: _currentLocationAddress ?? '',
+                                  city: _currentLocationCity ?? '',
+                                  lat: _currentLocationLat,
+                                  lng: _currentLocationLng,
+                                  isCurrentLocation: true,
+                                );
+                              }
+                              final poiIndex = index - (_currentLocationName != null || _currentLocationAddress != null ? 1 : 0);
+                              if (poiIndex < 0 || poiIndex >= _nearbyPois.length) return const SizedBox.shrink();
+                              final p = _nearbyPois[poiIndex];
+                              return _buildNearbyPoiCard(
+                                name: p.name,
+                                address: p.address,
+                                city: p.city,
+                                lat: p.latitude,
+                                lng: p.longitude,
+                                isCurrentLocation: false,
+                              );
+                            },
+                          ),
                   ),
-                ),
+                ],
               ),
             ],
             const SizedBox(height: 12),
@@ -795,6 +859,91 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
               ),
             )
           : null,
+    );
+  }
+
+  Widget _buildNearbyPoiCard({
+    required String name,
+    required String address,
+    required String city,
+    required double? lat,
+    required double? lng,
+    required bool isCurrentLocation,
+  }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () {
+        setState(() {
+          _poiNameController.text = name;
+          _addressController.text = address;
+          _cityController.text = city;
+          _pickedLatitude = lat;
+          _pickedLongitude = lng;
+        });
+        _syncMarkerAndCamera();
+      },
+      child: Container(
+        width: 160,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isCurrentLocation ? const Color(0xFFE8F8FB) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isCurrentLocation ? _primary.withValues(alpha: 0.3) : const Color(0xFFF3F4F6),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  isCurrentLocation ? Icons.my_location : Icons.place,
+                  color: isCurrentLocation ? _primary : Colors.grey.shade500,
+                  size: 16,
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    isCurrentLocation ? '当前位置' : '附近',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: isCurrentLocation ? _primary : Colors.grey.shade500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              name.isEmpty ? '未命名地点' : name,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (address.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                address,
+                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 
