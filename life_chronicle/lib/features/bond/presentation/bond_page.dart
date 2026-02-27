@@ -1506,13 +1506,13 @@ class _FriendProfileCard extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: onToggleFavorite,
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFF2BCDEE)),
-                    foregroundColor: const Color(0xFF2BCDEE),
+                    side: BorderSide(color: friend.isFavorite ? const Color(0xFFF43F5E) : const Color(0xFFE5E7EB)),
+                    foregroundColor: friend.isFavorite ? const Color(0xFFF43F5E) : const Color(0xFF6B7280),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     backgroundColor: Colors.transparent,
                   ),
-                  icon: Icon(friend.isFavorite ? Icons.bookmark : Icons.bookmark_border, size: 18),
+                  icon: Icon(friend.isFavorite ? Icons.favorite : Icons.favorite_border, size: 18),
                   label: Text(friend.isFavorite ? '已收藏' : '收藏', style: const TextStyle(fontWeight: FontWeight.w900)),
                 ),
               ),

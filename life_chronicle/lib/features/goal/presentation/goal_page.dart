@@ -2189,11 +2189,11 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
                         );
                       }
                     },
-                    icon: Icon(record.isFavorite ? Icons.bookmark : Icons.bookmark_border, size: 18),
+                    icon: Icon(record.isFavorite ? Icons.favorite : Icons.favorite_border, size: 18),
                     label: Text(record.isFavorite ? '已收藏' : '收藏'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: record.isFavorite ? AppTheme.primary : const Color(0xFF6B7280),
-                      side: BorderSide(color: record.isFavorite ? AppTheme.primary : const Color(0xFFE5E7EB)),
+                      foregroundColor: record.isFavorite ? const Color(0xFFF43F5E) : const Color(0xFF6B7280),
+                      side: BorderSide(color: record.isFavorite ? const Color(0xFFF43F5E) : const Color(0xFFE5E7EB)),
                       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
                       textStyle: const TextStyle(fontWeight: FontWeight.w900),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

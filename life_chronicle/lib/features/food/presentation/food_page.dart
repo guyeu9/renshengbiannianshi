@@ -2380,7 +2380,7 @@ class _BottomAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = active ? const Color(0xFF2BCDEE) : const Color(0xFF6B7280);
+    final color = active ? const Color(0xFFF43F5E) : const Color(0xFF6B7280);
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: onTap == null

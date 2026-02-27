@@ -1,11 +1,15 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/database/app_database.dart';
@@ -370,7 +374,9 @@ class _PhotoAddTile extends StatelessWidget {
 
 // 相遇创建页面
 class EncounterCreatePage extends ConsumerStatefulWidget {
-  const EncounterCreatePage({super.key});
+  const EncounterCreatePage({super.key, this.initialEvent});
+
+  final TimelineEvent? initialEvent;
 
   @override
   ConsumerState<EncounterCreatePage> createState() => _EncounterCreatePageState();
@@ -393,6 +399,42 @@ class _EncounterCreatePageState extends ConsumerState<EncounterCreatePage> {
   final Set<String> _linkedFoodIds = {};
   bool _linkTravel = false;
   bool _linkGoal = false;
+
+  bool get _isEditMode => widget.initialEvent != null;
+
+  @override
+  void initState() {
+    super.initState();
+    _initFromEvent();
+  }
+
+  void _initFromEvent() {
+    final event = widget.initialEvent;
+    if (event == null) return;
+
+    _titleController.text = event.title;
+    _date = event.startAt ?? event.recordDate;
+    _poiName = event.poiName ?? '';
+    _poiAddress = event.poiAddress ?? '';
+    _latitude = event.latitude;
+    _longitude = event.longitude;
+
+    final note = event.note ?? '';
+    final lines = note.split('\n');
+    for (final line in lines) {
+      if (line.startsWith('心情分享：')) {
+        _moodController.text = line.substring('心情分享：'.length);
+      } else if (line.startsWith('图片：')) {
+        try {
+          final jsonStr = line.substring('图片：'.length);
+          final decoded = jsonDecode(jsonStr);
+          if (decoded is List) {
+            _imageUrls.addAll(decoded.whereType<String>());
+          }
+        } catch (_) {}
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -543,7 +585,7 @@ class _EncounterCreatePageState extends ConsumerState<EncounterCreatePage> {
 
     final db = ref.read(appDatabaseProvider);
     final now = DateTime.now();
-    final encounterId = _uuid.v4();
+    final encounterId = _isEditMode ? widget.initialEvent!.id : _uuid.v4();
     final recordDate = DateTime(_date.year, _date.month, _date.day);
 
     final place = _poiName.trim().isNotEmpty
@@ -556,23 +598,51 @@ class _EncounterCreatePageState extends ConsumerState<EncounterCreatePage> {
     if (_imageUrls.isNotEmpty) noteParts.add('图片：${jsonEncode(_imageUrls)}');
     final note = noteParts.isEmpty ? null : noteParts.join('\n');
 
-    await db.into(db.timelineEvents).insertOnConflictUpdate(
-          TimelineEventsCompanion.insert(
-            id: encounterId,
-            title: title,
-            eventType: 'encounter',
-            startAt: Value(_date),
-            endAt: const Value(null),
-            note: Value(note),
-            poiName: Value(_poiName.trim().isEmpty ? null : _poiName.trim()),
-            poiAddress: Value(_poiAddress.trim().isEmpty ? null : _poiAddress.trim()),
-            latitude: Value(_latitude),
-            longitude: Value(_longitude),
-            recordDate: recordDate,
-            createdAt: now,
-            updatedAt: now,
-          ),
+    if (_isEditMode) {
+      await (db.update(db.timelineEvents)..where((t) => t.id.equals(encounterId))).write(
+        TimelineEventsCompanion(
+          title: Value(title),
+          startAt: Value(_date),
+          note: Value(note),
+          poiName: Value(_poiName.trim().isEmpty ? null : _poiName.trim()),
+          poiAddress: Value(_poiAddress.trim().isEmpty ? null : _poiAddress.trim()),
+          latitude: Value(_latitude),
+          longitude: Value(_longitude),
+          recordDate: Value(recordDate),
+          updatedAt: Value(now),
+        ),
+      );
+
+      final existingLinks = await db.linkDao.listLinksForEntity(entityType: 'encounter', entityId: encounterId);
+      for (final link in existingLinks) {
+        await db.linkDao.deleteLink(
+          sourceType: link.sourceType,
+          sourceId: link.sourceId,
+          targetType: link.targetType,
+          targetId: link.targetId,
+          linkType: link.linkType,
+          now: now,
         );
+      }
+    } else {
+      await db.into(db.timelineEvents).insertOnConflictUpdate(
+            TimelineEventsCompanion.insert(
+              id: encounterId,
+              title: title,
+              eventType: 'encounter',
+              startAt: Value(_date),
+              endAt: const Value(null),
+              note: Value(note),
+              poiName: Value(_poiName.trim().isEmpty ? null : _poiName.trim()),
+              poiAddress: Value(_poiAddress.trim().isEmpty ? null : _poiAddress.trim()),
+              latitude: Value(_latitude),
+              longitude: Value(_longitude),
+              recordDate: recordDate,
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+    }
 
     for (final id in _linkedFriendIds) {
       await db.linkDao.createLink(
@@ -606,9 +676,9 @@ class _EncounterCreatePageState extends ConsumerState<EncounterCreatePage> {
         child: Column(
           children: [
             _CreateTopBar(
-              title: '记录相遇',
+              title: _isEditMode ? '编辑相遇' : '记录相遇',
               onCancel: () => Navigator.of(context).maybePop(),
-              actionText: '保存',
+              actionText: _isEditMode ? '保存' : '发布',
               onAction: _save,
             ),
             Expanded(
@@ -819,6 +889,30 @@ class EncounterDetailPage extends ConsumerStatefulWidget {
 }
 
 class _EncounterDetailPageState extends ConsumerState<EncounterDetailPage> {
+  final _shareKey = GlobalKey();
+
+  Future<void> _shareLongImage(BuildContext context) async {
+    final boundary = _shareKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+    if (boundary == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('当前页面无法导出分享图片')));
+      return;
+    }
+    try {
+      final image = await boundary.toImage(pixelRatio: 3);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) return;
+      final bytes = byteData.buffer.asUint8List();
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/encounter_detail_${DateTime.now().millisecondsSinceEpoch}.png');
+      await file.writeAsBytes(bytes);
+      await Share.shareXFiles([XFile(file.path)]);
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('导出失败，请稍后重试')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final db = ref.watch(appDatabaseProvider);
@@ -865,123 +959,348 @@ class _EncounterDetailPageState extends ConsumerState<EncounterDetailPage> {
             slivers: [
               SliverAppBar(
                 pinned: true,
-                backgroundColor: Colors.white.withValues(alpha: 0.9),
+                backgroundColor: Colors.white.withValues(alpha: 0.85),
+                elevation: 0,
+                scrolledUnderElevation: 0,
                 leading: IconButton(onPressed: () => Navigator.of(context).pop(), icon: const Icon(Icons.arrow_back)),
                 title: const Text('相遇详情', style: TextStyle(fontWeight: FontWeight.w900)),
                 actions: [
-                  IconButton(onPressed: () {}, icon: const Icon(Icons.more_horiz)),
-                ],
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 140),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: const Color(0xFFF3F4F6)),
-                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 16, offset: const Offset(0, 6))],
-                        ),
-                        child: event == null
-                            ? const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 20),
-                                child: Center(
-                                  child: Text('记录不存在或已删除', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
-                                ),
-                              )
-                            : Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
+                  IconButton(
+                    onPressed: event == null
+                        ? null
+                        : () {
+                            showModalBottomSheet<void>(
+                              context: context,
+                              backgroundColor: Colors.transparent,
+                              builder: (sheetContext) {
+                                return _BottomSheetShell(
+                                  title: '更多操作',
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Container(
-                                        width: 36,
-                                        height: 36,
-                                        decoration: BoxDecoration(color: const Color(0x1A2BCDEE), borderRadius: BorderRadius.circular(12)),
-                                        child: const Icon(Icons.diversity_3, color: Color(0xFF2BCDEE)),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Expanded(
-                                        child: Text(
-                                          dateText.isEmpty ? '${event.recordDate.year}年${event.recordDate.month}月${event.recordDate.day}日' : dateText,
-                                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF2BCDEE)),
-                                        ),
+                                      ListTile(
+                                        leading: const Icon(Icons.delete, color: Color(0xFFEF4444)),
+                                        title: const Text('删除此条相遇', style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF111827))),
+                                        subtitle: const Text('删除后将不可恢复', style: TextStyle(fontSize: 12, color: Color(0xFF9CA3AF))),
+                                        onTap: () async {
+                                          Navigator.of(sheetContext).pop();
+                                          final confirmed = await showDialog<bool>(
+                                            context: context,
+                                            builder: (dialogContext) {
+                                              return AlertDialog(
+                                                title: const Text('确认删除'),
+                                                content: const Text('确定要删除这条相遇记录吗？'),
+                                                actions: [
+                                                  TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('取消')),
+                                                  TextButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('删除')),
+                                                ],
+                                              );
+                                            },
+                                          );
+                                          if (confirmed != true) return;
+                                          final now = DateTime.now();
+                                          final linkDao = db.linkDao;
+                                          final links = await linkDao.listLinksForEntity(entityType: 'encounter', entityId: event.id);
+                                          for (final link in links) {
+                                            await linkDao.deleteLink(
+                                              sourceType: link.sourceType,
+                                              sourceId: link.sourceId,
+                                              targetType: link.targetType,
+                                              targetId: link.targetId,
+                                              linkType: link.linkType,
+                                              now: now,
+                                            );
+                                          }
+                                          await (db.update(db.timelineEvents)..where((t) => t.id.equals(event.id))).write(
+                                            TimelineEventsCompanion(
+                                              isDeleted: const Value(true),
+                                              updatedAt: Value(now),
+                                            ),
+                                          );
+                                          if (context.mounted) Navigator.of(context).pop();
+                                        },
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 12),
-                                  Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827), height: 1.2)),
-                                  if (event.poiName != null && event.poiName!.trim().isNotEmpty) ...[
-                                    const SizedBox(height: 12),
-                                    GestureDetector(
-                                      onTap: openMapPreview,
-                                      child: Row(
-                                        children: [
-                                          const Icon(Icons.location_on, size: 16, color: Color(0xFF9CA3AF)),
-                                          const SizedBox(width: 4),
-                                          Expanded(
-                                            child: Text(
-                                              event.poiName!,
-                                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF6B7280)),
-                                            ),
+                                );
+                              },
+                            );
+                          },
+                    icon: const Icon(Icons.more_horiz),
+                  ),
+                ],
+                flexibleSpace: ClipRect(
+                  child: BackdropFilter(
+                    filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                    child: Container(color: Colors.white.withValues(alpha: 0.85)),
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: RepaintBoundary(
+                  key: _shareKey,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 140),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: const Color(0xFFF3F4F6)),
+                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 16, offset: const Offset(0, 6))],
+                          ),
+                          child: event == null
+                              ? const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 20),
+                                  child: Center(
+                                    child: Text('记录不存在或已删除', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+                                  ),
+                                )
+                              : Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Container(
+                                          width: 36,
+                                          height: 36,
+                                          decoration: BoxDecoration(color: const Color(0x1A2BCDEE), borderRadius: BorderRadius.circular(12)),
+                                          child: const Icon(Icons.diversity_3, color: Color(0xFF2BCDEE)),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            dateText.isEmpty ? '${event.recordDate.year}年${event.recordDate.month}月${event.recordDate.day}日' : dateText,
+                                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF2BCDEE)),
                                           ),
-                                          const Icon(Icons.chevron_right, size: 16, color: Color(0xFF9CA3AF)),
-                                        ],
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827), height: 1.2)),
+                                    if (event.poiName != null && event.poiName!.trim().isNotEmpty) ...[
+                                      const SizedBox(height: 12),
+                                      GestureDetector(
+                                        onTap: openMapPreview,
+                                        child: Row(
+                                          children: [
+                                            const Icon(Icons.location_on, size: 16, color: Color(0xFF9CA3AF)),
+                                            const SizedBox(width: 4),
+                                            Expanded(
+                                              child: Text(
+                                                event.poiName!,
+                                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF6B7280)),
+                                              ),
+                                            ),
+                                            const Icon(Icons.chevron_right, size: 16, color: Color(0xFF9CA3AF)),
+                                          ],
+                                        ),
                                       ),
+                                    ],
+                                    const SizedBox(height: 14),
+                                    const Text('参与者', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                                    const SizedBox(height: 10),
+                                    StreamBuilder<List<EntityLink>>(
+                                      stream: db.linkDao.watchLinksForEntity(entityType: 'encounter', entityId: widget.encounterId),
+                                      builder: (context, linkSnapshot) {
+                                        final friendIds = <String>{};
+                                        for (final link in linkSnapshot.data ?? const <EntityLink>[]) {
+                                          final isSource = link.sourceType == 'encounter' && link.sourceId == widget.encounterId;
+                                          final otherType = isSource ? link.targetType : link.sourceType;
+                                          if (otherType == 'friend') {
+                                            friendIds.add(isSource ? link.targetId : link.sourceId);
+                                          }
+                                        }
+                                        if (friendIds.isEmpty) {
+                                          return const Text('暂无参与者', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)));
+                                        }
+                                        return StreamBuilder<List<FriendRecord>>(
+                                          stream: db.friendDao.watchAllActive(),
+                                          builder: (context, friendSnapshot) {
+                                            final friends = friendSnapshot.data ?? const <FriendRecord>[];
+                                            final selected = friends.where((f) => friendIds.contains(f.id)).toList(growable: false);
+                                            if (selected.isEmpty) {
+                                              return const Text('暂无参与者', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)));
+                                            }
+                                            return Wrap(
+                                              spacing: 10,
+                                              runSpacing: 10,
+                                              children: [
+                                                for (final f in selected)
+                                                  Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      _AvatarCircle(name: f.name, imagePath: f.avatarPath),
+                                                      const SizedBox(width: 8),
+                                                      Text(f.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF334155))),
+                                                    ],
+                                                  ),
+                                              ],
+                                            );
+                                          },
+                                        );
+                                      },
+                                    ),
+                                    Builder(builder: (context) {
+                                      final noteData = _parseEncounterNote(event.note);
+                                      return Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          if (noteData.mood != null && noteData.mood!.isNotEmpty) ...[
+                                            const SizedBox(height: 16),
+                                            Container(
+                                              padding: const EdgeInsets.all(14),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFFAFBFC),
+                                                borderRadius: BorderRadius.circular(16),
+                                                border: Border.all(color: const Color(0xFFF3F4F6)),
+                                              ),
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Row(
+                                                    children: [
+                                                      Container(
+                                                        width: 28,
+                                                        height: 28,
+                                                        decoration: BoxDecoration(color: const Color(0xFFFCE7F3), borderRadius: BorderRadius.circular(999)),
+                                                        child: const Icon(Icons.favorite, size: 14, color: Color(0xFFEC4899)),
+                                                      ),
+                                                      const SizedBox(width: 8),
+                                                      const Text('心情分享', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                                                    ],
+                                                  ),
+                                                  const SizedBox(height: 10),
+                                                  Text(
+                                                    noteData.mood!,
+                                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF374151), height: 1.5),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                          if (noteData.images.isNotEmpty) ...[
+                                            const SizedBox(height: 16),
+                                            Container(
+                                              padding: const EdgeInsets.all(14),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.circular(16),
+                                                border: Border.all(color: const Color(0xFFF3F4F6)),
+                                              ),
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Row(
+                                                    children: [
+                                                      Container(
+                                                        width: 28,
+                                                        height: 28,
+                                                        decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(999)),
+                                                        child: const Icon(Icons.photo_library_outlined, size: 14, color: Color(0xFF64748B)),
+                                                      ),
+                                                      const SizedBox(width: 8),
+                                                      const Text('打卡相册', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                                                      const Spacer(),
+                                                      Text('${noteData.images.length}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF94A3B8))),
+                                                    ],
+                                                  ),
+                                                  const SizedBox(height: 12),
+                                                  _ImageGrid(images: noteData.images),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      );
+                                    }),
+                                    const SizedBox(height: 16),
+                                    Container(height: 1, color: const Color(0xFFF1F5F9)),
+                                    const SizedBox(height: 16),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          width: 4,
+                                          height: 16,
+                                          decoration: BoxDecoration(color: const Color(0xFF2BCDEE), borderRadius: BorderRadius.circular(999)),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        const Text('万物互联', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                                        const Spacer(),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(color: const Color(0x1A2BCDEE), borderRadius: BorderRadius.circular(999)),
+                                          child: const Text('关联', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF2BCDEE))),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 10),
+                                    StreamBuilder<List<EntityLink>>(
+                                      stream: db.linkDao.watchLinksForEntity(entityType: 'encounter', entityId: widget.encounterId),
+                                      builder: (context, linkSnapshot) {
+                                        final links = linkSnapshot.data ?? const <EntityLink>[];
+                                        final foodIds = <String>{};
+                                        final travelIds = <String>{};
+                                        final goalIds = <String>{};
+                                        for (final link in links) {
+                                          final isSource = link.sourceType == 'encounter' && link.sourceId == widget.encounterId;
+                                          final otherType = isSource ? link.targetType : link.sourceType;
+                                          final otherId = isSource ? link.targetId : link.sourceId;
+                                          if (otherType == 'food') {
+                                            foodIds.add(otherId);
+                                          } else if (otherType == 'travel') {
+                                            travelIds.add(otherId);
+                                          } else if (otherType == 'goal') {
+                                            goalIds.add(otherId);
+                                          }
+                                        }
+                                        return StreamBuilder<List<FoodRecord>>(
+                                          stream: db.foodDao.watchAllActive(),
+                                          builder: (context, foodSnapshot) {
+                                            final foods = foodSnapshot.data ?? const <FoodRecord>[];
+                                            final foodNames = foods.where((f) => foodIds.contains(f.id)).map((f) => f.title).toList(growable: false);
+                                            return StreamBuilder<List<TravelRecord>>(
+                                              stream: db.watchAllActiveTravelRecords(),
+                                              builder: (context, travelSnapshot) {
+                                                final travels = travelSnapshot.data ?? const <TravelRecord>[];
+                                                final travelTitles = travels.where((t) => travelIds.contains(t.id)).map((t) {
+                                                  final title = (t.title ?? '').trim();
+                                                  final dest = (t.destination ?? '').trim();
+                                                  return title.isNotEmpty ? title : (dest.isNotEmpty ? dest : '旅行记录');
+                                                }).toList(growable: false);
+                                                return StreamBuilder<List<TimelineEvent>>(
+                                                  stream: (db.select(db.timelineEvents)
+                                                        ..where((t) => t.isDeleted.equals(false))
+                                                        ..where((t) => t.eventType.equals('goal')))
+                                                      .watch(),
+                                                  builder: (context, goalSnapshot) {
+                                                    final goals = goalSnapshot.data ?? const <TimelineEvent>[];
+                                                    final goalTitles = goals.where((g) => goalIds.contains(g.id)).map((g) => g.title).toList(growable: false);
+                                                    return Column(
+                                                      children: [
+                                                        _LinkBlock(icon: Icons.restaurant, title: '关联美食', chips: foodNames),
+                                                        const SizedBox(height: 10),
+                                                        _LinkBlock(icon: Icons.airplanemode_active, title: '关联旅行', chips: travelTitles),
+                                                        const SizedBox(height: 10),
+                                                        _LinkBlock(icon: Icons.flag, title: '关联目标', chips: goalTitles),
+                                                      ],
+                                                    );
+                                                  },
+                                                );
+                                              },
+                                            );
+                                          },
+                                        );
+                                      },
                                     ),
                                   ],
-                                  const SizedBox(height: 14),
-                                  const Text('参与者', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                                  const SizedBox(height: 10),
-                                  StreamBuilder<List<EntityLink>>(
-                                    stream: db.linkDao.watchLinksForEntity(entityType: 'encounter', entityId: widget.encounterId),
-                                    builder: (context, linkSnapshot) {
-                                      final friendIds = <String>{};
-                                      for (final link in linkSnapshot.data ?? const <EntityLink>[]) {
-                                        final isSource = link.sourceType == 'encounter' && link.sourceId == widget.encounterId;
-                                        final otherType = isSource ? link.targetType : link.sourceType;
-                                        if (otherType == 'friend') {
-                                          friendIds.add(isSource ? link.targetId : link.sourceId);
-                                        }
-                                      }
-                                      if (friendIds.isEmpty) {
-                                        return const Text('暂无参与者', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)));
-                                      }
-                                      return StreamBuilder<List<FriendRecord>>(
-                                        stream: db.friendDao.watchAllActive(),
-                                        builder: (context, friendSnapshot) {
-                                          final friends = friendSnapshot.data ?? const <FriendRecord>[];
-                                          final selected = friends.where((f) => friendIds.contains(f.id)).toList(growable: false);
-                                          if (selected.isEmpty) {
-                                            return const Text('暂无参与者', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)));
-                                          }
-                                          return Wrap(
-                                            spacing: 10,
-                                            runSpacing: 10,
-                                            children: [
-                                              for (final f in selected)
-                                                Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    _AvatarCircle(name: f.name, imagePath: f.avatarPath),
-                                                    const SizedBox(width: 8),
-                                                    Text(f.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF334155))),
-                                                  ],
-                                                ),
-                                            ],
-                                          );
-                                        },
-                                      );
-                                    },
-                                  ),
-                                ],
-                              ),
-                      ),
-                    ],
+                                ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -991,59 +1310,272 @@ class _EncounterDetailPageState extends ConsumerState<EncounterDetailPage> {
               ? null
               : SafeArea(
                   top: false,
-                  child: Container(
-                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.95),
-                      border: const Border(top: BorderSide(color: Color(0xFFE5E7EB))),
-                    ),
-                    child: Row(
-                      children: [
-                        OutlinedButton.icon(
-                          onPressed: () async {
-                            final messenger = ScaffoldMessenger.of(context);
-                            await db.updateEncounterFavorite(event.id, isFavorite: !event.isFavorite, now: DateTime.now());
-                            if (mounted) {
-                              messenger.showSnackBar(
-                                SnackBar(
-                                  content: Text(event.isFavorite ? '已取消收藏' : '已添加到收藏'),
-                                  duration: const Duration(seconds: 1),
-                                ),
-                              );
-                            }
-                          },
-                          icon: Icon(event.isFavorite ? Icons.bookmark : Icons.bookmark_border, size: 18),
-                          label: Text(event.isFavorite ? '已收藏' : '收藏'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: event.isFavorite ? const Color(0xFF2BCDEE) : const Color(0xFF6B7280),
-                            side: BorderSide(color: event.isFavorite ? const Color(0xFF2BCDEE) : const Color(0xFFE5E7EB)),
-                            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-                            textStyle: const TextStyle(fontWeight: FontWeight.w900),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(999),
+                      child: BackdropFilter(
+                        filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.85),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.6)),
+                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 18, offset: const Offset(0, 6))],
+                          ),
+                          child: Row(
+                            children: [
+                              _BottomAction(
+                                icon: Icons.edit,
+                                label: '编辑',
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(builder: (_) => EncounterCreatePage(initialEvent: event)),
+                                  );
+                                },
+                              ),
+                              _BottomDivider(),
+                              _BottomAction(
+                                icon: event.isFavorite ? Icons.favorite : Icons.favorite_border,
+                                label: '收藏',
+                                active: event.isFavorite,
+                                onTap: () async {
+                                  final messenger = ScaffoldMessenger.of(context);
+                                  await db.updateEncounterFavorite(event.id, isFavorite: !event.isFavorite, now: DateTime.now());
+                                  if (mounted) {
+                                    messenger.showSnackBar(
+                                      SnackBar(
+                                        content: Text(event.isFavorite ? '已取消收藏' : '已添加到收藏'),
+                                        duration: const Duration(seconds: 1),
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
+                              _BottomDivider(),
+                              _BottomAction(
+                                icon: Icons.share,
+                                label: '分享',
+                                onTap: () => _shareLongImage(context),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () {},
-                            icon: const Icon(Icons.edit, size: 18),
-                            label: const Text('编辑'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF2BCDEE),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              textStyle: const TextStyle(fontWeight: FontWeight.w900),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                              elevation: 0,
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
         );
       },
+    );
+  }
+}
+
+class _BottomAction extends StatelessWidget {
+  const _BottomAction({
+    required this.icon,
+    required this.label,
+    this.active = false,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool active;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = active ? const Color(0xFFF43F5E) : const Color(0xFF6B7280);
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap == null
+          ? null
+          : () {
+              FocusManager.instance.primaryFocus?.unfocus();
+              onTap!();
+            },
+      child: SizedBox(
+        width: 56,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 20, color: onTap == null ? const Color(0xFFCBD5E1) : color),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: onTap == null ? const Color(0xFFCBD5E1) : color),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BottomDivider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 24,
+      margin: const EdgeInsets.symmetric(horizontal: 10),
+      color: const Color(0xFFE5E7EB),
+    );
+  }
+}
+
+class _BottomSheetShell extends StatelessWidget {
+  const _BottomSheetShell({required this.title, required this.child});
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
+    return Container(
+      padding: EdgeInsets.fromLTRB(20, 12, 20, 24 + bottom),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(color: const Color(0xFFE5E7EB), borderRadius: BorderRadius.circular(2)),
+            ),
+          ),
+          Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+          const SizedBox(height: 12),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _EncounterNoteData {
+  _EncounterNoteData();
+  String? location;
+  String? mood;
+  final List<String> images = [];
+}
+
+_EncounterNoteData _parseEncounterNote(String? note) {
+  final result = _EncounterNoteData();
+  if (note == null || note.trim().isEmpty) return result;
+  final lines = note.split('\n');
+  for (final line in lines) {
+    if (line.startsWith('地点：')) {
+      result.location = line.substring('地点：'.length).trim();
+    } else if (line.startsWith('心情分享：')) {
+      result.mood = line.substring('心情分享：'.length).trim();
+    } else if (line.startsWith('图片：')) {
+      try {
+        final jsonStr = line.substring('图片：'.length);
+        final decoded = jsonDecode(jsonStr);
+        if (decoded is List) {
+          result.images.addAll(decoded.whereType<String>());
+        }
+      } catch (_) {}
+    }
+  }
+  return result;
+}
+
+class _ImageGrid extends StatelessWidget {
+  const _ImageGrid({required this.images});
+
+  final List<String> images;
+
+  @override
+  Widget build(BuildContext context) {
+    if (images.isEmpty) return const SizedBox.shrink();
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
+      ),
+      itemCount: images.length,
+      itemBuilder: (context, index) {
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: _buildLocalImage(images[index], fit: BoxFit.cover),
+        );
+      },
+    );
+  }
+}
+
+class _LinkBlock extends StatelessWidget {
+  const _LinkBlock({required this.icon, required this.title, required this.chips});
+
+  final IconData icon;
+  final String title;
+  final List<String> chips;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFF3F4F6)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 2))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(999)),
+                child: Icon(icon, size: 14, color: const Color(0xFF64748B)),
+              ),
+              const SizedBox(width: 8),
+              Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+            ],
+          ),
+          if (chips.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Text('暂无${title.replaceAll('关联', '')}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final chip in chips)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3F4F6),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(chip, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF475569))),
+                    ),
+                ],
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
