@@ -17,9 +17,8 @@ import '../../../core/widgets/amap_location_page.dart';
 import '../../../core/widgets/custom_bottom_sheet.dart';
 import '../../food/presentation/food_page.dart' show FoodDetailPage;
 import '../../moment/presentation/moment_page.dart' show MomentDetailPage;
-import '../../travel/presentation/travel_page.dart' show TravelDetailPage;
+import '../../travel/presentation/travel_page.dart' show TravelDetailPage, TravelItem;
 import 'bond_filter_components.dart';
-import 'encounter_pages.dart' show EncounterDetailPage;
 
 // ==================== Provider ====================
 
@@ -1156,137 +1155,23 @@ class _EncounterItemRow extends ConsumerWidget {
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => EncounterDetailPage(encounterId: item.id)));
         break;
       case 'food':
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => FoodDetailPage(foodId: item.id)));
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => FoodDetailPage(recordId: item.id)));
         break;
       case 'moment':
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => MomentDetailPage(momentId: item.id)));
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => MomentDetailPage(recordId: item.id)));
         break;
       case 'travel':
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => TravelDetailPage(travelId: item.id)));
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => TravelDetailPage(item: TravelItem(
+          travelId: item.id,
+          tripId: '',
+          recordDate: item.recordDate,
+          date: '${item.recordDate.year}年${item.recordDate.month}月${item.recordDate.day}日',
+          title: item.title,
+          subtitle: item.content,
+          imageUrl: item.images.isNotEmpty ? item.images.first : '',
+        ))));
         break;
     }
-  }
-}
-
-class _EncounterEventRow extends ConsumerWidget {
-  const _EncounterEventRow({required this.event});
-
-  final TimelineEvent event;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final db = ref.watch(appDatabaseProvider);
-    final date = event.recordDate;
-    final dateText = '${date.year}年${date.month}月${date.day}日';
-    final noteParts = _parseEncounterNoteParts(event.note);
-    final content = noteParts.content.trim();
-    final contentPreview = content.length > 60 ? '${content.substring(0, 60)}…' : content;
-    final locationDisplay = _eventLocationDisplay(event, fallbackPlace: noteParts.placeFromNote);
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(width: 6),
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: const Color(0xFF2BCDEE),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: const Color(0xFFF6F6F6), width: 3),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 10, offset: const Offset(0, 3))],
-          ),
-          child: const Icon(Icons.diversity_3, color: Colors.white, size: 18),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Material(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(28),
-            child: InkWell(
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => EncounterDetailPage(encounterId: event.id))),
-              borderRadius: BorderRadius.circular(28),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: const Color(0x00000000)),
-                  boxShadow: [BoxShadow(color: const Color(0xFF2BCDEE).withValues(alpha: 0.12), blurRadius: 24, offset: const Offset(0, 10))],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(dateText, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF2BCDEE))),
-                        ),
-                        const Icon(Icons.chevron_right, size: 18, color: Color(0x809CA3AF)),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Text(event.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827), height: 1.2)),
-                    if (contentPreview.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Text(contentPreview, style: const TextStyle(fontSize: 13, color: Color(0xFF78909C), height: 1.4)),
-                    ],
-                    if (locationDisplay.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          const Icon(Icons.place, size: 16, color: Color(0xFF94A3B8)),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              locationDisplay,
-                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                    StreamBuilder<List<EntityLink>>(
-                      stream: db.linkDao.watchLinksForEntity(entityType: 'encounter', entityId: event.id),
-                      builder: (context, linkSnapshot) {
-                        final friendIds = _collectLinkIds(linkSnapshot.data ?? const <EntityLink>[], 'encounter', event.id, 'friend');
-                        if (friendIds.isEmpty) return const SizedBox.shrink();
-                        return StreamBuilder<List<FriendRecord>>(
-                          stream: db.friendDao.watchAllActive(),
-                          builder: (context, friendSnapshot) {
-                            final friends = friendSnapshot.data ?? const <FriendRecord>[];
-                            final selected = friends.where((f) => friendIds.contains(f.id)).toList(growable: false);
-                            if (selected.isEmpty) return const SizedBox.shrink();
-                            final display = selected.take(4).toList(growable: false);
-                            return Padding(
-                              padding: const EdgeInsets.only(top: 12),
-                              child: Row(
-                                children: [
-                                  for (final f in display) ...[
-                                    _AvatarCircle(name: f.name, imagePath: f.avatarPath),
-                                    const SizedBox(width: 8),
-                                  ],
-                                  if (selected.length > 4)
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                      decoration: BoxDecoration(color: const Color(0xFFE5E7EB), borderRadius: BorderRadius.circular(999)),
-                                      child: Text('+${selected.length - 4}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF6B7280))),
-                                    ),
-                                ],
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
   }
 }
 

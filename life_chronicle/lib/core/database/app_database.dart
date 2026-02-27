@@ -284,54 +284,51 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
-  Stream<List<FoodRecord>> watchFoodRecordsWithFriends() {
-    final query = select(foodRecords).join([
-      innerJoin(
-        entityLinks,
-        entityLinks.sourceId.equalsExp(foodRecords.id) &
-            entityLinks.sourceType.equals('food') &
-            entityLinks.targetType.equals('friend'),
-      )
-    ]);
-
-    query.where(foodRecords.isDeleted.equals(false));
-    query.distinct();
-    query.orderBy([OrderingTerm.desc(foodRecords.recordDate)]);
-
-    return query.map((row) => row.readTable(foodRecords)).watch();
+  Stream<List<FoodRecord>> watchFoodRecordsWithFriends() async* {
+    final links = await (select(entityLinks)
+          ..where((t) => t.sourceType.equals('food') & t.targetType.equals('friend')))
+        .get();
+    final foodIds = links.map((l) => l.sourceId).toSet().toList();
+    if (foodIds.isEmpty) {
+      yield const <FoodRecord>[];
+      return;
+    }
+    yield* (select(foodRecords)
+          ..where((t) => t.isDeleted.equals(false))
+          ..where((t) => t.id.isIn(foodIds))
+          ..orderBy([(t) => OrderingTerm.desc(t.recordDate)]))
+        .watch();
   }
 
-  Stream<List<MomentRecord>> watchMomentRecordsWithFriends() {
-    final query = select(momentRecords).join([
-      innerJoin(
-        entityLinks,
-        entityLinks.sourceId.equalsExp(momentRecords.id) &
-            entityLinks.sourceType.equals('moment') &
-            entityLinks.targetType.equals('friend'),
-      )
-    ]);
-
-    query.where(momentRecords.isDeleted.equals(false));
-    query.distinct();
-    query.orderBy([OrderingTerm.desc(momentRecords.recordDate)]);
-
-    return query.map((row) => row.readTable(momentRecords)).watch();
+  Stream<List<MomentRecord>> watchMomentRecordsWithFriends() async* {
+    final links = await (select(entityLinks)
+          ..where((t) => t.sourceType.equals('moment') & t.targetType.equals('friend')))
+        .get();
+    final momentIds = links.map((l) => l.sourceId).toSet().toList();
+    if (momentIds.isEmpty) {
+      yield const <MomentRecord>[];
+      return;
+    }
+    yield* (select(momentRecords)
+          ..where((t) => t.isDeleted.equals(false))
+          ..where((t) => t.id.isIn(momentIds))
+          ..orderBy([(t) => OrderingTerm.desc(t.recordDate)]))
+        .watch();
   }
 
-  Stream<List<TravelRecord>> watchTravelRecordsWithFriends() {
-    final query = select(travelRecords).join([
-      innerJoin(
-        entityLinks,
-        entityLinks.sourceId.equalsExp(travelRecords.id) &
-            entityLinks.sourceType.equals('travel') &
-            entityLinks.targetType.equals('friend'),
-      )
-    ]);
-
-    query.where(travelRecords.isDeleted.equals(false));
-    query.distinct();
-    query.orderBy([OrderingTerm.desc(travelRecords.recordDate)]);
-
-    return query.map((row) => row.readTable(travelRecords)).watch();
+  Stream<List<TravelRecord>> watchTravelRecordsWithFriends() async* {
+    final links = await (select(entityLinks)
+          ..where((t) => t.sourceType.equals('travel') & t.targetType.equals('friend')))
+        .get();
+    final travelIds = links.map((l) => l.sourceId).toSet().toList();
+    if (travelIds.isEmpty) {
+      yield const <TravelRecord>[];
+      return;
+    }
+    yield* (select(travelRecords)
+          ..where((t) => t.isDeleted.equals(false))
+          ..where((t) => t.id.isIn(travelIds))
+          ..orderBy([(t) => OrderingTerm.desc(t.recordDate)]))
+        .watch();
   }
 }
