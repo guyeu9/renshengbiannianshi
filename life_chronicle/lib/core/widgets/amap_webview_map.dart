@@ -513,11 +513,8 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
           final city = (result['city'] as String?) ?? '';
           final address = (result['address'] as String?) ?? '';
           final description = (result['description'] as String?) ?? '';
-          final district = (result['district'] as String?) ?? '';
-          final street = (result['street'] as String?) ?? '';
-          final streetNumber = (result['streetNumber'] as String?) ?? '';
           
-          debugPrint('AMapWebViewMap: Location details - city=$city, address=$address, description=$description, district=$district, street=$street');
+          debugPrint('AMapWebViewMap: Location details - city=$city, address=$address, description=$description');
           
           if (lat != null && lng != null && mounted) {
             _controller?.runJavaScript('if(window.setCenter) window.setCenter($lng, $lat)');
