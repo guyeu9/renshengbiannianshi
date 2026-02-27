@@ -1844,6 +1844,64 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
                             ),
                           ),
                           const SizedBox(height: 22),
+                          if (record.note?.isNotEmpty == true) ...[
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: const Color(0xFFF3F4F6)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Row(
+                                    children: [
+                                      Icon(Icons.description_outlined, size: 18, color: AppTheme.primary),
+                                      SizedBox(width: 8),
+                                      Text('目标描述', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF6B7280))),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    record.note!,
+                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF374151), height: 1.5),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 18),
+                          ],
+                          if (record.summary?.isNotEmpty == true) ...[
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFFBEB),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: const Color(0xFFFEF3C7)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Row(
+                                    children: [
+                                      Icon(Icons.auto_awesome, size: 18, color: Color(0xFFF59E0B)),
+                                      SizedBox(width: 8),
+                                      Text('目标总结', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF92400E))),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    record.summary!,
+                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF78350F), height: 1.5),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 18),
+                          ],
                           StreamBuilder<List<GoalReview>>(
                             stream: db.goalReviewDao.watchByGoalId(record.id),
                             builder: (context, reviewSnapshot) {

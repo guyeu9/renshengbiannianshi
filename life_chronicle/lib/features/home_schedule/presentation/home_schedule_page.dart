@@ -1391,7 +1391,29 @@ class _EventStream extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('未找到目标记录')));
       return;
     }
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => GoalDetailPage(record: record)));
+
+    GoalRecord yearGoal = record;
+    if (record.level != 'year') {
+      String? currentParentId = record.parentId;
+      while (currentParentId != null) {
+        final parent = await (db.select(db.goalRecords)
+              ..where((t) => t.id.equals(currentParentId))
+              ..where((t) => t.isDeleted.equals(false))
+              ..limit(1))
+            .getSingleOrNull();
+        if (parent == null) break;
+        yearGoal = parent;
+        if (parent.level == 'year') break;
+        currentParentId = parent.parentId;
+      }
+      if (yearGoal.level != 'year') {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('未找到关联的年度目标')));
+        return;
+      }
+    }
+    if (!context.mounted) return;
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => GoalDetailPage(record: yearGoal)));
   }
 }
 
