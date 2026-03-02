@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' hide Column;
-import 'package:uuid/uuid.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/providers/ai_provider.dart';
+import '../../../core/providers/uuid_provider.dart';
 import '../../../core/config/ai_provider_templates.dart';
 import '../../../core/utils/api_key_masker.dart';
 import '../../../core/services/providers/openai_compatible_service.dart';
@@ -545,8 +545,9 @@ class _AddProviderSheetState extends ConsumerState<_AddProviderSheet> {
     if (!_formKey.currentState!.validate()) return;
 
     final dao = ref.read(aiProviderDaoProvider);
+    final uuid = ref.read(uuidProvider);
     final now = DateTime.now();
-    final id = const Uuid().v4();
+    final id = uuid.v4();
 
     final existingProviders = widget.serviceType == 'chat'
         ? await ref.read(allChatProvidersProvider.future)

@@ -41,11 +41,14 @@ class BackupProgress {
 class BackupService {
   final AppDatabase db;
   final ChangeLogRecorder changeLogRecorder;
+  final Uuid uuid;
   final _progressController = StreamController<BackupProgress>.broadcast();
 
   Stream<BackupProgress> get progressStream => _progressController.stream;
 
-  BackupService(this.db) : changeLogRecorder = ChangeLogRecorder(db);
+  BackupService(this.db, {Uuid? uuid})
+      : changeLogRecorder = ChangeLogRecorder(db),
+        uuid = uuid ?? const Uuid();
 
   void dispose() {
     _progressController.close();
@@ -58,7 +61,7 @@ class BackupService {
     String? filePath,
     DateTime? startedAt,
   }) async {
-    final id = const Uuid().v4();
+    final id = uuid.v4();
     await db.backupLogDao.insert(BackupLogsCompanion(
       id: Value(id),
       backupType: Value(backupType),
@@ -818,7 +821,7 @@ class BackupService {
   }
 
   Future<void> _updateSyncState(int timestamp, [int? lastChangeId]) async {
-    final deviceId = const Uuid().v4();
+    final deviceId = uuid.v4();
     await db.syncStateDao.upsert(SyncStateCompanion(
       id: const Value('main'),
       lastSyncTime: Value(DateTime.fromMillisecondsSinceEpoch(timestamp)),

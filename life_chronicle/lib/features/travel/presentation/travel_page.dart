@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:drift/drift.dart' show Value, OrderingTerm, OrderingMode;
-import 'package:uuid/uuid.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:confetti/confetti.dart';
 import 'package:vibration/vibration.dart';
@@ -15,6 +14,7 @@ import 'package:vibration/vibration.dart';
 import '../../../core/config/module_management_config.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
+import '../../../core/providers/uuid_provider.dart';
 import '../../../core/utils/media_storage.dart';
 import '../../../core/widgets/ai_parse_button.dart';
 import '../../../core/widgets/amap_location_page.dart';
@@ -1909,7 +1909,7 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
     final db = ref.read(appDatabaseProvider);
     final existingRecord = widget.initialRecord;
     final existingTrip = widget.initialTrip;
-    const uuid = Uuid();
+    final uuid = ref.read(uuidProvider);
     final now = DateTime.now();
     final recordDate = existingRecord?.recordDate ?? DateTime(now.year, now.month, now.day);
     final tripId = existingTrip?.id ?? existingRecord?.tripId ?? uuid.v4();
@@ -2028,7 +2028,7 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
     await db.checklistDao.deleteByTripId(tripId);
     for (var i = 0; i < _checklistItems.length; i++) {
       final item = _checklistItems[i];
-      final itemId = item.id ?? const Uuid().v4();
+      final itemId = item.id ?? uuid.v4();
       await db.checklistDao.upsert(ChecklistItemsCompanion.insert(
         id: itemId,
         tripId: tripId,
@@ -2877,7 +2877,7 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
     }
 
     final db = ref.read(appDatabaseProvider);
-    const uuid = Uuid();
+    final uuid = ref.read(uuidProvider);
     final now = DateTime.now();
     final recordDate = DateTime(now.year, now.month, now.day);
     final tripId = _linkedTripId ?? uuid.v4();
@@ -3307,30 +3307,52 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
             ),
           ),
           const SizedBox(height: 16),
-          InkWell(
-            borderRadius: BorderRadius.circular(999),
-            onTap: _selectLinkedTrip,
-            child: Container(
+          if (widget.initialTripId == null)
+            InkWell(
+              borderRadius: BorderRadius.circular(999),
+              onTap: _selectLinkedTrip,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.60),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(width: 8, height: 8, child: DecoratedBox(decoration: BoxDecoration(color: Color(0xFF2BCDEE), shape: BoxShape.circle))),
+                    const SizedBox(width: 10),
+                    const Text('正在关联行程：', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
+                    Text(
+                      (_linkedTripTitle ?? '').trim().isEmpty ? '未关联行程' : _linkedTripTitle!,
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF334155)),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.60),
+                color: const Color(0xFF2BCDEE).withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+                border: Border.all(color: const Color(0xFF2BCDEE).withValues(alpha: 0.22)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const SizedBox(width: 8, height: 8, child: DecoratedBox(decoration: BoxDecoration(color: Color(0xFF2BCDEE), shape: BoxShape.circle))),
                   const SizedBox(width: 10),
-                  const Text('正在关联行程：', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
+                  const Text('已关联行程：', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF2BCDEE))),
                   Text(
-                    (_linkedTripTitle ?? '').trim().isEmpty ? '未关联行程' : _linkedTripTitle!,
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF334155)),
+                    (_linkedTripTitle ?? '').trim().isEmpty ? '未知行程' : _linkedTripTitle!,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF2BCDEE)),
                   ),
                 ],
               ),
             ),
-          ),
         ],
       ),
     );

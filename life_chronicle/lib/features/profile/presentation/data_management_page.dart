@@ -6,11 +6,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
-import 'package:uuid/uuid.dart';
 
 import '../../../app/app_theme.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
+import '../../../core/providers/uuid_provider.dart';
 import '../../../core/services/backup/backup.dart';
 import 'backup_log_page.dart';
 
@@ -175,6 +175,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
 
   Future<void> _performLocalBackup() async {
     final db = ref.read(appDatabaseProvider);
+    final uuid = ref.read(uuidProvider);
     final backupService = BackupService(db);
     final startedAt = DateTime.now();
     final timestamp = DateTime.now().millisecondsSinceEpoch;
@@ -184,7 +185,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
     setState(() => _isBackingUp = true);
     
     try {
-      logId = const Uuid().v4();
+      logId = uuid.v4();
       await db.backupLogDao.insert(BackupLogsCompanion(
         id: Value(logId),
         backupType: const Value('full'),
