@@ -154,6 +154,16 @@ class _BondPageState extends State<BondPage> {
             Expanded(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 220),
+                layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
+                  return Stack(
+                    alignment: Alignment.topCenter,
+                    fit: StackFit.expand,
+                    children: [
+                      ...previousChildren,
+                      if (currentChild != null) currentChild,
+                    ],
+                  );
+                },
                 child: _tabIndex == 0
                     ? _FriendArchiveList(
                         searchQuery: _searchText,
