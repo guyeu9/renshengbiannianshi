@@ -1205,7 +1205,7 @@ class FoodDetailPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final db = ref.watch(appDatabaseProvider);
     return StreamBuilder<FoodRecord?>(
-      stream: db.foodDao.watchById(recordId!),
+      stream: db.foodDao.watchById(recordId),
       builder: (context, snapshot) {
         final record = snapshot.data;
         if (record == null) {
@@ -1227,7 +1227,7 @@ class FoodDetailPage extends ConsumerWidget {
             isFavorite: false,
             linkSection: _buildLinkSection(
               db,
-              entityId: recordId!,
+              entityId: recordId,
               entityType: 'food',
               showContent: false,
             ),
