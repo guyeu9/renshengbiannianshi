@@ -1088,7 +1088,6 @@ class _AnnualGoalSummaryPageState extends ConsumerState<AnnualGoalSummaryPage> {
     if (selected == null || !mounted) return;
     setState(() {
       _selectedYear = selected;
-      _isLoadingReview = true;
     });
     await _loadAnnualReview();
   }
@@ -1101,7 +1100,6 @@ class _AnnualGoalSummaryPageState extends ConsumerState<AnnualGoalSummaryPage> {
     if (nextIndex < 0 || nextIndex >= years.length) return;
     setState(() {
       _selectedYear = years[nextIndex];
-      _isLoadingReview = true;
     });
     _loadAnnualReview();
   }
