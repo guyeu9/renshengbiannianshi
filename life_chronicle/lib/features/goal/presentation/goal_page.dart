@@ -4268,7 +4268,7 @@ class _RelatedMemoryCard extends StatelessWidget {
       case 'friend':
         return _FriendMemoryCard(friendId: otherId, db: db);
       default:
-        return _DefaultMemoryCard(type: otherType);
+        return const SizedBox.shrink();
     }
   }
 }
@@ -4285,7 +4285,7 @@ class _FoodMemoryCard extends StatelessWidget {
       stream: db.foodDao.watchById(foodId),
       builder: (context, snapshot) {
         final food = snapshot.data;
-        if (food == null) return const _DefaultMemoryCard(type: 'food');
+        if (food == null) return const SizedBox.shrink();
 
         return GestureDetector(
           onTap: () => Navigator.of(context).push(
@@ -4354,7 +4354,7 @@ class _TravelMemoryCard extends StatelessWidget {
       stream: db.watchTravelById(travelId),
       builder: (context, snapshot) {
         final travel = snapshot.data;
-        if (travel == null) return const _DefaultMemoryCard(type: 'travel');
+        if (travel == null) return const SizedBox.shrink();
 
         return GestureDetector(
           onTap: () => Navigator.of(context).push(
@@ -4423,7 +4423,7 @@ class _MomentMemoryCard extends StatelessWidget {
       stream: db.momentDao.watchById(momentId),
       builder: (context, snapshot) {
         final moment = snapshot.data;
-        if (moment == null) return const _DefaultMemoryCard(type: 'moment');
+        if (moment == null) return const SizedBox.shrink();
 
         return GestureDetector(
           onTap: () => Navigator.of(context).push(
@@ -4492,7 +4492,7 @@ class _FriendMemoryCard extends StatelessWidget {
       stream: db.friendDao.watchById(friendId),
       builder: (context, snapshot) {
         final friend = snapshot.data;
-        if (friend == null) return const _DefaultMemoryCard(type: 'friend');
+        if (friend == null) return const SizedBox.shrink();
 
         return GestureDetector(
           onTap: () => Navigator.of(context).push(
@@ -4549,35 +4549,6 @@ class _FriendMemoryCard extends StatelessWidget {
           name?.isNotEmpty == true ? name!.substring(0, 1) : '?',
           style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w900, color: Color(0xFFEF4444)),
         ),
-      ),
-    );
-  }
-}
-
-class _DefaultMemoryCard extends StatelessWidget {
-  const _DefaultMemoryCard({required this.type});
-
-  final String type;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 128,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 128,
-            height: 128,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Center(child: Icon(Icons.link, size: 40, color: const Color(0xFF9CA3AF))),
-          ),
-          const SizedBox(height: 8),
-          const Text('已删除', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF9CA3AF))),
-        ],
       ),
     );
   }
@@ -4747,10 +4718,7 @@ class _RelatedMemoryListItem extends StatelessWidget {
       case 'friend':
         return _FriendListItem(friendId: otherId, db: db);
       default:
-        return ListTile(
-          leading: Container(width: 48, height: 48, decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.link, color: Color(0xFF9CA3AF))),
-          title: const Text('已删除的记录', style: TextStyle(color: Color(0xFF9CA3AF))),
-        );
+        return const SizedBox.shrink();
     }
   }
 }
