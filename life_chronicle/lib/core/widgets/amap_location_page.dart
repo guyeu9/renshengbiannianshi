@@ -735,53 +735,47 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
             ],
             if (_currentLocationName != null || _currentLocationAddress != null || _nearbyPois.isNotEmpty) ...[
               const SizedBox(height: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (_currentLocationName != null || _currentLocationAddress != null) ...[
-                    Padding(
-                      padding: const EdgeInsets.only(left: 2, bottom: 8),
-                      child: Text(
-                        '附近位置',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.grey.shade600),
-                      ),
-                    ),
-                  ],
-                  SizedBox(
-                    height: 100,
-                    child: _loadingNearby
-                        ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
-                        : ListView.separated(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: (_currentLocationName != null || _currentLocationAddress != null ? 1 : 0) + _nearbyPois.length,
-                            separatorBuilder: (_, __) => const SizedBox(width: 10),
-                            itemBuilder: (context, index) {
-                              if (index == 0 && (_currentLocationName != null || _currentLocationAddress != null)) {
-                                return _buildNearbyPoiCard(
-                                  name: _currentLocationName ?? '当前位置',
-                                  address: _currentLocationAddress ?? '',
-                                  city: _currentLocationCity ?? '',
-                                  lat: _currentLocationLat,
-                                  lng: _currentLocationLng,
-                                  isCurrentLocation: true,
-                                );
-                              }
-                              final poiIndex = index - (_currentLocationName != null || _currentLocationAddress != null ? 1 : 0);
-                              if (poiIndex < 0 || poiIndex >= _nearbyPois.length) return const SizedBox.shrink();
-                              final p = _nearbyPois[poiIndex];
-                              return _buildNearbyPoiCard(
-                                name: p.name,
-                                address: p.address,
-                                city: p.city,
-                                lat: p.latitude,
-                                lng: p.longitude,
-                                isCurrentLocation: false,
-                              );
-                            },
-                          ),
+              if (_currentLocationName != null || _currentLocationAddress != null) ...[
+                Padding(
+                  padding: const EdgeInsets.only(left: 2, bottom: 8),
+                  child: Text(
+                    '附近位置',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.grey.shade600),
                   ),
-                ],
-              ),
+                ),
+              ],
+              if (_loadingNearby)
+                const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
+              else
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: (_currentLocationName != null || _currentLocationAddress != null ? 1 : 0) + _nearbyPois.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    if (index == 0 && (_currentLocationName != null || _currentLocationAddress != null)) {
+                      return _buildNearbyPoiCard(
+                        name: _currentLocationName ?? '当前位置',
+                        address: _currentLocationAddress ?? '',
+                        city: _currentLocationCity ?? '',
+                        lat: _currentLocationLat,
+                        lng: _currentLocationLng,
+                        isCurrentLocation: true,
+                      );
+                    }
+                    final poiIndex = index - (_currentLocationName != null || _currentLocationAddress != null ? 1 : 0);
+                    if (poiIndex < 0 || poiIndex >= _nearbyPois.length) return const SizedBox.shrink();
+                    final p = _nearbyPois[poiIndex];
+                    return _buildNearbyPoiCard(
+                      name: p.name,
+                      address: p.address,
+                      city: p.city,
+                      lat: p.latitude,
+                      lng: p.longitude,
+                      isCurrentLocation: false,
+                    );
+                  },
+                ),
             ],
             const SizedBox(height: 12),
             if (!_hasWebKey)
@@ -883,8 +877,8 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
         _syncMarkerAndCamera();
       },
       child: Container(
-        width: 160,
-        padding: const EdgeInsets.all(12),
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: isCurrentLocation ? const Color(0xFFE8F8FB) : Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -899,48 +893,51 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Row(
           children: [
-            Row(
-              children: [
-                Icon(
-                  isCurrentLocation ? Icons.my_location : Icons.place,
-                  color: isCurrentLocation ? _primary : Colors.grey.shade500,
-                  size: 16,
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    isCurrentLocation ? '当前位置' : '附近',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: isCurrentLocation ? _primary : Colors.grey.shade500,
-                    ),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isCurrentLocation ? _primary.withValues(alpha: 0.1) : Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                isCurrentLocation ? Icons.my_location : Icons.place,
+                color: isCurrentLocation ? _primary : Colors.grey.shade500,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isCurrentLocation ? '当前位置' : name.isEmpty ? '未命名地点' : name,
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              name.isEmpty ? '未命名地点' : name,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            if (address.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(
-                address,
-                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                  if (address.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      address,
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                  if (city.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      city,
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF94A3B8)),
+                    ),
+                  ],
+                ],
               ),
-            ],
+            ),
+            Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
           ],
         ),
       ),

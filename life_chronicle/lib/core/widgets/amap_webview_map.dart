@@ -62,6 +62,8 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
   AMapFlutterLocation? _locationPlugin;
   StreamSubscription<Map<String, Object>>? _locationSubscription;
   bool _isLocating = false;
+  double? _pendingLat;
+  double? _pendingLng;
 
   static const _primaryColor = '#2BCDEE';
   static const _amapAndroidKey = String.fromEnvironment('AMAP_ANDROID_KEY', defaultValue: 'a5a3e21e2d17ffa851374ed158a985a6');
@@ -428,6 +430,12 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
         case 'mapReady':
           setState(() => _isMapReady = true);
           widget.onMapReady?.call();
+          if (_pendingLat != null && _pendingLng != null) {
+            debugPrint('AMapWebViewMap: Map ready, setting cached location: lat=$_pendingLat, lng=$_pendingLng');
+            _controller?.runJavaScript('if(window.setCenter) window.setCenter($_pendingLng, $_pendingLat)');
+            _pendingLat = null;
+            _pendingLng = null;
+          }
           break;
         case 'click':
           final lat = (data['lat'] as num).toDouble();
@@ -519,7 +527,13 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
           debugPrint('AMapWebViewMap: Location details - city=$city, address=$address, description=$description');
           
           if (lat != null && lng != null && mounted) {
-            _controller?.runJavaScript('if(window.setCenter) window.setCenter($lng, $lat)');
+            if (_isMapReady) {
+              _controller?.runJavaScript('if(window.setCenter) window.setCenter($lng, $lat)');
+            } else {
+              _pendingLat = lat;
+              _pendingLng = lng;
+              debugPrint('AMapWebViewMap: Map not ready, caching location: lat=$lat, lng=$lng');
+            }
             widget.onLocationSelected?.call(lat, lng);
             widget.onLocationWithAddress?.call(lat, lng, city, address, description);
             widget.onLocationReadyForNearbySearch?.call(lat, lng);
