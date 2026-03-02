@@ -348,6 +348,7 @@ Future<bool> syncTagToModuleConfig(String moduleKey, String tagName) async {
   updatedTags.add(ModuleTag(
     id: '$moduleKey-${DateTime.now().millisecondsSinceEpoch}',
     name: tagName,
+    iconName: null,  // 自定义标签初始没有图标，用户可在模块管理页设置
     isCustom: true,
   ));
 
