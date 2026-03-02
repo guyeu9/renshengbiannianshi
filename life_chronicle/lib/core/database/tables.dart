@@ -306,3 +306,15 @@ class BackupLogs extends Table {
   @override
   Set<Column> get primaryKey => {id};
 }
+
+class AnnualReviews extends Table {
+  TextColumn get id => text()();
+  IntColumn get year => integer()();
+  TextColumn get content => text().nullable()();
+  TextColumn get images => text().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}

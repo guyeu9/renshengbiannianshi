@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -1007,17 +1008,47 @@ class _AnnualGoalSummaryPageState extends ConsumerState<AnnualGoalSummaryPage> {
   final TextEditingController _reviewController = TextEditingController();
   final List<String> _reviewImages = [];
   late int _selectedYear;
+  bool _isLoadingReview = true;
+  String? _existingReviewId;
 
   @override
   void initState() {
     super.initState();
     _selectedYear = widget.initialYear;
+    _loadAnnualReview();
   }
 
   @override
   void dispose() {
     _reviewController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadAnnualReview() async {
+    final db = ref.read(appDatabaseProvider);
+    final existing = await db.annualReviewDao.findByYear(_selectedYear);
+    if (existing != null && mounted) {
+      setState(() {
+        _reviewController.text = existing.content ?? '';
+        if (existing.images != null && existing.images!.isNotEmpty) {
+          try {
+            final List<dynamic> imageList = jsonDecode(existing.images!);
+            _reviewImages.clear();
+            _reviewImages.addAll(imageList.cast<String>());
+          } catch (_) {}
+        }
+        _existingReviewId = existing.id;
+      });
+    } else if (mounted) {
+      setState(() {
+        _reviewController.clear();
+        _reviewImages.clear();
+        _existingReviewId = null;
+      });
+    }
+    if (mounted) {
+      setState(() => _isLoadingReview = false);
+    }
   }
 
   List<int> _resolveYears(List<GoalRecord> records) {
@@ -1059,7 +1090,11 @@ class _AnnualGoalSummaryPageState extends ConsumerState<AnnualGoalSummaryPage> {
       },
     );
     if (selected == null || !mounted) return;
-    setState(() => _selectedYear = selected);
+    setState(() {
+      _selectedYear = selected;
+      _isLoadingReview = true;
+    });
+    await _loadAnnualReview();
   }
 
   void _shiftYear(List<int> years, int activeYear, int delta) {
@@ -1068,7 +1103,11 @@ class _AnnualGoalSummaryPageState extends ConsumerState<AnnualGoalSummaryPage> {
     if (index == -1) return;
     final nextIndex = index + delta;
     if (nextIndex < 0 || nextIndex >= years.length) return;
-    setState(() => _selectedYear = years[nextIndex]);
+    setState(() {
+      _selectedYear = years[nextIndex];
+      _isLoadingReview = true;
+    });
+    _loadAnnualReview();
   }
 
   void _handleYearSwipe(List<int> years, int activeYear, DragEndDetails details) {
@@ -1428,8 +1467,26 @@ class _AnnualGoalSummaryPageState extends ConsumerState<AnnualGoalSummaryPage> {
                                       SizedBox(
                                         width: double.infinity,
                                         child: ElevatedButton(
-                                          onPressed: () {
+                                          onPressed: () async {
                                             FocusManager.instance.primaryFocus?.unfocus();
+                                            final db = ref.read(appDatabaseProvider);
+                                            final now = DateTime.now();
+                                            const uuid = Uuid();
+
+                                            final imagesJson = _reviewImages.isEmpty ? null : jsonEncode(_reviewImages);
+
+                                            await db.annualReviewDao.upsert(
+                                              AnnualReviewsCompanion(
+                                                id: Value(_existingReviewId ?? uuid.v4()),
+                                                year: Value(_selectedYear),
+                                                content: Value(_reviewController.text.trim().isEmpty ? null : _reviewController.text.trim()),
+                                                images: Value(imagesJson),
+                                                createdAt: Value(_existingReviewId != null ? now : now),
+                                                updatedAt: Value(now),
+                                              ),
+                                            );
+
+                                            if (!mounted) return;
                                             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('已保存年度复盘')));
                                           },
                                           style: ElevatedButton.styleFrom(
@@ -1636,32 +1693,71 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
     Navigator.of(context).pop();
   }
 
-  Future<void> _showStageReview(GoalRecord record) async {
+  Future<void> _editSummary(GoalRecord record) async {
     final summaryController = TextEditingController(text: record.summary ?? '');
-    final noteController = TextEditingController(text: record.note ?? '');
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('阶段复盘'),
+          title: const Text('编辑总结'),
+          content: TextField(
+            controller: summaryController,
+            maxLines: 5,
+            decoration: const InputDecoration(
+              labelText: '目标总结',
+              hintText: '写下这个目标的最终总结...',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('取消')),
+            TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('保存')),
+          ],
+        );
+      },
+    );
+    if (confirmed != true) return;
+
+    final summary = summaryController.text.trim();
+    final db = ref.read(appDatabaseProvider);
+    final now = DateTime.now();
+    await (db.update(db.goalRecords)..where((t) => t.id.equals(record.id))).write(
+      GoalRecordsCompanion(
+        summary: Value(summary.isEmpty ? null : summary),
+        updatedAt: Value(now),
+      ),
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('总结已保存')));
+  }
+
+  Future<void> _addStageReview(GoalRecord record) async {
+    final titleController = TextEditingController();
+    final contentController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('新增阶段复盘'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                controller: summaryController,
-                maxLines: 3,
+                controller: titleController,
                 decoration: const InputDecoration(
-                  labelText: '总结',
-                  border: OutlineInputBorder(borderSide: BorderSide(color: Color(0xFFE5E7EB))),
+                  labelText: '复盘标题',
+                  hintText: '例如：第一季度进展',
+                  border: OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
-                controller: noteController,
+                controller: contentController,
                 maxLines: 4,
                 decoration: const InputDecoration(
-                  labelText: '复盘',
-                  border: OutlineInputBorder(borderSide: BorderSide(color: Color(0xFFE5E7EB))),
+                  labelText: '复盘内容',
+                  hintText: '写下这个阶段的进展和反思...',
+                  border: OutlineInputBorder(),
                 ),
               ),
             ],
@@ -1675,15 +1771,22 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
     );
     if (confirmed != true) return;
 
-    final summary = summaryController.text.trim();
-    final note = noteController.text.trim();
+    final title = titleController.text.trim();
+    if (title.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请输入复盘标题')));
+      return;
+    }
+
     final db = ref.read(appDatabaseProvider);
     final now = DateTime.now();
-    await (db.update(db.goalRecords)..where((t) => t.id.equals(record.id))).write(
-      GoalRecordsCompanion(
-        summary: Value(summary.isEmpty ? null : summary),
-        note: Value(note.isEmpty ? null : note),
-        updatedAt: Value(now),
+    await db.goalReviewDao.insert(
+      GoalReviewsCompanion.insert(
+        id: const Uuid().v4(),
+        goalId: record.id,
+        title: title,
+        content: Value(contentController.text.trim().isEmpty ? null : contentController.text.trim()),
+        reviewDate: now,
+        createdAt: now,
       ),
     );
     if (!mounted) return;
@@ -1843,14 +1946,14 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
                               ),
                             ),
                           ),
-                          const SizedBox(height: 22),
+                          const SizedBox(height: 14),
                           if (record.note?.isNotEmpty == true) ...[
                             Container(
                               width: double.infinity,
-                              padding: const EdgeInsets.all(16),
+                              padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
                                 color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
+                                borderRadius: BorderRadius.circular(14),
                                 border: Border.all(color: const Color(0xFFF3F4F6)),
                               ),
                               child: Column(
@@ -1858,28 +1961,28 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
                                 children: [
                                   const Row(
                                     children: [
-                                      Icon(Icons.description_outlined, size: 18, color: AppTheme.primary),
-                                      SizedBox(width: 8),
-                                      Text('目标描述', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF6B7280))),
+                                      Icon(Icons.description_outlined, size: 16, color: AppTheme.primary),
+                                      SizedBox(width: 6),
+                                      Text('目标描述', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF6B7280))),
                                     ],
                                   ),
-                                  const SizedBox(height: 10),
+                                  const SizedBox(height: 8),
                                   Text(
                                     record.note!,
-                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF374151), height: 1.5),
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF374151), height: 1.5),
                                   ),
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 18),
+                            const SizedBox(height: 12),
                           ],
                           if (record.summary?.isNotEmpty == true) ...[
                             Container(
                               width: double.infinity,
-                              padding: const EdgeInsets.all(16),
+                              padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFFFFBEB),
-                                borderRadius: BorderRadius.circular(16),
+                                borderRadius: BorderRadius.circular(14),
                                 border: Border.all(color: const Color(0xFFFEF3C7)),
                               ),
                               child: Column(
@@ -1887,20 +1990,20 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
                                 children: [
                                   const Row(
                                     children: [
-                                      Icon(Icons.auto_awesome, size: 18, color: Color(0xFFF59E0B)),
-                                      SizedBox(width: 8),
-                                      Text('目标总结', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF92400E))),
+                                      Icon(Icons.auto_awesome, size: 16, color: Color(0xFFF59E0B)),
+                                      SizedBox(width: 6),
+                                      Text('目标总结', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF92400E))),
                                     ],
                                   ),
-                                  const SizedBox(height: 10),
+                                  const SizedBox(height: 8),
                                   Text(
                                     record.summary!,
-                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF78350F), height: 1.5),
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF78350F), height: 1.5),
                                   ),
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 18),
+                            const SizedBox(height: 12),
                           ],
                           StreamBuilder<List<GoalReview>>(
                             stream: db.goalReviewDao.watchByGoalId(record.id),
@@ -1910,13 +2013,13 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
                                 return Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('阶段复盘', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                                    const SizedBox(height: 10),
+                                    const Text('阶段复盘', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                                    const SizedBox(height: 8),
                                     Container(
-                                      padding: const EdgeInsets.all(16),
+                                      padding: const EdgeInsets.all(12),
                                       decoration: BoxDecoration(
                                         color: Colors.white,
-                                        borderRadius: BorderRadius.circular(16),
+                                        borderRadius: BorderRadius.circular(14),
                                         border: Border.all(color: const Color(0xFFF3F4F6)),
                                       ),
                                       child: Column(
@@ -1961,7 +2064,7 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
                                         ],
                                       ),
                                     ),
-                                    const SizedBox(height: 18),
+                                    const SizedBox(height: 12),
                                   ],
                                 );
                               }
@@ -1976,13 +2079,13 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
                                 return Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('顺延记录', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                                    const SizedBox(height: 10),
+                                    const Text('顺延记录', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                                    const SizedBox(height: 8),
                                     Container(
-                                      padding: const EdgeInsets.all(16),
+                                      padding: const EdgeInsets.all(12),
                                       decoration: BoxDecoration(
                                         color: Colors.white,
-                                        borderRadius: BorderRadius.circular(16),
+                                        borderRadius: BorderRadius.circular(14),
                                         border: Border.all(color: const Color(0xFFF3F4F6)),
                                       ),
                                       child: Column(
@@ -2169,66 +2272,56 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
           bottomNavigationBar: SafeArea(
             top: false,
             child: Container(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.86),
                 border: const Border(top: BorderSide(color: Color(0xFFE5E7EB))),
               ),
               child: Row(
                 children: [
-                  OutlinedButton.icon(
-                    onPressed: () async {
-                      final db = ref.read(appDatabaseProvider);
-                      await db.updateGoalFavorite(record.id, isFavorite: !record.isFavorite, now: DateTime.now());
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(record.isFavorite ? '已取消收藏' : '已添加到收藏'),
-                            duration: const Duration(seconds: 1),
-                          ),
-                        );
-                      }
-                    },
-                    icon: Icon(record.isFavorite ? Icons.favorite : Icons.favorite_border, size: 18),
-                    label: Text(record.isFavorite ? '已收藏' : '收藏'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: record.isFavorite ? const Color(0xFFF43F5E) : const Color(0xFF6B7280),
-                      side: BorderSide(color: record.isFavorite ? const Color(0xFFF43F5E) : const Color(0xFFE5E7EB)),
-                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-                      textStyle: const TextStyle(fontWeight: FontWeight.w900),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () => Navigator.of(context).push(MaterialPageRoute(
                         builder: (_) => GoalPostponePage(goal: record),
                       )),
-                      icon: const Icon(Icons.update, size: 18),
+                      icon: const Icon(Icons.update, size: 16),
                       label: const Text('顺延计划'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: const Color(0xFF6B7280),
                         side: const BorderSide(color: Color(0xFFE5E7EB)),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        textStyle: const TextStyle(fontWeight: FontWeight.w900),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
                   Expanded(
-                    flex: 2,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _editSummary(record),
+                      icon: const Icon(Icons.edit_note, size: 16),
+                      label: const Text('编辑总结'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF6B7280),
+                        side: const BorderSide(color: Color(0xFFE5E7EB)),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () => _showStageReview(record),
-                      icon: const Icon(Icons.rate_review, size: 18),
-                      label: const Text('阶段复盘'),
+                      onPressed: () => _addStageReview(record),
+                      icon: const Icon(Icons.rate_review, size: 16),
+                      label: const Text('新增复盘'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primary,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        textStyle: const TextStyle(fontWeight: FontWeight.w900),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         elevation: 0,
                       ),
                     ),
@@ -5124,11 +5217,6 @@ class _GoalCreatePageState extends ConsumerState<GoalCreatePage> {
     final goalId = _isEditMode ? widget.goal!.id : uuid.v4();
 
     final description = _descriptionController.text.trim();
-    final noteParts = <String>[];
-    if (_selectedGoalType.isNotEmpty) noteParts.add('分类：${_goalLabelFor(_selectedGoalType)}');
-    if (_dueDate != null) noteParts.add('截止：${_formatDotDate(_dueDate!)}');
-    if (description.isNotEmpty) noteParts.add(description);
-    final note = noteParts.isEmpty ? null : noteParts.join('\n');
 
     if (_isEditMode) {
       await (db.update(db.goalRecords)..where((t) => t.id.equals(goalId))).write(
@@ -5146,7 +5234,7 @@ class _GoalCreatePageState extends ConsumerState<GoalCreatePage> {
       await (db.update(db.timelineEvents)..where((t) => t.id.equals(goalId))).write(
             TimelineEventsCompanion(
               title: Value(title),
-              note: Value(note),
+              note: Value(description.isEmpty ? null : description),
               startAt: Value(_dueDate ?? recordDate),
               updatedAt: Value(now),
             ),

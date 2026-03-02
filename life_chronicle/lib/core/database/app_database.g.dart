@@ -10178,6 +10178,352 @@ class BackupLogsCompanion extends UpdateCompanion<BackupLog> {
   }
 }
 
+class $AnnualReviewsTable extends AnnualReviews
+    with TableInfo<$AnnualReviewsTable, AnnualReview> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AnnualReviewsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _yearMeta = const VerificationMeta('year');
+  @override
+  late final GeneratedColumn<int> year = GeneratedColumn<int>(
+      'year', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _contentMeta =
+      const VerificationMeta('content');
+  @override
+  late final GeneratedColumn<String> content = GeneratedColumn<String>(
+      'content', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _imagesMeta = const VerificationMeta('images');
+  @override
+  late final GeneratedColumn<String> images = GeneratedColumn<String>(
+      'images', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, year, content, images, createdAt, updatedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'annual_reviews';
+  @override
+  VerificationContext validateIntegrity(Insertable<AnnualReview> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('year')) {
+      context.handle(
+          _yearMeta, year.isAcceptableOrUnknown(data['year']!, _yearMeta));
+    } else if (isInserting) {
+      context.missing(_yearMeta);
+    }
+    if (data.containsKey('content')) {
+      context.handle(_contentMeta,
+          content.isAcceptableOrUnknown(data['content']!, _contentMeta));
+    }
+    if (data.containsKey('images')) {
+      context.handle(_imagesMeta,
+          images.isAcceptableOrUnknown(data['images']!, _imagesMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  AnnualReview map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AnnualReview(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      year: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}year'])!,
+      content: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}content']),
+      images: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}images']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+    );
+  }
+
+  @override
+  $AnnualReviewsTable createAlias(String alias) {
+    return $AnnualReviewsTable(attachedDatabase, alias);
+  }
+}
+
+class AnnualReview extends DataClass implements Insertable<AnnualReview> {
+  final String id;
+  final int year;
+  final String? content;
+  final String? images;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const AnnualReview(
+      {required this.id,
+      required this.year,
+      this.content,
+      this.images,
+      required this.createdAt,
+      required this.updatedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['year'] = Variable<int>(year);
+    if (!nullToAbsent || content != null) {
+      map['content'] = Variable<String>(content);
+    }
+    if (!nullToAbsent || images != null) {
+      map['images'] = Variable<String>(images);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  AnnualReviewsCompanion toCompanion(bool nullToAbsent) {
+    return AnnualReviewsCompanion(
+      id: Value(id),
+      year: Value(year),
+      content: content == null && nullToAbsent
+          ? const Value.absent()
+          : Value(content),
+      images:
+          images == null && nullToAbsent ? const Value.absent() : Value(images),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory AnnualReview.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AnnualReview(
+      id: serializer.fromJson<String>(json['id']),
+      year: serializer.fromJson<int>(json['year']),
+      content: serializer.fromJson<String?>(json['content']),
+      images: serializer.fromJson<String?>(json['images']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'year': serializer.toJson<int>(year),
+      'content': serializer.toJson<String?>(content),
+      'images': serializer.toJson<String?>(images),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  AnnualReview copyWith(
+          {String? id,
+          int? year,
+          Value<String?> content = const Value.absent(),
+          Value<String?> images = const Value.absent(),
+          DateTime? createdAt,
+          DateTime? updatedAt}) =>
+      AnnualReview(
+        id: id ?? this.id,
+        year: year ?? this.year,
+        content: content.present ? content.value : this.content,
+        images: images.present ? images.value : this.images,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+  AnnualReview copyWithCompanion(AnnualReviewsCompanion data) {
+    return AnnualReview(
+      id: data.id.present ? data.id.value : this.id,
+      year: data.year.present ? data.year.value : this.year,
+      content: data.content.present ? data.content.value : this.content,
+      images: data.images.present ? data.images.value : this.images,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AnnualReview(')
+          ..write('id: $id, ')
+          ..write('year: $year, ')
+          ..write('content: $content, ')
+          ..write('images: $images, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, year, content, images, createdAt, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AnnualReview &&
+          other.id == this.id &&
+          other.year == this.year &&
+          other.content == this.content &&
+          other.images == this.images &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class AnnualReviewsCompanion extends UpdateCompanion<AnnualReview> {
+  final Value<String> id;
+  final Value<int> year;
+  final Value<String?> content;
+  final Value<String?> images;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const AnnualReviewsCompanion({
+    this.id = const Value.absent(),
+    this.year = const Value.absent(),
+    this.content = const Value.absent(),
+    this.images = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AnnualReviewsCompanion.insert({
+    required String id,
+    required int year,
+    this.content = const Value.absent(),
+    this.images = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        year = Value(year),
+        createdAt = Value(createdAt),
+        updatedAt = Value(updatedAt);
+  static Insertable<AnnualReview> custom({
+    Expression<String>? id,
+    Expression<int>? year,
+    Expression<String>? content,
+    Expression<String>? images,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (year != null) 'year': year,
+      if (content != null) 'content': content,
+      if (images != null) 'images': images,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AnnualReviewsCompanion copyWith(
+      {Value<String>? id,
+      Value<int>? year,
+      Value<String?>? content,
+      Value<String?>? images,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<int>? rowid}) {
+    return AnnualReviewsCompanion(
+      id: id ?? this.id,
+      year: year ?? this.year,
+      content: content ?? this.content,
+      images: images ?? this.images,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (year.present) {
+      map['year'] = Variable<int>(year.value);
+    }
+    if (content.present) {
+      map['content'] = Variable<String>(content.value);
+    }
+    if (images.present) {
+      map['images'] = Variable<String>(images.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AnnualReviewsCompanion(')
+          ..write('id: $id, ')
+          ..write('year: $year, ')
+          ..write('content: $content, ')
+          ..write('images: $images, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -10199,6 +10545,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $GoalPostponementsTable(this);
   late final $GoalReviewsTable goalReviews = $GoalReviewsTable(this);
   late final $BackupLogsTable backupLogs = $BackupLogsTable(this);
+  late final $AnnualReviewsTable annualReviews = $AnnualReviewsTable(this);
   late final FoodDao foodDao = FoodDao(this as AppDatabase);
   late final MomentDao momentDao = MomentDao(this as AppDatabase);
   late final FriendDao friendDao = FriendDao(this as AppDatabase);
@@ -10211,6 +10558,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       GoalPostponementDao(this as AppDatabase);
   late final GoalReviewDao goalReviewDao = GoalReviewDao(this as AppDatabase);
   late final BackupLogDao backupLogDao = BackupLogDao(this as AppDatabase);
+  late final AnnualReviewDao annualReviewDao =
+      AnnualReviewDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -10232,7 +10581,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         checklistItems,
         goalPostponements,
         goalReviews,
-        backupLogs
+        backupLogs,
+        annualReviews
       ];
 }
 
@@ -14905,6 +15255,194 @@ typedef $$BackupLogsTableProcessedTableManager = ProcessedTableManager<
     (BackupLog, BaseReferences<_$AppDatabase, $BackupLogsTable, BackupLog>),
     BackupLog,
     PrefetchHooks Function()>;
+typedef $$AnnualReviewsTableCreateCompanionBuilder = AnnualReviewsCompanion
+    Function({
+  required String id,
+  required int year,
+  Value<String?> content,
+  Value<String?> images,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+  Value<int> rowid,
+});
+typedef $$AnnualReviewsTableUpdateCompanionBuilder = AnnualReviewsCompanion
+    Function({
+  Value<String> id,
+  Value<int> year,
+  Value<String?> content,
+  Value<String?> images,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+
+class $$AnnualReviewsTableFilterComposer
+    extends Composer<_$AppDatabase, $AnnualReviewsTable> {
+  $$AnnualReviewsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get year => $composableBuilder(
+      column: $table.year, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get content => $composableBuilder(
+      column: $table.content, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get images => $composableBuilder(
+      column: $table.images, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$AnnualReviewsTableOrderingComposer
+    extends Composer<_$AppDatabase, $AnnualReviewsTable> {
+  $$AnnualReviewsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get year => $composableBuilder(
+      column: $table.year, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get content => $composableBuilder(
+      column: $table.content, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get images => $composableBuilder(
+      column: $table.images, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$AnnualReviewsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AnnualReviewsTable> {
+  $$AnnualReviewsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get year =>
+      $composableBuilder(column: $table.year, builder: (column) => column);
+
+  GeneratedColumn<String> get content =>
+      $composableBuilder(column: $table.content, builder: (column) => column);
+
+  GeneratedColumn<String> get images =>
+      $composableBuilder(column: $table.images, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$AnnualReviewsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $AnnualReviewsTable,
+    AnnualReview,
+    $$AnnualReviewsTableFilterComposer,
+    $$AnnualReviewsTableOrderingComposer,
+    $$AnnualReviewsTableAnnotationComposer,
+    $$AnnualReviewsTableCreateCompanionBuilder,
+    $$AnnualReviewsTableUpdateCompanionBuilder,
+    (
+      AnnualReview,
+      BaseReferences<_$AppDatabase, $AnnualReviewsTable, AnnualReview>
+    ),
+    AnnualReview,
+    PrefetchHooks Function()> {
+  $$AnnualReviewsTableTableManager(_$AppDatabase db, $AnnualReviewsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AnnualReviewsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AnnualReviewsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AnnualReviewsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<int> year = const Value.absent(),
+            Value<String?> content = const Value.absent(),
+            Value<String?> images = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              AnnualReviewsCompanion(
+            id: id,
+            year: year,
+            content: content,
+            images: images,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required int year,
+            Value<String?> content = const Value.absent(),
+            Value<String?> images = const Value.absent(),
+            required DateTime createdAt,
+            required DateTime updatedAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              AnnualReviewsCompanion.insert(
+            id: id,
+            year: year,
+            content: content,
+            images: images,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$AnnualReviewsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $AnnualReviewsTable,
+    AnnualReview,
+    $$AnnualReviewsTableFilterComposer,
+    $$AnnualReviewsTableOrderingComposer,
+    $$AnnualReviewsTableAnnotationComposer,
+    $$AnnualReviewsTableCreateCompanionBuilder,
+    $$AnnualReviewsTableUpdateCompanionBuilder,
+    (
+      AnnualReview,
+      BaseReferences<_$AppDatabase, $AnnualReviewsTable, AnnualReview>
+    ),
+    AnnualReview,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -14943,6 +15481,8 @@ class $AppDatabaseManager {
       $$GoalReviewsTableTableManager(_db, _db.goalReviews);
   $$BackupLogsTableTableManager get backupLogs =>
       $$BackupLogsTableTableManager(_db, _db.backupLogs);
+  $$AnnualReviewsTableTableManager get annualReviews =>
+      $$AnnualReviewsTableTableManager(_db, _db.annualReviews);
 }
 
 mixin _$FoodDaoMixin on DatabaseAccessor<AppDatabase> {
@@ -15081,4 +15621,16 @@ class BackupLogDaoManager {
   BackupLogDaoManager(this._db);
   $$BackupLogsTableTableManager get backupLogs =>
       $$BackupLogsTableTableManager(_db.attachedDatabase, _db.backupLogs);
+}
+
+mixin _$AnnualReviewDaoMixin on DatabaseAccessor<AppDatabase> {
+  $AnnualReviewsTable get annualReviews => attachedDatabase.annualReviews;
+  AnnualReviewDaoManager get managers => AnnualReviewDaoManager(this);
+}
+
+class AnnualReviewDaoManager {
+  final _$AnnualReviewDaoMixin _db;
+  AnnualReviewDaoManager(this._db);
+  $$AnnualReviewsTableTableManager get annualReviews =>
+      $$AnnualReviewsTableTableManager(_db.attachedDatabase, _db.annualReviews);
 }
