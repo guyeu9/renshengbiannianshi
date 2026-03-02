@@ -1008,7 +1008,6 @@ class _AnnualGoalSummaryPageState extends ConsumerState<AnnualGoalSummaryPage> {
   final TextEditingController _reviewController = TextEditingController();
   final List<String> _reviewImages = [];
   late int _selectedYear;
-  bool _isLoadingReview = true;
   String? _existingReviewId;
 
   @override
@@ -1045,9 +1044,6 @@ class _AnnualGoalSummaryPageState extends ConsumerState<AnnualGoalSummaryPage> {
         _reviewImages.clear();
         _existingReviewId = null;
       });
-    }
-    if (mounted) {
-      setState(() => _isLoadingReview = false);
     }
   }
 
@@ -1487,7 +1483,9 @@ class _AnnualGoalSummaryPageState extends ConsumerState<AnnualGoalSummaryPage> {
                                             );
 
                                             if (!mounted) return;
-                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('已保存年度复盘')));
+                                            if (context.mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('已保存年度复盘')));
+                                            }
                                           },
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor: const Color(0xFF8B5CF6),
@@ -1773,7 +1771,9 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
 
     final title = titleController.text.trim();
     if (title.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请输入复盘标题')));
+      if (mounted && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请输入复盘标题')));
+      }
       return;
     }
 
