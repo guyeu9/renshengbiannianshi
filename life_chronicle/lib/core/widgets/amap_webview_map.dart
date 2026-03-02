@@ -29,6 +29,7 @@ class AMapWebViewMap extends StatefulWidget {
     this.onError,
     this.onLocationWithAddress,
     this.onLocationReadyForNearbySearch,
+    this.onMapMoveEnd,
   });
 
   final double? initialLatitude;
@@ -47,6 +48,7 @@ class AMapWebViewMap extends StatefulWidget {
   final void Function(String error)? onError;
   final void Function(double lat, double lng, String city, String address, String description)? onLocationWithAddress;
   final void Function(double lat, double lng)? onLocationReadyForNearbySearch;
+  final void Function(double lat, double lng)? onMapMoveEnd;
 
   @override
   State<AMapWebViewMap> createState() => _AMapWebViewMapState();
@@ -446,6 +448,7 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
           final lat = (data['lat'] as num).toDouble();
           final lng = (data['lng'] as num).toDouble();
           widget.onLocationSelected?.call(lat, lng);
+          widget.onMapMoveEnd?.call(lat, lng);
           break;
         case 'poiClick':
           final name = data['name'] as String? ?? '';
@@ -647,7 +650,19 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
           },
         ),
         if (_isLoading || !_isMapReady)
-          const Center(child: CircularProgressIndicator()),
+          Container(
+            color: Colors.white.withValues(alpha: 0.9),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  const Text('正在加载地图...', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF64748B))),
+                ],
+              ),
+            ),
+          ),
         if (_isLocating)
           Positioned(
             top: 16,

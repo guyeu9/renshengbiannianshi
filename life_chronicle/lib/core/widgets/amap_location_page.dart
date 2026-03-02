@@ -296,8 +296,8 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
         'location': '$lng,$lat',
         'keywords': '',
         'types': '',
-        'radius': '1000',
-        'offset': '10',
+        'radius': '2000',
+        'offset': '25',
         'page': '1',
         'extensions': 'base',
         'key': _amapWebKey,
@@ -351,6 +351,57 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
         _loadingNearby = false;
       });
       debugPrint('Nearby POI search failed: $e');
+    }
+  }
+
+  Future<void> _reverseGeocode(double lat, double lng) async {
+    if (!_hasWebKey) return;
+    
+    try {
+      final uri = Uri.https('restapi.amap.com', '/v3/geocode/regeo', {
+        'location': '$lng,$lat',
+        'extensions': 'base',
+        'key': _amapWebKey,
+      });
+      final client = HttpClient();
+      final request = await client.getUrl(uri);
+      final response = await request.close();
+      final body = await response.transform(utf8.decoder).join();
+      client.close(force: true);
+
+      final decoded = jsonDecode(body);
+      if (decoded is! Map) return;
+      
+      final status = '${decoded['status'] ?? ''}'.trim();
+      if (status != '1') return;
+      
+      final regeocode = decoded['regeocode'];
+      if (regeocode is! Map) return;
+      
+      final formattedAddress = '${regeocode['formatted_address'] ?? ''}'.trim();
+      final addressComponent = regeocode['addressComponent'];
+      String city = '';
+      String province = '';
+      if (addressComponent is Map) {
+        city = '${addressComponent['city'] ?? addressComponent['district'] ?? ''}'.trim();
+        province = '${addressComponent['province'] ?? ''}'.trim();
+      }
+      
+      if (!mounted) return;
+      setState(() {
+        _pickedLatitude = lat;
+        _pickedLongitude = lng;
+        if (formattedAddress.isNotEmpty) {
+          _addressController.text = formattedAddress;
+        }
+        if (city.isNotEmpty) {
+          _cityController.text = city;
+        } else if (province.isNotEmpty) {
+          _cityController.text = province;
+        }
+      });
+    } catch (e) {
+      debugPrint('Reverse geocode failed: $e');
     }
   }
 
@@ -634,6 +685,11 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
                               : (lat, lng) {
                                   _searchNearbyPois(lat, lng);
                                 },
+                          onMapMoveEnd: isPreview
+                              ? null
+                              : (lat, lng) {
+                                  _reverseGeocode(lat, lng);
+                                },
                           onError: (error) {
                             if (kDebugMode) {
                               debugPrint('WebView Map Error: $error');
@@ -864,6 +920,13 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
     required double? lng,
     required bool isCurrentLocation,
   }) {
+    final isSelected = lat != null && 
+                       lng != null && 
+                       _pickedLatitude != null && 
+                       _pickedLongitude != null &&
+                       (lat - _pickedLatitude!).abs() < 0.0001 && 
+                       (lng - _pickedLongitude!).abs() < 0.0001;
+    
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: () {
@@ -880,10 +943,15 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
         width: double.infinity,
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isCurrentLocation ? const Color(0xFFE8F8FB) : Colors.white,
+          color: isSelected 
+              ? const Color(0xFFE8F8FB) 
+              : (isCurrentLocation ? const Color(0xFFE8F8FB) : Colors.white),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isCurrentLocation ? _primary.withValues(alpha: 0.3) : const Color(0xFFF3F4F6),
+            color: isSelected 
+                ? _primary 
+                : (isCurrentLocation ? _primary.withValues(alpha: 0.3) : const Color(0xFFF3F4F6)),
+            width: isSelected ? 2 : 1,
           ),
           boxShadow: [
             BoxShadow(
@@ -898,12 +966,14 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: isCurrentLocation ? _primary.withValues(alpha: 0.1) : Colors.grey.shade100,
+                color: isSelected || isCurrentLocation 
+                    ? _primary.withValues(alpha: 0.1) 
+                    : Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
                 isCurrentLocation ? Icons.my_location : Icons.place,
-                color: isCurrentLocation ? _primary : Colors.grey.shade500,
+                color: isSelected || isCurrentLocation ? _primary : Colors.grey.shade500,
                 size: 20,
               ),
             ),

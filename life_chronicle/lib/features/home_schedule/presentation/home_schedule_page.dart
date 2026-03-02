@@ -1198,109 +1198,166 @@ class _EventStream extends ConsumerWidget {
     final db = ref.watch(appDatabaseProvider);
     final dayStart = DateTime(selectedDay.year, selectedDay.month, selectedDay.day);
     final dayEnd = dayStart.add(const Duration(days: 1));
-    return StreamBuilder<List<TimelineEvent>>(
-      stream: db.watchEventsForDate(selectedDay),
-      builder: (context, snapshot) {
-        final events = snapshot.data ?? [];
-        return StreamBuilder<List<FoodRecord>>(
-          stream: db.foodDao.watchByRecordDateRange(dayStart, dayEnd),
-          builder: (context, foodSnapshot) {
-            final foods = (foodSnapshot.data ?? const <FoodRecord>[]).where((e) => e.isWishlist == false).toList(growable: false);
-            final items = <({DateTime? time, String title, String? subtitle, String type, VoidCallback? onTap})>[
-              for (final e in events)
-                (
-                  time: e.startAt,
-                  title: e.title,
-                  subtitle: e.note,
-                  type: e.eventType,
-                  onTap: () {
-                    switch (e.eventType) {
-                      case 'goal':
-                        _openGoalDetail(context, ref, e.id);
-                        break;
-                      case 'encounter':
-                        _openEncounterDetail(context, e.id);
-                        break;
-                      case 'travel':
-                        _openTravelDetail(context, ref, e.id);
-                        break;
-                      case 'moment':
-                        _openMomentDetail(context, e.id);
-                        break;
-                      default:
-                        break;
+    return FutureBuilder<ModuleManagementConfig>(
+      future: loadModuleManagementConfig(),
+      builder: (context, configSnapshot) {
+        final config = configSnapshot.data ?? ModuleManagementConfig.defaults();
+        return StreamBuilder<List<TimelineEvent>>(
+          stream: db.watchEventsForDate(selectedDay),
+          builder: (context, snapshot) {
+            final events = snapshot.data ?? [];
+            return StreamBuilder<List<FoodRecord>>(
+              stream: db.foodDao.watchByRecordDateRange(dayStart, dayEnd),
+              builder: (context, foodSnapshot) {
+                final foods = (foodSnapshot.data ?? const <FoodRecord>[]).where((e) => e.isWishlist == false).toList(growable: false);
+                return StreamBuilder<List<MomentRecord>>(
+                  stream: db.momentDao.watchByRecordDateRange(dayStart, dayEnd),
+                  builder: (context, momentSnapshot) {
+                    final moments = momentSnapshot.data ?? const <MomentRecord>[];
+                    
+                    final momentMap = <String, MomentRecord>{};
+                    for (final m in moments) {
+                      momentMap[m.id] = m;
                     }
-                  },
-                ),
-              for (final f in foods)
-                (
-                  time: f.createdAt,
-                  title: f.title,
-                  subtitle: (f.poiName ?? '').trim().isNotEmpty
-                      ? (f.poiName ?? '').trim()
-                      : ((f.content ?? '').trim().isNotEmpty ? (f.content ?? '').trim() : null),
-                  type: 'food',
-                  onTap: () {
-                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => FoodDetailPage(recordId: f.id)));
-                  },
-                ),
-            ];
-
-            items.sort((a, b) {
-              final at = a.time;
-              final bt = b.time;
-              if (at == null && bt == null) return 0;
-              if (at == null) return 1;
-              if (bt == null) return -1;
-              return at.compareTo(bt);
-            });
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: RichText(
-                    text: TextSpan(
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.textMain),
-                      children: [
-                        const TextSpan(text: '日程记录'),
-                        TextSpan(
-                          text: '  ${items.length}个记录',
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF9CA3AF)),
+                    
+                    final items = <({DateTime? time, String title, String? subtitle, String type, String? id, VoidCallback? onTap})>[
+                      for (final e in events)
+                        (
+                          time: e.startAt,
+                          title: e.title,
+                          subtitle: e.note,
+                          type: e.eventType,
+                          id: e.id,
+                          onTap: () {
+                            switch (e.eventType) {
+                              case 'goal':
+                                _openGoalDetail(context, ref, e.id);
+                                break;
+                              case 'encounter':
+                                _openEncounterDetail(context, e.id);
+                                break;
+                              case 'travel':
+                                _openTravelDetail(context, ref, e.id);
+                                break;
+                              case 'moment':
+                                _openMomentDetail(context, e.id);
+                                break;
+                              default:
+                                break;
+                            }
+                          },
                         ),
+                      for (final f in foods)
+                        (
+                          time: f.createdAt,
+                          title: f.title,
+                          subtitle: (f.poiName ?? '').trim().isNotEmpty
+                              ? (f.poiName ?? '').trim()
+                              : ((f.content ?? '').trim().isNotEmpty ? (f.content ?? '').trim() : null),
+                          type: 'food',
+                          id: null,
+                          onTap: () {
+                            Navigator.of(context).push(MaterialPageRoute(builder: (_) => FoodDetailPage(recordId: f.id)));
+                          },
+                        ),
+                    ];
+
+                    items.sort((a, b) {
+                      final at = a.time;
+                      final bt = b.time;
+                      if (at == null && bt == null) return 0;
+                      if (at == null) return 1;
+                      if (bt == null) return -1;
+                      return at.compareTo(bt);
+                    });
+
+                    final momentModule = config.moduleOf('moment');
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: RichText(
+                            text: TextSpan(
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.textMain),
+                              children: [
+                                const TextSpan(text: '日程记录'),
+                                TextSpan(
+                                  text: '  ${items.length}个记录',
+                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF9CA3AF)),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        if (items.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 20),
+                            child: Center(
+                              child: Text(
+                                '${selectedDay.month}月${selectedDay.day}日 暂无日程',
+                                style: const TextStyle(color: AppTheme.textMuted),
+                              ),
+                            ),
+                          )
+                        else
+                          for (var i = 0; i < items.length; i++)
+                            _buildTimelineItem(items[i], i, items.length, momentModule, momentMap),
                       ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                if (items.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 20),
-                    child: Center(
-                      child: Text(
-                        '${selectedDay.month}月${selectedDay.day}日 暂无日程',
-                        style: const TextStyle(color: AppTheme.textMuted),
-                      ),
-                    ),
-                  )
-                else
-                  for (var i = 0; i < items.length; i++)
-                    _TimelineItem(
-                      time: _formatTime(items[i].time),
-                      title: items[i].title,
-                      subtitle: items[i].subtitle,
-                      leadingIcon: _getIconForType(items[i].type),
-                      leadingBg: _getColorForType(items[i].type).withValues(alpha: 0.1),
-                      leadingFg: _getColorForType(items[i].type),
-                      showLine: i != items.length - 1,
-                      onTap: items[i].onTap,
-                    ),
-              ],
+                    );
+                  },
+                );
+              },
             );
           },
         );
       },
+    );
+  }
+
+  Widget _buildTimelineItem(
+    ({DateTime? time, String title, String? subtitle, String type, String? id, VoidCallback? onTap}) item,
+    int index,
+    int totalItems,
+    ModuleConfig momentModule,
+    Map<String, MomentRecord> momentMap,
+  ) {
+    IconData? icon;
+    Color? color;
+    
+    if (item.type == 'moment' && item.id != null) {
+      final moment = momentMap[item.id!];
+      if (moment != null) {
+        final tagName = (moment.tags ?? '').trim();
+        ModuleTag? match;
+        if (tagName.isNotEmpty) {
+          for (final tag in momentModule.tags) {
+            if (tag.name == tagName) {
+              match = tag;
+              break;
+            }
+          }
+        }
+        final iconName = match?.iconName ?? momentModule.iconName;
+        icon = _iconFromName(iconName);
+        color = const Color(0xFF4ADE80);
+      }
+    }
+    
+    icon ??= _getIconForType(item.type);
+    color ??= _getColorForType(item.type);
+    
+    return _TimelineItem(
+      time: _formatTime(item.time),
+      title: item.title,
+      subtitle: item.subtitle,
+      leadingIcon: icon,
+      leadingBg: color.withValues(alpha: 0.1),
+      leadingFg: color,
+      showLine: index != totalItems - 1,
+      onTap: item.onTap,
     );
   }
 
@@ -1323,6 +1380,8 @@ class _EventStream extends ConsumerWidget {
         return Icons.people;
       case 'goal':
         return Icons.outlined_flag;
+      case 'moment':
+        return Icons.auto_awesome;
       default:
         return Icons.event;
     }
@@ -1342,6 +1401,8 @@ class _EventStream extends ConsumerWidget {
         return Colors.pink;
       case 'goal':
         return const Color(0xFFA855F7);
+      case 'moment':
+        return const Color(0xFF4ADE80);
       default:
         return Colors.grey;
     }
