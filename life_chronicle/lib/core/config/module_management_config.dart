@@ -270,14 +270,15 @@ Future<File?> moduleManagementConfigFile() async {
 
 Future<ModuleManagementConfig> loadModuleManagementConfig() async {
   if (kIsWeb) return ModuleManagementConfig.defaults();
-  final file = await moduleManagementConfigFile();
-  if (file == null) return ModuleManagementConfig.defaults();
-  if (!await file.exists()) {
-    final defaults = ModuleManagementConfig.defaults();
-    await file.writeAsString(jsonEncode(defaults.toJson()));
-    return defaults;
-  }
   try {
+    final file = await moduleManagementConfigFile();
+    if (file == null) return ModuleManagementConfig.defaults();
+    if (!await file.exists()) {
+      final defaults = ModuleManagementConfig.defaults();
+      await file.writeAsString(jsonEncode(defaults.toJson()));
+      debugPrint('✅ 模块配置文件不存在，已创建默认配置');
+      return defaults;
+    }
     final raw = await file.readAsString();
     final decoded = jsonDecode(raw);
     if (decoded is Map) {
@@ -285,13 +286,24 @@ Future<ModuleManagementConfig> loadModuleManagementConfig() async {
       final migrated = _migrateModuleConfig(config);
       if (migrated != null) {
         await file.writeAsString(jsonEncode(migrated.toJson()));
+        debugPrint('✅ 模块配置已迁移到新版本');
         return migrated;
       }
+      debugPrint('✅ 模块配置加载成功');
       return config;
     }
-  } catch (_) {}
+  } catch (e, stackTrace) {
+    debugPrint('⚠️ 加载模块配置失败: $e');
+    debugPrintStack(stackTrace: stackTrace);
+  }
   final fallback = ModuleManagementConfig.defaults();
-  await file.writeAsString(jsonEncode(fallback.toJson()));
+  try {
+    final file = await moduleManagementConfigFile();
+    if (file != null) {
+      await file.writeAsString(jsonEncode(fallback.toJson()));
+    }
+  } catch (_) {}
+  debugPrint('⚠️ 使用默认模块配置作为回退');
   return fallback;
 }
 
@@ -321,9 +333,19 @@ ModuleManagementConfig? _migrateModuleConfig(ModuleManagementConfig config) {
 
 Future<void> saveModuleManagementConfig(ModuleManagementConfig config) async {
   if (kIsWeb) return;
-  final file = await moduleManagementConfigFile();
-  if (file == null) return;
-  await file.writeAsString(jsonEncode(config.toJson()));
+  try {
+    final file = await moduleManagementConfigFile();
+    if (file == null) {
+      debugPrint('⚠️ 无法获取模块配置文件路径');
+      return;
+    }
+    await file.writeAsString(jsonEncode(config.toJson()));
+    debugPrint('✅ 模块配置保存成功');
+  } catch (e, stackTrace) {
+    debugPrint('❌ 保存模块配置失败: $e');
+    debugPrintStack(stackTrace: stackTrace);
+    rethrow;
+  }
 }
 
 final moduleManagementConfigProvider = FutureProvider<ModuleManagementConfig>((ref) async {

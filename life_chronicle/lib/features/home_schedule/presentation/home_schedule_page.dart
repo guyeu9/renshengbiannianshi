@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
@@ -12,6 +12,7 @@ import '../../../app/app_theme.dart';
 import '../../../core/config/module_management_config.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
+import '../../../core/utils/icon_utils.dart';
 import '../../ai_historian/presentation/ai_historian_chat_page.dart';
 import '../../bond/presentation/bond_page.dart';
 import '../../food/presentation/food_page.dart';
@@ -19,55 +20,6 @@ import '../../goal/presentation/goal_page.dart';
 import '../../moment/presentation/moment_page.dart';
 import '../../profile/presentation/profile_page.dart';
 import '../../travel/presentation/travel_page.dart';
-
-const Map<String, IconData> _moduleIconRegistry = {
-  'restaurant': Icons.restaurant,
-  'airplanemode_active': Icons.airplanemode_active,
-  'auto_awesome': Icons.auto_awesome,
-  'diversity_3': Icons.diversity_3,
-  'flag': Icons.flag,
-  'star': Icons.star,
-  'favorite': Icons.favorite,
-  'self_improvement': Icons.self_improvement,
-  'camera_alt': Icons.camera_alt,
-  'directions_walk': Icons.directions_walk,
-  'card_giftcard': Icons.card_giftcard,
-  'sunny': Icons.sunny,
-  'local_florist': Icons.local_florist,
-  'coffee': Icons.coffee,
-  'beach_access': Icons.beach_access,
-  'pets': Icons.pets,
-  'music_note': Icons.music_note,
-  'nightlife': Icons.nightlife,
-  'movie': Icons.movie,
-  'celebration': Icons.celebration,
-  'fitness_center': Icons.fitness_center,
-  'directions_run': Icons.directions_run,
-  'sports_gymnastics': Icons.sports_gymnastics,
-  'sports_soccer': Icons.sports_soccer,
-  'sports_basketball': Icons.sports_basketball,
-  'sports_tennis': Icons.sports_tennis,
-  'pool': Icons.pool,
-  'directions_bike': Icons.directions_bike,
-  'menu_book': Icons.menu_book,
-  'school': Icons.school,
-  'edit_note': Icons.edit_note,
-  'palette': Icons.palette,
-  'cake': Icons.cake,
-  'local_cafe': Icons.local_cafe,
-  'icecream': Icons.icecream,
-  'shopping_bag': Icons.shopping_bag,
-  'redeem': Icons.redeem,
-  'spa': Icons.spa,
-  'flight': Icons.flight,
-  'train': Icons.train,
-  'directions_car': Icons.directions_car,
-  'volunteer_activism': Icons.volunteer_activism,
-};
-
-IconData _iconFromName(String name) {
-  return _moduleIconRegistry[name] ?? Icons.star;
-}
 
 class HomeSchedulePage extends StatefulWidget {
   const HomeSchedulePage({super.key});
@@ -806,7 +758,7 @@ class _CalendarGrid extends StatelessWidget {
       for (final record in foods) {
         final date = record.recordDate;
         if (date.year == year && date.month == month) {
-          addIcon(date.day, _iconFromName(foodModule.iconName));
+          addIcon(date.day, IconUtils.fromName(foodModule.iconName));
         }
       }
     }
@@ -815,7 +767,7 @@ class _CalendarGrid extends StatelessWidget {
       for (final record in travels) {
         final date = record.recordDate;
         if (date.year == year && date.month == month) {
-          addIcon(date.day, _iconFromName(travelModule.iconName));
+          addIcon(date.day, IconUtils.fromName(travelModule.iconName));
         }
       }
     }
@@ -825,10 +777,10 @@ class _CalendarGrid extends StatelessWidget {
         final date = event.recordDate;
         if (date.year != year || date.month != month) continue;
         if (event.eventType == 'goal' && goalModule.showOnCalendar) {
-          addIcon(date.day, _iconFromName(goalModule.iconName));
+          addIcon(date.day, IconUtils.fromName(goalModule.iconName));
         }
         if (event.eventType == 'encounter' && bondModule.showOnCalendar) {
-          addIcon(date.day, _iconFromName(bondModule.iconName));
+          addIcon(date.day, IconUtils.fromName(bondModule.iconName));
         }
       }
     }
@@ -851,7 +803,7 @@ class _CalendarGrid extends StatelessWidget {
           continue;
         }
         final iconName = match?.iconName ?? momentModule.iconName;
-        addIcon(date.day, _iconFromName(iconName));
+        addIcon(date.day, IconUtils.fromName(iconName));
       }
     }
 
@@ -1341,7 +1293,7 @@ class _EventStream extends ConsumerWidget {
           }
         }
         final iconName = match?.iconName ?? momentModule.iconName;
-        icon = _iconFromName(iconName);
+        icon = IconUtils.fromName(iconName);
         color = const Color(0xFF4ADE80);
       }
     }

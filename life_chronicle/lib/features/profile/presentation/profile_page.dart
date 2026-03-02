@@ -18,39 +18,11 @@ import 'package:path_provider/path_provider.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/utils/media_storage.dart';
+import '../../../core/utils/icon_utils.dart';
 import '../../../core/config/module_management_config.dart';
 import '../../../app/app_theme.dart';
 import 'ai_model_management_page.dart';
 import 'data_management_page.dart';
-
-const Map<String, IconData> moduleIconRegistry = {
-  'restaurant': Icons.restaurant,
-  'airplanemode_active': Icons.airplanemode_active,
-  'auto_awesome': Icons.auto_awesome,
-  'diversity_3': Icons.diversity_3,
-  'flag': Icons.flag,
-  'star': Icons.star,
-  'card_giftcard': Icons.card_giftcard,
-  'sunny': Icons.sunny,
-  'local_florist': Icons.local_florist,
-  'coffee': Icons.coffee,
-  'beach_access': Icons.beach_access,
-  'pets': Icons.pets,
-  'music_note': Icons.music_note,
-  'nightlife': Icons.nightlife,
-  'sports_soccer': Icons.sports_soccer,
-  'movie': Icons.movie,
-  'cake': Icons.cake,
-  'celebration': Icons.celebration,
-  'favorite': Icons.favorite,
-  'self_improvement': Icons.self_improvement,
-  'camera_alt': Icons.camera_alt,
-  'directions_walk': Icons.directions_walk,
-};
-
-IconData iconFromName(String name) {
-  return moduleIconRegistry[name] ?? Icons.star;
-}
 
 class ChronicleRecord {
   const ChronicleRecord({
@@ -6186,7 +6158,7 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
               width: 28,
               height: 28,
               decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 2))]),
-              child: Icon(iconFromName(tag.iconName ?? module.iconName), size: 16, color: _accentFg),
+              child: Icon(IconUtils.fromName(tag.iconName ?? module.iconName), size: 16, color: _accentFg),
             ),
           if (isMoment) const SizedBox(width: 10),
           Expanded(
@@ -6252,7 +6224,7 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(color: _accentBg, borderRadius: BorderRadius.circular(12)),
-                child: Icon(iconFromName(module.iconName), color: _accentFg),
+                child: Icon(IconUtils.fromName(module.iconName), color: _accentFg),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -6275,7 +6247,7 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
                 opacity: 0.5,
                 child: OutlinedButton.icon(
                   onPressed: null,
-                  icon: Icon(iconFromName(module.iconName), size: 16, color: _accentFg),
+                  icon: Icon(IconUtils.fromName(module.iconName), size: 16, color: _accentFg),
                   label: const Text('图标', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: Color(0xFFE5E7EB)),
