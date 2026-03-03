@@ -1,9 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:drift/drift.dart' hide Column;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:life_chronicle/core/database/app_database.dart';
-import 'package:life_chronicle/core/database/tables.dart';
 import 'package:life_chronicle/core/database/database_providers.dart';
 
 class TravelDetailState {
