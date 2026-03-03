@@ -3339,7 +3339,8 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
   }
 
   Future<void> _showSelectMoodSheet(BuildContext context) async {
-    final moduleConfig = ref.read(moduleManagementConfigProvider);
+    final asyncConfig = ref.read(moduleManagementConfigProvider);
+    final moduleConfig = asyncConfig.valueOrNull ?? ModuleManagementConfig.defaults();
     final moods = moduleConfig.moods;
     final selected = await showModalBottomSheet<String>(
       context: context,
