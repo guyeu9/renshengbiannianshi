@@ -4517,26 +4517,6 @@ class _TripPickResult {
   bool get isEmpty => id.isEmpty;
 }
 
-Stream<TravelRecord?> _watchTravelById(AppDatabase db, String id) {
-  return (db.select(db.travelRecords)
-        ..where((t) => t.id.equals(id))
-        ..where((t) => t.isDeleted.equals(false))
-        ..limit(1))
-      .watchSingleOrNull();
-}
-
-Stream<Trip?> _watchTripById(AppDatabase db, String id) {
-  return (db.select(db.trips)..where((t) => t.id.equals(id))).watchSingleOrNull();
-}
-
-Stream<List<TravelRecord>> _watchTravelRecordsByTripId(AppDatabase db, String tripId) {
-  return (db.select(db.travelRecords)
-        ..where((t) => t.isDeleted.equals(false))
-        ..where((t) => t.tripId.equals(tripId))
-        ..orderBy([(t) => OrderingTerm(expression: t.recordDate, mode: OrderingMode.desc)]))
-      .watch();
-}
-
 Stream<List<Trip>> _watchTripsByIds(AppDatabase db, List<String> ids) {
   if (ids.isEmpty) return Stream.value(const <Trip>[]);
   return (db.select(db.trips)..where((t) => t.id.isIn(ids))).watch();
@@ -4776,21 +4756,6 @@ class _ContentParts {
   final String note;
   final String flight;
   final String hotel;
-}
-
-String _formatDurationLabel(int days) {
-  if (days <= 1) return '1天';
-  return '$days天';
-}
-
-String _formatDateDotRange(DateTime? start, DateTime? end) {
-  if (start == null && end == null) return '';
-  final startDate = start ?? end!;
-  final endDate = end ?? startDate;
-  if (_isSameDay(startDate, endDate)) {
-    return '${startDate.month}.${startDate.day}';
-  }
-  return '${startDate.month}.${startDate.day} - ${endDate.month}.${endDate.day}';
 }
 
 class _AssociationRow extends StatelessWidget {
