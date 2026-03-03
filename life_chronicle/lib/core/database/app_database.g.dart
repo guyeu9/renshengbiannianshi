@@ -80,6 +80,12 @@ class $FoodRecordsTable extends FoodRecords
   late final GeneratedColumn<String> city = GeneratedColumn<String>(
       'city', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _countryMeta =
+      const VerificationMeta('country');
+  @override
+  late final GeneratedColumn<String> country = GeneratedColumn<String>(
+      'country', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _moodMeta = const VerificationMeta('mood');
   @override
   late final GeneratedColumn<String> mood = GeneratedColumn<String>(
@@ -158,6 +164,7 @@ class $FoodRecordsTable extends FoodRecords
         poiName,
         poiAddress,
         city,
+        country,
         mood,
         isWishlist,
         isFavorite,
@@ -235,6 +242,10 @@ class $FoodRecordsTable extends FoodRecords
     if (data.containsKey('city')) {
       context.handle(
           _cityMeta, city.isAcceptableOrUnknown(data['city']!, _cityMeta));
+    }
+    if (data.containsKey('country')) {
+      context.handle(_countryMeta,
+          country.isAcceptableOrUnknown(data['country']!, _countryMeta));
     }
     if (data.containsKey('mood')) {
       context.handle(
@@ -317,6 +328,8 @@ class $FoodRecordsTable extends FoodRecords
           .read(DriftSqlType.string, data['${effectivePrefix}poi_address']),
       city: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}city']),
+      country: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}country']),
       mood: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}mood']),
       isWishlist: attachedDatabase.typeMapping
@@ -356,6 +369,7 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
   final String? poiName;
   final String? poiAddress;
   final String? city;
+  final String? country;
   final String? mood;
   final bool isWishlist;
   final bool isFavorite;
@@ -378,6 +392,7 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
       this.poiName,
       this.poiAddress,
       this.city,
+      this.country,
       this.mood,
       required this.isWishlist,
       required this.isFavorite,
@@ -424,6 +439,9 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
     if (!nullToAbsent || city != null) {
       map['city'] = Variable<String>(city);
     }
+    if (!nullToAbsent || country != null) {
+      map['country'] = Variable<String>(country);
+    }
     if (!nullToAbsent || mood != null) {
       map['mood'] = Variable<String>(mood);
     }
@@ -466,6 +484,9 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
           ? const Value.absent()
           : Value(poiAddress),
       city: city == null && nullToAbsent ? const Value.absent() : Value(city),
+      country: country == null && nullToAbsent
+          ? const Value.absent()
+          : Value(country),
       mood: mood == null && nullToAbsent ? const Value.absent() : Value(mood),
       isWishlist: Value(isWishlist),
       isFavorite: Value(isFavorite),
@@ -494,6 +515,7 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
       poiName: serializer.fromJson<String?>(json['poiName']),
       poiAddress: serializer.fromJson<String?>(json['poiAddress']),
       city: serializer.fromJson<String?>(json['city']),
+      country: serializer.fromJson<String?>(json['country']),
       mood: serializer.fromJson<String?>(json['mood']),
       isWishlist: serializer.fromJson<bool>(json['isWishlist']),
       isFavorite: serializer.fromJson<bool>(json['isFavorite']),
@@ -521,6 +543,7 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
       'poiName': serializer.toJson<String?>(poiName),
       'poiAddress': serializer.toJson<String?>(poiAddress),
       'city': serializer.toJson<String?>(city),
+      'country': serializer.toJson<String?>(country),
       'mood': serializer.toJson<String?>(mood),
       'isWishlist': serializer.toJson<bool>(isWishlist),
       'isFavorite': serializer.toJson<bool>(isFavorite),
@@ -546,6 +569,7 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
           Value<String?> poiName = const Value.absent(),
           Value<String?> poiAddress = const Value.absent(),
           Value<String?> city = const Value.absent(),
+          Value<String?> country = const Value.absent(),
           Value<String?> mood = const Value.absent(),
           bool? isWishlist,
           bool? isFavorite,
@@ -569,6 +593,7 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
         poiName: poiName.present ? poiName.value : this.poiName,
         poiAddress: poiAddress.present ? poiAddress.value : this.poiAddress,
         city: city.present ? city.value : this.city,
+        country: country.present ? country.value : this.country,
         mood: mood.present ? mood.value : this.mood,
         isWishlist: isWishlist ?? this.isWishlist,
         isFavorite: isFavorite ?? this.isFavorite,
@@ -596,6 +621,7 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
       poiAddress:
           data.poiAddress.present ? data.poiAddress.value : this.poiAddress,
       city: data.city.present ? data.city.value : this.city,
+      country: data.country.present ? data.country.value : this.country,
       mood: data.mood.present ? data.mood.value : this.mood,
       isWishlist:
           data.isWishlist.present ? data.isWishlist.value : this.isWishlist,
@@ -628,6 +654,7 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
           ..write('poiName: $poiName, ')
           ..write('poiAddress: $poiAddress, ')
           ..write('city: $city, ')
+          ..write('country: $country, ')
           ..write('mood: $mood, ')
           ..write('isWishlist: $isWishlist, ')
           ..write('isFavorite: $isFavorite, ')
@@ -655,6 +682,7 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
         poiName,
         poiAddress,
         city,
+        country,
         mood,
         isWishlist,
         isFavorite,
@@ -681,6 +709,7 @@ class FoodRecord extends DataClass implements Insertable<FoodRecord> {
           other.poiName == this.poiName &&
           other.poiAddress == this.poiAddress &&
           other.city == this.city &&
+          other.country == this.country &&
           other.mood == this.mood &&
           other.isWishlist == this.isWishlist &&
           other.isFavorite == this.isFavorite &&
@@ -705,6 +734,7 @@ class FoodRecordsCompanion extends UpdateCompanion<FoodRecord> {
   final Value<String?> poiName;
   final Value<String?> poiAddress;
   final Value<String?> city;
+  final Value<String?> country;
   final Value<String?> mood;
   final Value<bool> isWishlist;
   final Value<bool> isFavorite;
@@ -728,6 +758,7 @@ class FoodRecordsCompanion extends UpdateCompanion<FoodRecord> {
     this.poiName = const Value.absent(),
     this.poiAddress = const Value.absent(),
     this.city = const Value.absent(),
+    this.country = const Value.absent(),
     this.mood = const Value.absent(),
     this.isWishlist = const Value.absent(),
     this.isFavorite = const Value.absent(),
@@ -752,6 +783,7 @@ class FoodRecordsCompanion extends UpdateCompanion<FoodRecord> {
     this.poiName = const Value.absent(),
     this.poiAddress = const Value.absent(),
     this.city = const Value.absent(),
+    this.country = const Value.absent(),
     this.mood = const Value.absent(),
     this.isWishlist = const Value.absent(),
     this.isFavorite = const Value.absent(),
@@ -780,6 +812,7 @@ class FoodRecordsCompanion extends UpdateCompanion<FoodRecord> {
     Expression<String>? poiName,
     Expression<String>? poiAddress,
     Expression<String>? city,
+    Expression<String>? country,
     Expression<String>? mood,
     Expression<bool>? isWishlist,
     Expression<bool>? isFavorite,
@@ -804,6 +837,7 @@ class FoodRecordsCompanion extends UpdateCompanion<FoodRecord> {
       if (poiName != null) 'poi_name': poiName,
       if (poiAddress != null) 'poi_address': poiAddress,
       if (city != null) 'city': city,
+      if (country != null) 'country': country,
       if (mood != null) 'mood': mood,
       if (isWishlist != null) 'is_wishlist': isWishlist,
       if (isFavorite != null) 'is_favorite': isFavorite,
@@ -830,6 +864,7 @@ class FoodRecordsCompanion extends UpdateCompanion<FoodRecord> {
       Value<String?>? poiName,
       Value<String?>? poiAddress,
       Value<String?>? city,
+      Value<String?>? country,
       Value<String?>? mood,
       Value<bool>? isWishlist,
       Value<bool>? isFavorite,
@@ -853,6 +888,7 @@ class FoodRecordsCompanion extends UpdateCompanion<FoodRecord> {
       poiName: poiName ?? this.poiName,
       poiAddress: poiAddress ?? this.poiAddress,
       city: city ?? this.city,
+      country: country ?? this.country,
       mood: mood ?? this.mood,
       isWishlist: isWishlist ?? this.isWishlist,
       isFavorite: isFavorite ?? this.isFavorite,
@@ -907,6 +943,9 @@ class FoodRecordsCompanion extends UpdateCompanion<FoodRecord> {
     if (city.present) {
       map['city'] = Variable<String>(city.value);
     }
+    if (country.present) {
+      map['country'] = Variable<String>(country.value);
+    }
     if (mood.present) {
       map['mood'] = Variable<String>(mood.value);
     }
@@ -953,6 +992,7 @@ class FoodRecordsCompanion extends UpdateCompanion<FoodRecord> {
           ..write('poiName: $poiName, ')
           ..write('poiAddress: $poiAddress, ')
           ..write('city: $city, ')
+          ..write('country: $country, ')
           ..write('mood: $mood, ')
           ..write('isWishlist: $isWishlist, ')
           ..write('isFavorite: $isFavorite, ')
@@ -2534,6 +2574,12 @@ class $TravelRecordsTable extends TravelRecords
   late final GeneratedColumn<String> city = GeneratedColumn<String>(
       'city', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _countryMeta =
+      const VerificationMeta('country');
+  @override
+  late final GeneratedColumn<String> country = GeneratedColumn<String>(
+      'country', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _moodMeta = const VerificationMeta('mood');
   @override
   late final GeneratedColumn<String> mood = GeneratedColumn<String>(
@@ -2655,6 +2701,7 @@ class $TravelRecordsTable extends TravelRecords
         latitude,
         longitude,
         city,
+        country,
         mood,
         tags,
         expenseTransport,
@@ -2731,6 +2778,10 @@ class $TravelRecordsTable extends TravelRecords
     if (data.containsKey('city')) {
       context.handle(
           _cityMeta, city.isAcceptableOrUnknown(data['city']!, _cityMeta));
+    }
+    if (data.containsKey('country')) {
+      context.handle(_countryMeta,
+          country.isAcceptableOrUnknown(data['country']!, _countryMeta));
     }
     if (data.containsKey('mood')) {
       context.handle(
@@ -2845,6 +2896,8 @@ class $TravelRecordsTable extends TravelRecords
           .read(DriftSqlType.double, data['${effectivePrefix}longitude']),
       city: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}city']),
+      country: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}country']),
       mood: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}mood']),
       tags: attachedDatabase.typeMapping
@@ -2896,6 +2949,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
   final double? latitude;
   final double? longitude;
   final String? city;
+  final String? country;
   final String? mood;
   final String? tags;
   final double? expenseTransport;
@@ -2923,6 +2977,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
       this.latitude,
       this.longitude,
       this.city,
+      this.country,
       this.mood,
       this.tags,
       this.expenseTransport,
@@ -2969,6 +3024,9 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
     }
     if (!nullToAbsent || city != null) {
       map['city'] = Variable<String>(city);
+    }
+    if (!nullToAbsent || country != null) {
+      map['country'] = Variable<String>(country);
     }
     if (!nullToAbsent || mood != null) {
       map['mood'] = Variable<String>(mood);
@@ -3029,6 +3087,9 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
           ? const Value.absent()
           : Value(longitude),
       city: city == null && nullToAbsent ? const Value.absent() : Value(city),
+      country: country == null && nullToAbsent
+          ? const Value.absent()
+          : Value(country),
       mood: mood == null && nullToAbsent ? const Value.absent() : Value(mood),
       tags: tags == null && nullToAbsent ? const Value.absent() : Value(tags),
       expenseTransport: expenseTransport == null && nullToAbsent
@@ -3072,6 +3133,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
       latitude: serializer.fromJson<double?>(json['latitude']),
       longitude: serializer.fromJson<double?>(json['longitude']),
       city: serializer.fromJson<String?>(json['city']),
+      country: serializer.fromJson<String?>(json['country']),
       mood: serializer.fromJson<String?>(json['mood']),
       tags: serializer.fromJson<String?>(json['tags']),
       expenseTransport: serializer.fromJson<double?>(json['expenseTransport']),
@@ -3104,6 +3166,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
       'latitude': serializer.toJson<double?>(latitude),
       'longitude': serializer.toJson<double?>(longitude),
       'city': serializer.toJson<String?>(city),
+      'country': serializer.toJson<String?>(country),
       'mood': serializer.toJson<String?>(mood),
       'tags': serializer.toJson<String?>(tags),
       'expenseTransport': serializer.toJson<double?>(expenseTransport),
@@ -3134,6 +3197,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
           Value<double?> latitude = const Value.absent(),
           Value<double?> longitude = const Value.absent(),
           Value<String?> city = const Value.absent(),
+          Value<String?> country = const Value.absent(),
           Value<String?> mood = const Value.absent(),
           Value<String?> tags = const Value.absent(),
           Value<double?> expenseTransport = const Value.absent(),
@@ -3161,6 +3225,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
         latitude: latitude.present ? latitude.value : this.latitude,
         longitude: longitude.present ? longitude.value : this.longitude,
         city: city.present ? city.value : this.city,
+        country: country.present ? country.value : this.country,
         mood: mood.present ? mood.value : this.mood,
         tags: tags.present ? tags.value : this.tags,
         expenseTransport: expenseTransport.present
@@ -3196,6 +3261,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
       latitude: data.latitude.present ? data.latitude.value : this.latitude,
       longitude: data.longitude.present ? data.longitude.value : this.longitude,
       city: data.city.present ? data.city.value : this.city,
+      country: data.country.present ? data.country.value : this.country,
       mood: data.mood.present ? data.mood.value : this.mood,
       tags: data.tags.present ? data.tags.value : this.tags,
       expenseTransport: data.expenseTransport.present
@@ -3240,6 +3306,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
           ..write('latitude: $latitude, ')
           ..write('longitude: $longitude, ')
           ..write('city: $city, ')
+          ..write('country: $country, ')
           ..write('mood: $mood, ')
           ..write('tags: $tags, ')
           ..write('expenseTransport: $expenseTransport, ')
@@ -3272,6 +3339,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
         latitude,
         longitude,
         city,
+        country,
         mood,
         tags,
         expenseTransport,
@@ -3303,6 +3371,7 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
           other.latitude == this.latitude &&
           other.longitude == this.longitude &&
           other.city == this.city &&
+          other.country == this.country &&
           other.mood == this.mood &&
           other.tags == this.tags &&
           other.expenseTransport == this.expenseTransport &&
@@ -3332,6 +3401,7 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
   final Value<double?> latitude;
   final Value<double?> longitude;
   final Value<String?> city;
+  final Value<String?> country;
   final Value<String?> mood;
   final Value<String?> tags;
   final Value<double?> expenseTransport;
@@ -3360,6 +3430,7 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
     this.latitude = const Value.absent(),
     this.longitude = const Value.absent(),
     this.city = const Value.absent(),
+    this.country = const Value.absent(),
     this.mood = const Value.absent(),
     this.tags = const Value.absent(),
     this.expenseTransport = const Value.absent(),
@@ -3389,6 +3460,7 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
     this.latitude = const Value.absent(),
     this.longitude = const Value.absent(),
     this.city = const Value.absent(),
+    this.country = const Value.absent(),
     this.mood = const Value.absent(),
     this.tags = const Value.absent(),
     this.expenseTransport = const Value.absent(),
@@ -3422,6 +3494,7 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
     Expression<double>? latitude,
     Expression<double>? longitude,
     Expression<String>? city,
+    Expression<String>? country,
     Expression<String>? mood,
     Expression<String>? tags,
     Expression<double>? expenseTransport,
@@ -3451,6 +3524,7 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
       if (latitude != null) 'latitude': latitude,
       if (longitude != null) 'longitude': longitude,
       if (city != null) 'city': city,
+      if (country != null) 'country': country,
       if (mood != null) 'mood': mood,
       if (tags != null) 'tags': tags,
       if (expenseTransport != null) 'expense_transport': expenseTransport,
@@ -3482,6 +3556,7 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
       Value<double?>? latitude,
       Value<double?>? longitude,
       Value<String?>? city,
+      Value<String?>? country,
       Value<String?>? mood,
       Value<String?>? tags,
       Value<double?>? expenseTransport,
@@ -3510,6 +3585,7 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       city: city ?? this.city,
+      country: country ?? this.country,
       mood: mood ?? this.mood,
       tags: tags ?? this.tags,
       expenseTransport: expenseTransport ?? this.expenseTransport,
@@ -3564,6 +3640,9 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
     }
     if (city.present) {
       map['city'] = Variable<String>(city.value);
+    }
+    if (country.present) {
+      map['country'] = Variable<String>(country.value);
     }
     if (mood.present) {
       map['mood'] = Variable<String>(mood.value);
@@ -3630,6 +3709,7 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
           ..write('latitude: $latitude, ')
           ..write('longitude: $longitude, ')
           ..write('city: $city, ')
+          ..write('country: $country, ')
           ..write('mood: $mood, ')
           ..write('tags: $tags, ')
           ..write('expenseTransport: $expenseTransport, ')
@@ -10601,6 +10681,7 @@ typedef $$FoodRecordsTableCreateCompanionBuilder = FoodRecordsCompanion
   Value<String?> poiName,
   Value<String?> poiAddress,
   Value<String?> city,
+  Value<String?> country,
   Value<String?> mood,
   Value<bool> isWishlist,
   Value<bool> isFavorite,
@@ -10626,6 +10707,7 @@ typedef $$FoodRecordsTableUpdateCompanionBuilder = FoodRecordsCompanion
   Value<String?> poiName,
   Value<String?> poiAddress,
   Value<String?> city,
+  Value<String?> country,
   Value<String?> mood,
   Value<bool> isWishlist,
   Value<bool> isFavorite,
@@ -10685,6 +10767,9 @@ class $$FoodRecordsTableFilterComposer
 
   ColumnFilters<String> get city => $composableBuilder(
       column: $table.city, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get country => $composableBuilder(
+      column: $table.country, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get mood => $composableBuilder(
       column: $table.mood, builder: (column) => ColumnFilters(column));
@@ -10760,6 +10845,9 @@ class $$FoodRecordsTableOrderingComposer
   ColumnOrderings<String> get city => $composableBuilder(
       column: $table.city, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get country => $composableBuilder(
+      column: $table.country, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get mood => $composableBuilder(
       column: $table.mood, builder: (column) => ColumnOrderings(column));
 
@@ -10834,6 +10922,9 @@ class $$FoodRecordsTableAnnotationComposer
   GeneratedColumn<String> get city =>
       $composableBuilder(column: $table.city, builder: (column) => column);
 
+  GeneratedColumn<String> get country =>
+      $composableBuilder(column: $table.country, builder: (column) => column);
+
   GeneratedColumn<String> get mood =>
       $composableBuilder(column: $table.mood, builder: (column) => column);
 
@@ -10895,6 +10986,7 @@ class $$FoodRecordsTableTableManager extends RootTableManager<
             Value<String?> poiName = const Value.absent(),
             Value<String?> poiAddress = const Value.absent(),
             Value<String?> city = const Value.absent(),
+            Value<String?> country = const Value.absent(),
             Value<String?> mood = const Value.absent(),
             Value<bool> isWishlist = const Value.absent(),
             Value<bool> isFavorite = const Value.absent(),
@@ -10919,6 +11011,7 @@ class $$FoodRecordsTableTableManager extends RootTableManager<
             poiName: poiName,
             poiAddress: poiAddress,
             city: city,
+            country: country,
             mood: mood,
             isWishlist: isWishlist,
             isFavorite: isFavorite,
@@ -10943,6 +11036,7 @@ class $$FoodRecordsTableTableManager extends RootTableManager<
             Value<String?> poiName = const Value.absent(),
             Value<String?> poiAddress = const Value.absent(),
             Value<String?> city = const Value.absent(),
+            Value<String?> country = const Value.absent(),
             Value<String?> mood = const Value.absent(),
             Value<bool> isWishlist = const Value.absent(),
             Value<bool> isFavorite = const Value.absent(),
@@ -10967,6 +11061,7 @@ class $$FoodRecordsTableTableManager extends RootTableManager<
             poiName: poiName,
             poiAddress: poiAddress,
             city: city,
+            country: country,
             mood: mood,
             isWishlist: isWishlist,
             isFavorite: isFavorite,
@@ -11675,6 +11770,7 @@ typedef $$TravelRecordsTableCreateCompanionBuilder = TravelRecordsCompanion
   Value<double?> latitude,
   Value<double?> longitude,
   Value<String?> city,
+  Value<String?> country,
   Value<String?> mood,
   Value<String?> tags,
   Value<double?> expenseTransport,
@@ -11705,6 +11801,7 @@ typedef $$TravelRecordsTableUpdateCompanionBuilder = TravelRecordsCompanion
   Value<double?> latitude,
   Value<double?> longitude,
   Value<String?> city,
+  Value<String?> country,
   Value<String?> mood,
   Value<String?> tags,
   Value<double?> expenseTransport,
@@ -11764,6 +11861,9 @@ class $$TravelRecordsTableFilterComposer
 
   ColumnFilters<String> get city => $composableBuilder(
       column: $table.city, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get country => $composableBuilder(
+      column: $table.country, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get mood => $composableBuilder(
       column: $table.mood, builder: (column) => ColumnFilters(column));
@@ -11853,6 +11953,9 @@ class $$TravelRecordsTableOrderingComposer
 
   ColumnOrderings<String> get city => $composableBuilder(
       column: $table.city, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get country => $composableBuilder(
+      column: $table.country, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get mood => $composableBuilder(
       column: $table.mood, builder: (column) => ColumnOrderings(column));
@@ -11946,6 +12049,9 @@ class $$TravelRecordsTableAnnotationComposer
   GeneratedColumn<String> get city =>
       $composableBuilder(column: $table.city, builder: (column) => column);
 
+  GeneratedColumn<String> get country =>
+      $composableBuilder(column: $table.country, builder: (column) => column);
+
   GeneratedColumn<String> get mood =>
       $composableBuilder(column: $table.mood, builder: (column) => column);
 
@@ -12029,6 +12135,7 @@ class $$TravelRecordsTableTableManager extends RootTableManager<
             Value<double?> latitude = const Value.absent(),
             Value<double?> longitude = const Value.absent(),
             Value<String?> city = const Value.absent(),
+            Value<String?> country = const Value.absent(),
             Value<String?> mood = const Value.absent(),
             Value<String?> tags = const Value.absent(),
             Value<double?> expenseTransport = const Value.absent(),
@@ -12058,6 +12165,7 @@ class $$TravelRecordsTableTableManager extends RootTableManager<
             latitude: latitude,
             longitude: longitude,
             city: city,
+            country: country,
             mood: mood,
             tags: tags,
             expenseTransport: expenseTransport,
@@ -12087,6 +12195,7 @@ class $$TravelRecordsTableTableManager extends RootTableManager<
             Value<double?> latitude = const Value.absent(),
             Value<double?> longitude = const Value.absent(),
             Value<String?> city = const Value.absent(),
+            Value<String?> country = const Value.absent(),
             Value<String?> mood = const Value.absent(),
             Value<String?> tags = const Value.absent(),
             Value<double?> expenseTransport = const Value.absent(),
@@ -12116,6 +12225,7 @@ class $$TravelRecordsTableTableManager extends RootTableManager<
             latitude: latitude,
             longitude: longitude,
             city: city,
+            country: country,
             mood: mood,
             tags: tags,
             expenseTransport: expenseTransport,
