@@ -2266,15 +2266,13 @@ class _ImageGrid extends StatelessWidget {
         children: [
           for (var i = 0; i < 4; i++)
             ClipRRect(
-              borderRadius: BorderRadius.circular(i == 0 ? const BorderRadius.only(
-                topLeft: Radius.circular(16),
-              ) : i == 1 ? const BorderRadius.only(
-                topRight: Radius.circular(16),
-              ) : i == 2 ? const BorderRadius.only(
-                bottomLeft: Radius.circular(16),
-              ) : const BorderRadius.only(
-                bottomRight: Radius.circular(16),
-              )),
+              borderRadius: i == 0
+                  ? const BorderRadius.only(topLeft: Radius.circular(16))
+                  : i == 1
+                      ? const BorderRadius.only(topRight: Radius.circular(16))
+                      : i == 2
+                          ? const BorderRadius.only(bottomLeft: Radius.circular(16))
+                          : const BorderRadius.only(bottomRight: Radius.circular(16)),
               child: _buildLocalImage(images[i], fit: BoxFit.cover),
             ),
         ],
