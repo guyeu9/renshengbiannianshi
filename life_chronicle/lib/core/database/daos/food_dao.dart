@@ -41,6 +41,21 @@ class FoodDao extends DatabaseAccessor<AppDatabase> with _$FoodDaoMixin {
     );
   }
 
+  Future<void> updateWishlistStatus(String id, {required bool isWishlist, required bool wishlistDone, required DateTime now}) async {
+    await (update(db.foodRecords)..where((t) => t.id.equals(id))).write(
+      FoodRecordsCompanion(
+        isWishlist: Value(isWishlist),
+        wishlistDone: Value(wishlistDone),
+        updatedAt: Value(now),
+      ),
+    );
+    await _changeLogRecorder.recordUpdate(
+      entityType: 'food_records',
+      entityId: id,
+      changedFields: ['isWishlist', 'wishlistDone'],
+    );
+  }
+
   Future<FoodRecord?> findById(String id) {
     return (select(db.foodRecords)
           ..where((t) => t.id.equals(id))

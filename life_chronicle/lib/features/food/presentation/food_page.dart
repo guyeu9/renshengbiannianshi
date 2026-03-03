@@ -781,13 +781,33 @@ class _FoodRecordCard extends StatelessWidget {
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
                 child: SizedBox(
                   height: 140,
-                  child: cover.isEmpty
-                      ? Container(
-                          color: const Color(0xFFF1F5F9),
-                          alignment: Alignment.center,
-                          child: const Icon(Icons.restaurant, color: Color(0xFF94A3B8), size: 32),
-                        )
-                      : _buildLocalImage(cover, fit: BoxFit.cover),
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: cover.isEmpty
+                            ? Container(
+                                color: const Color(0xFFF1F5F9),
+                                alignment: Alignment.center,
+                                child: const Icon(Icons.restaurant, color: Color(0xFF94A3B8), size: 32),
+                              )
+                            : _buildLocalImage(cover, fit: BoxFit.cover),
+                      ),
+                      if (record.isFavorite)
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.90),
+                              shape: BoxShape.circle,
+                              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.10), blurRadius: 8)],
+                            ),
+                            child: const Icon(Icons.favorite, size: 14, color: Color(0xFFF43F5E)),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
               Expanded(
@@ -1069,14 +1089,15 @@ class _FoodWishlistListView extends StatelessWidget {
   }
 }
 
-class _FoodWishlistRecordCard extends StatelessWidget {
+class _FoodWishlistRecordCard extends ConsumerWidget {
   const _FoodWishlistRecordCard({required this.record, required this.onSwitchToRecords});
 
   final FoodRecord record;
   final VoidCallback onSwitchToRecords;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final db = ref.watch(appDatabaseProvider);
     final images = _decodeStringList(record.images);
     final tags = _decodeStringList(record.tags);
     final cover = images.isEmpty ? '' : images.first;
@@ -1165,14 +1186,57 @@ class _FoodWishlistRecordCard extends StatelessWidget {
                           else
                             const Spacer(),
                           const SizedBox(width: 8),
-                          Text(
-                            record.wishlistDone ? '已打卡' : '想去',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w900,
-                              color: record.wishlistDone ? const Color(0xFF10B981) : const Color(0xFF2BCDEE),
+                          if (!record.wishlistDone)
+                            GestureDetector(
+                              onTap: () async {
+                                await db.foodDao.updateWishlistStatus(
+                                  record.id,
+                                  isWishlist: false,
+                                  wishlistDone: true,
+                                  now: DateTime.now(),
+                                );
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('已标记为品尝过'),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                  onSwitchToRecords();
+                                }
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF2BCDEE),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.check, size: 12, color: Colors.white),
+                                    SizedBox(width: 4),
+                                    Text('已品尝', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white)),
+                                  ],
+                                ),
+                              ),
+                            )
+                          else
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.check_circle, size: 12, color: Color(0xFF10B981)),
+                                  SizedBox(width: 4),
+                                  Text('已打卡', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF10B981))),
+                                ],
+                              ),
                             ),
-                          ),
                         ],
                       ),
                     ],
@@ -2086,133 +2150,210 @@ class _ImageGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        const gap = 8.0;
-        final cell = (constraints.maxWidth - gap * 2) / 3;
-        final big = cell * 2 + gap;
-        final height = cell * 3 + gap * 2;
-        final thirdX = big + gap;
-        final row2 = cell + gap;
-        final row3 = cell * 2 + gap * 2;
-        final moreCount = images.length > 5 ? images.length - 5 : 0;
+    if (images.isEmpty) return const SizedBox.shrink();
 
-        Widget buildCell({
-          required double left,
-          required double top,
-          required double width,
-          required double height,
-          String? imageUrl,
-          bool showMore = false,
-          int more = 0,
-          BorderRadius? radius,
-        }) {
-          return Positioned(
-            left: left,
-            top: top,
-            width: width,
-            height: height,
-            child: ClipRRect(
-              borderRadius: radius ?? BorderRadius.circular(16),
-              child: Container(
-                color: const Color(0xFFF3F4F6),
-                child: imageUrl == null || imageUrl.isEmpty
-                    ? (showMore
-                        ? Container(
-                            color: const Color(0xFFF8FAFC),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text('+$more', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF6B7280))),
-                                const SizedBox(height: 4),
-                                const Text('查看更多', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
-                              ],
-                            ),
-                          )
-                        : Container())
-                    : Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          _buildLocalImage(imageUrl, fit: BoxFit.cover),
-                          if (showMore)
-                            Container(
-                              color: Colors.black.withValues(alpha: 0.35),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text('+$more', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.white)),
-                                  const SizedBox(height: 4),
-                                  const Text('查看更多', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white70)),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-              ),
+    switch (images.length) {
+      case 1:
+        return _buildSingleImage(images[0]);
+      case 2:
+        return _buildTwoImages(images);
+      case 3:
+        return _buildThreeImages(images);
+      case 4:
+        return _buildFourImages(images);
+      default:
+        return _buildFivePlusImages(images);
+    }
+  }
+
+  Widget _buildSingleImage(String imageUrl) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: AspectRatio(
+        aspectRatio: 16 / 9,
+        child: _buildLocalImage(imageUrl, fit: BoxFit.cover),
+      ),
+    );
+  }
+
+  Widget _buildTwoImages(List<String> images) {
+    return Row(
+      children: [
+        Expanded(
+          child: ClipRRect(
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(20),
+              bottomLeft: Radius.circular(20),
             ),
-          );
-        }
+            child: AspectRatio(
+              aspectRatio: 1,
+              child: _buildLocalImage(images[0], fit: BoxFit.cover),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: ClipRRect(
+            borderRadius: const BorderRadius.only(
+              topRight: Radius.circular(20),
+              bottomRight: Radius.circular(20),
+            ),
+            child: AspectRatio(
+              aspectRatio: 1,
+              child: _buildLocalImage(images[1], fit: BoxFit.cover),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
-        return SizedBox(
-          height: height,
-          child: Stack(
-            children: [
-              buildCell(
-                left: 0,
-                top: 0,
-                width: big,
-                height: big,
-                imageUrl: images.isNotEmpty ? images[0] : null,
-                radius: const BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  topRight: Radius.circular(12),
-                  bottomLeft: Radius.circular(12),
-                  bottomRight: Radius.circular(12),
+  Widget _buildThreeImages(List<String> images) {
+    return Column(
+      children: [
+        ClipRRect(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+          child: AspectRatio(
+            aspectRatio: 16 / 9,
+            child: _buildLocalImage(images[0], fit: BoxFit.cover),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(20),
+                ),
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: _buildLocalImage(images[1], fit: BoxFit.cover),
                 ),
               ),
-              buildCell(
-                left: thirdX,
-                top: 0,
-                width: cell,
-                height: cell,
-                imageUrl: images.length > 1 ? images[1] : null,
-                radius: const BorderRadius.only(topRight: Radius.circular(20)),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  bottomRight: Radius.circular(20),
+                ),
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: _buildLocalImage(images[2], fit: BoxFit.cover),
+                ),
               ),
-              buildCell(
-                left: thirdX,
-                top: row2,
-                width: cell,
-                height: cell,
-                imageUrl: images.length > 2 ? images[2] : null,
-              ),
-              buildCell(
-                left: 0,
-                top: row3,
-                width: cell,
-                height: cell,
-                imageUrl: images.length > 3 ? images[3] : null,
-              ),
-              buildCell(
-                left: cell + gap,
-                top: row3,
-                width: cell,
-                height: cell,
-                imageUrl: images.length > 4 ? images[4] : null,
-              ),
-              buildCell(
-                left: thirdX,
-                top: row3,
-                width: cell,
-                height: cell,
-                imageUrl: moreCount == 0 && images.length > 5 ? images[5] : (moreCount == 0 ? null : (images.length > 5 ? images[5] : null)),
-                showMore: moreCount > 0,
-                more: moreCount,
-                radius: const BorderRadius.only(bottomRight: Radius.circular(20)),
-              ),
-            ],
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFourImages(List<String> images) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: GridView.count(
+        crossAxisCount: 2,
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        children: [
+          for (var i = 0; i < 4; i++)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(i == 0 ? const BorderRadius.only(
+                topLeft: Radius.circular(16),
+              ) : i == 1 ? const BorderRadius.only(
+                topRight: Radius.circular(16),
+              ) : i == 2 ? const BorderRadius.only(
+                bottomLeft: Radius.circular(16),
+              ) : const BorderRadius.only(
+                bottomRight: Radius.circular(16),
+              )),
+              child: _buildLocalImage(images[i], fit: BoxFit.cover),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFivePlusImages(List<String> images) {
+    final moreCount = images.length - 5;
+    return Column(
+      children: [
+        ClipRRect(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
           ),
-        );
-      },
+          child: AspectRatio(
+            aspectRatio: 16 / 9,
+            child: _buildLocalImage(images[0], fit: BoxFit.cover),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(20),
+                  ),
+                  child: _buildLocalImage(images[1], fit: BoxFit.cover),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: _buildLocalImage(images[2], fit: BoxFit.cover),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: _buildLocalImage(images[3], fit: BoxFit.cover),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  bottomRight: Radius.circular(20),
+                ),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    _buildLocalImage(images[4], fit: BoxFit.cover),
+                    if (moreCount > 0)
+                      Container(
+                        color: Colors.black.withValues(alpha: 0.50),
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text('+$moreCount', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white)),
+                              const SizedBox(height: 4),
+                              const Text('查看更多', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white70)),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
