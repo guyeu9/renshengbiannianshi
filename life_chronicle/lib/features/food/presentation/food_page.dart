@@ -16,6 +16,7 @@ import '../../../core/config/module_management_config.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/utils/media_storage.dart';
+import '../../../core/utils/tag_color_utils.dart';
 import '../../../core/widgets/amap_location_page.dart';
 import '../../../core/widgets/ai_parse_button.dart';
 
@@ -2793,15 +2794,6 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
     for (final t in module.tags) {
       tagColorMap[t.name] = t.color;
     }
-    Color colorFromHex(String? hex) {
-      if (hex == null || hex.isEmpty) return const Color(0xFFF3F4F6);
-      try {
-        final cleanHex = hex.replaceFirst('#', '');
-        return Color(int.parse('FF$cleanHex', radix: 16));
-      } catch (_) {
-        return const Color(0xFFF3F4F6);
-      }
-    }
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -2883,11 +2875,7 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
                   Builder(builder: (context) {
                     final isSelected = _selectedTags.contains(t);
                     final tagColorHex = tagColorMap[t];
-                    final tagColor = colorFromHex(tagColorHex);
-                    final unselectedBg = tagColorHex != null ? tagColor.withValues(alpha: 0.15) : const Color(0xFFF3F4F6);
-                    final bgColor = isSelected ? const Color(0x1A2BCDEE) : unselectedBg;
-                    final borderColor = isSelected ? const Color(0x332BCDEE) : unselectedBg;
-                    final textColor = isSelected ? const Color(0xFF22BEBE) : (tagColorHex != null ? tagColor : const Color(0xFF6B7280));
+                    final colors = TagColorUtils.getTagColors(tagColorHex, isSelected);
                     return InkWell(
                       borderRadius: BorderRadius.circular(12),
                       onTap: () {
@@ -2902,16 +2890,16 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         decoration: BoxDecoration(
-                          color: bgColor,
+                          color: colors.background,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: borderColor),
+                          border: Border.all(color: colors.border),
                         ),
                         child: Text(
                           '# $t',
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w800,
-                            color: textColor,
+                            color: colors.text,
                           ),
                         ),
                       ),
@@ -3353,7 +3341,8 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
   }
 
   Future<void> _showSelectMoodSheet(BuildContext context) async {
-    const moods = ['开心', '治愈', '平静', '兴奋', '难过', '疲惫'];
+    final moduleConfig = ref.read(moduleManagementConfigProvider);
+    final moods = moduleConfig.moods;
     final selected = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.transparent,

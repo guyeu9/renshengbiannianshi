@@ -141,9 +141,13 @@ class ModuleConfig {
 }
 
 class ModuleManagementConfig {
-  const ModuleManagementConfig({required this.modules});
+  const ModuleManagementConfig({
+    required this.modules,
+    this.moods = const ['开心', '治愈', '平静', '兴奋', '难过', '疲惫'],
+  });
 
   final Map<String, ModuleConfig> modules;
+  final List<String> moods;
 
   ModuleConfig moduleOf(String key) {
     return modules[key] ?? ModuleManagementConfig.defaults().modules[key]!;
@@ -154,6 +158,7 @@ class ModuleManagementConfig {
       'modules': {
         for (final entry in modules.entries) entry.key: entry.value.toJson(),
       },
+      'moods': moods,
     };
   }
 
@@ -169,11 +174,21 @@ class ModuleManagementConfig {
         }
       }
     }
+    final moodsRaw = json['moods'];
+    final moods = <String>[];
+    if (moodsRaw is List) {
+      for (final item in moodsRaw) {
+        moods.add(item.toString());
+      }
+    }
     final defaults = ModuleManagementConfig.defaults();
     for (final entry in defaults.modules.entries) {
       modules.putIfAbsent(entry.key, () => entry.value);
     }
-    return ModuleManagementConfig(modules: modules);
+    return ModuleManagementConfig(
+      modules: modules,
+      moods: moods.isEmpty ? const ['开心', '治愈', '平静', '兴奋', '难过', '疲惫'] : moods,
+    );
   }
 
   static ModuleManagementConfig defaults() {
