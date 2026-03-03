@@ -14,6 +14,7 @@ class FoodRecords extends Table {
   TextColumn get poiName => text().nullable()();
   TextColumn get poiAddress => text().nullable()();
   TextColumn get city => text().nullable()();
+  TextColumn get country => text().nullable()();
   TextColumn get mood => text().nullable()();
   BoolColumn get isWishlist => boolean().withDefault(const Constant(false))();
   BoolColumn get isFavorite => boolean().withDefault(const Constant(false))();
@@ -82,6 +83,7 @@ class TravelRecords extends Table {
   RealColumn get latitude => real().nullable()();
   RealColumn get longitude => real().nullable()();
   TextColumn get city => text().nullable()();
+  TextColumn get country => text().nullable()();
   TextColumn get mood => text().nullable()();
   TextColumn get tags => text().nullable()();
   RealColumn get expenseTransport => real().nullable()();

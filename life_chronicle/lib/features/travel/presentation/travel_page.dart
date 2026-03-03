@@ -468,31 +468,41 @@ class _TravelFootprintCard extends ConsumerWidget {
 
   final VoidCallback? onTap;
 
-  (int countryCount, int cityCount) _calculateStatistics(List<TravelRecord> records) {
+  (int countryCount, int cityCount, int journalCount) _calculateStatistics(List<TravelRecord> records) {
     final cities = <String>{};
     final countries = <String>{};
+    var journalCount = 0;
     
     for (final record in records) {
-      if (record.isWishlist || record.isJournal || record.isDeleted) {
+      if (record.isDeleted) {
         continue;
       }
       
-      final destination = record.destination?.trim();
-      final poiAddress = record.poiAddress?.trim();
-      final poiName = record.poiName?.trim();
+      if (record.isJournal) {
+        journalCount++;
+      }
       
+      if (record.isWishlist || record.isJournal) {
+        continue;
+      }
+      
+      final country = record.country?.trim();
+      if (country != null && country.isNotEmpty) {
+        countries.add(country);
+      }
+      
+      final city = record.city?.trim();
+      if (city != null && city.isNotEmpty) {
+        cities.add(city);
+      }
+      
+      final destination = record.destination?.trim();
       if (destination != null && destination.isNotEmpty) {
         cities.add(destination);
       }
-      if (poiAddress != null && poiAddress.isNotEmpty) {
-        cities.add(poiAddress);
-      }
-      if (poiName != null && poiName.isNotEmpty) {
-        cities.add(poiName);
-      }
     }
     
-    return (0, cities.length);
+    return (countries.length, cities.length, journalCount);
   }
 
   @override
@@ -505,6 +515,7 @@ class _TravelFootprintCard extends ConsumerWidget {
         final stats = _calculateStatistics(records);
         final countryCount = stats.$1;
         final cityCount = stats.$2;
+        final journalCount = stats.$3;
         
         return Material(
           color: Colors.transparent,
@@ -560,9 +571,7 @@ class _TravelFootprintCard extends ConsumerWidget {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  countryCount > 0 
-                                    ? '$countryCount 个国家，$cityCount 座城市'
-                                    : '$cityCount 座城市',
+                                  '$countryCount 个国家，$cityCount 座城市，$journalCount 篇游记',
                                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white),
                                 ),
                               ],
@@ -1462,6 +1471,8 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
 
   String _poiName = '';
   String _poiAddress = '';
+  String _city = '';
+  String _country = '';
   double? _latitude;
   double? _longitude;
 
@@ -1760,6 +1771,8 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
           initialAddress: _poiAddress,
           initialLatitude: _latitude,
           initialLongitude: _longitude,
+          initialCity: _city,
+          initialCountry: _country,
         ),
       ),
     );
@@ -1768,6 +1781,8 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
     setState(() {
       _poiName = result.poiName;
       _poiAddress = result.address;
+      _city = result.city;
+      _country = result.country;
       _latitude = result.latitude;
       _longitude = result.longitude;
       final text = result.poiName.trim().isNotEmpty ? result.poiName.trim() : result.address.trim();
@@ -1935,6 +1950,8 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
     final destination = _destinationController.text.trim();
     final poiName = _poiName.trim();
     final poiAddress = _poiAddress.trim();
+    final city = _city.trim();
+    final country = _country.trim();
     final budget = double.tryParse(_budgetController.text.trim());
     final note = _noteController.text.trim();
     final flightLink = _flightLinkController.text.trim();
@@ -1985,7 +2002,8 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
             tags: Value(tagsJson),
             poiName: Value(poiName.isEmpty ? null : poiName),
             poiAddress: Value(poiAddress.isEmpty ? null : poiAddress),
-            city: Value(poiAddress.isEmpty ? null : poiAddress),
+            city: Value(city.isEmpty ? null : city),
+            country: Value(country.isEmpty ? null : country),
             latitude: Value(_latitude),
             longitude: Value(_longitude),
             isWishlist: Value(_addToWishlist),
@@ -2640,6 +2658,8 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
 
   String _poiName = '';
   String _poiAddress = '';
+  String _city = '';
+  String _country = '';
   double? _latitude;
   double? _longitude;
 
@@ -2671,6 +2691,8 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
           initialAddress: _poiAddress,
           initialLatitude: _latitude,
           initialLongitude: _longitude,
+          initialCity: _city,
+          initialCountry: _country,
         ),
       ),
     );
@@ -2679,6 +2701,8 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
     setState(() {
       _poiName = result.poiName;
       _poiAddress = result.address;
+      _city = result.city;
+      _country = result.country;
       _latitude = result.latitude;
       _longitude = result.longitude;
     });
@@ -2902,6 +2926,8 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
 
     final poiName = _poiName.trim();
     final poiAddress = _poiAddress.trim();
+    final city = _city.trim();
+    final country = _country.trim();
     final destination = poiName.isNotEmpty ? poiName : (poiAddress.isNotEmpty ? poiAddress : '');
     final images = _imageUrls.isEmpty ? null : jsonEncode(_imageUrls);
     final content = _contentController.text.trim();
@@ -2939,7 +2965,8 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
             tags: Value(tagsJson),
             poiName: Value(poiName.isEmpty ? null : poiName),
             poiAddress: Value(poiAddress.isEmpty ? null : poiAddress),
-            city: Value(poiAddress.isEmpty ? null : poiAddress),
+            city: Value(city.isEmpty ? null : city),
+            country: Value(country.isEmpty ? null : country),
             latitude: Value(_latitude),
             longitude: Value(_longitude),
             mood: Value(mood),
@@ -2947,6 +2974,26 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
             isJournal: const Value(true),
             wishlistDone: const Value(false),
             recordDate: recordDate,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+
+    final eventRecordDate = DateTime(recordDate.year, recordDate.month, recordDate.day);
+    await db.into(db.timelineEvents).insertOnConflictUpdate(
+          TimelineEventsCompanion.insert(
+            id: travelId,
+            title: title,
+            eventType: 'travel',
+            startAt: Value(recordDate),
+            endAt: Value(recordDate),
+            note: Value(content.isEmpty ? null : content),
+            tags: Value(tagsJson),
+            poiName: Value(poiName.isEmpty ? null : poiName),
+            poiAddress: Value(poiAddress.isEmpty ? null : poiAddress),
+            latitude: Value(_latitude),
+            longitude: Value(_longitude),
+            recordDate: eventRecordDate,
             createdAt: now,
             updatedAt: now,
           ),

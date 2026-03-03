@@ -1376,15 +1376,7 @@ class _EventStream extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('未找到旅行记录')));
       return;
     }
-    final item = TravelItem(
-      travelId: record.id,
-      tripId: record.tripId,
-      recordDate: record.recordDate,
-      date: '${record.recordDate.month}月${record.recordDate.day}日',
-      title: record.title ?? '',
-      subtitle: record.poiName ?? '',
-      imageUrl: record.images ?? '',
-    );
+    final item = TravelItem.fromRecord(record);
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => TravelDetailPage(item: item)));
   }
 

@@ -16,6 +16,7 @@ class AmapLocationPickResult {
     required this.latitude,
     required this.longitude,
     this.city = '',
+    this.country = '',
   });
 
   final String poiName;
@@ -23,6 +24,7 @@ class AmapLocationPickResult {
   final double? latitude;
   final double? longitude;
   final String city;
+  final String country;
 }
 
 enum AmapLocationPageMode { pick, preview }
@@ -35,11 +37,13 @@ class AmapLocationPage extends StatefulWidget {
     required this.initialLatitude,
     required this.initialLongitude,
     this.initialCity = '',
+    this.initialCountry = '',
   })  : mode = AmapLocationPageMode.pick,
         title = null,
         poiName = '',
         address = '',
         city = '',
+        country = '',
         latitude = null,
         longitude = null;
 
@@ -51,12 +55,14 @@ class AmapLocationPage extends StatefulWidget {
     required this.latitude,
     required this.longitude,
     this.city = '',
+    this.country = '',
   })  : mode = AmapLocationPageMode.preview,
         initialPoiName = '',
         initialAddress = '',
         initialLatitude = null,
         initialLongitude = null,
-        initialCity = '';
+        initialCity = '',
+        initialCountry = '';
 
   final AmapLocationPageMode mode;
 
@@ -66,12 +72,14 @@ class AmapLocationPage extends StatefulWidget {
   final double? latitude;
   final double? longitude;
   final String city;
+  final String country;
 
   final String initialPoiName;
   final String initialAddress;
   final double? initialLatitude;
   final double? initialLongitude;
   final String initialCity;
+  final String initialCountry;
 
   @override
   State<AmapLocationPage> createState() => _AmapLocationPageState();
@@ -105,6 +113,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
   final _poiNameController = TextEditingController();
   final _addressController = TextEditingController();
   final _cityController = TextEditingController();
+  final _countryController = TextEditingController();
 
   var _loading = false;
   var _errorText = '';
@@ -122,6 +131,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
   String get _pickedPoiName => _poiNameController.text.trim();
   String get _pickedAddress => _addressController.text.trim();
   String get _pickedCity => _cityController.text.trim();
+  String get _pickedCountry => _countryController.text.trim();
 
   double? _pickedLatitude;
   double? _pickedLongitude;
@@ -147,6 +157,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
       _poiNameController.text = widget.poiName;
       _addressController.text = widget.address;
       _cityController.text = widget.city;
+      _countryController.text = widget.country;
       _pickedLatitude = widget.latitude;
       _pickedLongitude = widget.longitude;
       _searchController.text = widget.poiName.trim().isNotEmpty ? widget.poiName.trim() : widget.address.trim();
@@ -154,6 +165,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
       _poiNameController.text = widget.initialPoiName;
       _addressController.text = widget.initialAddress;
       _cityController.text = widget.initialCity;
+      _countryController.text = widget.initialCountry;
       _pickedLatitude = widget.initialLatitude;
       _pickedLongitude = widget.initialLongitude;
       _searchController.text = widget.initialPoiName.trim().isNotEmpty ? widget.initialPoiName.trim() : widget.initialAddress.trim();
@@ -166,6 +178,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
     _poiNameController.dispose();
     _addressController.dispose();
     _cityController.dispose();
+    _countryController.dispose();
     super.dispose();
   }
 
@@ -382,6 +395,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
       final addressComponent = regeocode['addressComponent'];
       String city = '';
       String province = '';
+      String country = '中国';
       if (addressComponent is Map) {
         city = '${addressComponent['city'] ?? addressComponent['district'] ?? ''}'.trim();
         province = '${addressComponent['province'] ?? ''}'.trim();
@@ -398,6 +412,9 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
           _cityController.text = city;
         } else if (province.isNotEmpty) {
           _cityController.text = province;
+        }
+        if (country.isNotEmpty) {
+          _countryController.text = country;
         }
       });
     } catch (e) {
@@ -901,6 +918,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
                         latitude: _pickedLatitude,
                         longitude: _pickedLongitude,
                         city: _pickedCity,
+                        country: _pickedCountry,
                       ),
                     );
                   },
