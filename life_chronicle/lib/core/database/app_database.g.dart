@@ -2614,6 +2614,18 @@ class $TravelRecordsTable extends TravelRecords
   late final GeneratedColumn<double> expenseTicket = GeneratedColumn<double>(
       'expense_ticket', aliasedName, true,
       type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _flightLinkMeta =
+      const VerificationMeta('flightLink');
+  @override
+  late final GeneratedColumn<String> flightLink = GeneratedColumn<String>(
+      'flight_link', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _hotelLinkMeta =
+      const VerificationMeta('hotelLink');
+  @override
+  late final GeneratedColumn<String> hotelLink = GeneratedColumn<String>(
+      'hotel_link', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _isWishlistMeta =
       const VerificationMeta('isWishlist');
   @override
@@ -2708,6 +2720,8 @@ class $TravelRecordsTable extends TravelRecords
         expenseHotel,
         expenseFood,
         expenseTicket,
+        flightLink,
+        hotelLink,
         isWishlist,
         isFavorite,
         wishlistDone,
@@ -2815,6 +2829,16 @@ class $TravelRecordsTable extends TravelRecords
           expenseTicket.isAcceptableOrUnknown(
               data['expense_ticket']!, _expenseTicketMeta));
     }
+    if (data.containsKey('flight_link')) {
+      context.handle(
+          _flightLinkMeta,
+          flightLink.isAcceptableOrUnknown(
+              data['flight_link']!, _flightLinkMeta));
+    }
+    if (data.containsKey('hotel_link')) {
+      context.handle(_hotelLinkMeta,
+          hotelLink.isAcceptableOrUnknown(data['hotel_link']!, _hotelLinkMeta));
+    }
     if (data.containsKey('is_wishlist')) {
       context.handle(
           _isWishlistMeta,
@@ -2910,6 +2934,10 @@ class $TravelRecordsTable extends TravelRecords
           .read(DriftSqlType.double, data['${effectivePrefix}expense_food']),
       expenseTicket: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}expense_ticket']),
+      flightLink: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}flight_link']),
+      hotelLink: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}hotel_link']),
       isWishlist: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_wishlist'])!,
       isFavorite: attachedDatabase.typeMapping
@@ -2956,6 +2984,8 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
   final double? expenseHotel;
   final double? expenseFood;
   final double? expenseTicket;
+  final String? flightLink;
+  final String? hotelLink;
   final bool isWishlist;
   final bool isFavorite;
   final bool wishlistDone;
@@ -2984,6 +3014,8 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
       this.expenseHotel,
       this.expenseFood,
       this.expenseTicket,
+      this.flightLink,
+      this.hotelLink,
       required this.isWishlist,
       required this.isFavorite,
       required this.wishlistDone,
@@ -3046,6 +3078,12 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
     if (!nullToAbsent || expenseTicket != null) {
       map['expense_ticket'] = Variable<double>(expenseTicket);
     }
+    if (!nullToAbsent || flightLink != null) {
+      map['flight_link'] = Variable<String>(flightLink);
+    }
+    if (!nullToAbsent || hotelLink != null) {
+      map['hotel_link'] = Variable<String>(hotelLink);
+    }
     map['is_wishlist'] = Variable<bool>(isWishlist);
     map['is_favorite'] = Variable<bool>(isFavorite);
     map['wishlist_done'] = Variable<bool>(wishlistDone);
@@ -3104,6 +3142,12 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
       expenseTicket: expenseTicket == null && nullToAbsent
           ? const Value.absent()
           : Value(expenseTicket),
+      flightLink: flightLink == null && nullToAbsent
+          ? const Value.absent()
+          : Value(flightLink),
+      hotelLink: hotelLink == null && nullToAbsent
+          ? const Value.absent()
+          : Value(hotelLink),
       isWishlist: Value(isWishlist),
       isFavorite: Value(isFavorite),
       wishlistDone: Value(wishlistDone),
@@ -3140,6 +3184,8 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
       expenseHotel: serializer.fromJson<double?>(json['expenseHotel']),
       expenseFood: serializer.fromJson<double?>(json['expenseFood']),
       expenseTicket: serializer.fromJson<double?>(json['expenseTicket']),
+      flightLink: serializer.fromJson<String?>(json['flightLink']),
+      hotelLink: serializer.fromJson<String?>(json['hotelLink']),
       isWishlist: serializer.fromJson<bool>(json['isWishlist']),
       isFavorite: serializer.fromJson<bool>(json['isFavorite']),
       wishlistDone: serializer.fromJson<bool>(json['wishlistDone']),
@@ -3173,6 +3219,8 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
       'expenseHotel': serializer.toJson<double?>(expenseHotel),
       'expenseFood': serializer.toJson<double?>(expenseFood),
       'expenseTicket': serializer.toJson<double?>(expenseTicket),
+      'flightLink': serializer.toJson<String?>(flightLink),
+      'hotelLink': serializer.toJson<String?>(hotelLink),
       'isWishlist': serializer.toJson<bool>(isWishlist),
       'isFavorite': serializer.toJson<bool>(isFavorite),
       'wishlistDone': serializer.toJson<bool>(wishlistDone),
@@ -3204,6 +3252,8 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
           Value<double?> expenseHotel = const Value.absent(),
           Value<double?> expenseFood = const Value.absent(),
           Value<double?> expenseTicket = const Value.absent(),
+          Value<String?> flightLink = const Value.absent(),
+          Value<String?> hotelLink = const Value.absent(),
           bool? isWishlist,
           bool? isFavorite,
           bool? wishlistDone,
@@ -3236,6 +3286,8 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
         expenseFood: expenseFood.present ? expenseFood.value : this.expenseFood,
         expenseTicket:
             expenseTicket.present ? expenseTicket.value : this.expenseTicket,
+        flightLink: flightLink.present ? flightLink.value : this.flightLink,
+        hotelLink: hotelLink.present ? hotelLink.value : this.hotelLink,
         isWishlist: isWishlist ?? this.isWishlist,
         isFavorite: isFavorite ?? this.isFavorite,
         wishlistDone: wishlistDone ?? this.wishlistDone,
@@ -3275,6 +3327,9 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
       expenseTicket: data.expenseTicket.present
           ? data.expenseTicket.value
           : this.expenseTicket,
+      flightLink:
+          data.flightLink.present ? data.flightLink.value : this.flightLink,
+      hotelLink: data.hotelLink.present ? data.hotelLink.value : this.hotelLink,
       isWishlist:
           data.isWishlist.present ? data.isWishlist.value : this.isWishlist,
       isFavorite:
@@ -3313,6 +3368,8 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
           ..write('expenseHotel: $expenseHotel, ')
           ..write('expenseFood: $expenseFood, ')
           ..write('expenseTicket: $expenseTicket, ')
+          ..write('flightLink: $flightLink, ')
+          ..write('hotelLink: $hotelLink, ')
           ..write('isWishlist: $isWishlist, ')
           ..write('isFavorite: $isFavorite, ')
           ..write('wishlistDone: $wishlistDone, ')
@@ -3346,6 +3403,8 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
         expenseHotel,
         expenseFood,
         expenseTicket,
+        flightLink,
+        hotelLink,
         isWishlist,
         isFavorite,
         wishlistDone,
@@ -3378,6 +3437,8 @@ class TravelRecord extends DataClass implements Insertable<TravelRecord> {
           other.expenseHotel == this.expenseHotel &&
           other.expenseFood == this.expenseFood &&
           other.expenseTicket == this.expenseTicket &&
+          other.flightLink == this.flightLink &&
+          other.hotelLink == this.hotelLink &&
           other.isWishlist == this.isWishlist &&
           other.isFavorite == this.isFavorite &&
           other.wishlistDone == this.wishlistDone &&
@@ -3408,6 +3469,8 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
   final Value<double?> expenseHotel;
   final Value<double?> expenseFood;
   final Value<double?> expenseTicket;
+  final Value<String?> flightLink;
+  final Value<String?> hotelLink;
   final Value<bool> isWishlist;
   final Value<bool> isFavorite;
   final Value<bool> wishlistDone;
@@ -3437,6 +3500,8 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
     this.expenseHotel = const Value.absent(),
     this.expenseFood = const Value.absent(),
     this.expenseTicket = const Value.absent(),
+    this.flightLink = const Value.absent(),
+    this.hotelLink = const Value.absent(),
     this.isWishlist = const Value.absent(),
     this.isFavorite = const Value.absent(),
     this.wishlistDone = const Value.absent(),
@@ -3467,6 +3532,8 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
     this.expenseHotel = const Value.absent(),
     this.expenseFood = const Value.absent(),
     this.expenseTicket = const Value.absent(),
+    this.flightLink = const Value.absent(),
+    this.hotelLink = const Value.absent(),
     this.isWishlist = const Value.absent(),
     this.isFavorite = const Value.absent(),
     this.wishlistDone = const Value.absent(),
@@ -3501,6 +3568,8 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
     Expression<double>? expenseHotel,
     Expression<double>? expenseFood,
     Expression<double>? expenseTicket,
+    Expression<String>? flightLink,
+    Expression<String>? hotelLink,
     Expression<bool>? isWishlist,
     Expression<bool>? isFavorite,
     Expression<bool>? wishlistDone,
@@ -3531,6 +3600,8 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
       if (expenseHotel != null) 'expense_hotel': expenseHotel,
       if (expenseFood != null) 'expense_food': expenseFood,
       if (expenseTicket != null) 'expense_ticket': expenseTicket,
+      if (flightLink != null) 'flight_link': flightLink,
+      if (hotelLink != null) 'hotel_link': hotelLink,
       if (isWishlist != null) 'is_wishlist': isWishlist,
       if (isFavorite != null) 'is_favorite': isFavorite,
       if (wishlistDone != null) 'wishlist_done': wishlistDone,
@@ -3563,6 +3634,8 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
       Value<double?>? expenseHotel,
       Value<double?>? expenseFood,
       Value<double?>? expenseTicket,
+      Value<String?>? flightLink,
+      Value<String?>? hotelLink,
       Value<bool>? isWishlist,
       Value<bool>? isFavorite,
       Value<bool>? wishlistDone,
@@ -3592,6 +3665,8 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
       expenseHotel: expenseHotel ?? this.expenseHotel,
       expenseFood: expenseFood ?? this.expenseFood,
       expenseTicket: expenseTicket ?? this.expenseTicket,
+      flightLink: flightLink ?? this.flightLink,
+      hotelLink: hotelLink ?? this.hotelLink,
       isWishlist: isWishlist ?? this.isWishlist,
       isFavorite: isFavorite ?? this.isFavorite,
       wishlistDone: wishlistDone ?? this.wishlistDone,
@@ -3662,6 +3737,12 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
     if (expenseTicket.present) {
       map['expense_ticket'] = Variable<double>(expenseTicket.value);
     }
+    if (flightLink.present) {
+      map['flight_link'] = Variable<String>(flightLink.value);
+    }
+    if (hotelLink.present) {
+      map['hotel_link'] = Variable<String>(hotelLink.value);
+    }
     if (isWishlist.present) {
       map['is_wishlist'] = Variable<bool>(isWishlist.value);
     }
@@ -3716,6 +3797,8 @@ class TravelRecordsCompanion extends UpdateCompanion<TravelRecord> {
           ..write('expenseHotel: $expenseHotel, ')
           ..write('expenseFood: $expenseFood, ')
           ..write('expenseTicket: $expenseTicket, ')
+          ..write('flightLink: $flightLink, ')
+          ..write('hotelLink: $hotelLink, ')
           ..write('isWishlist: $isWishlist, ')
           ..write('isFavorite: $isFavorite, ')
           ..write('wishlistDone: $wishlistDone, ')
@@ -11777,6 +11860,8 @@ typedef $$TravelRecordsTableCreateCompanionBuilder = TravelRecordsCompanion
   Value<double?> expenseHotel,
   Value<double?> expenseFood,
   Value<double?> expenseTicket,
+  Value<String?> flightLink,
+  Value<String?> hotelLink,
   Value<bool> isWishlist,
   Value<bool> isFavorite,
   Value<bool> wishlistDone,
@@ -11808,6 +11893,8 @@ typedef $$TravelRecordsTableUpdateCompanionBuilder = TravelRecordsCompanion
   Value<double?> expenseHotel,
   Value<double?> expenseFood,
   Value<double?> expenseTicket,
+  Value<String?> flightLink,
+  Value<String?> hotelLink,
   Value<bool> isWishlist,
   Value<bool> isFavorite,
   Value<bool> wishlistDone,
@@ -11883,6 +11970,12 @@ class $$TravelRecordsTableFilterComposer
 
   ColumnFilters<double> get expenseTicket => $composableBuilder(
       column: $table.expenseTicket, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get flightLink => $composableBuilder(
+      column: $table.flightLink, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get hotelLink => $composableBuilder(
+      column: $table.hotelLink, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get isWishlist => $composableBuilder(
       column: $table.isWishlist, builder: (column) => ColumnFilters(column));
@@ -11978,6 +12071,12 @@ class $$TravelRecordsTableOrderingComposer
       column: $table.expenseTicket,
       builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get flightLink => $composableBuilder(
+      column: $table.flightLink, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get hotelLink => $composableBuilder(
+      column: $table.hotelLink, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<bool> get isWishlist => $composableBuilder(
       column: $table.isWishlist, builder: (column) => ColumnOrderings(column));
 
@@ -12070,6 +12169,12 @@ class $$TravelRecordsTableAnnotationComposer
   GeneratedColumn<double> get expenseTicket => $composableBuilder(
       column: $table.expenseTicket, builder: (column) => column);
 
+  GeneratedColumn<String> get flightLink => $composableBuilder(
+      column: $table.flightLink, builder: (column) => column);
+
+  GeneratedColumn<String> get hotelLink =>
+      $composableBuilder(column: $table.hotelLink, builder: (column) => column);
+
   GeneratedColumn<bool> get isWishlist => $composableBuilder(
       column: $table.isWishlist, builder: (column) => column);
 
@@ -12142,6 +12247,8 @@ class $$TravelRecordsTableTableManager extends RootTableManager<
             Value<double?> expenseHotel = const Value.absent(),
             Value<double?> expenseFood = const Value.absent(),
             Value<double?> expenseTicket = const Value.absent(),
+            Value<String?> flightLink = const Value.absent(),
+            Value<String?> hotelLink = const Value.absent(),
             Value<bool> isWishlist = const Value.absent(),
             Value<bool> isFavorite = const Value.absent(),
             Value<bool> wishlistDone = const Value.absent(),
@@ -12172,6 +12279,8 @@ class $$TravelRecordsTableTableManager extends RootTableManager<
             expenseHotel: expenseHotel,
             expenseFood: expenseFood,
             expenseTicket: expenseTicket,
+            flightLink: flightLink,
+            hotelLink: hotelLink,
             isWishlist: isWishlist,
             isFavorite: isFavorite,
             wishlistDone: wishlistDone,
@@ -12202,6 +12311,8 @@ class $$TravelRecordsTableTableManager extends RootTableManager<
             Value<double?> expenseHotel = const Value.absent(),
             Value<double?> expenseFood = const Value.absent(),
             Value<double?> expenseTicket = const Value.absent(),
+            Value<String?> flightLink = const Value.absent(),
+            Value<String?> hotelLink = const Value.absent(),
             Value<bool> isWishlist = const Value.absent(),
             Value<bool> isFavorite = const Value.absent(),
             Value<bool> wishlistDone = const Value.absent(),
@@ -12232,6 +12343,8 @@ class $$TravelRecordsTableTableManager extends RootTableManager<
             expenseHotel: expenseHotel,
             expenseFood: expenseFood,
             expenseTicket: expenseTicket,
+            flightLink: flightLink,
+            hotelLink: hotelLink,
             isWishlist: isWishlist,
             isFavorite: isFavorite,
             wishlistDone: wishlistDone,

@@ -18,6 +18,7 @@ import '../../../core/providers/uuid_provider.dart';
 import '../../../core/utils/media_storage.dart';
 import '../../../core/widgets/ai_parse_button.dart';
 import '../../../core/widgets/amap_location_page.dart';
+import '../providers/travel_detail_provider.dart';
 import '../../bond/presentation/bond_page.dart' show FriendProfilePage;
 
 class TravelPage extends StatefulWidget {
@@ -418,19 +419,26 @@ class _TravelOnTheRoadView extends ConsumerWidget {
                   stream: db.friendDao.watchAllActive(),
                   builder: (context, friendSnapshot) {
                     final friends = friendSnapshot.data ?? const <FriendRecord>[];
-                    final entries = _buildTravelEntries(
-                      records: finalRecords,
-                      trips: trips,
-                      friends: friends,
-                      links: links,
-                    );
-                    return Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _TravelFootprintCard(onTap: () {}),
-                        const SizedBox(height: 18),
-                        _TravelOnTheRoadTimeline(entries: entries),
-                      ],
+                    return StreamBuilder<List<FoodRecord>>(
+                      stream: db.foodDao.watchAllActive(),
+                      builder: (context, foodSnapshot) {
+                        final foods = foodSnapshot.data ?? const <FoodRecord>[];
+                        final entries = _buildTravelEntries(
+                          records: finalRecords,
+                          trips: trips,
+                          friends: friends,
+                          links: links,
+                          foods: foods,
+                        );
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _TravelFootprintCard(onTap: () {}),
+                            const SizedBox(height: 18),
+                            _TravelOnTheRoadTimeline(entries: entries),
+                          ],
+                        );
+                      },
                     );
                   },
                 );
@@ -452,6 +460,7 @@ class _TravelOnTheRoadEntry {
     required this.imageUrl,
     required this.companions,
     required this.item,
+    this.foodCount = 0,
   });
 
   final int year;
@@ -461,6 +470,7 @@ class _TravelOnTheRoadEntry {
   final String imageUrl;
   final List<_CompanionInfo> companions;
   final TravelItem item;
+  final int foodCount;
 }
 
 class _TravelFootprintCard extends ConsumerWidget {
@@ -828,21 +838,25 @@ class _TravelOnRoadCard extends StatelessWidget {
                         if (entry.companions.isNotEmpty) const SizedBox(width: 14),
                         if (entry.companions.isNotEmpty) Container(width: 1, height: 14, color: const Color(0xFFE2E8F0)),
                         if (entry.companions.isNotEmpty) const SizedBox(width: 14),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF2BCDEE).withValues(alpha: 0.10),
-                            borderRadius: BorderRadius.circular(10),
+                        if (entry.foodCount > 0)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2BCDEE).withValues(alpha: 0.10),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.restaurant, size: 14, color: Color(0xFF2BCDEE)),
+                                const SizedBox(width: 6),
+                                Text(
+                                  entry.foodCount > 1 ? '${entry.foodCount} 美食' : '美食',
+                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF4B5563)),
+                                ),
+                              ],
+                            ),
                           ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.restaurant, size: 14, color: Color(0xFF2BCDEE)),
-                              SizedBox(width: 6),
-                              Text('美食', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF4B5563))),
-                            ],
-                          ),
-                        ),
                       ],
                     ),
                   ],
@@ -1057,351 +1071,313 @@ class TravelDetailPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final db = ref.watch(appDatabaseProvider);
-    return StreamBuilder<TravelRecord?>(
-      stream: _watchTravelById(db, item.travelId),
-      builder: (context, recordSnapshot) {
-        final record = recordSnapshot.data;
-        return StreamBuilder<Trip?>(
-          stream: _watchTripById(db, item.tripId),
-          builder: (context, tripSnapshot) {
-            final trip = tripSnapshot.data;
-            final title = record == null ? item.title : _travelTitle(record, trip);
-            final place = record == null ? item.subtitle : _travelPlace(record, trip);
-            final headerStart = trip?.startDate ?? record?.planDate ?? record?.recordDate ?? item.recordDate;
-            final headerEnd = trip?.endDate ?? record?.planDate ?? headerStart;
-            final duration = _durationDays(headerStart, headerEnd);
-            final durationLabel = _formatDurationLabel(duration);
-            final dateLabel = _formatDateDotRange(headerStart, headerEnd);
-            final cover = record == null ? item.imageUrl : _pickCoverImage(record);
-            final tripId = trip?.id ?? record?.tripId ?? item.tripId;
-            final tripTitle = trip?.name ?? item.title;
-            final recordId = record?.id ?? item.travelId;
-            final tagSet = <String>{};
-            if (record != null) {
-              tagSet.addAll(_decodeStringList(record.tags));
-              final destination = record.destination?.trim();
-              if (destination != null && destination.isNotEmpty) {
-                tagSet.add(destination);
-              }
-            }
-            final tagList = tagSet.toList()..sort();
-            return StreamBuilder<List<TravelRecord>>(
-              stream: _watchTravelRecordsByTripId(db, tripId),
-              builder: (context, travelSnapshot) {
-                final allRecords = travelSnapshot.data ?? const <TravelRecord>[];
-                final journals = allRecords.where((r) => r.id != recordId && !r.isWishlist && r.isJournal).toList(growable: false);
-                return StreamBuilder<List<ChecklistItem>>(
-                  stream: db.checklistDao.watchByTripId(tripId),
-                  builder: (context, checklistSnapshot) {
-                    final checklistItems = checklistSnapshot.data ?? const <ChecklistItem>[];
-                    return StreamBuilder<List<EntityLink>>(
-                      stream: db.select(db.entityLinks).watch(),
-                      builder: (context, linkSnapshot) {
-                        final links = linkSnapshot.data ?? const <EntityLink>[];
-                        
-                        final allTravelIds = <String>{recordId};
-                        for (final r in allRecords) {
-                          if (r.tripId == tripId) {
-                            allTravelIds.add(r.id);
-                          }
-                        }
-                        final linkedFriendIds = <String>{};
-                        for (final link in links) {
-                          if (link.sourceType == 'travel' && allTravelIds.contains(link.sourceId) && link.targetType == 'friend') {
-                            linkedFriendIds.add(link.targetId);
-                          } else if (link.targetType == 'travel' && allTravelIds.contains(link.targetId) && link.sourceType == 'friend') {
-                            linkedFriendIds.add(link.sourceId);
-                          }
-                        }
-                        
-                        return StreamBuilder<List<FriendRecord>>(
-                          stream: db.friendDao.watchAllActive(),
-                          builder: (context, friendSnapshot) {
-                            final friends = friendSnapshot.data ?? const <FriendRecord>[];
-                            final linkedFriends = friends.where((f) => linkedFriendIds.contains(f.id)).toList();
-                            return StreamBuilder<List<FoodRecord>>(
-                              stream: db.foodDao.watchAllActive(),
-                              builder: (context, foodSnapshot) {
-                                final foods = foodSnapshot.data ?? const <FoodRecord>[];
-                                return Scaffold(
-                                  backgroundColor: const Color(0xFFF6F8F8),
-                                  floatingActionButton: FloatingActionButton(
-                                    backgroundColor: const Color(0xFF2BCDEE),
-                                    foregroundColor: Colors.white,
-                                    onPressed: () => Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) => TravelJournalCreatePage(initialTripId: tripId, initialTripTitle: tripTitle),
-                                      ),
+    final stateAsync = ref.watch(travelDetailProvider((travelId: item.travelId, tripId: item.tripId)));
+
+    return stateAsync.when(
+      loading: () => Scaffold(
+        backgroundColor: const Color(0xFFF6F8F8),
+        body: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, stack) => Scaffold(
+        backgroundColor: const Color(0xFFF6F8F8),
+        body: Center(child: Text('加载失败: $error')),
+      ),
+      data: (state) {
+        final record = state.record;
+        final trip = state.trip;
+        final title = state.title.isNotEmpty ? state.title : item.title;
+        final place = state.place.isNotEmpty ? state.place : item.subtitle;
+        final durationLabel = state.durationLabel;
+        final dateLabel = state.dateLabel;
+        final cover = state.cover.isNotEmpty ? state.cover : item.imageUrl;
+        final tripId = state.tripId;
+        final tripTitle = state.tripTitle.isNotEmpty ? state.tripTitle : item.title;
+        final tagList = state.tags;
+        final journals = state.journals;
+        final checklistItems = state.checklistItems;
+        final linkedFriends = state.linkedFriends;
+        final friends = state.linkedFriends;
+        final foods = state.linkedFoods;
+        final links = <EntityLink>[];
+
+        return Scaffold(
+          backgroundColor: const Color(0xFFF6F8F8),
+          floatingActionButton: FloatingActionButton(
+            backgroundColor: const Color(0xFF2BCDEE),
+            foregroundColor: Colors.white,
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => TravelJournalCreatePage(initialTripId: tripId, initialTripTitle: tripTitle),
+              ),
+            ),
+            child: const Icon(Icons.add, size: 28),
+          ),
+          body: CustomScrollView(
+            slivers: [
+              SliverAppBar(
+                automaticallyImplyLeading: false,
+                backgroundColor: Colors.transparent,
+                surfaceTintColor: Colors.transparent,
+                elevation: 0,
+                pinned: false,
+                expandedHeight: 288,
+                flexibleSpace: FlexibleSpaceBar(
+                  background: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      ClipRRect(
+                        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
+                        child: _buildLocalImage(cover, fit: BoxFit.cover),
+                      ),
+                      DecoratedBox(
+                        decoration: const BoxDecoration(
+                          borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Colors.transparent, Color(0x33000000), Color(0x99000000)],
+                            stops: [0.35, 0.70, 1.00],
+                          ),
+                        ),
+                      ),
+                      SafeArea(
+                        bottom: false,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                          child: Row(
+                            children: [
+                              _FrostedCircleIconButton(
+                                icon: Icons.arrow_back,
+                                onTap: () => Navigator.of(context).maybePop(),
+                              ),
+                              const Spacer(),
+                              _FrostedCircleIconButton(
+                                icon: Icons.delete_outline,
+                                onTap: () async {
+                                  final confirmed = await showDialog<bool>(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      title: const Text('删除旅行'),
+                                      content: const Text('确定要删除这个旅行吗？相关的游记也会被删除。'),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.of(context).pop(false),
+                                          child: const Text('取消'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () => Navigator.of(context).pop(true),
+                                          style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                          child: const Text('删除'),
+                                        ),
+                                      ],
                                     ),
-                                    child: const Icon(Icons.add, size: 28),
+                                  );
+                                  if (confirmed == true) {
+                                    await (db.update(db.travelRecords)..where((t) => t.tripId.equals(tripId))).write(
+                                      TravelRecordsCompanion(
+                                        isDeleted: Value(true),
+                                        updatedAt: Value(DateTime.now()),
+                                      ),
+                                    );
+                                    if (context.mounted) {
+                                      Navigator.of(context).pop();
+                                    }
+                                  }
+                                },
+                              ),
+                              const SizedBox(width: 10),
+                              _FrostedCircleIconButton(
+                                icon: record?.isFavorite == true ? Icons.bookmark : Icons.bookmark_border,
+                                onTap: () async {
+                                  if (record == null) return;
+                                  await (db.update(db.travelRecords)..where((t) => t.id.equals(record.id))).write(
+                                    TravelRecordsCompanion(
+                                      isFavorite: Value(!record.isFavorite),
+                                      updatedAt: Value(DateTime.now()),
+                                    ),
+                                  );
+                                },
+                              ),
+                              const SizedBox(width: 10),
+                              _FrostedCircleIconButton(
+                                icon: Icons.edit,
+                                onTap: () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => TravelCreatePage(
+                                      initialRecord: record,
+                                      initialTrip: trip,
+                                    ),
                                   ),
-                                  body: CustomScrollView(
-                                    slivers: [
-                                      SliverAppBar(
-                                        automaticallyImplyLeading: false,
-                                        backgroundColor: Colors.transparent,
-                                        surfaceTintColor: Colors.transparent,
-                                        elevation: 0,
-                                        pinned: false,
-                                        expandedHeight: 288,
-                                        flexibleSpace: FlexibleSpaceBar(
-                                          background: Stack(
-                                            fit: StackFit.expand,
-                                            children: [
-                                              ClipRRect(
-                                                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
-                                                child: _buildLocalImage(cover, fit: BoxFit.cover),
-                                              ),
-                                              DecoratedBox(
-                                                decoration: const BoxDecoration(
-                                                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
-                                                  gradient: LinearGradient(
-                                                    begin: Alignment.topCenter,
-                                                    end: Alignment.bottomCenter,
-                                                    colors: [Colors.transparent, Color(0x33000000), Color(0x99000000)],
-                                                    stops: [0.35, 0.70, 1.00],
-                                                  ),
-                                                ),
-                                              ),
-                                              SafeArea(
-                                                bottom: false,
-                                                child: Padding(
-                                                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                                                  child: Row(
-                                                    children: [
-                                                      _FrostedCircleIconButton(
-                                                        icon: Icons.arrow_back,
-                                                        onTap: () => Navigator.of(context).maybePop(),
-                                                      ),
-                                                      const Spacer(),
-                                                      _FrostedCircleIconButton(
-                                                        icon: Icons.delete_outline,
-                                                        onTap: () async {
-                                                          final confirmed = await showDialog<bool>(
-                                                            context: context,
-                                                            builder: (context) => AlertDialog(
-                                                              title: const Text('删除旅行'),
-                                                              content: const Text('确定要删除这个旅行吗？相关的游记也会被删除。'),
-                                                              actions: [
-                                                                TextButton(
-                                                                  onPressed: () => Navigator.of(context).pop(false),
-                                                                  child: const Text('取消'),
-                                                                ),
-                                                                TextButton(
-                                                                  onPressed: () => Navigator.of(context).pop(true),
-                                                                  style: TextButton.styleFrom(foregroundColor: Colors.red),
-                                                                  child: const Text('删除'),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          );
-                                                          if (confirmed == true) {
-                                                            await (db.update(db.travelRecords)..where((t) => t.tripId.equals(tripId))).write(
-                                                              TravelRecordsCompanion(
-                                                                isDeleted: Value(true),
-                                                                updatedAt: Value(DateTime.now()),
-                                                              ),
-                                                            );
-                                                            if (context.mounted) {
-                                                              Navigator.of(context).pop();
-                                                            }
-                                                          }
-                                                        },
-                                                      ),
-                                                      const SizedBox(width: 10),
-                                                      _FrostedCircleIconButton(icon: Icons.bookmark_border, onTap: () {}),
-                                                      const SizedBox(width: 10),
-                                                      _FrostedCircleIconButton(
-                                                        icon: Icons.edit,
-                                                        onTap: () => Navigator.of(context).push(
-                                                          MaterialPageRoute(
-                                                            builder: (_) => TravelCreatePage(
-                                                              initialRecord: record,
-                                                              initialTrip: trip,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                      const SizedBox(width: 10),
-                                                      _FrostedCircleIconButton(
-                                                        icon: Icons.add,
-                                                        onTap: () => Navigator.of(context).push(
-                                                          MaterialPageRoute(
-                                                            builder: (_) => TravelJournalCreatePage(initialTripId: tripId, initialTripTitle: tripTitle),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                      const SizedBox(width: 10),
-                                                      _PrimaryPillButton(
-                                                        icon: Icons.share,
-                                                        label: '分享',
-                                                        onTap: () {
-                                                          final shareText = '【$title】\n$place · $dateLabel';
-                                                          Share.share(shareText, subject: title);
-                                                        },
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ),
-                                              Positioned(
-                                                left: 20,
-                                                right: 20,
-                                                bottom: 20,
-                                                child: Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  children: [
-                                                    Row(
-                                                      children: [
-                                                        Container(
-                                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                                          decoration: BoxDecoration(
-                                                            color: Colors.white.withValues(alpha: 0.20),
-                                                            borderRadius: BorderRadius.circular(8),
-                                                            border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-                                                          ),
-                                                          child: Text(
-                                                            durationLabel,
-                                                            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
-                                                          ),
-                                                        ),
-                                                        const SizedBox(width: 10),
-                                                        const Icon(Icons.location_on, color: Colors.white70, size: 16),
-                                                        const SizedBox(width: 4),
-                                                        Text(place, style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
-                                                      ],
-                                                    ),
-                                                    const SizedBox(height: 10),
-                                                    Text(
-                                                      title,
-                                                      style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w900, height: 1.05),
-                                                    ),
-                                                    const SizedBox(height: 6),
-                                                    Text(dateLabel, style: const TextStyle(color: Color(0xCCFFFFFF), fontSize: 13, fontWeight: FontWeight.w600)),
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              _FrostedCircleIconButton(
+                                icon: Icons.add,
+                                onTap: () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => TravelJournalCreatePage(initialTripId: tripId, initialTripTitle: tripTitle),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              _PrimaryPillButton(
+                                icon: Icons.share,
+                                label: '分享',
+                                onTap: () {
+                                  final shareText = '【$title】\n$place · $dateLabel';
+                                  Share.share(shareText, subject: title);
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        left: 20,
+                        right: 20,
+                        bottom: 20,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.20),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+                                  ),
+                                  child: Text(
+                                    durationLabel,
+                                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                const Icon(Icons.location_on, color: Colors.white70, size: 16),
+                                const SizedBox(width: 4),
+                                Text(place, style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              title,
+                              style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w900, height: 1.05),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(dateLabel, style: const TextStyle(color: Color(0xCCFFFFFF), fontSize: 13, fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 110),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (state.isWishlist)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+                          ),
+                          child: Row(
+                            children: [
+                              Checkbox.adaptive(
+                                value: state.wishlistDone,
+                                activeColor: const Color(0xFF2BCDEE),
+                                onChanged: record == null
+                                    ? null
+                                    : (value) async {
+                                        await (db.update(db.travelRecords)..where((t) => t.id.equals(record.id))).write(
+                                          TravelRecordsCompanion(
+                                            wishlistDone: Value(value ?? false),
+                                            updatedAt: Value(DateTime.now()),
                                           ),
-                                        ),
-                                      ),
-                                      SliverToBoxAdapter(
-                                        child: Padding(
-                                          padding: const EdgeInsets.fromLTRB(20, 18, 20, 110),
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                                            children: [
-                                              if (record?.isWishlist == true)
-                                                Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.white,
-                                                    borderRadius: BorderRadius.circular(20),
-                                                    border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
-                                                  ),
-                                                  child: Row(
-                                                    children: [
-                                                      Checkbox.adaptive(
-                                                        value: record?.wishlistDone ?? false,
-                                                        activeColor: const Color(0xFF2BCDEE),
-                                                        onChanged: record == null
-                                                            ? null
-                                                            : (value) async {
-                                                                await (db.update(db.travelRecords)..where((t) => t.id.equals(record.id))).write(
-                                                                  TravelRecordsCompanion(
-                                                                    wishlistDone: Value(value ?? false),
-                                                                    updatedAt: Value(DateTime.now()),
-                                                                  ),
-                                                                );
-                                                              },
-                                                      ),
-                                                      const SizedBox(width: 6),
-                                                      Expanded(
-                                                        child: Text(
-                                                          '心愿清单待办',
-                                                          style: TextStyle(
-                                                            fontSize: 14,
-                                                            fontWeight: FontWeight.w900,
-                                                            color: record?.wishlistDone == true ? const Color(0xFF94A3B8) : const Color(0xFF111827),
-                                                            decoration: record?.wishlistDone == true ? TextDecoration.lineThrough : TextDecoration.none,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              if (record?.isWishlist == true) const SizedBox(height: 14),
-                                              if (tagList.isNotEmpty)
-                                                Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.white,
-                                                    borderRadius: BorderRadius.circular(20),
-                                                    border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
-                                                  ),
-                                                  child: Wrap(
-                                                    spacing: 10,
-                                                    runSpacing: 10,
-                                                    children: [
-                                                      for (final tag in tagList) _TagChip(label: '#$tag'),
-                                                    ],
-                                                  ),
-                                                ),
-                                              if (tagList.isNotEmpty) const SizedBox(height: 14),
-                                              Column(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  if (checklistItems.isNotEmpty)
-                                                    _ChecklistCard(
-                                                      items: checklistItems,
-                                                      onToggle: (item, isDone) async {
-                                                        await db.checklistDao.updateDone(
-                                                          item.id,
-                                                          isDone: isDone,
-                                                          now: DateTime.now(),
-                                                        );
-                                                      },
-                                                    ),
-                                                  if (checklistItems.isNotEmpty || linkedFriends.isNotEmpty)
-                                                    const SizedBox(height: 14),
-                                                  if (linkedFriends.isNotEmpty)
-                                                    _CompanionAvatars(
-                                                      friends: linkedFriends,
-                                                      onTap: (friend) {
-                                                        Navigator.of(context).push(
-                                                          MaterialPageRoute(
-                                                            builder: (_) => FriendProfilePage(friendId: friend.id),
-                                                          ),
-                                                        );
-                                                      },
-                                                    ),
-                                                ],
-                                              ),
-                                              _TravelTimeline(
-                                                trip: trip,
-                                                journals: journals,
-                                                friends: friends,
-                                                foods: foods,
-                                                links: links,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                                        );
+                                      },
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  '心愿清单待办',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w900,
+                                    color: state.wishlistDone ? const Color(0xFF94A3B8) : const Color(0xFF111827),
+                                    decoration: state.wishlistDone ? TextDecoration.lineThrough : TextDecoration.none,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      if (state.isWishlist) const SizedBox(height: 14),
+                      if (tagList.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+                          ),
+                          child: Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            children: [
+                              for (final tag in tagList) _TagChip(label: '#$tag'),
+                            ],
+                          ),
+                        ),
+                      if (tagList.isNotEmpty) const SizedBox(height: 14),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (checklistItems.isNotEmpty)
+                            _ChecklistCard(
+                              items: checklistItems,
+                              onToggle: (checkItem, isDone) async {
+                                await db.checklistDao.updateDone(
+                                  checkItem.id,
+                                  isDone: isDone,
+                                  now: DateTime.now(),
+                                );
+                              },
+                            ),
+                          if (checklistItems.isNotEmpty || linkedFriends.isNotEmpty)
+                            const SizedBox(height: 14),
+                          if (linkedFriends.isNotEmpty)
+                            _CompanionAvatars(
+                              friends: linkedFriends,
+                              onTap: (friend) {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => FriendProfilePage(friendId: friend.id),
                                   ),
                                 );
                               },
-                            );
-                          },
-                        );
-                      },
-                    );
-                  },
-                );
-              },
-            );
-          },
+                            ),
+                        ],
+                      ),
+                      _TravelTimeline(
+                        trip: trip,
+                        journals: journals,
+                        friends: friends,
+                        foods: foods,
+                        links: links,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -1517,8 +1493,8 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
             : '';
     final contentParts = _splitContent(record?.content);
     _noteController.text = contentParts.note;
-    _flightLinkController.text = contentParts.flight;
-    _hotelLinkController.text = contentParts.hotel;
+    _flightLinkController.text = (record?.flightLink ?? '').isNotEmpty ? record!.flightLink! : contentParts.flight;
+    _hotelLinkController.text = (record?.hotelLink ?? '').isNotEmpty ? record!.hotelLink! : contentParts.hotel;
     _budgetController.text = trip?.totalExpense?.toString() ?? '';
 
     final tags = _decodeStringList(record?.tags);
@@ -2006,6 +1982,8 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
             country: Value(country.isEmpty ? null : country),
             latitude: Value(_latitude),
             longitude: Value(_longitude),
+            flightLink: Value(flightLink.isEmpty ? null : flightLink),
+            hotelLink: Value(hotelLink.isEmpty ? null : hotelLink),
             isWishlist: Value(_addToWishlist),
             isJournal: const Value(false),
             wishlistDone: Value(existingRecord?.wishlistDone ?? false),
@@ -2717,6 +2695,12 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
     setState(() => _imageUrls.addAll(stored));
   }
 
+  void _removeImage(int index) {
+    setState(() {
+      _imageUrls.removeAt(index);
+    });
+  }
+
   Future<void> _selectLinkedFriends() async {
     final db = ref.read(appDatabaseProvider);
     final selected = await showModalBottomSheet<Set<String>>(
@@ -3123,7 +3107,10 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
                   physics: const NeverScrollableScrollPhysics(),
                   shrinkWrap: true,
                   children: [
-                    ..._imageUrls.map((url) => _PhotoGridItem(imageUrl: url)),
+                    ..._imageUrls.asMap().entries.map((entry) => _PhotoGridItem(
+                      imageUrl: entry.value,
+                      onDelete: () => _removeImage(entry.key),
+                    )),
                     _PhotoAddGridItem(onTap: _pickImages),
                   ],
                 ),
@@ -4343,9 +4330,10 @@ class _DashedRRectPainter extends CustomPainter {
 }
 
 class _PhotoGridItem extends StatelessWidget {
-  const _PhotoGridItem({required this.imageUrl});
+  const _PhotoGridItem({required this.imageUrl, required this.onDelete});
 
   final String imageUrl;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -4359,11 +4347,14 @@ class _PhotoGridItem extends StatelessWidget {
             alignment: Alignment.topRight,
             child: Padding(
               padding: const EdgeInsets.all(6),
-              child: Container(
-                width: 20,
-                height: 20,
-                decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.50), shape: BoxShape.circle),
-                child: const Icon(Icons.close, size: 14, color: Colors.white),
+              child: GestureDetector(
+                onTap: onDelete,
+                child: Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.50), shape: BoxShape.circle),
+                  child: const Icon(Icons.close, size: 14, color: Colors.white),
+                ),
               ),
             ),
           ),
@@ -4556,23 +4547,38 @@ List<_TravelOnTheRoadEntry> _buildTravelEntries({
   required List<Trip> trips,
   required List<FriendRecord> friends,
   required List<EntityLink> links,
+  required List<FoodRecord> foods,
 }) {
   final tripById = {for (final t in trips) t.id: t};
   final friendById = {for (final f in friends) f.id: f};
+  final foodById = {for (final f in foods) f.id: f};
   final friendIdsByTravel = <String, Set<String>>{};
+  final foodIdsByTravel = <String, Set<String>>{};
   for (final link in links) {
     String? travelId;
     String? friendId;
+    String? foodId;
     if (link.sourceType == 'travel' && link.targetType == 'friend') {
       travelId = link.sourceId;
       friendId = link.targetId;
     } else if (link.targetType == 'travel' && link.sourceType == 'friend') {
       travelId = link.targetId;
       friendId = link.sourceId;
+    } else if (link.sourceType == 'travel' && link.targetType == 'food') {
+      travelId = link.sourceId;
+      foodId = link.targetId;
+    } else if (link.targetType == 'travel' && link.sourceType == 'food') {
+      travelId = link.targetId;
+      foodId = link.sourceId;
     }
-    if (travelId == null || friendId == null) continue;
-    final set = friendIdsByTravel.putIfAbsent(travelId, () => <String>{});
-    set.add(friendId);
+    if (travelId != null && friendId != null) {
+      final set = friendIdsByTravel.putIfAbsent(travelId, () => <String>{});
+      set.add(friendId);
+    }
+    if (travelId != null && foodId != null) {
+      final set = foodIdsByTravel.putIfAbsent(travelId, () => <String>{});
+      set.add(foodId);
+    }
   }
 
   return records.map((record) {
@@ -4592,6 +4598,8 @@ List<_TravelOnTheRoadEntry> _buildTravelEntries({
             avatarPath: friendById[id]!.avatarPath,
           ),
     ];
+    final foodIds = foodIdsByTravel[record.id] ?? const <String>{};
+    final foodCount = foodIds.where((id) => foodById.containsKey(id)).length;
     return _TravelOnTheRoadEntry(
       year: startDate.year,
       dateRange: dateRange,
@@ -4600,6 +4608,7 @@ List<_TravelOnTheRoadEntry> _buildTravelEntries({
       imageUrl: imageUrl,
       companions: companions,
       item: _buildTravelItem(record, trip),
+      foodCount: foodCount,
     );
   }).toList(growable: false);
 }

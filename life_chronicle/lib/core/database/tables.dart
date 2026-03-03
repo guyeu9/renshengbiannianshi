@@ -90,6 +90,8 @@ class TravelRecords extends Table {
   RealColumn get expenseHotel => real().nullable()();
   RealColumn get expenseFood => real().nullable()();
   RealColumn get expenseTicket => real().nullable()();
+  TextColumn get flightLink => text().nullable()();
+  TextColumn get hotelLink => text().nullable()();
   BoolColumn get isWishlist => boolean().withDefault(const Constant(false))();
   BoolColumn get isFavorite => boolean().withDefault(const Constant(false))();
   BoolColumn get wishlistDone => boolean().withDefault(const Constant(false))();

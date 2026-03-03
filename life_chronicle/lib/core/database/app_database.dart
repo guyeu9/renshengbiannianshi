@@ -29,7 +29,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.connect(super.executor);
 
   @override
-  int get schemaVersion => 19;
+  int get schemaVersion => 20;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -143,6 +143,9 @@ class AppDatabase extends _$AppDatabase {
 
           await ensureColumn(table: foodRecords, column: foodRecords.country);
           await ensureColumn(table: travelRecords, column: travelRecords.country);
+
+          await ensureColumn(table: travelRecords, column: travelRecords.flightLink);
+          await ensureColumn(table: travelRecords, column: travelRecords.hotelLink);
 
           await ensureColumn(table: goalRecords, column: goalRecords.tags);
 

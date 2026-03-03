@@ -1,0 +1,258 @@
+import 'dart:async';
+import 'dart:convert';
+import 'package:drift/drift.dart' hide Column;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:life_chronicle/core/database/app_database.dart';
+import 'package:life_chronicle/core/database/tables.dart';
+import 'package:life_chronicle/core/providers/app_database_provider.dart';
+
+class TravelDetailState {
+  const TravelDetailState({
+    required this.record,
+    required this.trip,
+    required this.journals,
+    required this.checklistItems,
+    required this.linkedFriends,
+    required this.linkedFoods,
+    required this.allTravelIds,
+  });
+
+  final TravelRecord? record;
+  final Trip? trip;
+  final List<TravelRecord> journals;
+  final List<ChecklistItem> checklistItems;
+  final List<FriendRecord> linkedFriends;
+  final List<FoodRecord> linkedFoods;
+  final Set<String> allTravelIds;
+
+  String get title => record?.title ?? trip?.name ?? '';
+  
+  String get place {
+    if (record == null) return '';
+    final destination = record!.destination?.trim();
+    if (destination != null && destination.isNotEmpty) return destination;
+    final poiName = record!.poiName?.trim();
+    if (poiName != null && poiName.isNotEmpty) return poiName;
+    final poiAddress = record!.poiAddress?.trim();
+    if (poiAddress != null && poiAddress.isNotEmpty) return poiAddress;
+    return '';
+  }
+
+  DateTime get headerStart => trip?.startDate ?? record?.planDate ?? record?.recordDate ?? DateTime.now();
+  DateTime get headerEnd => trip?.endDate ?? record?.planDate ?? headerStart;
+  int get durationDays => _durationDays(headerStart, headerEnd);
+  String get durationLabel => _formatDurationLabel(durationDays);
+  String get dateLabel => _formatDateDotRange(headerStart, headerEnd);
+  String get cover => _pickCoverImage(record);
+  String get tripId => trip?.id ?? record?.tripId ?? '';
+  String get tripTitle => trip?.name ?? title;
+  String get recordId => record?.id ?? '';
+
+  List<String> get tags {
+    final tagSet = <String>{};
+    if (record != null) {
+      tagSet.addAll(_decodeStringList(record!.tags));
+      final destination = record!.destination?.trim();
+      if (destination != null && destination.isNotEmpty) {
+        tagSet.add(destination);
+      }
+    }
+    return tagSet.toList()..sort();
+  }
+
+  bool get isJournal => record?.isJournal == true;
+  bool get isWishlist => record?.isWishlist == true;
+  bool get wishlistDone => record?.wishlistDone ?? false;
+
+  static int _durationDays(DateTime start, DateTime end) {
+    final diff = end.difference(start).inDays;
+    return diff < 1 ? 1 : diff + 1;
+  }
+
+  static String _formatDurationLabel(int days) {
+    if (days <= 1) return '1 天';
+    return '$days 天';
+  }
+
+  static String _formatDateDotRange(DateTime start, DateTime end) {
+    final startStr = '${start.month}.${start.day}';
+    if (start.year != end.year || start.month != end.month || start.day != end.day) {
+      return '$startStr - ${end.month}.${end.day}';
+    }
+    return startStr;
+  }
+
+  static String _pickCoverImage(TravelRecord? record) {
+    if (record == null) return '';
+    final images = _decodeStringList(record.images);
+    if (images.isNotEmpty) return images.first;
+    return '';
+  }
+
+  static List<String> _decodeStringList(String? json) {
+    if (json == null || json.trim().isEmpty) return const [];
+    try {
+      final decoded = jsonDecode(json);
+      if (decoded is List) {
+        return decoded.map((e) => e.toString()).toList(growable: false);
+      }
+    } catch (_) {}
+    return const [];
+  }
+}
+
+final travelDetailProvider = StreamProvider.family<TravelDetailState, ({String travelId, String tripId})>((ref, params) {
+  final db = ref.watch(appDatabaseProvider);
+
+  final recordStream = (db.select(db.travelRecords)
+        ..where((t) => t.id.equals(params.travelId))
+        ..where((t) => t.isDeleted.equals(false))
+        ..limit(1))
+      .watchSingleOrNull();
+
+  final tripStream = (db.select(db.trips)..where((t) => t.id.equals(params.tripId))).watchSingleOrNull();
+
+  final allRecordsStream = (db.select(db.travelRecords)
+        ..where((t) => t.isDeleted.equals(false))
+        ..where((t) => t.tripId.equals(params.tripId)))
+      .watch();
+
+  final checklistStream = db.checklistDao.watchByTripId(params.tripId);
+
+  final linksStream = db.select(db.entityLinks).watch();
+
+  final friendsStream = db.friendDao.watchAllActive();
+
+  final foodsStream = db.foodDao.watchAllActive();
+
+  return _combineStreams(
+    recordStream: recordStream,
+    tripStream: tripStream,
+    allRecordsStream: allRecordsStream,
+    checklistStream: checklistStream,
+    linksStream: linksStream,
+    friendsStream: friendsStream,
+    foodsStream: foodsStream,
+    travelId: params.travelId,
+    tripId: params.tripId,
+  );
+});
+
+Stream<TravelDetailState> _combineStreams({
+  required Stream<TravelRecord?> recordStream,
+  required Stream<Trip?> tripStream,
+  required Stream<List<TravelRecord>> allRecordsStream,
+  required Stream<List<ChecklistItem>> checklistStream,
+  required Stream<List<EntityLink>> linksStream,
+  required Stream<List<FriendRecord>> friendsStream,
+  required Stream<List<FoodRecord>> foodsStream,
+  required String travelId,
+  required String tripId,
+}) async* {
+  await for (final combined in _combineLatest7(
+    recordStream,
+    tripStream,
+    allRecordsStream,
+    checklistStream,
+    linksStream,
+    friendsStream,
+    foodsStream,
+  )) {
+    final record = combined.$1;
+    final trip = combined.$2;
+    final allRecords = combined.$3;
+    final checklistItems = combined.$4;
+    final links = combined.$5;
+    final friends = combined.$6;
+    final foods = combined.$7;
+
+    final isCurrentJournal = record?.isJournal == true;
+    final recordId = record?.id ?? travelId;
+    final journals = allRecords.where((r) {
+      if (r.isWishlist || !r.isJournal) return false;
+      if (isCurrentJournal) return true;
+      return r.id != recordId;
+    }).toList(growable: false);
+
+    final allTravelIds = <String>{recordId};
+    for (final r in allRecords) {
+      if (r.tripId == tripId) {
+        allTravelIds.add(r.id);
+      }
+    }
+
+    final linkedFriendIds = <String>{};
+    final linkedFoodIds = <String>{};
+    for (final link in links) {
+      if (link.sourceType == 'travel' && allTravelIds.contains(link.sourceId)) {
+        if (link.targetType == 'friend') {
+          linkedFriendIds.add(link.targetId);
+        } else if (link.targetType == 'food') {
+          linkedFoodIds.add(link.targetId);
+        }
+      } else if (link.targetType == 'travel' && allTravelIds.contains(link.targetId)) {
+        if (link.sourceType == 'friend') {
+          linkedFriendIds.add(link.sourceId);
+        } else if (link.sourceType == 'food') {
+          linkedFoodIds.add(link.sourceId);
+        }
+      }
+    }
+
+    final linkedFriends = friends.where((f) => linkedFriendIds.contains(f.id)).toList(growable: false);
+    final linkedFoods = foods.where((f) => linkedFoodIds.contains(f.id)).toList(growable: false);
+
+    yield TravelDetailState(
+      record: record,
+      trip: trip,
+      journals: journals,
+      checklistItems: checklistItems,
+      linkedFriends: linkedFriends,
+      linkedFoods: linkedFoods,
+      allTravelIds: allTravelIds,
+    );
+  }
+}
+
+Stream<(T1, T2, T3, T4, T5, T6, T7)> _combineLatest7<T1, T2, T3, T4, T5, T6, T7>(
+  Stream<T1> s1,
+  Stream<T2> s2,
+  Stream<T3> s3,
+  Stream<T4> s4,
+  Stream<T5> s5,
+  Stream<T6> s6,
+  Stream<T7> s7,
+) {
+  T1? v1;
+  T2? v2;
+  T3? v3;
+  T4? v4;
+  T5? v5;
+  T6? v6;
+  T7? v7;
+  var hasV1 = false;
+  var hasV2 = false;
+  var hasV3 = false;
+  var hasV4 = false;
+  var hasV5 = false;
+  var hasV6 = false;
+  var hasV7 = false;
+
+  final controller = StreamController<(T1, T2, T3, T4, T5, T6, T7)>();
+
+  void emit() {
+    if (hasV1 && hasV2 && hasV3 && hasV4 && hasV5 && hasV6 && hasV7) {
+      controller.add((v1 as T1, v2 as T2, v3 as T3, v4 as T4, v5 as T5, v6 as T6, v7 as T7));
+    }
+  }
+
+  s1.listen((v) { v1 = v; hasV1 = true; emit(); }, onError: controller.addError, onDone: controller.close);
+  s2.listen((v) { v2 = v; hasV2 = true; emit(); }, onError: controller.addError);
+  s3.listen((v) { v3 = v; hasV3 = true; emit(); }, onError: controller.addError);
+  s4.listen((v) { v4 = v; hasV4 = true; emit(); }, onError: controller.addError);
+  s5.listen((v) { v5 = v; hasV5 = true; emit(); }, onError: controller.addError);
+  s6.listen((v) { v6 = v; hasV6 = true; emit(); }, onError: controller.addError);
+  s7.listen((v) { v7 = v; hasV7 = true; emit(); }, onError: controller.addError);
+
+  return controller.stream;
+}
