@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:drift/drift.dart' show OrderingMode, OrderingTerm;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:life_chronicle/core/database/app_database.dart';
 import 'package:life_chronicle/core/database/database_providers.dart';
@@ -43,8 +44,8 @@ final goalDetailProvider = StreamProvider.family<GoalDetailState?, String>((ref,
   final quarterGoalsStream = (db.select(db.goalRecords)
         ..where((t) => t.isDeleted.equals(false))
         ..where((t) => t.parentId.equals(goalId))
-        ..where((t) => t.level.equals('quarter'))
-        .watch());
+        ..where((t) => t.level.equals('quarter')))
+      .watch();
 
   final dailyTasksStream = (db.select(db.goalRecords)
         ..where((t) => t.isDeleted.equals(false))
