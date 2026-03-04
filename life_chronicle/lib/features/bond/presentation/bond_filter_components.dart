@@ -23,11 +23,13 @@ class FilterResult {
     required this.dateIndex,
     required this.customRange,
     required this.friendIds,
+    this.filterFavorite = false,
   });
 
   final int dateIndex;
   final DateTimeRange? customRange;
   final Set<String> friendIds;
+  final bool filterFavorite;
 }
 
 // 筛选底部弹窗
@@ -38,12 +40,14 @@ class FilterBottomSheet extends StatefulWidget {
     required this.initialCustomRange,
     required this.initialFriendIds,
     required this.friendsStream,
+    this.initialFilterFavorite = false,
   });
 
   final int initialDateIndex;
   final DateTimeRange? initialCustomRange;
   final Set<String> initialFriendIds;
   final Stream<List<FriendRecord>> friendsStream;
+  final bool initialFilterFavorite;
 
   @override
   State<FilterBottomSheet> createState() => _FilterBottomSheetState();
@@ -55,6 +59,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
   late int _dateIndex;
   DateTimeRange? _customRange;
   late Set<String> _selectedFriendIds;
+  late bool _filterFavorite;
 
   @override
   void initState() {
@@ -62,6 +67,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
     _dateIndex = widget.initialDateIndex;
     _customRange = widget.initialCustomRange;
     _selectedFriendIds = {...widget.initialFriendIds};
+    _filterFavorite = widget.initialFilterFavorite;
   }
 
   String _formatDate(DateTime date) {
@@ -115,6 +121,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                           dateIndex: _dateIndex,
                           customRange: _customRange,
                           friendIds: _selectedFriendIds,
+                          filterFavorite: _filterFavorite,
                         ),
                       ),
                       style: TextButton.styleFrom(foregroundColor: const Color(0xFF2BCDEE), textStyle: const TextStyle(fontWeight: FontWeight.w900)),
@@ -213,6 +220,14 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                             },
                           );
                         },
+                      ),
+                      const SizedBox(height: 16),
+                      const Text('收藏', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                      const SizedBox(height: 10),
+                      FilterOptionChip(
+                        label: '仅收藏',
+                        selected: _filterFavorite,
+                        onTap: () => setState(() => _filterFavorite = !_filterFavorite),
                       ),
                     ],
                   ),

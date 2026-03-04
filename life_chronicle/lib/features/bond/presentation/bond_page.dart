@@ -18,6 +18,7 @@ import '../../../core/widgets/custom_bottom_sheet.dart';
 import '../../food/presentation/food_page.dart' show FoodDetailPage;
 import '../../moment/presentation/moment_page.dart' show MomentDetailPage;
 import '../../travel/presentation/travel_page.dart' show TravelDetailPage, TravelItem;
+import '../providers/encounter_timeline_provider.dart';
 import 'bond_filter_components.dart';
 
 // ==================== Provider ====================
@@ -84,6 +85,7 @@ class _BondPageState extends State<BondPage> {
   var _filterDateIndex = 0;
   DateTimeRange? _filterCustomRange;
   Set<String> _filterFriendIds = {};
+  var _filterFavorite = false;
   final _searchController = TextEditingController();
   var _searchText = '';
 
@@ -100,6 +102,7 @@ class _BondPageState extends State<BondPage> {
               initialDateIndex: _filterDateIndex,
               initialCustomRange: _filterCustomRange,
               initialFriendIds: _filterFriendIds,
+              initialFilterFavorite: _filterFavorite,
               friendsStream: db.friendDao.watchAllActive(),
             );
           },
@@ -111,6 +114,7 @@ class _BondPageState extends State<BondPage> {
       _filterDateIndex = result.dateIndex;
       _filterCustomRange = result.customRange;
       _filterFriendIds = result.friendIds;
+      _filterFavorite = result.filterFavorite;
     });
   }
 
@@ -170,8 +174,9 @@ class _BondPageState extends State<BondPage> {
                         filterDateIndex: _filterDateIndex,
                         filterCustomRange: _filterCustomRange,
                         filterFriendIds: _filterFriendIds,
+                        filterFavorite: _filterFavorite,
                       )
-                    : const _EncounterTimeline(),
+                    : _EncounterTimeline(filterFavorite: _filterFavorite),
               ),
             ),
           ],
@@ -390,12 +395,14 @@ class _FriendArchiveList extends ConsumerWidget {
     required this.filterDateIndex,
     required this.filterCustomRange,
     required this.filterFriendIds,
+    required this.filterFavorite,
   });
 
   final String searchQuery;
   final int filterDateIndex;
   final DateTimeRange? filterCustomRange;
   final Set<String> filterFriendIds;
+  final bool filterFavorite;
 
   DateTimeRange? _resolveMeetDateRange() {
     if (filterDateIndex == 0) return null;
@@ -434,6 +441,10 @@ class _FriendArchiveList extends ConsumerWidget {
 
         final filtered = friends.where((f) {
           if (filterFriendIds.isNotEmpty && !filterFriendIds.contains(f.id)) {
+            return false;
+          }
+
+          if (filterFavorite && !f.isFavorite) {
             return false;
           }
 
@@ -569,6 +580,20 @@ class _FriendCard extends StatelessWidget {
                           ),
                         ),
                       ),
+                      if (friend.isFavorite)
+                        Positioned(
+                          top: 12,
+                          right: 12,
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.9),
+                              shape: BoxShape.circle,
+                              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 2))],
+                            ),
+                            child: const Icon(Icons.favorite, size: 16, color: Color(0xFFF43F5E)),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -651,6 +676,7 @@ class _EncounterTimelineItem {
     required this.longitude,
     required this.images,
     required this.linkedFriendIds,
+    this.isFavorite = false,
   });
 
   final String id;
@@ -664,6 +690,7 @@ class _EncounterTimelineItem {
   final double? longitude;
   final List<String> images;
   final List<String> linkedFriendIds;
+  final bool isFavorite;
 
   IconData get typeIcon {
     switch (type) {
@@ -712,7 +739,9 @@ class _EncounterTimelineItem {
 }
 
 class _EncounterTimeline extends ConsumerStatefulWidget {
-  const _EncounterTimeline();
+  const _EncounterTimeline({required this.filterFavorite});
+
+  final bool filterFavorite;
 
   @override
   ConsumerState<_EncounterTimeline> createState() => _EncounterTimelineState();
@@ -781,6 +810,9 @@ class _EncounterTimelineState extends ConsumerState<_EncounterTimeline> {
         return false;
       }
     }
+    if (widget.filterFavorite && !item.isFavorite) {
+      return false;
+    }
     return true;
   }
 
@@ -824,6 +856,7 @@ class _EncounterTimelineState extends ConsumerState<_EncounterTimeline> {
       longitude: event.longitude,
       images: images,
       linkedFriendIds: friendIds,
+      isFavorite: event.isFavorite,
     );
   }
 
@@ -840,6 +873,7 @@ class _EncounterTimelineState extends ConsumerState<_EncounterTimeline> {
       longitude: record.longitude,
       images: _decodeStringList(record.images),
       linkedFriendIds: friendIds,
+      isFavorite: record.isFavorite,
     );
   }
 
@@ -860,6 +894,7 @@ class _EncounterTimelineState extends ConsumerState<_EncounterTimeline> {
       longitude: record.longitude,
       images: _decodeStringList(record.images),
       linkedFriendIds: friendIds,
+      isFavorite: record.isFavorite,
     );
   }
 
@@ -878,6 +913,7 @@ class _EncounterTimelineState extends ConsumerState<_EncounterTimeline> {
       longitude: record.longitude,
       images: _decodeStringList(record.images),
       linkedFriendIds: friendIds,
+      isFavorite: record.isFavorite,
     );
   }
 
