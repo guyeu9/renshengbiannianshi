@@ -478,7 +478,7 @@ class _MomentHomeBodyState extends ConsumerState<_MomentHomeBody> {
 
         return StreamBuilder<List<EntityLink>>(
           stream: (db.select(db.entityLinks)
-                ..where((t) => t.sourceType.equals('moment').or(t.targetType.equals('moment'))))
+                ..where((t) => t.sourceType.equals('moment') | t.targetType.equals('moment')))
               .watch(),
           builder: (context, linkSnapshot) {
             final links = linkSnapshot.data ?? const <EntityLink>[];
@@ -1402,33 +1402,8 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
     return split.content;
   }
 
-  Map<String, List<String>> _groupLinkIds(List<EntityLink> links, String entityType, String entityId) {
-    final grouped = <String, List<String>>{};
-    for (final link in links) {
-      final isSource = link.sourceType == entityType && link.sourceId == entityId;
-      final otherType = isSource ? link.targetType : link.sourceType;
-      final otherId = isSource ? link.targetId : link.sourceId;
-      final list = grouped.putIfAbsent(otherType, () => <String>[]);
-      if (!list.contains(otherId)) {
-        list.add(otherId);
-      }
-    }
-    return grouped;
-  }
-
-  List<String> _mapNames(List<String> ids, Map<String, String> nameById) {
-    return [for (final id in ids) if (nameById.containsKey(id)) nameById[id]!];
-  }
-
   List<String> _buildLinkLabels(String prefix, List<String> names) {
     return [for (final name in names) '$prefix · $name'];
-  }
-
-  String _travelTitle(TravelRecord record) {
-    final title = record.title?.trim() ?? '';
-    if (title.isNotEmpty) return title;
-    final destination = record.destination?.trim() ?? '';
-    return destination.isEmpty ? '旅行记录' : destination;
   }
 }
 
