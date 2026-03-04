@@ -9,15 +9,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:uuid/uuid.dart';
 
 import '../../../core/config/module_management_config.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
+import '../../../core/providers/uuid_provider.dart';
 import '../../../core/utils/media_storage.dart';
+import '../../../core/utils/tag_color_utils.dart';
 import '../../../core/widgets/ai_parse_button.dart';
 import '../../../core/widgets/amap_location_page.dart';
 import '../../../core/widgets/custom_bottom_sheet.dart';
+import '../providers/moment_detail_provider.dart';
 
 List<String> _parseMomentImages(String? raw) {
   if (raw == null || raw.trim().isEmpty) return const [];
@@ -113,6 +115,7 @@ class _MomentPageState extends State<MomentPage> {
   var _filterDateIndex = 0;
   DateTimeRange? _filterCustomRange;
   Set<String> _filterFriendIds = {};
+  var _filterFavorite = false;
   final _searchController = TextEditingController();
   var _searchQuery = '';
   var _selectedMood = '全部';
@@ -146,6 +149,7 @@ class _MomentPageState extends State<MomentPage> {
               initialDateIndex: _filterDateIndex,
               initialCustomRange: _filterCustomRange,
               initialFriendIds: _filterFriendIds,
+              initialFilterFavorite: _filterFavorite,
               friendsStream: db.friendDao.watchAllActive(),
             );
           },
@@ -157,6 +161,7 @@ class _MomentPageState extends State<MomentPage> {
       _filterDateIndex = result.dateIndex;
       _filterCustomRange = result.customRange;
       _filterFriendIds = result.friendIds;
+      _filterFavorite = result.filterFavorite;
     });
   }
 
@@ -182,6 +187,7 @@ class _MomentPageState extends State<MomentPage> {
                 filterDateIndex: _filterDateIndex,
                 filterCustomRange: _filterCustomRange,
                 filterFriendIds: _filterFriendIds,
+                filterFavorite: _filterFavorite,
               ),
             ),
           ],
@@ -378,6 +384,7 @@ class _MomentHomeBody extends ConsumerStatefulWidget {
     required this.filterDateIndex,
     required this.filterCustomRange,
     required this.filterFriendIds,
+    required this.filterFavorite,
   });
 
   final String searchQuery;
@@ -385,6 +392,7 @@ class _MomentHomeBody extends ConsumerStatefulWidget {
   final int filterDateIndex;
   final DateTimeRange? filterCustomRange;
   final Set<String> filterFriendIds;
+  final bool filterFavorite;
 
   @override
   ConsumerState<_MomentHomeBody> createState() => _MomentHomeBodyState();
@@ -468,16 +476,40 @@ class _MomentHomeBodyState extends ConsumerState<_MomentHomeBody> {
       builder: (context, snapshot) {
         final records = snapshot.data ?? const <MomentRecord>[];
 
-        // 应用所有筛选条件
-        var filteredRecords = records.where((r) {
-          return _matchesDateFilter(r) && _matchesSearch(r) && _matchesMood(r);
-        }).toList();
+        return StreamBuilder<List<EntityLink>>(
+          stream: (db.select(db.entityLinks)
+                ..where((t) => t.sourceType.equals('moment') | t.targetType.equals('moment')))
+              .watch(),
+          builder: (context, linkSnapshot) {
+            final links = linkSnapshot.data ?? const <EntityLink>[];
 
-        // 羁绊筛选（需要查询关联数据）
-        if (widget.filterFriendIds.isNotEmpty) {
-          // 注意：这里简化处理，实际应该查询moment_friend_links表
-          // 由于数据结构限制，暂时先跳过羁绊筛选的应用
-        }
+            // 应用所有筛选条件
+            var filteredRecords = records.where((r) {
+              return _matchesDateFilter(r) && _matchesSearch(r) && _matchesMood(r);
+            }).toList();
+
+            // 羁绊筛选（需要查询关联数据）
+            if (widget.filterFriendIds.isNotEmpty) {
+              final momentIdsWithFriends = <String>{};
+              for (final link in links) {
+                final isMomentSource = link.sourceType == 'moment';
+                final isMomentTarget = link.targetType == 'moment';
+                final isFriendSource = link.sourceType == 'friend';
+                final isFriendTarget = link.targetType == 'friend';
+
+                if (isMomentSource && isFriendTarget && widget.filterFriendIds.contains(link.targetId)) {
+                  momentIdsWithFriends.add(link.sourceId);
+                } else if (isFriendSource && isMomentTarget && widget.filterFriendIds.contains(link.sourceId)) {
+                  momentIdsWithFriends.add(link.targetId);
+                }
+              }
+              filteredRecords = filteredRecords.where((r) => momentIdsWithFriends.contains(r.id)).toList();
+            }
+
+            // 收藏筛选
+            if (widget.filterFavorite) {
+              filteredRecords = filteredRecords.where((r) => r.isFavorite).toList();
+            }
 
         final years = records.map((e) => e.recordDate.year).toSet().toList()..sort((a, b) => b.compareTo(a));
         final activeYear = years.contains(_selectedYear) ? _selectedYear : (years.isNotEmpty ? years.first : _selectedYear);
@@ -506,6 +538,7 @@ class _MomentHomeBodyState extends ConsumerState<_MomentHomeBody> {
               recordDate: record.recordDate,
               imageUrl: images.isEmpty ? '' : images.first,
               imageHeight: 180 + (i % 3) * 20,
+              isFavorite: record.isFavorite,
             ),
           );
         }
@@ -614,6 +647,8 @@ class _MomentHomeBodyState extends ConsumerState<_MomentHomeBody> {
             ],
           ),
         );
+          },
+        );
       },
     );
   }
@@ -631,6 +666,7 @@ class MomentCardData {
     required this.recordDate,
     required this.imageUrl,
     required this.imageHeight,
+    this.isFavorite = false,
   });
 
   final String? recordId;
@@ -643,6 +679,7 @@ class MomentCardData {
   final DateTime recordDate;
   final String imageUrl;
   final double imageHeight;
+  final bool isFavorite;
 }
 
 class _MomentCard extends StatelessWidget {
@@ -695,7 +732,11 @@ class _MomentCard extends StatelessWidget {
                           ),
                         ),
                         const Spacer(),
-                        const Icon(Icons.favorite, size: 14, color: Color(0xFFF43F5E)),
+                        Icon(
+                          item.isFavorite ? Icons.favorite : Icons.favorite_border,
+                          size: 14,
+                          color: item.isFavorite ? const Color(0xFFF43F5E) : const Color(0xFFD1D5DB),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -778,7 +819,6 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final db = ref.watch(appDatabaseProvider);
     final recordId = widget.recordId;
 
     if (recordId == null) {
@@ -806,11 +846,11 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
       );
     }
 
-    return StreamBuilder<MomentRecord?>(
-      stream: db.momentDao.watchById(recordId),
-      builder: (context, snapshot) {
-        final record = snapshot.data;
-        if (record == null) {
+    final detailAsync = ref.watch(momentDetailProvider(recordId));
+
+    return detailAsync.when(
+      data: (state) {
+        if (state == null) {
           return _buildScaffold(
             context,
             imageUrl: '',
@@ -834,6 +874,8 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
             onDelete: null,
           );
         }
+
+        final record = state.record;
         final images = _parseImages(record.images);
         final imageUrl = images.isEmpty ? '' : images.first;
         final moodAccent = _parseMoodColor(record.moodColor, const Color(0xFF2BCDEE));
@@ -847,108 +889,73 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
         final latitude = record.latitude;
         final longitude = record.longitude;
 
-        return StreamBuilder<List<EntityLink>>(
-          stream: db.linkDao.watchLinksForEntity(entityType: 'moment', entityId: record.id),
-          builder: (context, linkSnapshot) {
-            final linkIds = _groupLinkIds(linkSnapshot.data ?? const <EntityLink>[], 'moment', record.id);
-            return StreamBuilder<List<FriendRecord>>(
-              stream: db.friendDao.watchAllActive(),
-              builder: (context, friendSnapshot) {
-                final friends = friendSnapshot.data ?? const <FriendRecord>[];
-                final friendLabels = _buildLinkLabels(
-                  '关联羁绊',
-                  _mapNames(linkIds['friend'] ?? const <String>[], {for (final f in friends) f.id: f.name}),
-                );
-                return StreamBuilder<List<FoodRecord>>(
-                  stream: db.foodDao.watchAllActive(),
-                  builder: (context, foodSnapshot) {
-                    final foods = foodSnapshot.data ?? const <FoodRecord>[];
-                    final foodLabels = _buildLinkLabels(
-                      '关联美食',
-                      _mapNames(linkIds['food'] ?? const <String>[], {for (final f in foods) f.id: f.title}),
-                    );
-                    return StreamBuilder<List<TravelRecord>>(
-                      stream: db.watchAllActiveTravelRecords(),
-                      builder: (context, travelSnapshot) {
-                        final travels = travelSnapshot.data ?? const <TravelRecord>[];
-                        final travelLabels = _buildLinkLabels(
-                          '关联旅行',
-                          _mapNames(linkIds['travel'] ?? const <String>[], {for (final t in travels) t.id: _travelTitle(t)}),
-                        );
-                        return StreamBuilder<List<GoalRecord>>(
-                          stream: db.watchUncompletedYearGoals(),
-                          builder: (context, goalSnapshot) {
-                            final goals = goalSnapshot.data ?? const <GoalRecord>[];
-                            final goalLabels = _buildLinkLabels(
-                              '人生目标',
-                              _mapNames(linkIds['goal'] ?? const <String>[], {for (final g in goals) g.id: g.title}),
-                            );
-                            final linkChips = [
-                              ...goalLabels,
-                              ...travelLabels,
-                              ...friendLabels,
-                              ...foodLabels,
-                            ];
-                            return _buildScaffold(
-                              context,
-                              imageUrl: imageUrl,
-                              moodName: record.mood,
-                              moodColor: moodColor,
-                              moodAccent: moodAccent,
-                              title: title,
-                              content: content,
-                              tags: tags,
-                              linkChips: linkChips,
-                              onEdit: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(builder: (_) => MomentCreatePage(initialRecord: record)),
-                                );
-                              },
-                              poiName: poiName,
-                              poiAddress: poiAddress,
-                              city: city,
-                              latitude: latitude,
-                              longitude: longitude,
-                              recordDate: record.recordDate,
-                              images: images,
-                              isFavorite: record.isFavorite,
-                              onToggleFavorite: () async {
-                                await db.momentDao.updateFavorite(
-                                  record.id,
-                                  isFavorite: !record.isFavorite,
-                                  now: DateTime.now(),
-                                );
-                              },
-                              onDelete: () async {
-                                final now = DateTime.now();
-                                final linkDao = LinkDao(db);
-                                final links = await linkDao.listLinksForEntity(entityType: 'moment', entityId: record.id);
-                                for (final link in links) {
-                                  await linkDao.deleteLink(
-                                    sourceType: link.sourceType,
-                                    sourceId: link.sourceId,
-                                    targetType: link.targetType,
-                                    targetId: link.targetId,
-                                    linkType: link.linkType,
-                                    now: now,
-                                  );
-                                }
-                                await db.momentDao.deleteById(record.id);
-                                if (!context.mounted) return;
-                                Navigator.of(context).pop();
-                              },
-                            );
-                          },
-                        );
-                      },
-                    );
-                  },
-                );
-              },
+        final linkChips = <String>[
+          ..._buildLinkLabels('人生目标', state.goalTitles),
+          ..._buildLinkLabels('关联旅行', state.travelTitles),
+          ..._buildLinkLabels('关联羁绊', state.friendNames),
+          ..._buildLinkLabels('关联美食', state.foodTitles),
+        ];
+
+        final db = ref.read(appDatabaseProvider);
+
+        return _buildScaffold(
+          context,
+          imageUrl: imageUrl,
+          moodName: record.mood,
+          moodColor: moodColor,
+          moodAccent: moodAccent,
+          title: title,
+          content: content,
+          tags: tags,
+          linkChips: linkChips,
+          onEdit: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => MomentCreatePage(initialRecord: record)),
             );
+          },
+          poiName: poiName,
+          poiAddress: poiAddress,
+          city: city,
+          latitude: latitude,
+          longitude: longitude,
+          recordDate: record.recordDate,
+          images: images,
+          isFavorite: record.isFavorite,
+          onToggleFavorite: () async {
+            await db.momentDao.updateFavorite(
+              record.id,
+              isFavorite: !record.isFavorite,
+              now: DateTime.now(),
+            );
+          },
+          onDelete: () async {
+            final now = DateTime.now();
+            final linkDao = LinkDao(db);
+            final links = await linkDao.listLinksForEntity(entityType: 'moment', entityId: record.id);
+            for (final link in links) {
+              await linkDao.deleteLink(
+                sourceType: link.sourceType,
+                sourceId: link.sourceId,
+                targetType: link.targetType,
+                targetId: link.targetId,
+                linkType: link.linkType,
+                now: now,
+              );
+            }
+            await db.momentDao.deleteById(record.id);
+            if (!context.mounted) return;
+            Navigator.of(context).pop();
           },
         );
       },
+      loading: () => Scaffold(
+        backgroundColor: const Color(0xFFF6F8F8),
+        body: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (_, __) => Scaffold(
+        backgroundColor: const Color(0xFFF6F8F8),
+        body: const Center(child: Text('加载失败')),
+      ),
     );
   }
 
@@ -1480,8 +1487,6 @@ class MomentCreatePage extends ConsumerStatefulWidget {
 }
 
 class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
-  static const _uuid = Uuid();
-
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
 
@@ -1850,7 +1855,7 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
     final db = ref.read(appDatabaseProvider);
     final now = DateTime.now();
     final existing = widget.initialRecord;
-    final momentId = existing?.id ?? _uuid.v4();
+    final momentId = existing?.id ?? ref.read(uuidProvider);
     final createdAt = existing?.createdAt ?? now;
 
     final content = _contentController.text.trim();
@@ -1988,15 +1993,6 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
         for (final t in module.tags) {
           tagColorMap[t.name] = t.color;
         }
-        Color colorFromHex(String? hex) {
-          if (hex == null || hex.isEmpty) return const Color(0xFFF3F4F6);
-          try {
-            final cleanHex = hex.replaceFirst('#', '');
-            return Color(int.parse('FF$cleanHex', radix: 16));
-          } catch (_) {
-            return const Color(0xFFF3F4F6);
-          }
-        }
         return Scaffold(
           backgroundColor: const Color(0xFFF6F8F8),
           body: SafeArea(
@@ -2053,11 +2049,7 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
                             final tag = allTags[index];
                             final selected = _selectedTags.contains(tag);
                             final tagColorHex = tagColorMap[tag];
-                            final tagColor = colorFromHex(tagColorHex);
-                            final unselectedBg = tagColorHex != null ? tagColor.withValues(alpha: 0.15) : Colors.white;
-                            final bgColor = selected ? const Color(0xFF2BCDEE).withValues(alpha: 0.12) : unselectedBg;
-                            final borderColor = selected ? const Color(0xFF2BCDEE).withValues(alpha: 0.25) : (tagColorHex != null ? tagColor.withValues(alpha: 0.25) : const Color(0xFFF3F4F6));
-                            final textColor = selected ? const Color(0xFF2BCDEE) : (tagColorHex != null ? tagColor : const Color(0xFF64748B));
+                            final colors = TagColorUtils.getTagColors(tagColorHex, selected);
                             return InkWell(
                               borderRadius: BorderRadius.circular(999),
                               onTap: () {
@@ -2072,16 +2064,16 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                 decoration: BoxDecoration(
-                                  color: bgColor,
+                                  color: colors.background,
                                   borderRadius: BorderRadius.circular(999),
-                                  border: Border.all(color: borderColor),
+                                  border: Border.all(color: colors.border),
                                 ),
                                 child: Text(
                                   '# $tag',
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w800,
-                                    color: textColor,
+                                    color: colors.text,
                                   ),
                                 ),
                               ),
@@ -2558,11 +2550,13 @@ class _FilterResult {
     required this.dateIndex,
     required this.customRange,
     required this.friendIds,
+    this.filterFavorite = false,
   });
 
   final int dateIndex;
   final DateTimeRange? customRange;
   final Set<String> friendIds;
+  final bool filterFavorite;
 }
 
 class _FilterBottomSheet extends StatefulWidget {
@@ -2571,12 +2565,14 @@ class _FilterBottomSheet extends StatefulWidget {
     required this.initialCustomRange,
     required this.initialFriendIds,
     required this.friendsStream,
+    this.initialFilterFavorite = false,
   });
 
   final int initialDateIndex;
   final DateTimeRange? initialCustomRange;
   final Set<String> initialFriendIds;
   final Stream<List<FriendRecord>> friendsStream;
+  final bool initialFilterFavorite;
 
   @override
   State<_FilterBottomSheet> createState() => _FilterBottomSheetState();
@@ -2588,6 +2584,7 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
   late int _dateIndex;
   DateTimeRange? _customRange;
   late Set<String> _selectedFriendIds;
+  late bool _filterFavorite;
 
   @override
   void initState() {
@@ -2595,6 +2592,7 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
     _dateIndex = widget.initialDateIndex;
     _customRange = widget.initialCustomRange;
     _selectedFriendIds = {...widget.initialFriendIds};
+    _filterFavorite = widget.initialFilterFavorite;
   }
 
   String _formatDate(DateTime date) {
@@ -2648,6 +2646,7 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
                           dateIndex: _dateIndex,
                           customRange: _customRange,
                           friendIds: _selectedFriendIds,
+                          filterFavorite: _filterFavorite,
                         ),
                       ),
                       style: TextButton.styleFrom(foregroundColor: const Color(0xFF2BCDEE), textStyle: const TextStyle(fontWeight: FontWeight.w900)),
@@ -2745,6 +2744,14 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
                             },
                           );
                         },
+                      ),
+                      const SizedBox(height: 16),
+                      const Text('收藏', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                      const SizedBox(height: 10),
+                      _FilterOptionChip(
+                        label: '仅收藏',
+                        selected: _filterFavorite,
+                        onTap: () => setState(() => _filterFavorite = !_filterFavorite),
                       ),
                     ],
                   ),
