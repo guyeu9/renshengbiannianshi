@@ -917,156 +917,92 @@ class _EncounterTimelineState extends ConsumerState<_EncounterTimeline> {
     );
   }
 
-  Future<Map<String, List<String>>> _loadFriendLinksForEntities(
-    AppDatabase db,
-    List<String> encounterIds,
-    List<String> foodIds,
-    List<String> momentIds,
-    List<String> travelIds,
-  ) async {
-    final result = <String, List<String>>{};
-
-    for (final id in encounterIds) {
-      final links = await db.linkDao.listLinksForEntity(entityType: 'encounter', entityId: id);
-      result[id] = links.where((l) => l.targetType == 'friend').map((l) => l.targetId).toList();
-    }
-
-    for (final id in foodIds) {
-      final links = await db.linkDao.listLinksForEntity(entityType: 'food', entityId: id);
-      result[id] = links.where((l) => l.targetType == 'friend').map((l) => l.targetId).toList();
-    }
-
-    for (final id in momentIds) {
-      final links = await db.linkDao.listLinksForEntity(entityType: 'moment', entityId: id);
-      result[id] = links.where((l) => l.targetType == 'friend').map((l) => l.targetId).toList();
-    }
-
-    for (final id in travelIds) {
-      final links = await db.linkDao.listLinksForEntity(entityType: 'travel', entityId: id);
-      result[id] = links.where((l) => l.targetType == 'friend').map((l) => l.targetId).toList();
-    }
-
-    return result;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final db = ref.watch(appDatabaseProvider);
+    final timelineAsync = ref.watch(encounterTimelineProvider);
 
-    return StreamBuilder<List<TimelineEvent>>(
-      stream: db.watchEncounterEvents(),
-      builder: (context, encounterSnapshot) {
-        return StreamBuilder<List<FoodRecord>>(
-          stream: db.watchFoodRecordsWithFriends(),
-          builder: (context, foodSnapshot) {
-            return StreamBuilder<List<MomentRecord>>(
-              stream: db.watchMomentRecordsWithFriends(),
-              builder: (context, momentSnapshot) {
-                return StreamBuilder<List<TravelRecord>>(
-                  stream: db.watchTravelRecordsWithFriends(),
-                  builder: (context, travelSnapshot) {
-                    final encounters = encounterSnapshot.data ?? const <TimelineEvent>[];
-                    final foods = foodSnapshot.data ?? const <FoodRecord>[];
-                    final moments = momentSnapshot.data ?? const <MomentRecord>[];
-                    final travels = travelSnapshot.data ?? const <TravelRecord>[];
+    return timelineAsync.when(
+      data: (state) {
+        final allItems = <_EncounterTimelineItem>[
+          for (final e in state.encounters)
+            _encounterFromTimelineEvent(e, state.friendLinks[e.id] ?? const <String>[]),
+          for (final f in state.foods)
+            _itemFromFoodRecord(f, state.friendLinks[f.id] ?? const <String>[]),
+          for (final m in state.moments)
+            _itemFromMomentRecord(m, state.friendLinks[m.id] ?? const <String>[]),
+          for (final t in state.travels)
+            _itemFromTravelRecord(t, state.friendLinks[t.id] ?? const <String>[]),
+        ]..sort((a, b) => b.recordDate.compareTo(a.recordDate));
 
-                    return FutureBuilder<Map<String, List<String>>>(
-                      future: _loadFriendLinksForEntities(
-                        db,
-                        encounters.map((e) => e.id).toList(),
-                        foods.map((f) => f.id).toList(),
-                        moments.map((m) => m.id).toList(),
-                        travels.map((t) => t.id).toList(),
+        final filteredItems = allItems.where(_itemMatchesFilter).toList();
+
+        return Column(
+          children: [
+            if (allItems.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: Row(
+                  children: [
+                    const Spacer(),
+                    TextButton.icon(
+                      onPressed: _openFilterSheet,
+                      icon: const Icon(Icons.filter_list, size: 18),
+                      label: Text(_filterDateIndex == 0 && _filterFriendIds.isEmpty ? '筛选' : '已筛选'),
+                    ),
+                  ],
+                ),
+              ),
+            Expanded(
+              child: filteredItems.isEmpty
+                  ? const Center(
+                      child: Text(
+                        '还没有相遇记录，去新建一次相遇或在美食/小确幸/旅行中关联朋友吧',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF)),
+                        textAlign: TextAlign.center,
                       ),
-                      builder: (context, linksSnapshot) {
-                        final allLinks = linksSnapshot.data ?? {};
-
-                        final allItems = <_EncounterTimelineItem>[
-                          for (final e in encounters)
-                            _encounterFromTimelineEvent(e, allLinks[e.id] ?? const <String>[]),
-                          for (final f in foods)
-                            _itemFromFoodRecord(f, allLinks[f.id] ?? const <String>[]),
-                          for (final m in moments)
-                            _itemFromMomentRecord(m, allLinks[m.id] ?? const <String>[]),
-                          for (final t in travels)
-                            _itemFromTravelRecord(t, allLinks[t.id] ?? const <String>[]),
-                        ]..sort((a, b) => b.recordDate.compareTo(a.recordDate));
-
-                        final filteredItems = allItems.where(_itemMatchesFilter).toList();
-
-                        return Column(
-                          children: [
-                            if (allItems.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                                child: Row(
-                                  children: [
-                                    const Spacer(),
-                                    TextButton.icon(
-                                      onPressed: _openFilterSheet,
-                                      icon: const Icon(Icons.filter_list, size: 18),
-                                      label: Text(_filterDateIndex == 0 && _filterFriendIds.isEmpty ? '筛选' : '已筛选'),
+                    )
+                  : Stack(
+                      children: [
+                        Positioned(
+                          left: 36,
+                          top: 0,
+                          bottom: 0,
+                          child: Container(width: 2, color: const Color(0xFFE5E7EB)),
+                        ),
+                        ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 140),
+                          itemCount: filteredItems.length + 1,
+                          separatorBuilder: (_, __) => const SizedBox(height: 18),
+                          itemBuilder: (context, index) {
+                            if (index == filteredItems.length) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 26),
+                                child: Center(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.55),
+                                      borderRadius: BorderRadius.circular(999),
+                                      border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
                                     ),
-                                  ],
+                                    child: const Text('已加载全部相遇', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+                                  ),
                                 ),
-                              ),
-                            Expanded(
-                              child: filteredItems.isEmpty
-                                  ? const Center(
-                                      child: Text(
-                                        '还没有相遇记录，去新建一次相遇或在美食/小确幸/旅行中关联朋友吧',
-                                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF)),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    )
-                                  : Stack(
-                                      children: [
-                                        Positioned(
-                                          left: 36,
-                                          top: 0,
-                                          bottom: 0,
-                                          child: Container(width: 2, color: const Color(0xFFE5E7EB)),
-                                        ),
-                                        ListView.separated(
-                                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 140),
-                                          itemCount: filteredItems.length + 1,
-                                          separatorBuilder: (_, __) => const SizedBox(height: 18),
-                                          itemBuilder: (context, index) {
-                                            if (index == filteredItems.length) {
-                                              return Padding(
-                                                padding: const EdgeInsets.symmetric(vertical: 26),
-                                                child: Center(
-                                                  child: Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.white.withValues(alpha: 0.55),
-                                                      borderRadius: BorderRadius.circular(999),
-                                                      border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
-                                                    ),
-                                                    child: const Text('已加载全部相遇', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
-                                                  ),
-                                                ),
-                                              );
-                                            }
+                              );
+                            }
 
-                                            final item = filteredItems[index];
-                                            return _EncounterItemRow(item: item);
-                                          },
-                                        ),
-                                      ],
-                                    ),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  },
-                );
-              },
-            );
-          },
+                            final item = filteredItems[index];
+                            return _EncounterItemRow(item: item);
+                          },
+                        ),
+                      ],
+                    ),
+            ),
+          ],
         );
       },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => const Center(child: Text('加载失败')),
     );
   }
 }
