@@ -5628,6 +5628,48 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
     _ModuleIconOption(name: 'volunteer_activism', icon: Icons.volunteer_activism),
   ];
 
+  final List<_ModuleIconOption> _goalIconOptions = const [
+    _ModuleIconOption(name: 'work', icon: Icons.work),
+    _ModuleIconOption(name: 'favorite', icon: Icons.favorite),
+    _ModuleIconOption(name: 'airplanemode_active', icon: Icons.airplanemode_active),
+    _ModuleIconOption(name: 'school', icon: Icons.school),
+    _ModuleIconOption(name: 'fitness_center', icon: Icons.fitness_center),
+    _ModuleIconOption(name: 'self_improvement', icon: Icons.self_improvement),
+    _ModuleIconOption(name: 'psychology', icon: Icons.psychology),
+    _ModuleIconOption(name: 'lightbulb', icon: Icons.lightbulb),
+    _ModuleIconOption(name: 'star', icon: Icons.star),
+    _ModuleIconOption(name: 'emoji_events', icon: Icons.emoji_events),
+    _ModuleIconOption(name: 'celebration', icon: Icons.celebration),
+    _ModuleIconOption(name: 'explore', icon: Icons.explore),
+    _ModuleIconOption(name: 'public', icon: Icons.public),
+    _ModuleIconOption(name: 'language', icon: Icons.language),
+    _ModuleIconOption(name: 'attach_money', icon: Icons.attach_money),
+    _ModuleIconOption(name: 'trending_up', icon: Icons.trending_up),
+    _ModuleIconOption(name: 'business', icon: Icons.business),
+    _ModuleIconOption(name: 'laptop', icon: Icons.laptop),
+    _ModuleIconOption(name: 'code', icon: Icons.code),
+    _ModuleIconOption(name: 'book', icon: Icons.book),
+    _ModuleIconOption(name: 'menu_book', icon: Icons.menu_book),
+    _ModuleIconOption(name: 'edit_note', icon: Icons.edit_note),
+    _ModuleIconOption(name: 'task', icon: Icons.task),
+    _ModuleIconOption(name: 'checklist', icon: Icons.checklist),
+    _ModuleIconOption(name: 'flag', icon: Icons.flag),
+    _ModuleIconOption(name: 'savings', icon: Icons.savings),
+    _ModuleIconOption(name: 'home', icon: Icons.home),
+    _ModuleIconOption(name: 'directions_car', icon: Icons.directions_car),
+    _ModuleIconOption(name: 'directions_bike', icon: Icons.directions_bike),
+    _ModuleIconOption(name: 'directions_run', icon: Icons.directions_run),
+    _ModuleIconOption(name: 'sports_soccer', icon: Icons.sports_soccer),
+    _ModuleIconOption(name: 'sports_basketball', icon: Icons.sports_basketball),
+    _ModuleIconOption(name: 'pool', icon: Icons.pool),
+    _ModuleIconOption(name: 'palette', icon: Icons.palette),
+    _ModuleIconOption(name: 'music_note', icon: Icons.music_note),
+    _ModuleIconOption(name: 'camera_alt', icon: Icons.camera_alt),
+    _ModuleIconOption(name: 'pets', icon: Icons.pets),
+    _ModuleIconOption(name: 'restaurant', icon: Icons.restaurant),
+    _ModuleIconOption(name: 'local_cafe', icon: Icons.local_cafe),
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -5751,7 +5793,8 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
     ModuleTag? tag,
   }) async {
     final controller = TextEditingController(text: tag?.name ?? '');
-    String selectedIcon = tag?.iconName ?? _momentIconOptions.first.name;
+    final iconOptions = module.key == 'goal' ? _goalIconOptions : _momentIconOptions;
+    String selectedIcon = tag?.iconName ?? iconOptions.first.name;
     String? selectedColor = tag?.color;
     bool showOnCalendar = tag?.showOnCalendar ?? true;
 
@@ -5862,7 +5905,7 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
                                 ),
                             ],
                           ),
-                          if (module.key == 'moment') ...[
+                          if (module.key == 'moment' || module.key == 'goal') ...[
                             const SizedBox(height: 16),
                             const Text('选择图标', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
                             const SizedBox(height: 10),
@@ -5870,7 +5913,7 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
                               spacing: 10,
                               runSpacing: 10,
                               children: [
-                                for (final option in _momentIconOptions)
+                                for (final option in iconOptions)
                                   InkWell(
                                     borderRadius: BorderRadius.circular(12),
                                     onTap: () => setSheetState(() => selectedIcon = option.name),
@@ -5927,7 +5970,7 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
                                     ModuleTag(
                                       id: _newTagId(module.key),
                                       name: name,
-                                      iconName: module.key == 'moment' ? selectedIcon : null,
+                                      iconName: (module.key == 'moment' || module.key == 'goal') ? selectedIcon : null,
                                       color: selectedColor,
                                       showOnCalendar: module.key == 'moment' ? showOnCalendar : true,
                                     ),
@@ -5937,7 +5980,7 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
                                   if (index != -1) {
                                     updatedTags[index] = tag.copyWith(
                                       name: name,
-                                      iconName: module.key == 'moment' ? selectedIcon : tag.iconName,
+                                      iconName: (module.key == 'moment' || module.key == 'goal') ? selectedIcon : tag.iconName,
                                       color: selectedColor,
                                       showOnCalendar: module.key == 'moment' ? showOnCalendar : tag.showOnCalendar,
                                     );

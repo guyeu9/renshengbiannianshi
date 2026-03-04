@@ -938,12 +938,13 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
     required double? lng,
     required bool isCurrentLocation,
   }) {
-    final isSelected = lat != null && 
+    final isSelected = !isCurrentLocation && 
+                       lat != null && 
                        lng != null && 
                        _pickedLatitude != null && 
                        _pickedLongitude != null &&
-                       (lat - _pickedLatitude!).abs() < 0.0001 && 
-                       (lng - _pickedLongitude!).abs() < 0.0001;
+                       (lat - _pickedLatitude!).abs() < 0.00001 && 
+                       (lng - _pickedLongitude!).abs() < 0.00001;
     
     return InkWell(
       borderRadius: BorderRadius.circular(16),
@@ -962,13 +963,13 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: isSelected 
-              ? const Color(0xFFE8F8FB) 
-              : (isCurrentLocation ? const Color(0xFFE8F8FB) : Colors.white),
+              ? const Color(0xFFD4F4FB) 
+              : (isCurrentLocation ? const Color(0xFFF0F9FF) : Colors.white),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected 
                 ? _primary 
-                : (isCurrentLocation ? _primary.withValues(alpha: 0.3) : const Color(0xFFF3F4F6)),
+                : (isCurrentLocation ? const Color(0xFFB8E6F0) : const Color(0xFFF3F4F6)),
             width: isSelected ? 2 : 1,
           ),
           boxShadow: [
@@ -984,14 +985,16 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: isSelected || isCurrentLocation 
-                    ? _primary.withValues(alpha: 0.1) 
-                    : Colors.grey.shade100,
+                color: isSelected 
+                    ? _primary.withValues(alpha: 0.2) 
+                    : (isCurrentLocation ? const Color(0xFFE0F2FE) : Colors.grey.shade100),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
                 isCurrentLocation ? Icons.my_location : Icons.place,
-                color: isSelected || isCurrentLocation ? _primary : Colors.grey.shade500,
+                color: isSelected 
+                    ? _primary 
+                    : (isCurrentLocation ? const Color(0xFF0EA5E9) : Colors.grey.shade500),
                 size: 20,
               ),
             ),
@@ -1000,11 +1003,33 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    isCurrentLocation ? '当前位置' : name.isEmpty ? '未命名地点' : name,
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  Row(
+                    children: [
+                      Text(
+                        isCurrentLocation ? '当前位置' : name.isEmpty ? '未命名地点' : name,
+                        style: TextStyle(
+                          fontSize: 13, 
+                          fontWeight: FontWeight.w900,
+                          color: isSelected ? _primary : Colors.black,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (isSelected) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: _primary,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            '已选',
+                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                   if (address.isNotEmpty) ...[
                     const SizedBox(height: 4),
