@@ -477,11 +477,10 @@ class _MomentHomeBodyState extends ConsumerState<_MomentHomeBody> {
         final records = snapshot.data ?? const <MomentRecord>[];
 
         return StreamBuilder<List<EntityLink>>(
-          stream: (db.select(db.entityLinks)
-                ..where((t) => t.sourceType.equals('moment') | t.targetType.equals('moment')))
-              .watch(),
+          stream: db.select(db.entityLinks).watch(),
           builder: (context, linkSnapshot) {
-            final links = linkSnapshot.data ?? const <EntityLink>[];
+            final allLinks = linkSnapshot.data ?? const <EntityLink>[];
+            final links = allLinks.where((l) => l.sourceType == 'moment' || l.targetType == 'moment').toList();
 
             // 应用所有筛选条件
             var filteredRecords = records.where((r) {
