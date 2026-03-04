@@ -19,6 +19,8 @@ import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/providers/uuid_provider.dart';
 import '../../../core/utils/media_storage.dart';
+import '../../../core/utils/icon_utils.dart';
+import '../../../core/utils/tag_color_utils.dart';
 import '../../../core/widgets/ai_parse_button.dart';
 import '../providers/goal_detail_provider.dart';
 import '../../food/presentation/food_page.dart';
@@ -66,24 +68,18 @@ const _defaultGoalTypeOptions = <_GoalTypeOption>[
   ),
 ];
 
-List<_GoalTypeOption> _buildGoalTypeOptionsFromConfig(List<String> configTags) {
+List<_GoalTypeOption> _buildGoalTypeOptionsFromConfig(List<ModuleTag> configTags) {
   if (configTags.isEmpty) return _defaultGoalTypeOptions;
-  final options = <_GoalTypeOption>[];
-  for (final tag in configTags) {
-    final existing = _defaultGoalTypeOptions.where((o) => o.label == tag || o.value == tag).firstOrNull;
-    if (existing != null) {
-      options.add(existing);
-    } else {
-      options.add(_GoalTypeOption(
-        value: tag,
-        label: tag,
-        icon: Icons.flag,
-        accent: AppTheme.primary,
-        background: const Color(0xFFEFF6FF),
-      ));
-    }
-  }
-  return options;
+  return configTags.map((tag) {
+    final accent = TagColorUtils.colorFromHex(tag.color);
+    return _GoalTypeOption(
+      value: tag.name,
+      label: tag.name,
+      icon: IconUtils.fromName(tag.iconName),
+      accent: accent,
+      background: accent.withAlpha(38),
+    );
+  }).toList();
 }
 
 _GoalTypeOption? _goalTypeFor(String? value, [List<_GoalTypeOption>? options]) {
@@ -464,8 +460,9 @@ class _GoalHomeBodyState extends ConsumerState<_GoalHomeBody> {
     
     return configAsync.when(
       data: (config) {
-        final configTags = getTagsForModule(config, 'goal');
-        final goalTypeOptions = _buildGoalTypeOptionsFromConfig(configTags);
+        final goalTags = config.moduleOf('goal').tags;
+        final goalTypeOptions = _buildGoalTypeOptionsFromConfig(goalTags);
+        final configTags = goalTags.map((t) => t.name).toList();
         
         return StreamBuilder<List<GoalRecord>>(
           stream: _watchYearGoals(db),
@@ -1175,8 +1172,8 @@ class _AnnualGoalSummaryPageState extends ConsumerState<AnnualGoalSummaryPage> {
     
     return configAsync.when(
       data: (config) {
-        final configTags = getTagsForModule(config, 'goal');
-        final goalTypeOptions = _buildGoalTypeOptionsFromConfig(configTags);
+        final goalTags = config.moduleOf('goal').tags;
+        final goalTypeOptions = _buildGoalTypeOptionsFromConfig(goalTags);
         
         return Scaffold(
           backgroundColor: const Color(0xFFF6F8F8),

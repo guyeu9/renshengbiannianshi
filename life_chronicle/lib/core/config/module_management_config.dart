@@ -265,9 +265,9 @@ class ModuleManagementConfig {
           tagTitle: '分类标签管理',
           showOnCalendar: true,
           tags: const [
-            ModuleTag(id: 'goal-1', name: '职业发展', showOnCalendar: true),
-            ModuleTag(id: 'goal-2', name: '身心健康', showOnCalendar: true),
-            ModuleTag(id: 'goal-3', name: '环球旅行', showOnCalendar: true),
+            ModuleTag(id: 'goal-1', name: '职业发展', iconName: 'work', color: '#3B82F6', showOnCalendar: true),
+            ModuleTag(id: 'goal-2', name: '身心健康', iconName: 'favorite', color: '#EF4444', showOnCalendar: true),
+            ModuleTag(id: 'goal-3', name: '环球旅行', iconName: 'airplanemode_active', color: '#10B981', showOnCalendar: true),
           ],
         ),
       },

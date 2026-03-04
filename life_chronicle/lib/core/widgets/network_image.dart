@@ -75,5 +75,5 @@ class AppNetworkImage extends StatelessWidget {
 }
 
 class AppNetworkImageProvider extends CachedNetworkImageProvider {
-  AppNetworkImageProvider(super.url, {super.scale = 1.0});
+  const AppNetworkImageProvider(super.url, {super.scale = 1.0});
 }
