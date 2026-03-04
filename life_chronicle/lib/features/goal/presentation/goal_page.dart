@@ -11,15 +11,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:uuid/uuid.dart';
 import 'package:vibration/vibration.dart';
 
 import '../../../app/app_theme.dart';
 import '../../../core/config/module_management_config.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
+import '../../../core/providers/uuid_provider.dart';
 import '../../../core/utils/media_storage.dart';
 import '../../../core/widgets/ai_parse_button.dart';
+import '../providers/goal_detail_provider.dart';
 import '../../food/presentation/food_page.dart';
 import '../../travel/presentation/travel_page.dart';
 import '../../moment/presentation/moment_page.dart';
@@ -174,6 +175,7 @@ class _GoalPageState extends State<GoalPage> {
   var _searchQuery = '';
   var _filterStatusIndex = 0; // 0: 全部, 1: 进行中, 2: 已完成, 3: 已放弃
   var _filterTypeIndex = 0; // 0: 全部, 1: 职业, 2: 健康, 3: 旅行
+  var _filterFavorite = false;
 
   @override
   void initState() {
@@ -200,6 +202,7 @@ class _GoalPageState extends State<GoalPage> {
         return _GoalFilterBottomSheet(
           initialStatusIndex: _filterStatusIndex,
           initialTypeIndex: _filterTypeIndex,
+          initialFilterFavorite: _filterFavorite,
         );
       },
     );
@@ -207,6 +210,7 @@ class _GoalPageState extends State<GoalPage> {
     setState(() {
       _filterStatusIndex = result.statusIndex;
       _filterTypeIndex = result.typeIndex;
+      _filterFavorite = result.filterFavorite;
     });
   }
 
@@ -228,6 +232,7 @@ class _GoalPageState extends State<GoalPage> {
                 searchQuery: _searchQuery,
                 filterStatusIndex: _filterStatusIndex,
                 filterTypeIndex: _filterTypeIndex,
+                filterFavorite: _filterFavorite,
               ),
             ),
           ],
@@ -337,11 +342,13 @@ class _GoalHomeBody extends ConsumerStatefulWidget {
     required this.searchQuery,
     required this.filterStatusIndex,
     required this.filterTypeIndex,
+    required this.filterFavorite,
   });
 
   final String searchQuery;
   final int filterStatusIndex;
   final int filterTypeIndex;
+  final bool filterFavorite;
 
   @override
   ConsumerState<_GoalHomeBody> createState() => _GoalHomeBodyState();
@@ -445,6 +452,11 @@ class _GoalHomeBodyState extends ConsumerState<_GoalHomeBody> {
     return true;
   }
 
+  bool _matchesFavoriteFilter(GoalRecord record) {
+    if (!widget.filterFavorite) return true;
+    return record.isFavorite;
+  }
+
   @override
   Widget build(BuildContext context) {
     final db = ref.watch(appDatabaseProvider);
@@ -461,7 +473,7 @@ class _GoalHomeBodyState extends ConsumerState<_GoalHomeBody> {
             final records = snapshot.data ?? const <GoalRecord>[];
 
             var filteredRecords = records.where((r) {
-              return _matchesSearch(r) && _matchesStatusFilter(r) && _matchesTypeFilter(r, configTags);
+              return _matchesSearch(r) && _matchesStatusFilter(r) && _matchesTypeFilter(r, configTags) && _matchesFavoriteFilter(r);
             }).toList();
 
             final years = records.map(_goalYear).toSet().toList()..sort((a, b) => b.compareTo(a));
@@ -767,6 +779,16 @@ class _AnnualGoalCardState extends State<_AnnualGoalCard> with SingleTickerProvi
                       ),
                     ),
                   ),
+                  if (widget.record.isFavorite)
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFCE7F3),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.favorite, size: 14, color: Color(0xFFEC4899)),
+                    ),
+                  const SizedBox(width: 8),
                   AnimatedBuilder(
                     animation: _progressAnimation,
                     builder: (context, child) {
@@ -1465,13 +1487,12 @@ class _AnnualGoalSummaryPageState extends ConsumerState<AnnualGoalSummaryPage> {
                                             FocusManager.instance.primaryFocus?.unfocus();
                                             final db = ref.read(appDatabaseProvider);
                                             final now = DateTime.now();
-                                            const uuid = Uuid();
 
                                             final imagesJson = _reviewImages.isEmpty ? null : jsonEncode(_reviewImages);
 
                                             await db.annualReviewDao.upsert(
                                               AnnualReviewsCompanion(
-                                                id: Value(_existingReviewId ?? uuid.v4()),
+                                                id: Value(_existingReviewId ?? ref.read(uuidProvider).v4()),
                                                 year: Value(_selectedYear),
                                                 content: Value(_reviewController.text.trim().isEmpty ? null : _reviewController.text.trim()),
                                                 images: Value(imagesJson),
@@ -1779,7 +1800,7 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
     final now = DateTime.now();
     await db.goalReviewDao.insert(
       GoalReviewsCompanion.insert(
-        id: const Uuid().v4(),
+        id: ref.read(uuidProvider).v4(),
         goalId: record.id,
         title: title,
         content: Value(contentController.text.trim().isEmpty ? null : contentController.text.trim()),
@@ -1791,39 +1812,21 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('阶段复盘已保存')));
   }
 
-  Stream<List<GoalRecord>> _watchChildren(AppDatabase db, String parentId, String level) {
-    final query = db.select(db.goalRecords)
-      ..where((t) => t.parentId.equals(parentId))
-      ..where((t) => t.level.equals(level))
-      ..where((t) => t.isDeleted.equals(false))
-      ..orderBy([
-        (t) => OrderingTerm(expression: t.targetQuarter, mode: OrderingMode.asc),
-        (t) => OrderingTerm(expression: t.recordDate, mode: OrderingMode.asc),
-      ]);
-    return query.watch();
-  }
-
-  Stream<List<GoalRecord>> _watchDailyTasks(AppDatabase db, List<String> parentIds) {
-    if (parentIds.isEmpty) return Stream.value(const <GoalRecord>[]);
-    final query = db.select(db.goalRecords)
-      ..where((t) => t.parentId.isIn(parentIds))
-      ..where((t) => t.level.equals('daily'))
-      ..where((t) => t.isDeleted.equals(false))
-      ..orderBy([
-        (t) => OrderingTerm(expression: t.recordDate, mode: OrderingMode.asc),
-        (t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.asc),
-      ]);
-    return query.watch();
-  }
-
   @override
   Widget build(BuildContext context) {
-    final db = ref.watch(appDatabaseProvider);
-    final goalStream = (db.select(db.goalRecords)..where((t) => t.id.equals(widget.record.id))).watchSingle();
-    return StreamBuilder<GoalRecord>(
-      stream: goalStream,
-      builder: (context, snapshot) {
-        final record = snapshot.data ?? widget.record;
+    final detailAsync = ref.watch(goalDetailProvider(widget.record.id));
+
+    return detailAsync.when(
+      data: (state) {
+        if (state == null) {
+          return Scaffold(
+            backgroundColor: const Color(0xFFF6F8F8),
+            appBar: AppBar(title: const Text('目标不存在')),
+            body: const Center(child: Text('该目标已被删除')),
+          );
+        }
+
+        final record = state.goal;
         final now = DateTime.now();
         final dueDate = record.dueDate;
         final leftText = dueDate == null
@@ -1832,6 +1835,7 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
                 ? '剩 ${dueDate.difference(DateTime(now.year, now.month, now.day)).inDays} 天'
                 : '已超期 ${-dueDate.difference(DateTime(now.year, now.month, now.day)).inDays} 天');
         final progressPercent = (record.progress * 100).round().clamp(0, 100);
+        final db = ref.read(appDatabaseProvider);
 
         return Scaffold(
           backgroundColor: const Color(0xFFF6F8F8),
@@ -2003,245 +2007,169 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
                             ),
                             const SizedBox(height: 12),
                           ],
-                          StreamBuilder<List<GoalReview>>(
-                            stream: db.goalReviewDao.watchByGoalId(record.id),
-                            builder: (context, reviewSnapshot) {
-                              final reviews = reviewSnapshot.data ?? const <GoalReview>[];
-                              if (reviews.isNotEmpty) {
-                                return Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text('阶段复盘', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                                    const SizedBox(height: 8),
-                                    Container(
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(14),
-                                        border: Border.all(color: const Color(0xFFF3F4F6)),
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          for (int i = 0; i < reviews.length; i++) ...[
-                                            Row(
-                                              children: [
-                                                Expanded(
-                                                  child: Text(
-                                                    reviews[i].title,
-                                                    style: const TextStyle(
-                                                      fontSize: 15,
-                                                      fontWeight: FontWeight.w900,
-                                                      color: Color(0xFF111827),
-                                                    ),
-                                                  ),
-                                                ),
-                                                Text(
-                                                  _formatDotDate(reviews[i].reviewDate),
-                                                  style: const TextStyle(
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.w700,
-                                                    color: Color(0xFF94A3B8),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            if (reviews[i].content?.isNotEmpty == true) ...[
-                                              const SizedBox(height: 8),
-                                              Text(
-                                                reviews[i].content!,
-                                                style: const TextStyle(
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: Color(0xFF6B7280),
-                                                ),
-                                              ),
-                                            ],
-                                            if (i != reviews.length - 1) const Divider(height: 24, color: Color(0xFFE5E7EB)),
-                                          ],
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                  ],
-                                );
-                              }
-                              return const SizedBox.shrink();
-                            },
-                          ),
-                          StreamBuilder<List<GoalPostponement>>(
-                            stream: db.goalPostponementDao.watchByGoalId(record.id),
-                            builder: (context, postponementSnapshot) {
-                              final postponements = postponementSnapshot.data ?? const <GoalPostponement>[];
-                              if (postponements.isNotEmpty) {
-                                return Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text('顺延记录', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                                    const SizedBox(height: 8),
-                                    Container(
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(14),
-                                        border: Border.all(color: const Color(0xFFF3F4F6)),
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          for (int i = 0; i < postponements.length; i++) ...[
-                                            Row(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Container(
-                                                  width: 40,
-                                                  height: 40,
-                                                  decoration: BoxDecoration(
-                                                    color: const Color(0xFFFFF7ED),
-                                                    borderRadius: BorderRadius.circular(12),
-                                                  ),
-                                                  child: const Icon(
-                                                    Icons.update,
-                                                    size: 20,
-                                                    color: Color(0xFFF97316),
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 12),
-                                                Expanded(
-                                                  child: Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                    children: [
-                                                      Row(
-                                                        children: [
-                                                          if (postponements[i].oldDueDate != null)
-                                                            Text(
-                                                              _formatDotDate(postponements[i].oldDueDate!),
-                                                              style: const TextStyle(
-                                                                fontSize: 13,
-                                                                fontWeight: FontWeight.w700,
-                                                                color: Color(0xFF94A3B8),
-                                                                decoration: TextDecoration.lineThrough,
-                                                              ),
-                                                            ),
-                                                          const SizedBox(width: 8),
-                                                          const Icon(
-                                                            Icons.arrow_forward,
-                                                            size: 14,
-                                                            color: Color(0xFF6B7280),
-                                                          ),
-                                                          const SizedBox(width: 8),
-                                                          if (postponements[i].newDueDate != null)
-                                                            Text(
-                                                              _formatDotDate(postponements[i].newDueDate!),
-                                                              style: const TextStyle(
-                                                                fontSize: 13,
-                                                                fontWeight: FontWeight.w900,
-                                                                color: Color(0xFF111827),
-                                                              ),
-                                                            ),
-                                                        ],
-                                                      ),
-                                                      if (postponements[i].reason?.isNotEmpty == true) ...[
-                                                        const SizedBox(height: 4),
-                                                        Text(
-                                                          postponements[i].reason!,
-                                                          style: const TextStyle(
-                                                            fontSize: 12,
-                                                            fontWeight: FontWeight.w700,
-                                                            color: Color(0xFF6B7280),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                      const SizedBox(height: 4),
-                                                      Text(
-                                                        _formatDotDate(postponements[i].createdAt),
-                                                        style: const TextStyle(
-                                                          fontSize: 11,
-                                                          fontWeight: FontWeight.w700,
-                                                          color: Color(0xFF94A3B8),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            if (i != postponements.length - 1) const Divider(height: 24, color: Color(0xFFE5E7EB)),
-                                          ],
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 18),
-                                  ],
-                                );
-                              }
-                              return const SizedBox.shrink();
-                            },
-                          ),
-                          const SizedBox(height: 8),
-                          StreamBuilder<List<GoalRecord>>(
-                            stream: _watchChildren(db, record.id, 'quarter'),
-                            builder: (context, quarterSnapshot) {
-                              final quarters = quarterSnapshot.data ?? const <GoalRecord>[];
-                              return StreamBuilder<List<GoalRecord>>(
-                                stream: _watchDailyTasks(db, quarters.map((q) => q.id).toList()),
-                                builder: (context, taskSnapshot) {
-                                  final tasks = taskSnapshot.data ?? const <GoalRecord>[];
-                                  if (quarters.isEmpty) {
-                                    return Container(
-                                      padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFF3F4F6))),
-                                      child: const Text('暂无阶段目标，点击右上角维护开始拆解', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF94A3B8))),
-                                    );
-                                  }
-                                  return Column(
+                          if (state.reviews.isNotEmpty) ...[
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('阶段复盘', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                                const SizedBox(height: 8),
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(color: const Color(0xFFF3F4F6)),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      for (var index = 0; index < quarters.length; index++) ...[
-                                        Builder(
-                                          builder: (context) {
-                                            final quarter = quarters[index];
-                                            final quarterTasks = tasks.where((t) => t.parentId == quarter.id).toList();
-                                            final doneCount = quarterTasks.where((t) => t.isCompleted).length;
-                                            final totalCount = quarterTasks.length;
-                                            final computedProgress = totalCount == 0 ? quarter.progress : doneCount / totalCount;
-                                            final state = (quarter.isCompleted || (computedProgress >= 1 && totalCount > 0))
-                                                ? _QuarterState.done
-                                                : _QuarterState.active;
-                                            final quarterLabel = quarter.targetQuarter != null ? 'Q${quarter.targetQuarter}' : 'Q${index + 1}';
-                                            return _QuarterNode(
-                                              quarter: quarterLabel,
-                                              title: quarter.title,
-                                              progress: computedProgress,
-                                              state: state,
-                                              children: const [],
-                                              lockedHint: null,
-                                              hideConnector: false,
-                                              child: _MonthCard(
-                                                title: quarter.summary?.isNotEmpty == true ? quarter.summary! : quarter.title,
-                                                tasks: [
-                                                  for (final task in quarterTasks)
-                                                    _DayTaskTile(
-                                                      checked: task.isCompleted,
-                                                      enabled: true,
-                                                      style: _taskStyleFor(task),
-                                                      title: task.title,
-                                                      subtitle: _taskSubtitleFor(task),
-                                                      onChanged: (v) => _updateTaskCompletionForGoal(db, task, v, record.id),
-                                                      onTaskCompleted: _onTaskCompleted,
-                                                    ),
-                                                ],
+                                      for (int i = 0; i < state.reviews.length; i++) ...[
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                state.reviews[i].title,
+                                                style: const TextStyle(
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.w900,
+                                                  color: Color(0xFF111827),
+                                                ),
                                               ),
-                                            );
-                                          },
+                                            ),
+                                            Text(
+                                              _formatDotDate(state.reviews[i].reviewDate),
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w700,
+                                                color: Color(0xFF94A3B8),
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                        if (index != quarters.length - 1) const SizedBox(height: 18),
+                                        if (state.reviews[i].content?.isNotEmpty == true) ...[
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            state.reviews[i].content!,
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w700,
+                                              color: Color(0xFF6B7280),
+                                            ),
+                                          ),
+                                        ],
+                                        if (i != state.reviews.length - 1) const Divider(height: 24, color: Color(0xFFE5E7EB)),
                                       ],
                                     ],
-                                  );
-                                },
-                              );
-                            },
-                          ),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                              ],
+                            ),
+                          ],
+                          if (state.postponements.isNotEmpty) ...[
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('顺延记录', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                                const SizedBox(height: 8),
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(color: const Color(0xFFF3F4F6)),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      for (int i = 0; i < state.postponements.length; i++) ...[
+                                        Row(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Container(
+                                              width: 40,
+                                              height: 40,
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFFFF7ED),
+                                                borderRadius: BorderRadius.circular(12),
+                                              ),
+                                              child: const Icon(
+                                                Icons.update,
+                                                size: 20,
+                                                color: Color(0xFFF97316),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Row(
+                                                    children: [
+                                                      if (state.postponements[i].oldDueDate != null)
+                                                        Text(
+                                                          _formatDotDate(state.postponements[i].oldDueDate!),
+                                                          style: const TextStyle(
+                                                            fontSize: 13,
+                                                            fontWeight: FontWeight.w700,
+                                                            color: Color(0xFF94A3B8),
+                                                            decoration: TextDecoration.lineThrough,
+                                                          ),
+                                                        ),
+                                                      const SizedBox(width: 8),
+                                                      const Icon(
+                                                        Icons.arrow_forward,
+                                                        size: 14,
+                                                        color: Color(0xFF6B7280),
+                                                      ),
+                                                      const SizedBox(width: 8),
+                                                      if (state.postponements[i].newDueDate != null)
+                                                        Text(
+                                                          _formatDotDate(state.postponements[i].newDueDate!),
+                                                          style: const TextStyle(
+                                                            fontSize: 13,
+                                                            fontWeight: FontWeight.w900,
+                                                            color: Color(0xFF111827),
+                                                          ),
+                                                        ),
+                                                    ],
+                                                  ),
+                                                  if (state.postponements[i].reason?.isNotEmpty == true) ...[
+                                                    const SizedBox(height: 4),
+                                                    Text(
+                                                      state.postponements[i].reason!,
+                                                      style: const TextStyle(
+                                                        fontSize: 12,
+                                                        fontWeight: FontWeight.w700,
+                                                        color: Color(0xFF6B7280),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                  const SizedBox(height: 4),
+                                                  Text(
+                                                    _formatDotDate(state.postponements[i].createdAt),
+                                                    style: const TextStyle(
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.w700,
+                                                      color: Color(0xFF94A3B8),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        if (i != state.postponements.length - 1) const Divider(height: 24, color: Color(0xFFE5E7EB)),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 18),
+                              ],
+                            ),
+                          ],
+                          const SizedBox(height: 8),
+                          _buildQuarterNodes(state.quarterGoals, state.dailyTasks, db, record.id),
                           const SizedBox(height: 18),
                           Container(height: 1, color: const Color(0xFFE5E7EB)),
                           const SizedBox(height: 18),
@@ -2267,69 +2195,166 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
               ),
             ],
           ),
-          bottomNavigationBar: SafeArea(
-            top: false,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.86),
-                border: const Border(top: BorderSide(color: Color(0xFFE5E7EB))),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => GoalPostponePage(goal: record),
-                      )),
-                      icon: const Icon(Icons.update, size: 16),
-                      label: const Text('顺延计划'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF6B7280),
-                        side: const BorderSide(color: Color(0xFFE5E7EB)),
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _editSummary(record),
-                      icon: const Icon(Icons.edit_note, size: 16),
-                      label: const Text('编辑总结'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF6B7280),
-                        side: const BorderSide(color: Color(0xFFE5E7EB)),
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () => _addStageReview(record),
-                      icon: const Icon(Icons.rate_review, size: 16),
-                      label: const Text('新增复盘'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        elevation: 0,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          bottomNavigationBar: _buildBottomBar(record, db),
         );
       },
+      loading: () => Scaffold(
+        backgroundColor: const Color(0xFFF6F8F8),
+        body: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (_, __) => Scaffold(
+        backgroundColor: const Color(0xFFF6F8F8),
+        body: const Center(child: Text('加载失败')),
+      ),
+    );
+  }
+
+  Widget _buildQuarterNodes(List<GoalRecord> quarters, List<GoalRecord> tasks, AppDatabase db, String goalId) {
+    if (quarters.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFF3F4F6))),
+        child: const Text('暂无阶段目标，点击右上角维护开始拆解', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF94A3B8))),
+      );
+    }
+    return Column(
+      children: [
+        for (var index = 0; index < quarters.length; index++) ...[
+          Builder(
+            builder: (context) {
+              final quarter = quarters[index];
+              final quarterTasks = tasks.where((t) => t.parentId == quarter.id).toList();
+              final doneCount = quarterTasks.where((t) => t.isCompleted).length;
+              final totalCount = quarterTasks.length;
+              final computedProgress = totalCount == 0 ? quarter.progress : doneCount / totalCount;
+              final state = (quarter.isCompleted || (computedProgress >= 1 && totalCount > 0))
+                  ? _QuarterState.done
+                  : _QuarterState.active;
+              final quarterLabel = quarter.targetQuarter != null ? 'Q${quarter.targetQuarter}' : 'Q${index + 1}';
+              return _QuarterNode(
+                quarter: quarterLabel,
+                title: quarter.title,
+                progress: computedProgress,
+                state: state,
+                children: const [],
+                lockedHint: null,
+                hideConnector: false,
+                child: _MonthCard(
+                  title: quarter.summary?.isNotEmpty == true ? quarter.summary! : quarter.title,
+                  tasks: [
+                    for (final task in quarterTasks)
+                      _DayTaskTile(
+                        checked: task.isCompleted,
+                        enabled: true,
+                        style: _taskStyleFor(task),
+                        title: task.title,
+                        subtitle: _taskSubtitleFor(task),
+                        onChanged: (v) => _updateTaskCompletionForGoal(db, task, v, goalId),
+                        onTaskCompleted: _onTaskCompleted,
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
+          if (index != quarters.length - 1) const SizedBox(height: 18),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildBottomBar(GoalRecord record, AppDatabase db) {
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.86),
+          border: const Border(top: BorderSide(color: Color(0xFFE5E7EB))),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => GoalPostponePage(goal: record),
+                )),
+                icon: const Icon(Icons.update, size: 16),
+                label: const Text('顺延计划'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF6B7280),
+                  side: const BorderSide(color: Color(0xFFE5E7EB)),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => _editSummary(record),
+                icon: const Icon(Icons.edit_note, size: 16),
+                label: const Text('编辑总结'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF6B7280),
+                  side: const BorderSide(color: Color(0xFFE5E7EB)),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  final now = DateTime.now();
+                  await (db.update(db.goalRecords)..where((t) => t.id.equals(record.id))).write(
+                    GoalRecordsCompanion(
+                      isFavorite: Value(!record.isFavorite),
+                      updatedAt: Value(now),
+                    ),
+                  );
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(record.isFavorite ? '已取消收藏' : '已添加到收藏'),
+                        duration: const Duration(seconds: 1),
+                      ),
+                    );
+                  }
+                },
+                icon: Icon(record.isFavorite ? Icons.favorite : Icons.favorite_border, size: 16),
+                label: Text(record.isFavorite ? '已收藏' : '收藏'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: record.isFavorite ? const Color(0xFFEC4899) : const Color(0xFF6B7280),
+                  side: BorderSide(color: record.isFavorite ? const Color(0xFFEC4899) : const Color(0xFFE5E7EB)),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => _addStageReview(record),
+                icon: const Icon(Icons.rate_review, size: 16),
+                label: const Text('新增复盘'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -2440,10 +2465,9 @@ class _GoalBreakdownMaintenancePageState extends ConsumerState<GoalBreakdownMain
     final db = ref.read(appDatabaseProvider);
     final now = DateTime.now();
     if (stage == null) {
-      const uuid = Uuid();
       await db.into(db.goalRecords).insert(
             GoalRecordsCompanion.insert(
-              id: uuid.v4(),
+              id: ref.read(uuidProvider).v4(),
               parentId: Value(widget.goal.id),
               level: 'quarter',
               title: result.title,
@@ -2502,10 +2526,9 @@ class _GoalBreakdownMaintenancePageState extends ConsumerState<GoalBreakdownMain
     if (result == null || result.trim().isEmpty) return;
     final db = ref.read(appDatabaseProvider);
     final now = DateTime.now();
-    const uuid = Uuid();
     await db.into(db.goalRecords).insert(
           GoalRecordsCompanion.insert(
-            id: uuid.v4(),
+            id: ref.read(uuidProvider).v4(),
             parentId: Value(stage.id),
             level: 'daily',
             title: result.trim(),
@@ -3311,13 +3334,12 @@ class _GoalPostponePageState extends ConsumerState<GoalPostponePage> {
   Future<void> _confirmPostpone() async {
     final db = ref.read(appDatabaseProvider);
     final now = DateTime.now();
-    const uuid = Uuid();
 
     final oldDueDate = widget.goal.dueDate;
     final daysDiff = _newDueDate.difference(oldDueDate ?? now).inDays;
 
     await db.goalPostponementDao.insert(GoalPostponementsCompanion.insert(
-      id: uuid.v4(),
+      id: ref.read(uuidProvider).v4(),
       goalId: widget.goal.id,
       oldDueDate: Value(oldDueDate),
       newDueDate: Value(_newDueDate),
@@ -5209,10 +5231,9 @@ class _GoalCreatePageState extends ConsumerState<GoalCreatePage> {
     }
 
     final db = ref.read(appDatabaseProvider);
-    const uuid = Uuid();
     final now = DateTime.now();
     final recordDate = DateTime(now.year, now.month, now.day);
-    final goalId = _isEditMode ? widget.goal!.id : uuid.v4();
+    final goalId = _isEditMode ? widget.goal!.id : ref.read(uuidProvider).v4();
 
     final description = _descriptionController.text.trim();
 
@@ -5865,10 +5886,12 @@ class _GoalFilterResult {
   const _GoalFilterResult({
     required this.statusIndex,
     required this.typeIndex,
+    this.filterFavorite = false,
   });
 
   final int statusIndex;
   final int typeIndex;
+  final bool filterFavorite;
 }
 
 // 目标筛选底部弹窗
@@ -5876,10 +5899,12 @@ class _GoalFilterBottomSheet extends StatefulWidget {
   const _GoalFilterBottomSheet({
     required this.initialStatusIndex,
     required this.initialTypeIndex,
+    this.initialFilterFavorite = false,
   });
 
   final int initialStatusIndex;
   final int initialTypeIndex;
+  final bool initialFilterFavorite;
 
   @override
   State<_GoalFilterBottomSheet> createState() => _GoalFilterBottomSheetState();
@@ -5888,6 +5913,7 @@ class _GoalFilterBottomSheet extends StatefulWidget {
 class _GoalFilterBottomSheetState extends State<_GoalFilterBottomSheet> {
   late int _statusIndex;
   late int _typeIndex;
+  late bool _filterFavorite;
 
   static const _statusOptions = ['全部', '进行中', '已完成', '已顺延'];
   static const _typeOptions = ['全部', '职业发展', '身心健康', '环球旅行'];
@@ -5897,6 +5923,7 @@ class _GoalFilterBottomSheetState extends State<_GoalFilterBottomSheet> {
     super.initState();
     _statusIndex = widget.initialStatusIndex;
     _typeIndex = widget.initialTypeIndex;
+    _filterFavorite = widget.initialFilterFavorite;
   }
 
   @override
@@ -5905,7 +5932,7 @@ class _GoalFilterBottomSheetState extends State<_GoalFilterBottomSheet> {
       title: '筛选目标',
       actionText: '确定',
       onAction: () => Navigator.of(context).pop(
-        _GoalFilterResult(statusIndex: _statusIndex, typeIndex: _typeIndex),
+        _GoalFilterResult(statusIndex: _statusIndex, typeIndex: _typeIndex, filterFavorite: _filterFavorite),
       ),
       child: ConstrainedBox(
         constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.6),
@@ -5942,6 +5969,14 @@ class _GoalFilterBottomSheetState extends State<_GoalFilterBottomSheet> {
                       onTap: () => setState(() => _typeIndex = i),
                     ),
                 ],
+              ),
+              const SizedBox(height: 24),
+              const Text('收藏', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+              const SizedBox(height: 12),
+              _FilterOptionChip(
+                label: '仅收藏',
+                selected: _filterFavorite,
+                onTap: () => setState(() => _filterFavorite = !_filterFavorite),
               ),
             ],
           ),
