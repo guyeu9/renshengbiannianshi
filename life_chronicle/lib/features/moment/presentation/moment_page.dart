@@ -478,7 +478,7 @@ class _MomentHomeBodyState extends ConsumerState<_MomentHomeBody> {
 
         return StreamBuilder<List<EntityLink>>(
           stream: (db.select(db.entityLinks)
-                ..where((t) => t.sourceType.equals('moment') | t.targetType.equals('moment')))
+                ..where((t) => t.sourceType.equals('moment').or(t.targetType.equals('moment'))))
               .watch(),
           builder: (context, linkSnapshot) {
             final links = linkSnapshot.data ?? const <EntityLink>[];
@@ -1855,7 +1855,7 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
     final db = ref.read(appDatabaseProvider);
     final now = DateTime.now();
     final existing = widget.initialRecord;
-    final momentId = existing?.id ?? ref.read(uuidProvider);
+    final String momentId = existing?.id ?? ref.read(uuidProvider).v4();
     final createdAt = existing?.createdAt ?? now;
 
     final content = _contentController.text.trim();
