@@ -36,4 +36,10 @@ public class LogUtil {
         }
     }
 
+    public static void e(String className, String message) {
+        if (isDebugMode) {
+            Log.e(TAG+className, message);
+        }
+    }
+
 }
