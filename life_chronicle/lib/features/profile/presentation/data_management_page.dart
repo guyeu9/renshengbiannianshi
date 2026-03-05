@@ -236,6 +236,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
       
       setState(() => _isBackingUp = false);
       
+      if (!mounted) return;
       final shouldShare = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
@@ -330,6 +331,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
         return;
       }
       
+      if (!mounted) return;
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
@@ -423,6 +425,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
       
       setState(() => _isExporting = false);
       
+      if (!mounted) return;
       final shouldShare = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
