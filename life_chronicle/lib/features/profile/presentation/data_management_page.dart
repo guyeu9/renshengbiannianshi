@@ -14,6 +14,7 @@ import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/providers/uuid_provider.dart';
 import '../../../core/services/backup/backup.dart';
+import '../../../core/services/data_statistics_service.dart';
 import 'backup_log_page.dart';
 
 class DataManagementPage extends ConsumerStatefulWidget {
@@ -26,6 +27,7 @@ class DataManagementPage extends ConsumerStatefulWidget {
 class _DataManagementPageState extends ConsumerState<DataManagementPage> {
   final WebDavConfigService _configService = WebDavConfigService();
   final BackgroundBackupService _backgroundBackupService = BackgroundBackupService();
+  final BackupFileManager _backupFileManager = BackupFileManager();
   WebDavConfig? _config;
   bool _isLoading = true;
   bool _isBackingUp = false;
@@ -34,19 +36,43 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
   BackupProgress? _currentProgress;
   StreamSubscription<BackupProgress>? _progressSubscription;
   List<Map<String, dynamic>> _availableBackups = [];
+  List<BackupFileInfo> _backupFiles = [];
+  int _retentionCount = 10;
+  DataStatistics? _statistics;
 
   final _urlController = TextEditingController();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _encryptionPasswordController = TextEditingController();
+  final _passwordHintController = TextEditingController();
 
   bool _obscurePassword = true;
+  bool _rememberPassword = false;
+  String? _passwordHint;
   String _backupFrequency = 'daily';
 
   @override
   void initState() {
     super.initState();
     _loadConfig();
+    _loadBackupFiles();
+    _loadStatistics();
+  }
+
+  Future<void> _loadStatistics() async {
+    final db = ref.read(appDatabaseProvider);
+    final service = DataStatisticsService(db);
+    final stats = await service.getStatistics();
+    if (mounted) {
+      setState(() => _statistics = stats);
+    }
+  }
+
+  Future<void> _loadBackupFiles() async {
+    final files = await _backupFileManager.listBackupFiles();
+    if (mounted) {
+      setState(() => _backupFiles = files);
+    }
   }
 
   @override
@@ -56,21 +82,42 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
     _usernameController.dispose();
     _passwordController.dispose();
     _encryptionPasswordController.dispose();
+    _passwordHintController.dispose();
     super.dispose();
   }
 
   Future<void> _loadConfig() async {
     final config = await _configService.loadConfig();
+    final rememberPassword = await _configService.loadRememberPassword();
+    final passwordHint = await _configService.loadPasswordHint();
+    
     if (mounted) {
       setState(() {
         _config = config;
+        _rememberPassword = rememberPassword;
+        _passwordHint = passwordHint;
         if (config != null) {
           _urlController.text = config.url;
           _usernameController.text = config.username;
           _passwordController.text = config.password;
           _backupFrequency = config.autoBackupFrequency ?? 'daily';
         }
+        if (passwordHint != null) {
+          _passwordHintController.text = passwordHint;
+        }
+        if (rememberPassword) {
+          _loadSavedEncryptionPassword();
+        }
         _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadSavedEncryptionPassword() async {
+    final savedPassword = await _configService.loadEncryptionPassword();
+    if (savedPassword != null && mounted) {
+      setState(() {
+        _encryptionPasswordController.text = savedPassword;
       });
     }
   }
@@ -124,9 +171,14 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
       encryptBackup: _config?.encryptBackup ?? true,
       autoBackupFrequency: _backupFrequency,
       backupOnWifiOnly: _config?.backupOnWifiOnly ?? true,
+      rememberPassword: _rememberPassword,
+      passwordHint: _passwordHintController.text.isNotEmpty ? _passwordHintController.text : null,
     );
 
     await _configService.saveConfig(newConfig);
+    if (_passwordHintController.text.isNotEmpty) {
+      await _configService.savePasswordHint(_passwordHintController.text);
+    }
     if (mounted) {
       setState(() => _config = newConfig);
       _showSnackBar('配置已保存');
@@ -160,6 +212,13 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
         config: _config!,
         encryptionPassword: _encryptionPasswordController.text,
       );
+
+      if (_rememberPassword && _encryptionPasswordController.text.isNotEmpty) {
+        await _configService.saveEncryptionPassword(_encryptionPasswordController.text);
+      }
+      if (_passwordHintController.text.isNotEmpty) {
+        await _configService.savePasswordHint(_passwordHintController.text);
+      }
 
       _showSnackBar('备份成功！');
     } catch (e) {
@@ -482,8 +541,18 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
     }
 
     if (_encryptionPasswordController.text.isEmpty && _config!.encryptBackup) {
-      _showSnackBar('请输入加密密码', isError: true);
-      return;
+      if (_rememberPassword) {
+        final savedPassword = await _configService.loadEncryptionPassword();
+        if (savedPassword != null) {
+          _encryptionPasswordController.text = savedPassword;
+        } else {
+          _showSnackBar('请输入加密密码', isError: true);
+          return;
+        }
+      } else {
+        _showSnackBar('请输入加密密码', isError: true);
+        return;
+      }
     }
 
     final confirmed = await showDialog<bool>(
@@ -548,6 +617,103 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
     );
   }
 
+  String _formatDate(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _showBackupFileManager() async {
+    await _loadBackupFiles();
+    if (!mounted) return;
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('备份文件管理'),
+          content: SizedBox(
+            width: double.maxFinite,
+            height: 400,
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    const Text('保留最近'),
+                    const SizedBox(width: 8),
+                    DropdownButton<int>(
+                      value: _retentionCount,
+                      items: [5, 10, 20, 50]
+                          .map((n) => DropdownMenuItem(value: n, child: Text('$n 个')))
+                          .toList(),
+                      onChanged: (value) async {
+                        if (value != null) {
+                          _retentionCount = value;
+                          await _backupFileManager.applyRetentionPolicy(value);
+                          await _loadBackupFiles();
+                          setDialogState(() {});
+                        }
+                      },
+                    ),
+                    const Text('备份'),
+                  ],
+                ),
+                const Divider(),
+                Expanded(
+                  child: _backupFiles.isEmpty
+                      ? const Center(child: Text('暂无备份文件'))
+                      : ListView.builder(
+                          itemCount: _backupFiles.length,
+                          itemBuilder: (context, index) {
+                            final file = _backupFiles[index];
+                            return ListTile(
+                              title: Text(file.fileName),
+                              subtitle: Text(
+                                '${file.formattedSize} • ${_formatDate(file.createdAt)}',
+                              ),
+                              trailing: IconButton(
+                                icon: const Icon(Icons.delete, color: Colors.red),
+                                onPressed: () async {
+                                  final confirmed = await showDialog<bool>(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      title: const Text('确认删除'),
+                                      content: Text('确定删除 ${file.fileName}？'),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(context, false),
+                                          child: const Text('取消'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(context, true),
+                                          child: const Text('删除'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  if (confirmed == true) {
+                                    await _backupFileManager.deleteBackupFile(file.filePath);
+                                    await _loadBackupFiles();
+                                    setDialogState(() {});
+                                  }
+                                },
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('关闭'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -583,6 +749,8 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                   padding: const EdgeInsets.all(16),
                   children: [
                     _buildLastBackupSection(isDark, textMain, textMuted),
+                    const SizedBox(height: 24),
+                    _buildStatisticsSection(isDark, textMain, textMuted),
                     const SizedBox(height: 24),
                     _buildDataExportSection(isDark, surfaceColor, textMain, textMuted, dividerColor),
                     const SizedBox(height: 24),
@@ -671,6 +839,68 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
           },
         );
       },
+    );
+  }
+
+  Widget _buildStatisticsSection(bool isDark, Color textMain, Color textMuted) {
+    if (_statistics == null) {
+      return const SizedBox.shrink();
+    }
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4),
+          child: Text(
+            '数据统计',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: textMuted,
+              letterSpacing: 1.2,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF162A2E) : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: isDark ? const Color(0xFF1F2937) : const Color(0xFFF3F4F6)),
+          ),
+          child: Column(
+            children: [
+              _buildStatRow(isDark, textMain, textMuted, '总记录数', '${_statistics!.totalRecordCount}'),
+              const Divider(),
+              _buildStatRow(isDark, textMain, textMuted, '美食记录', '${_statistics!.foodRecordCount}'),
+              _buildStatRow(isDark, textMain, textMuted, '小确幸', '${_statistics!.momentRecordCount}'),
+              _buildStatRow(isDark, textMain, textMuted, '羁绊', '${_statistics!.friendRecordCount}'),
+              _buildStatRow(isDark, textMain, textMuted, '旅行', '${_statistics!.travelRecordCount}'),
+              _buildStatRow(isDark, textMain, textMuted, '目标', '${_statistics!.goalRecordCount}'),
+              _buildStatRow(isDark, textMain, textMuted, '时间线', '${_statistics!.timelineEventCount}'),
+              const Divider(),
+              _buildStatRow(isDark, textMain, textMuted, '媒体文件', '${_statistics!.mediaFileCount} 个'),
+              _buildStatRow(isDark, textMain, textMuted, '媒体大小', _statistics!.formattedMediaSize),
+              _buildStatRow(isDark, textMain, textMuted, '数据库大小', _statistics!.formattedDatabaseSize),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatRow(bool isDark, Color textMain, Color textMuted, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(fontSize: 14, color: textMuted)),
+          Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: textMain)),
+        ],
+      ),
     );
   }
 
@@ -948,6 +1178,45 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                     setState(() => _config = newConfig);
                   }
                 },
+              ),
+              const SizedBox(height: 16),
+              _buildSwitchRow(
+                isDark,
+                textMain,
+                textMuted,
+                '记住密码',
+                '安全存储密码，无需重复输入',
+                _rememberPassword,
+                (value) async {
+                  setState(() => _rememberPassword = value);
+                  await _configService.saveRememberPassword(value);
+                  if (!value) {
+                    await _configService.deleteEncryptionPassword();
+                    _encryptionPasswordController.clear();
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+              _buildInputField(
+                isDark,
+                textMain,
+                textMuted,
+                '密码提示',
+                Icons.lightbulb_outline,
+                _passwordHintController,
+                '输入提示帮助记忆密码',
+                false,
+              ),
+              const SizedBox(height: 16),
+              _buildInputField(
+                isDark,
+                textMain,
+                textMuted,
+                '加密密码',
+                Icons.enhanced_encryption,
+                _encryptionPasswordController,
+                '输入加密/解密密码',
+                true,
               ),
               const SizedBox(height: 16),
               Row(
@@ -1557,6 +1826,23 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                   ),
                   icon: const Icon(Icons.history, size: 20),
                   label: const Text('查看日志', style: TextStyle(fontWeight: FontWeight.w500)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _showBackupFileManager,
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: isDark ? const Color(0xFF1F2937) : const Color(0xFFF3F4F6),
+                    foregroundColor: isDark ? const Color(0xFFD1D5DB) : const Color(0xFF4B5563),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    side: BorderSide.none,
+                  ),
+                  icon: const Icon(Icons.folder_zip, size: 20),
+                  label: const Text('管理文件', style: TextStyle(fontWeight: FontWeight.w500)),
                 ),
               ),
               const SizedBox(width: 12),

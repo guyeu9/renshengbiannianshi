@@ -12,6 +12,8 @@ class WebDavConfig {
   final bool backupOnWifiOnly;
   final bool encryptBackup;
   final String? encryptionPasswordHint;
+  final bool rememberPassword;
+  final String? passwordHint;
 
   WebDavConfig({
     required this.url,
@@ -24,6 +26,8 @@ class WebDavConfig {
     this.backupOnWifiOnly = true,
     this.encryptBackup = true,
     this.encryptionPasswordHint,
+    this.rememberPassword = false,
+    this.passwordHint,
   });
 
   Map<String, dynamic> toJson() {
@@ -38,6 +42,8 @@ class WebDavConfig {
       'backupOnWifiOnly': backupOnWifiOnly,
       'encryptBackup': encryptBackup,
       'encryptionPasswordHint': encryptionPasswordHint,
+      'rememberPassword': rememberPassword,
+      'passwordHint': passwordHint,
     };
   }
 
@@ -53,6 +59,8 @@ class WebDavConfig {
       backupOnWifiOnly: json['backupOnWifiOnly'] as bool? ?? true,
       encryptBackup: json['encryptBackup'] as bool? ?? true,
       encryptionPasswordHint: json['encryptionPasswordHint'] as String?,
+      rememberPassword: json['rememberPassword'] as bool? ?? false,
+      passwordHint: json['passwordHint'] as String?,
     );
   }
 
@@ -67,6 +75,8 @@ class WebDavConfig {
     bool? backupOnWifiOnly,
     bool? encryptBackup,
     String? encryptionPasswordHint,
+    bool? rememberPassword,
+    String? passwordHint,
   }) {
     return WebDavConfig(
       url: url ?? this.url,
@@ -79,6 +89,8 @@ class WebDavConfig {
       backupOnWifiOnly: backupOnWifiOnly ?? this.backupOnWifiOnly,
       encryptBackup: encryptBackup ?? this.encryptBackup,
       encryptionPasswordHint: encryptionPasswordHint ?? this.encryptionPasswordHint,
+      rememberPassword: rememberPassword ?? this.rememberPassword,
+      passwordHint: passwordHint ?? this.passwordHint,
     );
   }
 
@@ -111,6 +123,7 @@ class WebDavConfig {
 class WebDavConfigService {
   static const String _storageKey = 'webdav_config';
   static const String _encryptionPasswordKey = 'backup_encryption_password';
+  static const String _rememberPasswordKey = 'backup_remember_password';
   
   final FlutterSecureStorage _storage;
 
@@ -168,5 +181,22 @@ class WebDavConfigService {
     if (config != null) {
       await saveConfig(config.copyWith(autoBackup: autoBackup));
     }
+  }
+
+  Future<void> saveRememberPassword(bool remember) async {
+    await _storage.write(key: _rememberPasswordKey, value: remember.toString());
+  }
+
+  Future<bool> loadRememberPassword() async {
+    final value = await _storage.read(key: _rememberPasswordKey);
+    return value == 'true';
+  }
+
+  Future<void> savePasswordHint(String hint) async {
+    await _storage.write(key: '${_encryptionPasswordKey}_hint', value: hint);
+  }
+
+  Future<String?> loadPasswordHint() async {
+    return await _storage.read(key: '${_encryptionPasswordKey}_hint');
   }
 }

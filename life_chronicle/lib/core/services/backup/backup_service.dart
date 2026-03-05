@@ -176,6 +176,11 @@ class BackupService {
     return mediaDir;
   }
 
+  Future<String> _getDatabasePath() async {
+    final appDocDir = await getApplicationDocumentsDirectory();
+    return path.join(appDocDir.path, 'life_chronicle.db');
+  }
+
   Future<Map<String, dynamic>> exportAllData() async {
     final exportData = <String, dynamic>{};
 
@@ -924,6 +929,8 @@ class BackupService {
   }) async {
     _emitProgress(BackupStatus.preparing, message: '准备恢复...');
     
+    String? snapshotPath;
+    
     try {
       final tempDir = await getTempDir();
       final extractDir = path.join(tempDir.path, 'extract');
@@ -956,15 +963,17 @@ class BackupService {
         extractDir,
       );
       
-      _emitProgress(BackupStatus.exporting, progress: 0.7, message: '恢复数据...');
-      await _createLocalSnapshot();
+      _emitProgress(BackupStatus.exporting, progress: 0.7, message: '创建快照...');
+      snapshotPath = await _createLocalSnapshot();
       
       try {
+        _emitProgress(BackupStatus.exporting, progress: 0.8, message: '恢复数据...');
         await importData(data, merge: true);
         await _restoreMediaFiles(mediaFiles);
         
         _emitProgress(BackupStatus.completed, progress: 1.0, message: '恢复完成！');
       } catch (e) {
+        _emitProgress(BackupStatus.preparing, message: '恢复失败，正在回滚...');
         await _restoreFromSnapshot();
         rethrow;
       }
@@ -974,16 +983,67 @@ class BackupService {
     }
   }
 
-  Future<void> _createLocalSnapshot() async {
+  Future<String> _createLocalSnapshot() async {
     final tempDir = await getTempDir();
-    final snapshotDir = Directory(path.join(tempDir.path, 'snapshot'));
-    if (await snapshotDir.exists()) {
-      await snapshotDir.delete(recursive: true);
-    }
+    final snapshotDir = Directory(path.join(tempDir.path, 'snapshot_${DateTime.now().millisecondsSinceEpoch}'));
     await snapshotDir.create(recursive: true);
+    
+    final dbPath = await _getDatabasePath();
+    final dbFile = File(dbPath);
+    if (await dbFile.exists()) {
+      await dbFile.copy(path.join(snapshotDir.path, 'database.db'));
+    }
+    
+    final mediaDir = await getMediaDir();
+    final mediaFiles = <String>[];
+    if (await mediaDir.exists()) {
+      await for (final entity in mediaDir.list(recursive: true)) {
+        if (entity is File) {
+          mediaFiles.add(entity.path);
+        }
+      }
+    }
+    
+    final metadata = {
+      'createdAt': DateTime.now().toIso8601String(),
+      'mediaFiles': mediaFiles,
+    };
+    final metadataFile = File(path.join(snapshotDir.path, 'metadata.json'));
+    await metadataFile.writeAsString(jsonEncode(metadata));
+    
+    return snapshotDir.path;
   }
 
   Future<void> _restoreFromSnapshot() async {
+    try {
+      final tempDir = await getTempDir();
+      final snapshotDirs = await tempDir.list().where((entity) => 
+        entity is Directory && path.basename(entity.path).startsWith('snapshot_')
+      ).toList();
+      
+      if (snapshotDirs.isEmpty) {
+        _emitProgress(BackupStatus.failed, error: '未找到快照文件');
+        return;
+      }
+      
+      snapshotDirs.sort((a, b) => b.path.compareTo(a.path));
+      final latestSnapshot = snapshotDirs.first as Directory;
+      
+      final dbPath = await _getDatabasePath();
+      final snapshotDb = File(path.join(latestSnapshot.path, 'database.db'));
+      if (await snapshotDb.exists()) {
+        await snapshotDb.copy(dbPath);
+      }
+      
+      final metadataFile = File(path.join(latestSnapshot.path, 'metadata.json'));
+      if (await metadataFile.exists()) {
+        final metadata = jsonDecode(await metadataFile.readAsString()) as Map<String, dynamic>;
+      }
+      
+      _emitProgress(BackupStatus.completed, message: '已从快照恢复');
+    } catch (e) {
+      _emitProgress(BackupStatus.failed, error: '快照恢复失败: $e');
+    }
   }
 
   Future<void> _restoreMediaFiles(List<File> mediaFiles) async {

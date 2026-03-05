@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="amap_map3d_city_name_size">20sp</dimen>
+    <dimen name="amap_map3d_city_progress_size">11sp</dimen>
+    <dimen name="amap_map3d_city_size_size">12sp</dimen>
+    <dimen name="amap_map3d_font_160">75dp</dimen>
+    <dimen name="amap_map3d_font_170">85dp</dimen>
+    <dimen name="amap_map3d_font_22">11sp</dimen>
+    <dimen name="amap_map3d_font_24">12sp</dimen>
+    <dimen name="amap_map3d_font_26">13sp</dimen>
+    <dimen name="amap_map3d_font_28">14sp</dimen>
+    <dimen name="amap_map3d_font_30">15sp</dimen>
+    <dimen name="amap_map3d_font_32">16sp</dimen>
+    <dimen name="amap_map3d_font_34">17sp</dimen>
+    <dimen name="amap_map3d_font_58">29dp</dimen>
+    <dimen name="amap_map3d_margin_left">15dp</dimen>
+    <dimen name="amap_map3d_margin_padding">15dp</dimen>
+    <dimen name="amap_map3d_margin_right">15dp</dimen>
+    <dimen name="amap_map3d_normal_margin">5dp</dimen>
+    <dimen name="amap_map3d_offline_down_title_hight">25dp</dimen>
+    <dimen name="amap_map3d_offset_title">5dp</dimen>
+    <dimen name="amap_map3d_offset_title_left">5dp</dimen>
+    <dimen name="amap_map3d_poi_field_size">14sp</dimen>
+    <dimen name="amap_map3d_poi_title_size">14sp</dimen>
+    <dimen name="amap_map3d_title_text_size">15sp</dimen>
+    <dimen name="amap_map3d_trace_spinner_padding">2dp</dimen>
+    <dimen name="amap_map3d_width_title_leftImg">30dp</dimen>
+    <dimen name="amap_map3d_zero">0dp</dimen>
+    <string name="amap_map3d_app_name">AMapSOSDK</string>
+    <style name="amap_map3d_AppBaseTheme" parent="android:Theme.Light">
+        <!--
+            Theme customizations available in newer API levels can go in
+            res/values-vXX/styles.xml, while customizations related to
+            backward-compatibility can go here.
+        -->
+    </style>
+    <style name="amap_map3d_AppTheme" parent="amap_map3d_AppBaseTheme">
+        <!-- All customizations that are NOT specific to a particular API-level can go here. -->
+    </style>
+    <declare-styleable name="amap_map3d_DownloadProgressView">
+        <attr format="string" name="amap_map3d_progressText"/>
+        <attr format="dimension" name="amap_map3d_progressTextSize"/>
+        <attr format="color" name="amap_map3d_progressColor"/>
+        <attr format="color" name="amap_map3d_progressTextColor"/>
+    </declare-styleable>
+</resources>
