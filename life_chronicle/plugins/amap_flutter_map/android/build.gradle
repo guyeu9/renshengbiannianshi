@@ -33,6 +33,6 @@ android {
 }
 
 dependencies {
-    compileOnly files("../../app/libs/AMap3DMap_10.1.700_AMapSearch_9.7.4_AMapLocation_6.5.1_20260122.aar")
+    compileOnly files("../../../android/app/libs/AMap3DMap_10.1.700_AMapSearch_9.7.4_AMapLocation_6.5.1_20260122.aar")
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.0"
 }
