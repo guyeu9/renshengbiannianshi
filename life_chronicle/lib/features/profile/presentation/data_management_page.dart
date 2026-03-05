@@ -2,10 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:drift/drift.dart' show Value;
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../app/app_theme.dart';
 import '../../../core/database/app_database.dart';
@@ -232,7 +234,39 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
         ),
       );
       
-      _showSnackBar('本地备份成功！文件已保存到: $finalZipPath');
+      setState(() => _isBackingUp = false);
+      
+      final shouldShare = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('备份成功'),
+          content: Text(
+            '备份文件已保存\n\n'
+            '路径: $finalZipPath\n'
+            '大小: ${(fileSize / 1024 / 1024).toStringAsFixed(2)} MB\n'
+            '记录数: $recordCount\n'
+            '媒体文件: $mediaCount\n\n'
+            '是否分享到其他应用？',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('关闭'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('分享'),
+            ),
+          ],
+        ),
+      );
+      
+      if (shouldShare == true && mounted) {
+        await Share.shareXFiles(
+          [XFile(finalZipPath)],
+          subject: '人生编年史备份 $fileName',
+        );
+      }
     } catch (e) {
       if (logId != null) {
         await db.backupLogDao.updateStatus(
@@ -273,35 +307,72 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
     setState(() => _isRestoring = true);
     
     try {
-      final appDocDir = await getApplicationDocumentsDirectory();
-      final backupDir = Directory(path.join(appDocDir.path, 'backups'));
-      if (!await backupDir.exists()) {
-        _showSnackBar('未找到备份目录', isError: true);
-        return;
-      }
-
-      final files = await backupDir.list().toList();
-      final zipFiles = files.whereType<File>().where((f) => f.path.endsWith('.zip')).toList();
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['zip', 'json'],
+        allowCompression: false,
+      );
       
-      if (zipFiles.isEmpty) {
-        _showSnackBar('未找到备份文件', isError: true);
+      if (result == null || result.files.isEmpty) {
+        setState(() => _isRestoring = false);
         return;
       }
       
-      zipFiles.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
-      final latestBackup = zipFiles.first;
+      final filePath = result.files.first.path;
+      if (filePath == null) {
+        _showSnackBar('无法获取文件路径', isError: true);
+        return;
+      }
+      
+      final file = File(filePath);
+      if (!await file.exists()) {
+        _showSnackBar('文件不存在', isError: true);
+        return;
+      }
+      
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('确认恢复'),
+          content: Text('将从文件恢复数据：\n${result.files.first.name}\n\n此操作将合并到当前数据，是否继续？'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('取消'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('确定'),
+            ),
+          ],
+        ),
+      );
+      
+      if (confirmed != true) {
+        setState(() => _isRestoring = false);
+        return;
+      }
       
       final tempDir = await backupService.getTempDir();
-      final extractDir = path.join(tempDir.path, 'extract');
       
-      final (data, mediaFiles) = await EncryptionService.extractZipArchive(latestBackup, extractDir);
+      if (filePath.endsWith('.zip')) {
+        final extractDir = path.join(tempDir.path, 'extract_${DateTime.now().millisecondsSinceEpoch}');
+        final (data, mediaFiles) = await EncryptionService.extractZipArchive(file, extractDir);
+        
+        await backupService.importData(data, merge: true);
+        await _restoreMediaFiles(mediaFiles);
+      } else if (filePath.endsWith('.json')) {
+        final jsonString = await file.readAsString();
+        final data = jsonDecode(jsonString) as Map<String, dynamic>;
+        await backupService.importData(data, merge: true);
+      } else {
+        _showSnackBar('不支持的文件格式', isError: true);
+        return;
+      }
       
-      await backupService.importData(data, merge: true);
-      await _restoreMediaFiles(mediaFiles);
-      
-      _showSnackBar('本地恢复成功！');
+      _showSnackBar('恢复成功！');
     } catch (e) {
-      _showSnackBar('本地恢复失败: $e', isError: true);
+      _showSnackBar('恢复失败: $e', isError: true);
     } finally {
       if (mounted) {
         setState(() {
@@ -335,18 +406,47 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
       final data = await backupService.exportAllData();
       final jsonString = jsonEncode(data);
       
+      final tempDir = await backupService.getTempDir();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = 'life_chronicle_export_$timestamp.json';
+      final filePath = path.join(tempDir.path, fileName);
+      final file = File(filePath);
+      await file.writeAsString(jsonString);
+      
       final appDocDir = await getApplicationDocumentsDirectory();
       final exportDir = Directory(path.join(appDocDir.path, 'exports'));
       if (!await exportDir.exists()) {
         await exportDir.create(recursive: true);
       }
+      final savedPath = path.join(exportDir.path, fileName);
+      await file.copy(savedPath);
       
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final filePath = path.join(exportDir.path, 'life_chronicle_export_$timestamp.json');
-      final file = File(filePath);
-      await file.writeAsString(jsonString);
+      setState(() => _isExporting = false);
       
-      _showSnackBar('JSON 导出成功！文件已保存到: $filePath');
+      final shouldShare = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('导出成功'),
+          content: Text('文件已保存到应用内部\n\n是否分享到其他应用？\n\n文件大小: ${(jsonString.length / 1024).toStringAsFixed(1)} KB'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('关闭'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('分享'),
+            ),
+          ],
+        ),
+      );
+      
+      if (shouldShare == true && mounted) {
+        await Share.shareXFiles(
+          [XFile(filePath)],
+          subject: '人生编年史数据导出 $fileName',
+        );
+      }
     } catch (e) {
       _showSnackBar('JSON 导出失败: $e', isError: true);
     } finally {

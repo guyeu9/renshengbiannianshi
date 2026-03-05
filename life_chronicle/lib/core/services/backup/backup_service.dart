@@ -112,7 +112,7 @@ class BackupService {
   int _countRecords(Map<String, dynamic> data) {
     int count = 0;
     for (final key in data.keys) {
-      if (key.endsWith('_records') || key == 'trips' || key == 'checklist_items' || key == 'entity_links' || key == 'link_logs' || key == 'user_profiles' || key == 'ai_providers') {
+      if (key.endsWith('_records') || key == 'trips' || key == 'checklist_items' || key == 'entity_links' || key == 'link_logs' || key == 'user_profiles' || key == 'ai_providers' || key == 'annual_reviews') {
         final value = data[key];
         if (value is List) {
           count += value.length;
@@ -193,6 +193,7 @@ class BackupService {
     exportData['user_profiles'] = await _exportUserProfiles();
     exportData['ai_providers'] = await _exportAiProviders();
     exportData['checklist_items'] = await _exportChecklistItems();
+    exportData['annual_reviews'] = await _exportAnnualReviews();
     exportData['exported_at'] = DateTime.now().toIso8601String();
     exportData['schema_version'] = db.schemaVersion;
 
@@ -269,15 +270,34 @@ class BackupService {
     return records.map((r) => r.toJson()).toList();
   }
 
+  Future<List<Map<String, dynamic>>> _exportAnnualReviews() async {
+    final records = await (db.select(db.annualReviews)).get();
+    return records.map((r) => r.toJson()).toList();
+  }
+
   Future<List<File>> collectAllMediaFiles() async {
     final mediaDir = await getMediaDir();
     if (!await mediaDir.exists()) {
       return [];
     }
 
+    final allowedExtensions = {'.jpg', '.jpeg', '.png', '.gif', '.mp4', '.mov', '.mp3', '.wav', '.webp', '.heic'};
+    final excludedPatterns = ['temp_', 'tmp_', '.tmp', 'cache_', '.cache'];
+    
     final files = <File>[];
     await for (final entity in mediaDir.list(recursive: true)) {
       if (entity is File) {
+        final fileName = path.basename(entity.path).toLowerCase();
+        final extension = path.extension(fileName).toLowerCase();
+        
+        if (!allowedExtensions.contains(extension)) {
+          continue;
+        }
+        
+        if (excludedPatterns.any((pattern) => fileName.contains(pattern))) {
+          continue;
+        }
+        
         files.add(entity);
       }
     }
@@ -326,6 +346,9 @@ class BackupService {
     }
     if (data.containsKey('checklist_items')) {
       await _importChecklistItems(List<Map<String, dynamic>>.from(data['checklist_items']), merge: merge);
+    }
+    if (data.containsKey('annual_reviews')) {
+      await _importAnnualReviews(List<Map<String, dynamic>>.from(data['annual_reviews']), merge: merge);
     }
   }
 
@@ -493,6 +516,18 @@ class BackupService {
         await db.into(db.goalReviews).insertOnConflictUpdate(companion);
       } else {
         await db.into(db.goalReviews).insert(companion);
+      }
+    }
+  }
+
+  Future<void> _importAnnualReviews(List<Map<String, dynamic>> records, {bool merge = true}) async {
+    for (final record in records) {
+      final entity = AnnualReview.fromJson(record);
+      final companion = entity.toCompanion(false);
+      if (merge) {
+        await db.into(db.annualReviews).insertOnConflictUpdate(companion);
+      } else {
+        await db.into(db.annualReviews).insert(companion);
       }
     }
   }
@@ -736,6 +771,7 @@ class BackupService {
     data['goal_records'] = await _exportGoalRecordsByIds(entityIdsByType['goal_records']?.toList() ?? []);
     data['timeline_events'] = await _exportTimelineEventsByIds(entityIdsByType['timeline_events']?.toList() ?? []);
     data['checklist_items'] = await _exportChecklistItemsByIds(entityIdsByType['checklist_items']?.toList() ?? []);
+    data['annual_reviews'] = await _exportAnnualReviewsByIds(entityIdsByType['annual_reviews']?.toList() ?? []);
     data['exported_at'] = DateTime.now().toIso8601String();
     
     return data;
@@ -817,6 +853,12 @@ class BackupService {
   Future<List<Map<String, dynamic>>> _exportChecklistItemsByIds(List<String> ids) async {
     if (ids.isEmpty) return [];
     final records = await (db.select(db.checklistItems)..where((t) => t.id.isIn(ids))).get();
+    return records.map((r) => r.toJson()).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> _exportAnnualReviewsByIds(List<String> ids) async {
+    if (ids.isEmpty) return [];
+    final records = await (db.select(db.annualReviews)..where((t) => t.id.isIn(ids))).get();
     return records.map((r) => r.toJson()).toList();
   }
 
