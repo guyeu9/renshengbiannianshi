@@ -80,6 +80,6 @@ class BackupFileManager {
 
   Future<int> getTotalBackupSize() async {
     final files = await listBackupFiles();
-    return files.fold(0, (sum, file) => sum + file.fileSize);
+    return files.fold<int>(0, (sum, file) => sum + file.fileSize);
   }
 }

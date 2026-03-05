@@ -18,6 +18,39 @@ import '../../../core/services/data_statistics_service.dart';
 import '../../../core/services/excel_export_service.dart';
 import '../../../core/services/pdf_export_service.dart';
 import 'backup_log_page.dart';
+import 'amap_log_page.dart';
+
+class ExportConfig {
+  final bool includeFood;
+  final bool includeMoment;
+  final bool includeFriend;
+  final bool includeTravel;
+  final bool includeGoal;
+  final bool includeTimeline;
+  final bool isPdf;
+  final bool includeCover;
+  final bool includeToc;
+  final bool includeCharts;
+  final bool includePhotos;
+  final DateTime? startDate;
+  final DateTime? endDate;
+  
+  ExportConfig({
+    this.includeFood = true,
+    this.includeMoment = true,
+    this.includeFriend = true,
+    this.includeTravel = true,
+    this.includeGoal = true,
+    this.includeTimeline = true,
+    this.isPdf = true,
+    this.includeCover = true,
+    this.includeToc = true,
+    this.includeCharts = true,
+    this.includePhotos = true,
+    this.startDate,
+    this.endDate,
+  });
+}
 
 class DataManagementPage extends ConsumerStatefulWidget {
   const DataManagementPage({super.key});
@@ -52,6 +85,22 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
   bool _rememberPassword = false;
   String? _passwordHint;
   String _backupFrequency = 'daily';
+  
+  Map<String, bool> _selectedModules = {
+    'food': true,
+    'moment': true,
+    'friend': true,
+    'travel': true,
+    'goal': true,
+    'timeline': true,
+  };
+  bool _exportAsPdf = false;
+  bool _includeCover = true;
+  bool _includeToc = true;
+  bool _includeCharts = true;
+  bool _includePhotos = true;
+  DateTime? _exportStartDate;
+  DateTime? _exportEndDate;
 
   @override
   void initState() {
@@ -521,12 +570,24 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
   }
 
   Future<void> _exportToExcel() async {
+    final config = await _showExportModuleSelector();
+    if (config == null) return;
+    
     setState(() => _isExporting = true);
     
     try {
       final db = ref.read(appDatabaseProvider);
       final service = ExcelExportService(db);
-      final filePath = await service.exportToExcel();
+      final filePath = await service.exportToExcel(
+        includeFood: config.includeFood,
+        includeMoment: config.includeMoment,
+        includeFriend: config.includeFriend,
+        includeTravel: config.includeTravel,
+        includeGoal: config.includeGoal,
+        includeTimeline: config.includeTimeline,
+        startDate: config.startDate,
+        endDate: config.endDate,
+      );
       
       setState(() => _isExporting = false);
       
@@ -562,12 +623,28 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
   }
 
   Future<void> _exportToPdf() async {
+    final config = await _showExportModuleSelector();
+    if (config == null) return;
+    
     setState(() => _isExporting = true);
     
     try {
       final db = ref.read(appDatabaseProvider);
       final service = PdfExportService(db);
-      final filePath = await service.exportToPdf();
+      final filePath = await service.exportToPdf(
+        includeFood: config.includeFood,
+        includeMoment: config.includeMoment,
+        includeFriend: config.includeFriend,
+        includeTravel: config.includeTravel,
+        includeGoal: config.includeGoal,
+        includeTimeline: config.includeTimeline,
+        includeCover: config.includeCover,
+        includeToc: config.includeToc,
+        includeCharts: config.includeCharts,
+        includePhotos: config.includePhotos,
+        startDate: config.startDate,
+        endDate: config.endDate,
+      );
       
       setState(() => _isExporting = false);
       
@@ -600,6 +677,263 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
         setState(() => _isExporting = false);
       }
     }
+  }
+
+  Future<ExportConfig?> _showExportModuleSelector() async {
+    final db = ref.read(appDatabaseProvider);
+    
+    final foodCount = await (db.select(db.foodRecords)).get().then((r) => r.length);
+    final momentCount = await (db.select(db.momentRecords)).get().then((r) => r.length);
+    final friendCount = await (db.select(db.friendRecords)).get().then((r) => r.length);
+    final travelCount = await (db.select(db.travelRecords)).get().then((r) => r.length);
+    final goalCount = await (db.select(db.goalRecords)).get().then((r) => r.length);
+    final timelineCount = await (db.select(db.timelineEvents)).get().then((r) => r.length);
+    
+    return await showDialog<ExportConfig>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: Row(
+              children: [
+                Icon(Icons.download, color: AppTheme.primary),
+                const SizedBox(width: 8),
+                const Text('选择导出模块'),
+              ],
+            ),
+            content: SizedBox(
+              width: 400,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildModuleCheckbox('🍜 美食记录', 'food', foodCount, setDialogState),
+                    _buildModuleCheckbox('✨ 小确幸', 'moment', momentCount, setDialogState),
+                    _buildModuleCheckbox('💕 羁绊', 'friend', friendCount, setDialogState),
+                    _buildModuleCheckbox('✈️ 旅行', 'travel', travelCount, setDialogState),
+                    _buildModuleCheckbox('🎯 目标', 'goal', goalCount, setDialogState),
+                    _buildModuleCheckbox('⏳ 时间线', 'timeline', timelineCount, setDialogState),
+                    
+                    const SizedBox(height: 16),
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    
+                    Row(
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            setDialogState(() {
+                              _selectedModules = {
+                                'food': true, 'moment': true, 'friend': true,
+                                'travel': true, 'goal': true, 'timeline': true,
+                              };
+                            });
+                          },
+                          child: const Text('全选'),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            setDialogState(() {
+                              _selectedModules = {
+                                'food': false, 'moment': false, 'friend': false,
+                                'travel': false, 'goal': false, 'timeline': false,
+                              };
+                            });
+                          },
+                          child: const Text('取消全选'),
+                        ),
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    
+                    const Text('时间范围', style: TextStyle(fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: () async {
+                              final date = await showDatePicker(
+                                context: context,
+                                initialDate: _exportStartDate ?? DateTime.now().subtract(const Duration(days: 365)),
+                                firstDate: DateTime(2000),
+                                lastDate: DateTime.now(),
+                              );
+                              if (date != null) {
+                                setDialogState(() => _exportStartDate = date);
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey.shade300),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    _exportStartDate != null 
+                                        ? '${_exportStartDate!.year}-${_exportStartDate!.month.toString().padLeft(2, '0')}-${_exportStartDate!.day.toString().padLeft(2, '0')}'
+                                        : '开始日期',
+                                    style: TextStyle(
+                                      color: _exportStartDate != null ? Colors.black87 : Colors.grey,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text('至'),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: InkWell(
+                            onTap: () async {
+                              final date = await showDatePicker(
+                                context: context,
+                                initialDate: _exportEndDate ?? DateTime.now(),
+                                firstDate: DateTime(2000),
+                                lastDate: DateTime.now(),
+                              );
+                              if (date != null) {
+                                setDialogState(() => _exportEndDate = date);
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey.shade300),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    _exportEndDate != null 
+                                        ? '${_exportEndDate!.year}-${_exportEndDate!.month.toString().padLeft(2, '0')}-${_exportEndDate!.day.toString().padLeft(2, '0')}'
+                                        : '结束日期',
+                                    style: TextStyle(
+                                      color: _exportEndDate != null ? Colors.black87 : Colors.grey,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        TextButton(
+                          onPressed: () {
+                            setDialogState(() {
+                              _exportStartDate = null;
+                              _exportEndDate = null;
+                            });
+                          },
+                          child: const Text('清除'),
+                        ),
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    
+                    const Text('导出格式', style: TextStyle(fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Radio<bool>(
+                          value: false,
+                          groupValue: _exportAsPdf,
+                          onChanged: (v) => setDialogState(() => _exportAsPdf = v!),
+                        ),
+                        const Icon(Icons.table_chart, color: Colors.green, size: 20),
+                        const SizedBox(width: 4),
+                        const Text('Excel'),
+                        const SizedBox(width: 24),
+                        Radio<bool>(
+                          value: true,
+                          groupValue: _exportAsPdf,
+                          onChanged: (v) => setDialogState(() => _exportAsPdf = v!),
+                        ),
+                        const Icon(Icons.picture_as_pdf, color: Colors.red, size: 20),
+                        const SizedBox(width: 4),
+                        const Text('PDF'),
+                      ],
+                    ),
+                    
+                    if (_exportAsPdf) ...[
+                      const SizedBox(height: 16),
+                      const Text('PDF选项', style: TextStyle(fontWeight: FontWeight.w500)),
+                      const SizedBox(height: 8),
+                      _buildPdfOption('包含封面', _includeCover, (v) => setDialogState(() => _includeCover = v)),
+                      _buildPdfOption('包含目录', _includeToc, (v) => setDialogState(() => _includeToc = v)),
+                      _buildPdfOption('包含统计图表', _includeCharts, (v) => setDialogState(() => _includeCharts = v)),
+                      _buildPdfOption('包含照片', _includePhotos, (v) => setDialogState(() => _includePhotos = v)),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(null),
+                child: const Text('取消'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop(ExportConfig(
+                    includeFood: _selectedModules['food']!,
+                    includeMoment: _selectedModules['moment']!,
+                    includeFriend: _selectedModules['friend']!,
+                    includeTravel: _selectedModules['travel']!,
+                    includeGoal: _selectedModules['goal']!,
+                    includeTimeline: _selectedModules['timeline']!,
+                    isPdf: _exportAsPdf,
+                    includeCover: _includeCover,
+                    includeToc: _includeToc,
+                    includeCharts: _includeCharts,
+                    includePhotos: _includePhotos,
+                    startDate: _exportStartDate,
+                    endDate: _exportEndDate,
+                  ));
+                },
+                child: const Text('开始导出'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildModuleCheckbox(String label, String key, int count, StateSetter setDialogState) {
+    return CheckboxListTile(
+      value: _selectedModules[key],
+      onChanged: (v) {
+        setDialogState(() {
+          _selectedModules[key] = v!;
+        });
+      },
+      title: Text(label),
+      subtitle: Text('$count 条记录'),
+      controlAffinity: ListTileControlAffinity.leading,
+      dense: true,
+    );
+  }
+
+  Widget _buildPdfOption(String label, bool value, Function(bool) onChanged) {
+    return CheckboxListTile(
+      value: value,
+      onChanged: (v) => onChanged(v!),
+      title: Text(label),
+      controlAffinity: ListTileControlAffinity.leading,
+      dense: true,
+    );
   }
 
   Future<void> _loadAvailableBackups() async {
@@ -1899,65 +2233,91 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
           ),
         ),
         child: SafeArea(
-          child: Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _showClearDataDialog,
-                  style: OutlinedButton.styleFrom(
-                    backgroundColor: isDark ? const Color(0xFF1F2937) : const Color(0xFFFEE2E2),
-                    foregroundColor: Colors.red,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _showClearDataDialog,
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: isDark ? const Color(0xFF1F2937) : const Color(0xFFFEE2E2),
+                        foregroundColor: Colors.red,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        side: BorderSide.none,
+                      ),
+                      icon: const Icon(Icons.delete_forever, size: 20),
+                      label: const Text('清空数据', style: TextStyle(fontWeight: FontWeight.w500)),
                     ),
-                    side: BorderSide.none,
                   ),
-                  icon: const Icon(Icons.delete_forever, size: 20),
-                  label: const Text('清空数据', style: TextStyle(fontWeight: FontWeight.w500)),
-                ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const BackupLogPage(),
+                          ),
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: isDark ? const Color(0xFF1F2937) : const Color(0xFFF3F4F6),
+                        foregroundColor: isDark ? const Color(0xFFD1D5DB) : const Color(0xFF4B5563),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        side: BorderSide.none,
+                      ),
+                      icon: const Icon(Icons.history, size: 20),
+                      label: const Text('查看日志', style: TextStyle(fontWeight: FontWeight.w500)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton.icon(
+                      onPressed: (_isBackingUp || _config == null) ? null : _performFullBackup,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                      icon: const Icon(Icons.sync, size: 20),
+                      label: Text(
+                        _isBackingUp ? '备份中...' : '立即备份',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton.icon(
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
                   onPressed: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (context) => const BackupLogPage(),
+                        builder: (context) => const AmapLogPage(),
                       ),
                     );
                   },
-                  style: OutlinedButton.styleFrom(
-                    backgroundColor: isDark ? const Color(0xFF1F2937) : const Color(0xFFF3F4F6),
-                    foregroundColor: isDark ? const Color(0xFFD1D5DB) : const Color(0xFF4B5563),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    side: BorderSide.none,
-                  ),
-                  icon: const Icon(Icons.history, size: 20),
-                  label: const Text('查看日志', style: TextStyle(fontWeight: FontWeight.w500)),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: ElevatedButton.icon(
-                  onPressed: (_isBackingUp || _config == null) ? null : _performFullBackup,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
-                  icon: const Icon(Icons.sync, size: 20),
+                  icon: Icon(Icons.map_outlined, size: 16, color: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
                   label: Text(
-                    _isBackingUp ? '备份中...' : '立即备份',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    '地图诊断日志',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                    ),
                   ),
                 ),
               ),

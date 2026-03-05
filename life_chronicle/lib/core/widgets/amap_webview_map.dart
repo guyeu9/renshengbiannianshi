@@ -10,6 +10,8 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import '../services/file_logger.dart';
+
 class AMapWebViewMap extends StatefulWidget {
   const AMapWebViewMap({
     super.key,
@@ -76,6 +78,12 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
   @override
   void initState() {
     super.initState();
+    amapLog('AmapWebView', '========== WebView Map initState ==========');
+    amapLog('AmapWebView', 'initialLatitude: ${widget.initialLatitude}');
+    amapLog('AmapWebView', 'initialLongitude: ${widget.initialLongitude}');
+    amapLog('AmapWebView', 'autoLocate: ${widget.autoLocate}');
+    amapLog('AmapWebView', 'webKey configured: ${widget.webKey.isNotEmpty}');
+    amapLog('AmapWebView', '===========================================');
     _initLocationPlugin();
     _requestLocationPermission().then((_) {
       _initWebView();
@@ -83,9 +91,11 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
   }
 
   void _initLocationPlugin() {
+    amapLog('AmapWebView', 'Initializing location plugin...');
     AMapFlutterLocation.setApiKey(_amapAndroidKey, _amapIosKey);
     AMapFlutterLocation.updatePrivacyShow(true, true);
     AMapFlutterLocation.updatePrivacyAgree(true);
+    amapLog('AmapWebView', 'Privacy settings updated');
     
     _locationPlugin = AMapFlutterLocation();
     _locationPlugin?.setLocationOption(AMapLocationOption(
@@ -94,6 +104,7 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
       geoLanguage: GeoLanguage.ZH,
       locationMode: AMapLocationMode.Hight_Accuracy,
     ));
+    amapLog('AmapWebView', 'Location plugin initialized');
   }
 
   @override
@@ -104,50 +115,59 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
   }
 
   Future<void> _requestLocationPermission() async {
+    amapLog('AmapWebView', '========== Requesting location permission ==========');
     if (!Platform.isAndroid && !Platform.isIOS) {
+      amapLog('AmapWebView', 'Not on mobile, permission granted');
       _locationPermissionGranted = true;
       return;
     }
 
     try {
       final status = await Permission.location.status;
+      amapLog('AmapWebView', 'Current permission status: $status');
       if (status.isGranted) {
+        amapLog('AmapWebView', 'Permission already granted');
         _locationPermissionGranted = true;
         return;
       }
 
+      amapLog('AmapWebView', 'Requesting location permission...');
       final result = await Permission.location.request();
+      amapLog('AmapWebView', 'Permission request result: $result');
       if (result.isGranted) {
+        amapLog('AmapWebView', 'Permission granted');
         _locationPermissionGranted = true;
       } else if (result.isPermanentlyDenied) {
-        if (kDebugMode) {
-          debugPrint('AMapWebViewMap: Location permission permanently denied');
-        }
+        amapLog('AmapWebView', 'Location permission permanently denied');
+      } else if (result.isDenied) {
+        amapLog('AmapWebView', 'Location permission denied');
       }
     } catch (e) {
-      if (kDebugMode) {
-        debugPrint('AMapWebViewMap: Permission request error: $e');
-      }
+      amapLog('AmapWebView', 'Permission request error: $e');
     }
+    amapLog('AmapWebView', '_locationPermissionGranted: $_locationPermissionGranted');
+    amapLog('AmapWebView', '===================================================');
   }
 
   void _initWebView() {
+    amapLog('AmapWebView', '========== Initializing WebView ==========');
     final htmlContent = _buildMapHtml();
     
+    amapLog('AmapWebView', 'Creating WebViewController...');
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.white)
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (String url) {
-            debugPrint('AMapWebViewMap: Page started loading: $url');
+            amapLog('AmapWebView', 'Page started loading: $url');
           },
           onPageFinished: (String url) {
-            debugPrint('AMapWebViewMap: Page finished loading: $url');
+            amapLog('AmapWebView', 'Page finished loading: $url');
             setState(() => _isLoading = false);
           },
           onWebResourceError: (WebResourceError error) {
-            debugPrint('AMapWebViewMap: Resource error: ${error.description}, code: ${error.errorCode}');
+            amapLog('AmapWebView', 'Resource error: ${error.description}, code: ${error.errorCode}, type: ${error.errorType}');
             setState(() {
               _hasError = true;
               _errorMessage = '资源加载失败 (${error.errorCode}): ${error.description}';
@@ -156,8 +176,11 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
             widget.onError?.call(_errorMessage);
           },
           onNavigationRequest: (NavigationRequest request) {
-            debugPrint('AMapWebViewMap: Navigation request: ${request.url}');
+            amapLog('AmapWebView', 'Navigation request: ${request.url}');
             return NavigationDecision.navigate;
+          },
+          onHttpError: (error) {
+            amapLog('AmapWebView', 'HTTP error: ${error.response?.statusCode} for ${error.request?.url}');
           },
         ),
       )
@@ -168,17 +191,21 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
       ..addJavaScriptChannel(
         'ConsoleLog',
         onMessageReceived: (message) {
-          debugPrint('[WebView] ${message.message}');
+          amapLog('WebViewConsole', message.message);
         },
       );
 
+    amapLog('AmapWebView', 'Loading HTML content...');
     if (Platform.isAndroid) {
+      amapLog('AmapWebView', 'Android platform, using baseUrl: https://webapi.amap.com/');
       _controller!.loadHtmlString(htmlContent, baseUrl: 'https://webapi.amap.com/');
     } else {
       _controller!.loadHtmlString(htmlContent);
     }
 
     setState(() {});
+    amapLog('AmapWebView', 'WebView initialization complete');
+    amapLog('AmapWebView', '========================================');
   }
 
   String _buildMapHtml() {
@@ -195,8 +222,8 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
     final enablePoiClick = widget.enablePoiClick && !widget.isPreviewMode;
     final hasMarker = isPreviewMode && markerLat != null && markerLng != null;
 
-    debugPrint('AMapWebViewMap: Building HTML with webKey=$webKey, securityCode=${securityCode.isNotEmpty ? "已配置" : "未配置"}');
-    debugPrint('AMapWebViewMap: Initial position: lat=$initialLat, lng=$initialLng, zoom=$initialZoom');
+    amapLog('AmapWebView', 'Building HTML with webKey=$webKey, securityCode=${securityCode.isNotEmpty ? "已配置" : "未配置"}');
+    amapLog('AmapWebView', 'Initial position: lat=$initialLat, lng=$initialLng, zoom=$initialZoom');
 
     return '''
 <!DOCTYPE html>
@@ -435,12 +462,12 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
           setState(() => _isMapReady = true);
           widget.onMapReady?.call();
           if (_pendingLat != null && _pendingLng != null) {
-            debugPrint('AMapWebViewMap: Map ready, setting cached location: lat=$_pendingLat, lng=$_pendingLng');
+            amapLog('AmapWebView', 'Map ready, setting cached location: lat=$_pendingLat, lng=$_pendingLng');
             _controller?.runJavaScript('if(window.setCenter) window.setCenter($_pendingLng, $_pendingLat)');
             _pendingLat = null;
             _pendingLng = null;
           } else if (widget.autoLocate && !widget.isPreviewMode) {
-            debugPrint('AMapWebViewMap: Map ready, auto-locating...');
+            amapLog('AmapWebView', 'Map ready, auto-locating...');
             _handleLocationRequest();
           }
           break;
@@ -476,26 +503,30 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
           break;
       }
     } catch (e) {
-      debugPrint('AMapWebViewMap: Error parsing JS message: $e');
+      amapLog('AmapWebView', 'Error parsing JS message: $e');
     }
   }
 
   Future<void> _handleLocationRequest() async {
+    amapLog('AmapWebView', '========== Handling location request ==========');
     if (_isLocating) {
-      debugPrint('AMapWebViewMap: Already locating, skip');
+      amapLog('AmapWebView', 'Already locating, skip');
       return;
     }
 
+    amapLog('AmapWebView', 'Cancelling existing subscription...');
     _locationSubscription?.cancel();
     _locationSubscription = null;
 
+    amapLog('AmapWebView', 'Reinitializing location plugin...');
     _locationPlugin?.destroy();
     _initLocationPlugin();
     
     if (!_locationPermissionGranted) {
+      amapLog('AmapWebView', 'Permission not granted, requesting...');
       await _requestLocationPermission();
       if (!_locationPermissionGranted) {
-        debugPrint('AMapWebViewMap: Location permission not granted');
+        amapLog('AmapWebView', 'Location permission still not granted');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('定位权限未授权，请在设置中开启')),
@@ -505,18 +536,21 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
       }
     }
 
+    amapLog('AmapWebView', 'Setting _isLocating = true');
     setState(() => _isLocating = true);
     
     try {
+      amapLog('AmapWebView', 'Setting up location listener...');
       _locationSubscription = _locationPlugin?.onLocationChanged().listen(
         (result) {
-          debugPrint('AMapWebViewMap: Location result: $result');
+          amapLog('AmapWebView', '========== Location result received ==========');
+          amapLog('AmapWebView', 'Location result: $result');
           _locationSubscription?.cancel();
           
           final errorCode = result['errorCode'];
           if (errorCode != null && errorCode != 0) {
             final errorInfo = result['errorInfo'] ?? '定位失败';
-            debugPrint('AMapWebViewMap: Location error code=$errorCode, info=$errorInfo');
+            amapLog('AmapWebView', 'Location error code=$errorCode, info=$errorInfo');
             if (mounted) {
               setState(() => _isLocating = false);
               ScaffoldMessenger.of(context).showSnackBar(
@@ -532,23 +566,24 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
           final address = (result['address'] as String?) ?? '';
           final description = (result['description'] as String?) ?? '';
           
-          debugPrint('AMapWebViewMap: Location details - city=$city, address=$address, description=$description');
+          amapLog('AmapWebView', 'Location details - city=$city, address=$address, description=$description');
           
           if (lat != null && lng != null && mounted) {
             if (_isMapReady) {
+              amapLog('AmapWebView', 'Map is ready, setting center...');
               _controller?.runJavaScript('if(window.setCenter) window.setCenter($lng, $lat)');
             } else {
               _pendingLat = lat;
               _pendingLng = lng;
-              debugPrint('AMapWebViewMap: Map not ready, caching location: lat=$lat, lng=$lng');
+              amapLog('AmapWebView', 'Map not ready, caching location: lat=$lat, lng=$lng');
             }
             widget.onLocationSelected?.call(lat, lng);
             widget.onLocationWithAddress?.call(lat, lng, city, address, description);
             widget.onLocationReadyForNearbySearch?.call(lat, lng);
             setState(() => _isLocating = false);
-            debugPrint('AMapWebViewMap: Location success: lat=$lat, lng=$lng, city=$city, address=$address');
+            amapLog('AmapWebView', 'Location success: lat=$lat, lng=$lng, city=$city, address=$address');
           } else {
-            debugPrint('AMapWebViewMap: Location result invalid: $result');
+            amapLog('AmapWebView', 'Location result invalid: $result');
             if (mounted) {
               setState(() => _isLocating = false);
               ScaffoldMessenger.of(context).showSnackBar(
@@ -557,10 +592,12 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
             }
           }
           
+          amapLog('AmapWebView', 'Stopping location...');
           _locationPlugin?.stopLocation();
+          amapLog('AmapWebView', '===========================================');
         },
         onError: (error) {
-          debugPrint('AMapWebViewMap: Location stream error: $error');
+          amapLog('AmapWebView', 'Location stream error: $error');
           if (mounted) {
             setState(() => _isLocating = false);
             ScaffoldMessenger.of(context).showSnackBar(
@@ -570,12 +607,14 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
         },
       );
       
+      amapLog('AmapWebView', 'Starting location...');
       _locationPlugin?.startLocation();
-      debugPrint('AMapWebViewMap: Location started, waiting for result...');
+      amapLog('AmapWebView', 'Location started, waiting for result...');
       
+      amapLog('AmapWebView', 'Setting 15 second timeout...');
       await Future.delayed(const Duration(seconds: 15));
       if (_isLocating && mounted) {
-        debugPrint('AMapWebViewMap: Location timeout after 15 seconds');
+        amapLog('AmapWebView', '========== Location timeout after 15 seconds ==========');
         _locationSubscription?.cancel();
         _locationPlugin?.stopLocation();
         setState(() => _isLocating = false);
@@ -584,7 +623,7 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
         );
       }
     } catch (e) {
-      debugPrint('AMapWebViewMap: Location error: $e');
+      amapLog('AmapWebView', 'Location error: $e');
       if (mounted) {
         setState(() => _isLocating = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -592,6 +631,7 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
         );
       }
     }
+    amapLog('AmapWebView', '=============================================');
   }
 
   Future<void> setCenter(double lat, double lng) async {

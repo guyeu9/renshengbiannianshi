@@ -929,8 +929,6 @@ class BackupService {
   }) async {
     _emitProgress(BackupStatus.preparing, message: '准备恢复...');
     
-    String? snapshotPath;
-    
     try {
       final tempDir = await getTempDir();
       final extractDir = path.join(tempDir.path, 'extract');
@@ -1037,7 +1035,7 @@ class BackupService {
       
       final metadataFile = File(path.join(latestSnapshot.path, 'metadata.json'));
       if (await metadataFile.exists()) {
-        final metadata = jsonDecode(await metadataFile.readAsString()) as Map<String, dynamic>;
+        await metadataFile.readAsString();
       }
       
       _emitProgress(BackupStatus.completed, message: '已从快照恢复');

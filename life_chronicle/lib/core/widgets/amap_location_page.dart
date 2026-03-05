@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'amap_webview_map.dart';
+import '../services/file_logger.dart';
 
 class AmapLocationPickResult {
   const AmapLocationPickResult({
@@ -129,6 +130,8 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
   
   var _nearbyPois = <_AmapPoi>[];
   bool _loadingNearby = false;
+  bool _nativeMapFailed = false;
+  DateTime? _nativeMapCreatedTime;
 
   String get _pickedPoiName => _poiNameController.text.trim();
   String get _pickedAddress => _addressController.text.trim();
@@ -172,6 +175,19 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
       _pickedLatitude = widget.initialLatitude;
       _pickedLongitude = widget.initialLongitude;
       _searchController.text = widget.initialPoiName.trim().isNotEmpty ? widget.initialPoiName.trim() : widget.initialAddress.trim();
+    }
+    
+    _checkNativeMapTimeout();
+  }
+
+  Future<void> _checkNativeMapTimeout() async {
+    await Future.delayed(const Duration(seconds: 10));
+    if (!mounted) return;
+    if (_nativeMapCreatedTime == null && !_nativeMapFailed && !kIsWeb && _hasNativeKey) {
+      amapLog('AmapNative', '========== Native map timeout, fallback to WebView ==========');
+      setState(() {
+        _nativeMapFailed = true;
+      });
     }
   }
 
@@ -581,13 +597,25 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
     final mapTargetLng = _pickedLongitude ?? 116.397499;
     final androidMajor = _androidMajorVersion();
     final isAndroid15OrAbove = androidMajor != null && androidMajor >= 15;
-    final canUseNativeMap = !kIsWeb && _hasNativeKey;
-    final useWebViewMap = !kIsWeb && isAndroid15OrAbove && _hasWebKey && !_hasNativeKey;
+    final canUseNativeMap = !kIsWeb && _hasNativeKey && !_nativeMapFailed;
+    final useWebViewMap = (!kIsWeb && isAndroid15OrAbove && _hasWebKey && !_hasNativeKey) || (_nativeMapFailed && _hasWebKey);
     final mapUnavailableText = kIsWeb
         ? 'Web 暂不支持内嵌地图'
         : !_hasNativeKey && !_hasWebKey
             ? '未配置高德 Key'
             : '地图加载中...';
+
+    amapLog('AmapLocation', '========== 地图初始化 ==========');
+    amapLog('AmapLocation', 'Android version: $androidMajor');
+    amapLog('AmapLocation', 'isAndroid15OrAbove: $isAndroid15OrAbove');
+    amapLog('AmapLocation', 'canUseNativeMap: $canUseNativeMap');
+    amapLog('AmapLocation', 'useWebViewMap: $useWebViewMap');
+    amapLog('AmapLocation', 'hasNativeKey: $_hasNativeKey');
+    amapLog('AmapLocation', 'hasWebKey: $_hasWebKey');
+    amapLog('AmapLocation', 'kIsWeb: $kIsWeb');
+    amapLog('AmapLocation', 'Platform: ${defaultTargetPlatform}');
+    amapLog('AmapLocation', '_nativeMapFailed: $_nativeMapFailed');
+    amapLog('AmapLocation', '====================================');
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8F8),
@@ -631,8 +659,12 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
                           myLocationStyleOptions: amap.MyLocationStyleOptions(true),
                           markers: isPreview ? _pickedMarkers : <amap.Marker>{},
                           onMapCreated: (controller) {
+                            amapLog('AmapNative', '========== onMapCreated called ==========');
+                            _nativeMapCreatedTime = DateTime.now();
                             _mapController = controller;
                             _syncMarkerAndCamera();
+                            amapLog('AmapNative', 'Native map initialized successfully');
+                            amapLog('AmapNative', '========================================');
                           },
                           onPoiTouched: isPreview
                               ? null

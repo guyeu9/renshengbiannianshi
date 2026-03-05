@@ -17,26 +17,39 @@ class ExcelExportService {
     bool includeTravel = true,
     bool includeGoal = true,
     bool includeTimeline = true,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
     final excel = Excel.createExcel();
     
+    await _createOverviewSheet(excel,
+      includeFood: includeFood,
+      includeMoment: includeMoment,
+      includeFriend: includeFriend,
+      includeTravel: includeTravel,
+      includeGoal: includeGoal,
+      includeTimeline: includeTimeline,
+      startDate: startDate,
+      endDate: endDate,
+    );
+    
     if (includeFood) {
-      await _exportFoodRecords(excel);
+      await _exportFoodRecords(excel, startDate: startDate, endDate: endDate);
     }
     if (includeMoment) {
-      await _exportMomentRecords(excel);
+      await _exportMomentRecords(excel, startDate: startDate, endDate: endDate);
     }
     if (includeFriend) {
       await _exportFriendRecords(excel);
     }
     if (includeTravel) {
-      await _exportTravelRecords(excel);
+      await _exportTravelRecords(excel, startDate: startDate, endDate: endDate);
     }
     if (includeGoal) {
       await _exportGoalRecords(excel);
     }
     if (includeTimeline) {
-      await _exportTimelineEvents(excel);
+      await _exportTimelineEvents(excel, startDate: startDate, endDate: endDate);
     }
     
     excel.delete('Sheet1');
@@ -55,112 +68,383 @@ class ExcelExportService {
     return filePath;
   }
   
-  Future<void> _exportFoodRecords(Excel excel) async {
-    final records = await (db.select(db.foodRecords)).get();
-    final sheet = excel['美食记录'];
+  Future<void> _createOverviewSheet(Excel excel, {
+    required bool includeFood,
+    required bool includeMoment,
+    required bool includeFriend,
+    required bool includeTravel,
+    required bool includeGoal,
+    required bool includeTimeline,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    final sheet = excel['📊 数据概览'];
     
-    sheet.appendRow(['ID', '标题', '描述', '评分', '标签', '创建时间']);
+    sheet.merge(CellIndex.indexByString('A1'), CellIndex.indexByString('F1'));
+    final titleCell = sheet.cell(CellIndex.indexByString('A1'));
+    titleCell.value = const TextCellValue('人生编年史 - 数据导出报告');
+    titleCell.cellStyle = CellStyle(
+      bold: true,
+      fontSize: 16,
+      fontFamily: 'Arial',
+    );
     
-    for (final record in records) {
-      sheet.appendRow([
-        record.id,
-        record.title,
-        record.description ?? '',
-        record.rating?.toString() ?? '',
-        record.tags?.join(', ') ?? '',
-        record.createdAt.toIso8601String(),
-      ]);
+    sheet.cell(CellIndex.indexByString('A3')).value = const TextCellValue('导出时间:');
+    sheet.cell(CellIndex.indexByString('B3')).value = TextCellValue(DateTime.now().toString().split('.')[0]);
+    
+    sheet.cell(CellIndex.indexByString('A4')).value = const TextCellValue('导出版本:');
+    sheet.cell(CellIndex.indexByString('B4')).value = const TextCellValue('v1.0');
+    
+    if (startDate != null || endDate != null) {
+      sheet.cell(CellIndex.indexByString('A5')).value = const TextCellValue('时间范围:');
+      final startStr = startDate != null ? '${startDate.year}-${startDate.month.toString().padLeft(2, '0')}-${startDate.day.toString().padLeft(2, '0')}' : '不限';
+      final endStr = endDate != null ? '${endDate.year}-${endDate.month.toString().padLeft(2, '0')}-${endDate.day.toString().padLeft(2, '0')}' : '不限';
+      sheet.cell(CellIndex.indexByString('B5')).value = TextCellValue('$startStr 至 $endStr');
+    }
+    
+    int rowNum = 6;
+    sheet.cell(CellIndex.indexByString('A$rowNum')).value = const TextCellValue('模块');
+    sheet.cell(CellIndex.indexByString('B$rowNum')).value = const TextCellValue('记录数');
+    sheet.cell(CellIndex.indexByString('C$rowNum')).value = const TextCellValue('状态');
+    
+    for (var col in ['A', 'B', 'C']) {
+      final cell = sheet.cell(CellIndex.indexByString('$col$rowNum'));
+      cell.cellStyle = CellStyle(
+        bold: true,
+        backgroundColorHex: '4F46E5',
+        fontColorHex: 'FFFFFF',
+      );
+    }
+    
+    rowNum++;
+    
+    if (includeFood) {
+      final count = await (db.select(db.foodRecords)).get().then((r) => r.length);
+      sheet.cell(CellIndex.indexByString('A$rowNum')).value = const TextCellValue('🍜 美食记录');
+      sheet.cell(CellIndex.indexByString('B$rowNum')).value = IntCellValue(count);
+      sheet.cell(CellIndex.indexByString('C$rowNum')).value = const TextCellValue('已导出');
+      rowNum++;
+    }
+    
+    if (includeMoment) {
+      final count = await (db.select(db.momentRecords)).get().then((r) => r.length);
+      sheet.cell(CellIndex.indexByString('A$rowNum')).value = const TextCellValue('✨ 小确幸');
+      sheet.cell(CellIndex.indexByString('B$rowNum')).value = IntCellValue(count);
+      sheet.cell(CellIndex.indexByString('C$rowNum')).value = const TextCellValue('已导出');
+      rowNum++;
+    }
+    
+    if (includeFriend) {
+      final count = await (db.select(db.friendRecords)).get().then((r) => r.length);
+      sheet.cell(CellIndex.indexByString('A$rowNum')).value = const TextCellValue('💕 羁绊');
+      sheet.cell(CellIndex.indexByString('B$rowNum')).value = IntCellValue(count);
+      sheet.cell(CellIndex.indexByString('C$rowNum')).value = const TextCellValue('已导出');
+      rowNum++;
+    }
+    
+    if (includeTravel) {
+      final count = await (db.select(db.travelRecords)).get().then((r) => r.length);
+      sheet.cell(CellIndex.indexByString('A$rowNum')).value = const TextCellValue('✈️ 旅行');
+      sheet.cell(CellIndex.indexByString('B$rowNum')).value = IntCellValue(count);
+      sheet.cell(CellIndex.indexByString('C$rowNum')).value = const TextCellValue('已导出');
+      rowNum++;
+    }
+    
+    if (includeGoal) {
+      final count = await (db.select(db.goalRecords)).get().then((r) => r.length);
+      sheet.cell(CellIndex.indexByString('A$rowNum')).value = const TextCellValue('🎯 目标');
+      sheet.cell(CellIndex.indexByString('B$rowNum')).value = IntCellValue(count);
+      sheet.cell(CellIndex.indexByString('C$rowNum')).value = const TextCellValue('已导出');
+      rowNum++;
+    }
+    
+    if (includeTimeline) {
+      final count = await (db.select(db.timelineEvents)).get().then((r) => r.length);
+      sheet.cell(CellIndex.indexByString('A$rowNum')).value = const TextCellValue('⏳ 时间线');
+      sheet.cell(CellIndex.indexByString('B$rowNum')).value = IntCellValue(count);
+      sheet.cell(CellIndex.indexByString('C$rowNum')).value = const TextCellValue('已导出');
     }
   }
   
-  Future<void> _exportMomentRecords(Excel excel) async {
-    final records = await (db.select(db.momentRecords)).get();
-    final sheet = excel['小确幸'];
+  Future<void> _exportFoodRecords(Excel excel, {DateTime? startDate, DateTime? endDate}) async {
+    var query = db.select(db.foodRecords);
     
-    sheet.appendRow(['ID', '内容', '心情', '标签', '创建时间']);
+    if (startDate != null) {
+      query = query..where((t) => t.recordDate.isBiggerOrEqualValue(startDate));
+    }
+    if (endDate != null) {
+      final endOfDay = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
+      query = query..where((t) => t.recordDate.isSmallerOrEqualValue(endOfDay));
+    }
     
-    for (final record in records) {
-      sheet.appendRow([
-        record.id,
-        record.content,
-        record.mood ?? '',
-        record.tags?.join(', ') ?? '',
-        record.createdAt.toIso8601String(),
-      ]);
+    final records = await query.get();
+    final sheet = excel['🍜 美食记录'];
+    
+    final headers = [
+      'ID', '标题', '内容', '评分', '人均消费', '标签', 
+      '心情', '地点', '城市', '国家', '心愿单', '收藏',
+      '记录日期', '创建时间'
+    ];
+    
+    for (var i = 0; i < headers.length; i++) {
+      final cell = sheet.cell(CellIndex.indexByString('${_colLetter(i)}1'));
+      cell.value = TextCellValue(headers[i]);
+      cell.cellStyle = CellStyle(
+        bold: true,
+        backgroundColorHex: '4F46E5',
+        fontColorHex: 'FFFFFF',
+        horizontalAlign: HorizontalAlign.Center,
+      );
+    }
+    
+    for (var i = 0; i < records.length; i++) {
+      final record = records[i];
+      final row = i + 2;
+      
+      sheet.cell(CellIndex.indexByString('A$row')).value = TextCellValue(record.id);
+      sheet.cell(CellIndex.indexByString('B$row')).value = TextCellValue(record.title);
+      sheet.cell(CellIndex.indexByString('C$row')).value = TextCellValue(record.content ?? '');
+      sheet.cell(CellIndex.indexByString('D$row')).value = DoubleCellValue(record.rating ?? 0);
+      sheet.cell(CellIndex.indexByString('E$row')).value = DoubleCellValue(record.pricePerPerson ?? 0);
+      sheet.cell(CellIndex.indexByString('F$row')).value = TextCellValue(record.tags?.join(', ') ?? '');
+      sheet.cell(CellIndex.indexByString('G$row')).value = TextCellValue(record.mood ?? '');
+      sheet.cell(CellIndex.indexByString('H$row')).value = TextCellValue(record.poiName ?? '');
+      sheet.cell(CellIndex.indexByString('I$row')).value = TextCellValue(record.city ?? '');
+      sheet.cell(CellIndex.indexByString('J$row')).value = TextCellValue(record.country ?? '');
+      sheet.cell(CellIndex.indexByString('K$row')).value = TextCellValue(record.isWishlist ? '是' : '否');
+      sheet.cell(CellIndex.indexByString('L$row')).value = TextCellValue(record.isFavorite ? '是' : '否');
+      sheet.cell(CellIndex.indexByString('M$row')).value = TextCellValue(record.recordDate.toString().split('.')[0]);
+      sheet.cell(CellIndex.indexByString('N$row')).value = TextCellValue(record.createdAt.toString().split('.')[0]);
+      
+      if (record.rating != null && record.rating! >= 4.5) {
+        sheet.cell(CellIndex.indexByString('D$row')).cellStyle = CellStyle(
+          backgroundColorHex: 'D1FAE5',
+        );
+      }
+    }
+    
+    if (records.isNotEmpty) {
+      final lastRow = records.length + 2;
+      sheet.cell(CellIndex.indexByString('A$lastRow')).value = const TextCellValue('汇总');
+      final avgRating = records.map((r) => r.rating ?? 0).reduce((a, b) => a + b) / records.length;
+      sheet.cell(CellIndex.indexByString('D$lastRow')).value = TextCellValue('平均: ${avgRating.toStringAsFixed(1)}');
+      final totalExpense = records.map((r) => r.pricePerPerson ?? 0).reduce((a, b) => a + b);
+      sheet.cell(CellIndex.indexByString('E$lastRow')).value = TextCellValue('总计: ¥${totalExpense.toStringAsFixed(0)}');
+    }
+  }
+  
+  Future<void> _exportMomentRecords(Excel excel, {DateTime? startDate, DateTime? endDate}) async {
+    var query = db.select(db.momentRecords);
+    
+    if (startDate != null) {
+      query = query..where((t) => t.recordDate.isBiggerOrEqualValue(startDate));
+    }
+    if (endDate != null) {
+      final endOfDay = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
+      query = query..where((t) => t.recordDate.isSmallerOrEqualValue(endOfDay));
+    }
+    
+    final records = await query.get();
+    final sheet = excel['✨ 小确幸'];
+    
+    final headers = ['ID', '内容', '心情', '心情颜色', '标签', '地点', '城市', '收藏', '记录日期', '创建时间'];
+    
+    for (var i = 0; i < headers.length; i++) {
+      final cell = sheet.cell(CellIndex.indexByString('${_colLetter(i)}1'));
+      cell.value = TextCellValue(headers[i]);
+      cell.cellStyle = CellStyle(
+        bold: true,
+        backgroundColorHex: '10B981',
+        fontColorHex: 'FFFFFF',
+        horizontalAlign: HorizontalAlign.Center,
+      );
+    }
+    
+    for (var i = 0; i < records.length; i++) {
+      final record = records[i];
+      final row = i + 2;
+      
+      sheet.cell(CellIndex.indexByString('A$row')).value = TextCellValue(record.id);
+      sheet.cell(CellIndex.indexByString('B$row')).value = TextCellValue(record.content);
+      sheet.cell(CellIndex.indexByString('C$row')).value = TextCellValue(record.mood ?? '');
+      sheet.cell(CellIndex.indexByString('D$row')).value = TextCellValue(record.moodColor ?? '');
+      sheet.cell(CellIndex.indexByString('E$row')).value = TextCellValue(record.tags?.join(', ') ?? '');
+      sheet.cell(CellIndex.indexByString('F$row')).value = TextCellValue(record.poiName ?? '');
+      sheet.cell(CellIndex.indexByString('G$row')).value = TextCellValue(record.city ?? '');
+      sheet.cell(CellIndex.indexByString('H$row')).value = TextCellValue(record.isFavorite ? '是' : '否');
+      sheet.cell(CellIndex.indexByString('I$row')).value = TextCellValue(record.recordDate.toString().split('.')[0]);
+      sheet.cell(CellIndex.indexByString('J$row')).value = TextCellValue(record.createdAt.toString().split('.')[0]);
     }
   }
   
   Future<void> _exportFriendRecords(Excel excel) async {
     final records = await (db.select(db.friendRecords)).get();
-    final sheet = excel['羁绊'];
+    final sheet = excel['💕 羁绊'];
     
-    sheet.appendRow(['ID', '姓名', '关系', '描述', '标签', '创建时间']);
+    final headers = ['ID', '姓名', '生日', '联系方式', '相识方式', '相识日期', '印象标签', '分组', '最后见面', '联系频率', '收藏'];
     
-    for (final record in records) {
-      sheet.appendRow([
-        record.id,
-        record.name,
-        record.relationship ?? '',
-        record.description ?? '',
-        record.tags?.join(', ') ?? '',
-        record.createdAt.toIso8601String(),
-      ]);
+    for (var i = 0; i < headers.length; i++) {
+      final cell = sheet.cell(CellIndex.indexByString('${_colLetter(i)}1'));
+      cell.value = TextCellValue(headers[i]);
+      cell.cellStyle = CellStyle(
+        bold: true,
+        backgroundColorHex: 'EC4899',
+        fontColorHex: 'FFFFFF',
+        horizontalAlign: HorizontalAlign.Center,
+      );
+    }
+    
+    for (var i = 0; i < records.length; i++) {
+      final record = records[i];
+      final row = i + 2;
+      
+      sheet.cell(CellIndex.indexByString('A$row')).value = TextCellValue(record.id);
+      sheet.cell(CellIndex.indexByString('B$row')).value = TextCellValue(record.name);
+      sheet.cell(CellIndex.indexByString('C$row')).value = TextCellValue(record.birthday?.toString().split(' ')[0] ?? '');
+      sheet.cell(CellIndex.indexByString('D$row')).value = TextCellValue(record.contact ?? '');
+      sheet.cell(CellIndex.indexByString('E$row')).value = TextCellValue(record.meetWay ?? '');
+      sheet.cell(CellIndex.indexByString('F$row')).value = TextCellValue(record.meetDate?.toString().split(' ')[0] ?? '');
+      sheet.cell(CellIndex.indexByString('G$row')).value = TextCellValue(record.impressionTags?.join(', ') ?? '');
+      sheet.cell(CellIndex.indexByString('H$row')).value = TextCellValue(record.groupName ?? '');
+      sheet.cell(CellIndex.indexByString('I$row')).value = TextCellValue(record.lastMeetDate?.toString().split(' ')[0] ?? '');
+      sheet.cell(CellIndex.indexByString('J$row')).value = TextCellValue(record.contactFrequency ?? '');
+      sheet.cell(CellIndex.indexByString('K$row')).value = TextCellValue(record.isFavorite ? '是' : '否');
     }
   }
   
-  Future<void> _exportTravelRecords(Excel excel) async {
-    final records = await (db.select(db.travelRecords)).get();
-    final sheet = excel['旅行'];
+  Future<void> _exportTravelRecords(Excel excel, {DateTime? startDate, DateTime? endDate}) async {
+    var query = db.select(db.travelRecords);
     
-    sheet.appendRow(['ID', '目的地', '描述', '开始日期', '结束日期', '标签', '创建时间']);
+    if (startDate != null) {
+      query = query..where((t) => t.startDate.isBiggerOrEqualValue(startDate));
+    }
+    if (endDate != null) {
+      final endOfDay = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
+      query = query..where((t) => t.startDate.isSmallerOrEqualValue(endOfDay));
+    }
     
-    for (final record in records) {
-      sheet.appendRow([
-        record.id,
-        record.destination,
-        record.description ?? '',
-        record.startDate?.toIso8601String() ?? '',
-        record.endDate?.toIso8601String() ?? '',
-        record.tags?.join(', ') ?? '',
-        record.createdAt.toIso8601String(),
-      ]);
+    final records = await query.get();
+    final sheet = excel['✈️ 旅行'];
+    
+    final headers = ['ID', '目的地', '内容', '开始日期', '结束日期', '地点', '城市', '国家', '心情', '标签', '收藏', '创建时间'];
+    
+    for (var i = 0; i < headers.length; i++) {
+      final cell = sheet.cell(CellIndex.indexByString('${_colLetter(i)}1'));
+      cell.value = TextCellValue(headers[i]);
+      cell.cellStyle = CellStyle(
+        bold: true,
+        backgroundColorHex: 'F59E0B',
+        fontColorHex: 'FFFFFF',
+        horizontalAlign: HorizontalAlign.Center,
+      );
+    }
+    
+    for (var i = 0; i < records.length; i++) {
+      final record = records[i];
+      final row = i + 2;
+      
+      sheet.cell(CellIndex.indexByString('A$row')).value = TextCellValue(record.id);
+      sheet.cell(CellIndex.indexByString('B$row')).value = TextCellValue(record.destination);
+      sheet.cell(CellIndex.indexByString('C$row')).value = TextCellValue(record.description ?? '');
+      sheet.cell(CellIndex.indexByString('D$row')).value = TextCellValue(record.startDate?.toString().split(' ')[0] ?? '');
+      sheet.cell(CellIndex.indexByString('E$row')).value = TextCellValue(record.endDate?.toString().split(' ')[0] ?? '');
+      sheet.cell(CellIndex.indexByString('F$row')).value = TextCellValue(record.poiName ?? '');
+      sheet.cell(CellIndex.indexByString('G$row')).value = TextCellValue(record.city ?? '');
+      sheet.cell(CellIndex.indexByString('H$row')).value = TextCellValue(record.country ?? '');
+      sheet.cell(CellIndex.indexByString('I$row')).value = TextCellValue(record.mood ?? '');
+      sheet.cell(CellIndex.indexByString('J$row')).value = TextCellValue(record.tags?.join(', ') ?? '');
+      sheet.cell(CellIndex.indexByString('K$row')).value = TextCellValue(record.isFavorite ? '是' : '否');
+      sheet.cell(CellIndex.indexByString('L$row')).value = TextCellValue(record.createdAt.toString().split('.')[0]);
     }
   }
   
   Future<void> _exportGoalRecords(Excel excel) async {
     final records = await (db.select(db.goalRecords)).get();
-    final sheet = excel['目标'];
+    final sheet = excel['🎯 目标'];
     
-    sheet.appendRow(['ID', '标题', '描述', '状态', '优先级', '截止日期', '创建时间']);
+    final headers = ['ID', '标题', '备注', '总结', '分类', '标签', '层级', '进度', '状态', '目标年月', '截止日期', '延期', '收藏', '创建时间'];
     
-    for (final record in records) {
-      sheet.appendRow([
-        record.id,
-        record.title,
-        record.description ?? '',
-        record.status,
-        record.priority ?? '',
-        record.deadline?.toIso8601String() ?? '',
-        record.createdAt.toIso8601String(),
-      ]);
+    for (var i = 0; i < headers.length; i++) {
+      final cell = sheet.cell(CellIndex.indexByString('${_colLetter(i)}1'));
+      cell.value = TextCellValue(headers[i]);
+      cell.cellStyle = CellStyle(
+        bold: true,
+        backgroundColorHex: '8B5CF6',
+        fontColorHex: 'FFFFFF',
+        horizontalAlign: HorizontalAlign.Center,
+      );
+    }
+    
+    for (var i = 0; i < records.length; i++) {
+      final record = records[i];
+      final row = i + 2;
+      
+      sheet.cell(CellIndex.indexByString('A$row')).value = TextCellValue(record.id);
+      sheet.cell(CellIndex.indexByString('B$row')).value = TextCellValue(record.title);
+      sheet.cell(CellIndex.indexByString('C$row')).value = TextCellValue(record.note ?? '');
+      sheet.cell(CellIndex.indexByString('D$row')).value = TextCellValue(record.summary ?? '');
+      sheet.cell(CellIndex.indexByString('E$row')).value = TextCellValue(record.category ?? '');
+      sheet.cell(CellIndex.indexByString('F$row')).value = TextCellValue(record.tags?.join(', ') ?? '');
+      sheet.cell(CellIndex.indexByString('G$row')).value = IntCellValue(record.level);
+      sheet.cell(CellIndex.indexByString('H$row')).value = IntCellValue(record.progress);
+      sheet.cell(CellIndex.indexByString('I$row')).value = TextCellValue(record.status);
+      sheet.cell(CellIndex.indexByString('J$row')).value = TextCellValue('${record.targetYear ?? ''}-${record.targetMonth ?? ''}');
+      sheet.cell(CellIndex.indexByString('K$row')).value = TextCellValue(record.deadline?.toString().split(' ')[0] ?? '');
+      sheet.cell(CellIndex.indexByString('L$row')).value = TextCellValue(record.isPostponed ? '是' : '否');
+      sheet.cell(CellIndex.indexByString('M$row')).value = TextCellValue(record.isFavorite ? '是' : '否');
+      sheet.cell(CellIndex.indexByString('N$row')).value = TextCellValue(record.createdAt.toString().split('.')[0]);
     }
   }
   
-  Future<void> _exportTimelineEvents(Excel excel) async {
-    final records = await (db.select(db.timelineEvents)).get();
-    final sheet = excel['时间线'];
+  Future<void> _exportTimelineEvents(Excel excel, {DateTime? startDate, DateTime? endDate}) async {
+    var query = db.select(db.timelineEvents);
     
-    sheet.appendRow(['ID', '标题', '描述', '日期', '类型', '创建时间']);
+    if (startDate != null) {
+      query = query..where((t) => t.startAt.isBiggerOrEqualValue(startDate));
+    }
+    if (endDate != null) {
+      final endOfDay = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
+      query = query..where((t) => t.startAt.isSmallerOrEqualValue(endOfDay));
+    }
     
-    for (final record in records) {
-      sheet.appendRow([
-        record.id,
-        record.title,
-        record.description ?? '',
-        record.date.toIso8601String(),
-        record.type ?? '',
-        record.createdAt.toIso8601String(),
-      ]);
+    final records = await query.get();
+    final sheet = excel['⏳ 时间线'];
+    
+    final headers = ['ID', '标题', '事件类型', '开始时间', '结束时间', '备注', '标签', '地点', '收藏', '创建时间'];
+    
+    for (var i = 0; i < headers.length; i++) {
+      final cell = sheet.cell(CellIndex.indexByString('${_colLetter(i)}1'));
+      cell.value = TextCellValue(headers[i]);
+      cell.cellStyle = CellStyle(
+        bold: true,
+        backgroundColorHex: '6366F1',
+        fontColorHex: 'FFFFFF',
+        horizontalAlign: HorizontalAlign.Center,
+      );
+    }
+    
+    for (var i = 0; i < records.length; i++) {
+      final record = records[i];
+      final row = i + 2;
+      
+      sheet.cell(CellIndex.indexByString('A$row')).value = TextCellValue(record.id);
+      sheet.cell(CellIndex.indexByString('B$row')).value = TextCellValue(record.title);
+      sheet.cell(CellIndex.indexByString('C$row')).value = TextCellValue(record.type ?? '');
+      sheet.cell(CellIndex.indexByString('D$row')).value = TextCellValue(record.startAt?.toString().split('.')[0] ?? '');
+      sheet.cell(CellIndex.indexByString('E$row')).value = TextCellValue(record.endAt?.toString().split('.')[0] ?? '');
+      sheet.cell(CellIndex.indexByString('F$row')).value = TextCellValue(record.description ?? '');
+      sheet.cell(CellIndex.indexByString('G$row')).value = TextCellValue(record.tags?.join(', ') ?? '');
+      sheet.cell(CellIndex.indexByString('H$row')).value = TextCellValue(record.poiName ?? '');
+      sheet.cell(CellIndex.indexByString('I$row')).value = TextCellValue(record.isFavorite ? '是' : '否');
+      sheet.cell(CellIndex.indexByString('J$row')).value = TextCellValue(record.createdAt.toString().split('.')[0]);
+    }
+  }
+  
+  String _colLetter(int index) {
+    if (index < 26) {
+      return String.fromCharCode(65 + index);
+    } else {
+      return '${String.fromCharCode(65 + (index ~/ 26) - 1)}${String.fromCharCode(65 + (index % 26))}';
     }
   }
   
