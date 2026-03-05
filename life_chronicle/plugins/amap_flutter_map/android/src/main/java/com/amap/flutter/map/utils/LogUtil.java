@@ -31,15 +31,11 @@ public class LogUtil {
 
 
     public static void e(String className, String methodName, Throwable e) {
-        if (isDebugMode) {
-            Log.e(TAG+className, methodName + " exception!!", e);
-        }
+        Log.e(TAG+className, methodName + " exception!!", e);
     }
 
     public static void e(String className, String message) {
-        if (isDebugMode) {
-            Log.e(TAG+className, message);
-        }
+        Log.e(TAG+className, message);
     }
 
 }

@@ -95,7 +95,16 @@ public class AMapPlatformView
             LogUtil.i(CLASS_NAME, "PolygonsController created");
             
             initMyMethodCallHandlerMap();
-            lifecycleProvider.getLifecycle().addObserver(this);
+            if (lifecycleProvider.getLifecycle() != null) {
+                lifecycleProvider.getLifecycle().addObserver(this);
+                LogUtil.i(CLASS_NAME, "Lifecycle observer added successfully");
+            } else {
+                LogUtil.w(CLASS_NAME, "Lifecycle is null, initializing map directly without lifecycle observer");
+                if (null != mapView) {
+                    mapView.onCreate(null);
+                    LogUtil.i(CLASS_NAME, "mapView.onCreate(null) called directly");
+                }
+            }
             LogUtil.i(CLASS_NAME, "=== AMapPlatformView constructor END ===");
         } catch (Throwable e) {
             LogUtil.e(CLASS_NAME, "=== AMapPlatformView constructor ERROR ===", e);

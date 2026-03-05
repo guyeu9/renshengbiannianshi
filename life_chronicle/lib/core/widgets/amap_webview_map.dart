@@ -459,8 +459,13 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
 
       switch (type) {
         case 'mapReady':
-          setState(() => _isMapReady = true);
+          amapLog('AmapWebView', '========== mapReady message received ==========');
+          setState(() {
+            _isMapReady = true;
+            _isLoading = false;
+          });
           widget.onMapReady?.call();
+          amapLog('AmapWebView', '_isMapReady set to true, _isLoading set to false');
           if (_pendingLat != null && _pendingLng != null) {
             amapLog('AmapWebView', 'Map ready, setting cached location: lat=$_pendingLat, lng=$_pendingLng');
             _controller?.runJavaScript('if(window.setCenter) window.setCenter($_pendingLng, $_pendingLat)');
