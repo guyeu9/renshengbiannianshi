@@ -242,8 +242,8 @@ class ExcelExportService {
       final row = i + 2;
       
       sheet.cell(CellIndex.indexByString('A$row')).value = TextCellValue(record.id);
-      sheet.cell(CellIndex.indexByString('B$row')).value = TextCellValue(record.content);
-      sheet.cell(CellIndex.indexByString('C$row')).value = TextCellValue(record.mood ?? '');
+      sheet.cell(CellIndex.indexByString('B$row')).value = TextCellValue(record.content ?? '');
+      sheet.cell(CellIndex.indexByString('C$row')).value = TextCellValue(record.mood);
       sheet.cell(CellIndex.indexByString('D$row')).value = TextCellValue(record.moodColor ?? '');
       sheet.cell(CellIndex.indexByString('E$row')).value = TextCellValue(record.tags ?? '');
       sheet.cell(CellIndex.indexByString('F$row')).value = TextCellValue(record.poiName ?? '');

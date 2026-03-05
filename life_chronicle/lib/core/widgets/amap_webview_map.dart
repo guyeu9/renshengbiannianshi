@@ -180,7 +180,7 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
             return NavigationDecision.navigate;
           },
           onHttpError: (error) {
-            amapLog('AmapWebView', 'HTTP error: ${error.response?.statusCode} for ${error.request?.url}');
+            amapLog('AmapWebView', 'HTTP error: ${error.response?.statusCode}');
           },
         ),
       )
