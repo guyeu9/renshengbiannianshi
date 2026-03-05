@@ -1046,6 +1046,32 @@ class BackupService {
     }
   }
 
+  Future<void> clearAllData() async {
+    await (db.delete(db.foodRecords)).go();
+    await (db.delete(db.momentRecords)).go();
+    await (db.delete(db.friendRecords)).go();
+    await (db.delete(db.travelRecords)).go();
+    await (db.delete(db.goalRecords)).go();
+    await (db.delete(db.timelineEvents)).go();
+    await (db.delete(db.trips)).go();
+    await (db.delete(db.checklistItems)).go();
+    await (db.delete(db.entityLinks)).go();
+    await (db.delete(db.linkLogs)).go();
+    await (db.delete(db.goalPostponements)).go();
+    await (db.delete(db.goalReviews)).go();
+    await (db.delete(db.annualReviews)).go();
+    await (db.delete(db.changeLogs)).go();
+    await (db.delete(db.backupLogs)).go();
+    
+    final mediaDir = await getMediaDir();
+    if (await mediaDir.exists()) {
+      await mediaDir.delete(recursive: true);
+      await mediaDir.create(recursive: true);
+    }
+    
+    await (db.delete(db.syncState)).go();
+  }
+
   Future<void> _restoreMediaFiles(List<File> mediaFiles) async {
     final targetMediaDir = await getMediaDir();
     if (!await targetMediaDir.exists()) {
