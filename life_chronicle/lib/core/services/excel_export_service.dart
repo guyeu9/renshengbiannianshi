@@ -112,7 +112,13 @@ class ExcelExportService {
     rowNum++;
     
     if (includeFood) {
-      final count = await (db.select(db.foodRecords)).get().then((r) => r.length);
+      var query = db.select(db.foodRecords);
+      if (startDate != null) query = query..where((t) => t.recordDate.isBiggerOrEqualValue(startDate));
+      if (endDate != null) {
+        final endOfDay = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
+        query = query..where((t) => t.recordDate.isSmallerOrEqualValue(endOfDay));
+      }
+      final count = await query.get().then((r) => r.length);
       sheet.cell(CellIndex.indexByString('A$rowNum')).value = TextCellValue('美食记录');
       sheet.cell(CellIndex.indexByString('B$rowNum')).value = IntCellValue(count);
       sheet.cell(CellIndex.indexByString('C$rowNum')).value = TextCellValue('已导出');
@@ -120,7 +126,13 @@ class ExcelExportService {
     }
     
     if (includeMoment) {
-      final count = await (db.select(db.momentRecords)).get().then((r) => r.length);
+      var query = db.select(db.momentRecords);
+      if (startDate != null) query = query..where((t) => t.recordDate.isBiggerOrEqualValue(startDate));
+      if (endDate != null) {
+        final endOfDay = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
+        query = query..where((t) => t.recordDate.isSmallerOrEqualValue(endOfDay));
+      }
+      final count = await query.get().then((r) => r.length);
       sheet.cell(CellIndex.indexByString('A$rowNum')).value = TextCellValue('小确幸');
       sheet.cell(CellIndex.indexByString('B$rowNum')).value = IntCellValue(count);
       sheet.cell(CellIndex.indexByString('C$rowNum')).value = TextCellValue('已导出');
@@ -136,7 +148,13 @@ class ExcelExportService {
     }
     
     if (includeTravel) {
-      final count = await (db.select(db.travelRecords)).get().then((r) => r.length);
+      var query = db.select(db.travelRecords);
+      if (startDate != null) query = query..where((t) => t.recordDate.isBiggerOrEqualValue(startDate));
+      if (endDate != null) {
+        final endOfDay = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
+        query = query..where((t) => t.recordDate.isSmallerOrEqualValue(endOfDay));
+      }
+      final count = await query.get().then((r) => r.length);
       sheet.cell(CellIndex.indexByString('A$rowNum')).value = TextCellValue('旅行');
       sheet.cell(CellIndex.indexByString('B$rowNum')).value = IntCellValue(count);
       sheet.cell(CellIndex.indexByString('C$rowNum')).value = TextCellValue('已导出');
@@ -152,7 +170,13 @@ class ExcelExportService {
     }
     
     if (includeTimeline) {
-      final count = await (db.select(db.timelineEvents)).get().then((r) => r.length);
+      var query = db.select(db.timelineEvents);
+      if (startDate != null) query = query..where((t) => t.startAt.isBiggerOrEqualValue(startDate));
+      if (endDate != null) {
+        final endOfDay = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
+        query = query..where((t) => t.startAt.isSmallerOrEqualValue(endOfDay));
+      }
+      final count = await query.get().then((r) => r.length);
       sheet.cell(CellIndex.indexByString('A$rowNum')).value = TextCellValue('时间线');
       sheet.cell(CellIndex.indexByString('B$rowNum')).value = IntCellValue(count);
       sheet.cell(CellIndex.indexByString('C$rowNum')).value = TextCellValue('已导出');

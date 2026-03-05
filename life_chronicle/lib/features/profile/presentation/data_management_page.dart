@@ -83,6 +83,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
 
   bool _obscurePassword = true;
   bool _rememberPassword = false;
+  String? _passwordHint;
   String _backupFrequency = 'daily';
   
   Map<String, bool> _selectedModules = {
