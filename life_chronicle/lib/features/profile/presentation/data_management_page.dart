@@ -83,7 +83,6 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
 
   bool _obscurePassword = true;
   bool _rememberPassword = false;
-  String? _passwordHint;
   String _backupFrequency = 'daily';
   
   Map<String, bool> _selectedModules = {
@@ -689,6 +688,8 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
     final goalCount = await (db.select(db.goalRecords)).get().then((r) => r.length);
     final timelineCount = await (db.select(db.timelineEvents)).get().then((r) => r.length);
     
+    if (!mounted) return null;
+    
     return await showDialog<ExportConfig>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -973,6 +974,8 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
       }
     }
 
+    if (!mounted) return;
+    
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -1517,6 +1520,19 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                 ),
                 icon: const Icon(Icons.backup),
                 label: Text(_isBackingUp ? '备份中...' : '立即本地备份'),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: _showBackupFileManager,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                icon: const Icon(Icons.folder_open),
+                label: const Text('管理备份文件'),
               ),
             ],
           ),

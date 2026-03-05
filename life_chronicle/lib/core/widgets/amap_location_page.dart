@@ -613,7 +613,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
     amapLog('AmapLocation', 'hasNativeKey: $_hasNativeKey');
     amapLog('AmapLocation', 'hasWebKey: $_hasWebKey');
     amapLog('AmapLocation', 'kIsWeb: $kIsWeb');
-    amapLog('AmapLocation', 'Platform: ${defaultTargetPlatform}');
+    amapLog('AmapLocation', 'Platform: $defaultTargetPlatform');
     amapLog('AmapLocation', '_nativeMapFailed: $_nativeMapFailed');
     amapLog('AmapLocation', '====================================');
 
