@@ -81,9 +81,14 @@ jobs:
       - name: Analyze
         run: flutter analyze
         working-directory: life_chronicle
-      - name: Test
-        run: flutter test
+      - name: Test with Coverage
+        run: flutter test --coverage
         working-directory: life_chronicle
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: life_chronicle/coverage/lcov.info
       - name: Build APK
         run: flutter build apk --release
         working-directory: life_chronicle
