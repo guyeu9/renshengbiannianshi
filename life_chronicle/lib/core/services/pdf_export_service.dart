@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:drift/drift.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path/path.dart' as path;
@@ -105,7 +106,7 @@ class PdfExportService {
     return pw.Page(
       pageFormat: PdfPageFormat.a4,
       build: (context) => pw.Container(
-        decoration: const pw.BoxDecoration(
+        decoration: pw.BoxDecoration(
           gradient: pw.LinearGradient(
             colors: [_primaryColor, _secondaryColor],
             begin: pw.Alignment.topLeft,
@@ -124,10 +125,10 @@ class PdfExportService {
                   borderRadius: pw.BorderRadius.circular(40),
                 ),
                 child: pw.Center(
-                  child: pw.Text('📖', style: const pw.TextStyle(fontSize: 40)),
+                  child: pw.Text('📖', style: pw.TextStyle(fontSize: 40)),
                 ),
               ),
-              const pw.SizedBox(height: 30),
+              pw.SizedBox(height: 30),
               pw.Text(
                 '人生编年史',
                 style: pw.TextStyle(
@@ -136,24 +137,24 @@ class PdfExportService {
                   color: PdfColors.white,
                 ),
               ),
-              const pw.SizedBox(height: 16),
+              pw.SizedBox(height: 16),
               pw.Text(
                 '数据导出报告',
-                style: const pw.TextStyle(
+                style: pw.TextStyle(
                   fontSize: 20,
                   color: PdfColors.white,
                 ),
               ),
-              const pw.SizedBox(height: 50),
+              pw.SizedBox(height: 50),
               pw.Container(
-                padding: const pw.EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: pw.EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 decoration: pw.BoxDecoration(
-                  color: PdfColors.white.withOpacity(0.2),
+                  color: PdfColor.fromInt(0x33FFFFFF),
                   borderRadius: pw.BorderRadius.circular(20),
                 ),
                 child: pw.Text(
                   '导出日期: ${DateTime.now().toString().split('.')[0]}$dateRangeText',
-                  style: const pw.TextStyle(color: PdfColors.white),
+                  style: pw.TextStyle(color: PdfColors.white),
                   textAlign: pw.TextAlign.center,
                 ),
               ),
@@ -187,12 +188,12 @@ class PdfExportService {
     return pw.Page(
       pageFormat: PdfPageFormat.a4,
       build: (context) => pw.Padding(
-        padding: const pw.EdgeInsets.all(40),
+        padding: pw.EdgeInsets.all(40),
         child: pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
             pw.Text('目录', style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold, color: _primaryColor)),
-            const pw.SizedBox(height: 30),
+            pw.SizedBox(height: 30),
             ...chapters,
           ],
         ),
@@ -202,7 +203,7 @@ class PdfExportService {
   
   pw.Widget _buildTocItem(String chapter, String title, int page) {
     return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 8),
+      padding: pw.EdgeInsets.symmetric(vertical: 8),
       child: pw.Row(
         children: [
           pw.SizedBox(
@@ -210,10 +211,10 @@ class PdfExportService {
             child: pw.Text(chapter, style: pw.TextStyle(color: _mutedColor)),
           ),
           pw.Expanded(
-            child: pw.Text(title, style: const pw.TextStyle(fontSize: 14)),
+            child: pw.Text(title, style: pw.TextStyle(fontSize: 14)),
           ),
           pw.Text('......', style: pw.TextStyle(color: _mutedColor)),
-          const pw.SizedBox(width: 10),
+          pw.SizedBox(width: 10),
           pw.Text('$page', style: pw.TextStyle(color: _mutedColor)),
         ],
       ),
@@ -258,10 +259,10 @@ class PdfExportService {
     }
     if (includeTravel) {
       var query = db.select(db.travelRecords);
-      if (startDate != null) query = query..where((t) => t.startDate.isBiggerOrEqualValue(startDate));
+      if (startDate != null) query = query..where((t) => t.recordDate.isBiggerOrEqualValue(startDate));
       if (endDate != null) {
         final endOfDay = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
-        query = query..where((t) => t.startDate.isSmallerOrEqualValue(endOfDay));
+        query = query..where((t) => t.recordDate.isSmallerOrEqualValue(endOfDay));
       }
       final count = await query.get().then((r) => r.length);
       stats.add(_buildStatCard('✈️ 旅行', count, _accentColor));
@@ -295,14 +296,14 @@ class PdfExportService {
     return pw.Page(
       pageFormat: PdfPageFormat.a4,
       build: (context) => pw.Padding(
-        padding: const pw.EdgeInsets.all(40),
+        padding: pw.EdgeInsets.all(40),
         child: pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
             pw.Text('第一章 数据概览$dateRangeText', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: _primaryColor)),
-            const pw.SizedBox(height: 20),
+            pw.SizedBox(height: 20),
             pw.Text('记录统计', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
-            const pw.SizedBox(height: 16),
+            pw.SizedBox(height: 16),
             pw.Wrap(
               spacing: 16,
               runSpacing: 16,
@@ -317,16 +318,16 @@ class PdfExportService {
   pw.Widget _buildStatCard(String title, int count, PdfColor color) {
     return pw.Container(
       width: 150,
-      padding: const pw.EdgeInsets.all(16),
+      padding: pw.EdgeInsets.all(16),
       decoration: pw.BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: PdfColor.fromInt((color.toInt() & 0x00FFFFFF) | 0x1A000000),
         borderRadius: pw.BorderRadius.circular(12),
       ),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Text(title, style: pw.TextStyle(fontSize: 12, color: _mutedColor)),
-          const pw.SizedBox(height: 8),
+          pw.SizedBox(height: 8),
           pw.Text('$count', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: color)),
         ],
       ),
@@ -355,8 +356,8 @@ class PdfExportService {
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         header: (context) => pw.Container(
-          padding: const pw.EdgeInsets.only(bottom: 10),
-          decoration: const pw.BoxDecoration(
+          padding: pw.EdgeInsets.only(bottom: 10),
+          decoration: pw.BoxDecoration(
             border: pw.Border(bottom: pw.BorderSide(color: _primaryColor, width: 2)),
           ),
           child: pw.Row(
@@ -375,20 +376,20 @@ class PdfExportService {
           ),
         ),
         build: (context) => [
-          const pw.SizedBox(height: 20),
+          pw.SizedBox(height: 20),
           pw.Row(
             children: [
               _buildMiniStat('总记录', '${records.length}'),
-              const pw.SizedBox(width: 20),
+              pw.SizedBox(width: 20),
               _buildMiniStat('平均评分', avgRating.toStringAsFixed(1)),
-              const pw.SizedBox(width: 20),
+              pw.SizedBox(width: 20),
               _buildMiniStat('总消费', '¥${totalExpense.toStringAsFixed(0)}'),
             ],
           ),
-          const pw.SizedBox(height: 20),
+          pw.SizedBox(height: 20),
           ...records.map((record) => pw.Container(
-            margin: const pw.EdgeInsets.only(bottom: 16),
-            padding: const pw.EdgeInsets.all(16),
+            margin: pw.EdgeInsets.only(bottom: 16),
+            padding: pw.EdgeInsets.all(16),
             decoration: pw.BoxDecoration(
               border: pw.Border.all(color: PdfColors.grey300),
               borderRadius: pw.BorderRadius.circular(8),
@@ -404,26 +405,26 @@ class PdfExportService {
                     ),
                     if (record.rating != null)
                       pw.Container(
-                        padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: pw.BoxDecoration(
-                          color: record.rating! >= 4.5 ? _secondaryColor.withOpacity(0.2) : _bgColor,
+                          color: record.rating! >= 4.5 ? PdfColor.fromInt(0x3310B981) : _bgColor,
                           borderRadius: pw.BorderRadius.circular(4),
                         ),
-                        child: pw.Text('⭐ ${record.rating}', style: const pw.TextStyle(fontSize: 12)),
+                        child: pw.Text('⭐ ${record.rating}', style: pw.TextStyle(fontSize: 12)),
                       ),
                   ],
                 ),
                 if (record.content != null) ...[
-                  const pw.SizedBox(height: 8),
+                  pw.SizedBox(height: 8),
                   pw.Text(record.content!, style: pw.TextStyle(fontSize: 11, color: _textColor)),
                 ],
-                const pw.SizedBox(height: 8),
+                pw.SizedBox(height: 8),
                 pw.Row(
                   children: [
                     if (record.poiName != null) pw.Text('📍 ${record.poiName}', style: pw.TextStyle(fontSize: 10, color: _mutedColor)),
                     if (record.poiName != null && record.city != null) pw.Text(' · ', style: pw.TextStyle(color: _mutedColor)),
                     if (record.city != null) pw.Text(record.city!, style: pw.TextStyle(fontSize: 10, color: _mutedColor)),
-                    const pw.Spacer(),
+                    pw.Spacer(),
                     pw.Text(record.recordDate.toString().split(' ')[0], style: pw.TextStyle(fontSize: 10, color: _mutedColor)),
                   ],
                 ),
@@ -437,7 +438,7 @@ class PdfExportService {
   
   pw.Widget _buildMiniStat(String label, String value) {
     return pw.Container(
-      padding: const pw.EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: pw.EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: pw.BoxDecoration(
         color: _bgColor,
         borderRadius: pw.BorderRadius.circular(8),
@@ -445,7 +446,7 @@ class PdfExportService {
       child: pw.Column(
         children: [
           pw.Text(value, style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: _primaryColor)),
-          const pw.SizedBox(height: 4),
+          pw.SizedBox(height: 4),
           pw.Text(label, style: pw.TextStyle(fontSize: 10, color: _mutedColor)),
         ],
       ),
@@ -471,8 +472,8 @@ class PdfExportService {
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         header: (context) => pw.Container(
-          padding: const pw.EdgeInsets.only(bottom: 10),
-          decoration: const pw.BoxDecoration(
+          padding: pw.EdgeInsets.only(bottom: 10),
+          decoration: pw.BoxDecoration(
             border: pw.Border(bottom: pw.BorderSide(color: _secondaryColor, width: 2)),
           ),
           child: pw.Row(
@@ -488,18 +489,18 @@ class PdfExportService {
           child: pw.Text('第 ${context.pageNumber} 页', style: pw.TextStyle(fontSize: 10, color: _mutedColor)),
         ),
         build: (context) => [
-          const pw.SizedBox(height: 20),
+          pw.SizedBox(height: 20),
           pw.Row(
             children: [
               _buildMiniStat('总记录', '${records.length}'),
-              const pw.SizedBox(width: 20),
+              pw.SizedBox(width: 20),
               _buildMiniStat('收藏', '${records.where((r) => r.isFavorite).length}'),
             ],
           ),
-          const pw.SizedBox(height: 20),
+          pw.SizedBox(height: 20),
           ...records.map((record) => pw.Container(
-            margin: const pw.EdgeInsets.only(bottom: 16),
-            padding: const pw.EdgeInsets.all(16),
+            margin: pw.EdgeInsets.only(bottom: 16),
+            padding: pw.EdgeInsets.all(16),
             decoration: pw.BoxDecoration(
               border: pw.Border.all(color: PdfColors.grey300),
               borderRadius: pw.BorderRadius.circular(8),
@@ -508,11 +509,11 @@ class PdfExportService {
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
                 pw.Text(record.content, style: pw.TextStyle(fontSize: 12)),
-                const pw.SizedBox(height: 8),
+                pw.SizedBox(height: 8),
                 pw.Row(
                   children: [
                     if (record.mood != null) pw.Text('😊 ${record.mood}', style: pw.TextStyle(fontSize: 10, color: _mutedColor)),
-                    const pw.Spacer(),
+                    pw.Spacer(),
                     pw.Text(record.recordDate.toString().split(' ')[0], style: pw.TextStyle(fontSize: 10, color: _mutedColor)),
                   ],
                 ),
@@ -533,8 +534,8 @@ class PdfExportService {
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         header: (context) => pw.Container(
-          padding: const pw.EdgeInsets.only(bottom: 10),
-          decoration: const pw.BoxDecoration(
+          padding: pw.EdgeInsets.only(bottom: 10),
+          decoration: pw.BoxDecoration(
             border: pw.Border(bottom: pw.BorderSide(color: PdfColor.fromInt(0xFFEC4899), width: 2)),
           ),
           child: pw.Row(
@@ -550,18 +551,18 @@ class PdfExportService {
           child: pw.Text('第 ${context.pageNumber} 页', style: pw.TextStyle(fontSize: 10, color: _mutedColor)),
         ),
         build: (context) => [
-          const pw.SizedBox(height: 20),
+          pw.SizedBox(height: 20),
           pw.Row(
             children: [
               _buildMiniStat('总羁绊', '${records.length}'),
-              const pw.SizedBox(width: 20),
+              pw.SizedBox(width: 20),
               _buildMiniStat('收藏', '${records.where((r) => r.isFavorite).length}'),
             ],
           ),
-          const pw.SizedBox(height: 20),
+          pw.SizedBox(height: 20),
           ...records.map((record) => pw.Container(
-            margin: const pw.EdgeInsets.only(bottom: 16),
-            padding: const pw.EdgeInsets.all(16),
+            margin: pw.EdgeInsets.only(bottom: 16),
+            padding: pw.EdgeInsets.all(16),
             decoration: pw.BoxDecoration(
               border: pw.Border.all(color: PdfColors.grey300),
               borderRadius: pw.BorderRadius.circular(8),
@@ -572,25 +573,25 @@ class PdfExportService {
                 pw.Row(
                   children: [
                     pw.Text(record.name, style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
-                    if (record.relationship != null) ...[
-                      const pw.SizedBox(width: 8),
+                    if (record.groupName != null) ...[
+                      pw.SizedBox(width: 8),
                       pw.Container(
-                        padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: pw.EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: pw.BoxDecoration(
                           color: _bgColor,
                           borderRadius: pw.BorderRadius.circular(4),
                         ),
-                        child: pw.Text(record.relationship!, style: pw.TextStyle(fontSize: 10)),
+                        child: pw.Text(record.groupName!, style: pw.TextStyle(fontSize: 10)),
                       ),
                     ],
                   ],
                 ),
-                if (record.impressionTags?.isNotEmpty == true) ...[
-                  const pw.SizedBox(height: 8),
-                  pw.Text('印象: ${record.impressionTags!.join(', ')}', style: pw.TextStyle(fontSize: 10, color: _mutedColor)),
+                if (record.impressionTags != null && record.impressionTags!.isNotEmpty) ...[
+                  pw.SizedBox(height: 8),
+                  pw.Text('印象: ${record.impressionTags}', style: pw.TextStyle(fontSize: 10, color: _mutedColor)),
                 ],
                 if (record.meetDate != null) ...[
-                  const pw.SizedBox(height: 4),
+                  pw.SizedBox(height: 4),
                   pw.Text('相识于: ${record.meetDate!.toString().split(' ')[0]}', style: pw.TextStyle(fontSize: 10, color: _mutedColor)),
                 ],
               ],
@@ -605,11 +606,11 @@ class PdfExportService {
     var query = db.select(db.travelRecords);
     
     if (startDate != null) {
-      query = query..where((t) => t.startDate.isBiggerOrEqualValue(startDate));
+      query = query..where((t) => t.recordDate.isBiggerOrEqualValue(startDate));
     }
     if (endDate != null) {
       final endOfDay = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
-      query = query..where((t) => t.startDate.isSmallerOrEqualValue(endOfDay));
+      query = query..where((t) => t.recordDate.isSmallerOrEqualValue(endOfDay));
     }
     
     final records = await query.get();
@@ -620,8 +621,8 @@ class PdfExportService {
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         header: (context) => pw.Container(
-          padding: const pw.EdgeInsets.only(bottom: 10),
-          decoration: const pw.BoxDecoration(
+          padding: pw.EdgeInsets.only(bottom: 10),
+          decoration: pw.BoxDecoration(
             border: pw.Border(bottom: pw.BorderSide(color: _accentColor, width: 2)),
           ),
           child: pw.Row(
@@ -637,18 +638,18 @@ class PdfExportService {
           child: pw.Text('第 ${context.pageNumber} 页', style: pw.TextStyle(fontSize: 10, color: _mutedColor)),
         ),
         build: (context) => [
-          const pw.SizedBox(height: 20),
+          pw.SizedBox(height: 20),
           pw.Row(
             children: [
               _buildMiniStat('总旅行', '${records.length}'),
-              const pw.SizedBox(width: 20),
-              _buildMiniStat('目的地', '${records.map((r) => r.destination).toSet().length}'),
+              pw.SizedBox(width: 20),
+              _buildMiniStat('目的地', '${records.where((r) => r.destination != null).map((r) => r.destination).toSet().length}'),
             ],
           ),
-          const pw.SizedBox(height: 20),
+          pw.SizedBox(height: 20),
           ...records.map((record) => pw.Container(
-            margin: const pw.EdgeInsets.only(bottom: 16),
-            padding: const pw.EdgeInsets.all(16),
+            margin: pw.EdgeInsets.only(bottom: 16),
+            padding: pw.EdgeInsets.all(16),
             decoration: pw.BoxDecoration(
               border: pw.Border.all(color: PdfColors.grey300),
               borderRadius: pw.BorderRadius.circular(8),
@@ -656,20 +657,20 @@ class PdfExportService {
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.Text(record.destination, style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
-                if (record.description != null) ...[
-                  const pw.SizedBox(height: 8),
-                  pw.Text(record.description!, style: pw.TextStyle(fontSize: 11)),
+                pw.Text(record.destination ?? '未知目的地', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                if (record.content != null) ...[
+                  pw.SizedBox(height: 8),
+                  pw.Text(record.content!, style: pw.TextStyle(fontSize: 11)),
                 ],
-                const pw.SizedBox(height: 8),
+                pw.SizedBox(height: 8),
                 pw.Row(
                   children: [
                     pw.Text(
-                      '${record.startDate?.toString().split(' ')[0] ?? ''} - ${record.endDate?.toString().split(' ')[0] ?? ''}',
+                      record.planDate?.toString().split(' ')[0] ?? '',
                       style: pw.TextStyle(fontSize: 10, color: _mutedColor),
                     ),
                     if (record.city != null) ...[
-                      const pw.SizedBox(width: 16),
+                      pw.SizedBox(width: 16),
                       pw.Text('📍 ${record.city}', style: pw.TextStyle(fontSize: 10, color: _mutedColor)),
                     ],
                   ],
@@ -694,8 +695,8 @@ class PdfExportService {
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         header: (context) => pw.Container(
-          padding: const pw.EdgeInsets.only(bottom: 10),
-          decoration: const pw.BoxDecoration(
+          padding: pw.EdgeInsets.only(bottom: 10),
+          decoration: pw.BoxDecoration(
             border: pw.Border(bottom: pw.BorderSide(color: PdfColor.fromInt(0xFF8B5CF6), width: 2)),
           ),
           child: pw.Row(
@@ -711,20 +712,20 @@ class PdfExportService {
           child: pw.Text('第 ${context.pageNumber} 页', style: pw.TextStyle(fontSize: 10, color: _mutedColor)),
         ),
         build: (context) => [
-          const pw.SizedBox(height: 20),
+          pw.SizedBox(height: 20),
           pw.Row(
             children: [
               _buildMiniStat('总目标', '${records.length}'),
-              const pw.SizedBox(width: 20),
+              pw.SizedBox(width: 20),
               _buildMiniStat('已完成', '$completedCount'),
-              const pw.SizedBox(width: 20),
+              pw.SizedBox(width: 20),
               _buildMiniStat('进行中', '$inProgressCount'),
             ],
           ),
-          const pw.SizedBox(height: 20),
+          pw.SizedBox(height: 20),
           ...records.map((record) => pw.Container(
-            margin: const pw.EdgeInsets.only(bottom: 16),
-            padding: const pw.EdgeInsets.all(16),
+            margin: pw.EdgeInsets.only(bottom: 16),
+            padding: pw.EdgeInsets.all(16),
             decoration: pw.BoxDecoration(
               border: pw.Border.all(color: PdfColors.grey300),
               borderRadius: pw.BorderRadius.circular(8),
@@ -738,28 +739,28 @@ class PdfExportService {
                       child: pw.Text(record.title, style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
                     ),
                     pw.Container(
-                      padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: pw.BoxDecoration(
-                        color: record.status == 'completed' ? _secondaryColor.withOpacity(0.2) : _accentColor.withOpacity(0.2),
+                        color: record.status == 'completed' ? PdfColor.fromInt(0x3310B981) : PdfColor.fromInt(0x33F59E0B),
                         borderRadius: pw.BorderRadius.circular(4),
                       ),
                       child: pw.Text(
                         record.status == 'completed' ? '已完成' : (record.status == 'in_progress' ? '进行中' : record.status),
-                        style: const pw.TextStyle(fontSize: 10),
+                        style: pw.TextStyle(fontSize: 10),
                       ),
                     ),
                   ],
                 ),
                 if (record.note != null) ...[
-                  const pw.SizedBox(height: 8),
+                  pw.SizedBox(height: 8),
                   pw.Text(record.note!, style: pw.TextStyle(fontSize: 11)),
                 ],
-                const pw.SizedBox(height: 8),
+                pw.SizedBox(height: 8),
                 pw.Row(
                   children: [
                     pw.Text('进度: ${record.progress}%', style: pw.TextStyle(fontSize: 10, color: _mutedColor)),
                     if (record.deadline != null) ...[
-                      const pw.SizedBox(width: 16),
+                      pw.SizedBox(width: 16),
                       pw.Text('截止: ${record.deadline!.toString().split(' ')[0]}', style: pw.TextStyle(fontSize: 10, color: _mutedColor)),
                     ],
                   ],
@@ -791,8 +792,8 @@ class PdfExportService {
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         header: (context) => pw.Container(
-          padding: const pw.EdgeInsets.only(bottom: 10),
-          decoration: const pw.BoxDecoration(
+          padding: pw.EdgeInsets.only(bottom: 10),
+          decoration: pw.BoxDecoration(
             border: pw.Border(bottom: pw.BorderSide(color: PdfColor.fromInt(0xFF6366F1), width: 2)),
           ),
           child: pw.Row(
@@ -808,18 +809,18 @@ class PdfExportService {
           child: pw.Text('第 ${context.pageNumber} 页', style: pw.TextStyle(fontSize: 10, color: _mutedColor)),
         ),
         build: (context) => [
-          const pw.SizedBox(height: 20),
+          pw.SizedBox(height: 20),
           pw.Row(
             children: [
               _buildMiniStat('总事件', '${records.length}'),
-              const pw.SizedBox(width: 20),
+              pw.SizedBox(width: 20),
               _buildMiniStat('收藏', '${records.where((r) => r.isFavorite).length}'),
             ],
           ),
-          const pw.SizedBox(height: 20),
+          pw.SizedBox(height: 20),
           ...records.map((record) => pw.Container(
-            margin: const pw.EdgeInsets.only(bottom: 16),
-            padding: const pw.EdgeInsets.all(16),
+            margin: pw.EdgeInsets.only(bottom: 16),
+            padding: pw.EdgeInsets.all(16),
             decoration: pw.BoxDecoration(
               border: pw.Border.all(color: PdfColors.grey300),
               borderRadius: pw.BorderRadius.circular(8),
@@ -834,28 +835,28 @@ class PdfExportService {
                     ),
                     if (record.type != null)
                       pw.Container(
-                        padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: pw.BoxDecoration(
                           color: _bgColor,
                           borderRadius: pw.BorderRadius.circular(4),
                         ),
-                        child: pw.Text(record.type!, style: const pw.TextStyle(fontSize: 10)),
+                        child: pw.Text(record.type!, style: pw.TextStyle(fontSize: 10)),
                       ),
                   ],
                 ),
                 if (record.description != null) ...[
-                  const pw.SizedBox(height: 8),
+                  pw.SizedBox(height: 8),
                   pw.Text(record.description!, style: pw.TextStyle(fontSize: 11)),
                 ],
-                const pw.SizedBox(height: 8),
+                pw.SizedBox(height: 8),
                 pw.Row(
                   children: [
                     pw.Text(
-                      '${record.startAt?.toString().split('.')[0] ?? ''}',
+                      record.startAt?.toString().split('.')[0] ?? '',
                       style: pw.TextStyle(fontSize: 10, color: _mutedColor),
                     ),
                     if (record.poiName != null) ...[
-                      const pw.SizedBox(width: 16),
+                      pw.SizedBox(width: 16),
                       pw.Text('📍 ${record.poiName}', style: pw.TextStyle(fontSize: 10, color: _mutedColor)),
                     ],
                   ],

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:drift/drift.dart';
 import 'package:excel/excel.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
@@ -78,91 +79,83 @@ class ExcelExportService {
     DateTime? startDate,
     DateTime? endDate,
   }) async {
-    final sheet = excel['📊 数据概览'];
+    final sheet = excel['数据概览'];
     
     sheet.merge(CellIndex.indexByString('A1'), CellIndex.indexByString('F1'));
     final titleCell = sheet.cell(CellIndex.indexByString('A1'));
-    titleCell.value = const TextCellValue('人生编年史 - 数据导出报告');
-    titleCell.cellStyle = CellStyle(
-      bold: true,
-      fontSize: 16,
-      fontFamily: 'Arial',
-    );
+    titleCell.value = TextCellValue('人生编年史 - 数据导出报告');
+    titleCell.cellStyle = CellStyle(bold: true, fontSize: 16);
     
-    sheet.cell(CellIndex.indexByString('A3')).value = const TextCellValue('导出时间:');
+    sheet.cell(CellIndex.indexByString('A3')).value = TextCellValue('导出时间:');
     sheet.cell(CellIndex.indexByString('B3')).value = TextCellValue(DateTime.now().toString().split('.')[0]);
     
-    sheet.cell(CellIndex.indexByString('A4')).value = const TextCellValue('导出版本:');
-    sheet.cell(CellIndex.indexByString('B4')).value = const TextCellValue('v1.0');
+    sheet.cell(CellIndex.indexByString('A4')).value = TextCellValue('导出版本:');
+    sheet.cell(CellIndex.indexByString('B4')).value = TextCellValue('v1.0');
     
     if (startDate != null || endDate != null) {
-      sheet.cell(CellIndex.indexByString('A5')).value = const TextCellValue('时间范围:');
+      sheet.cell(CellIndex.indexByString('A5')).value = TextCellValue('时间范围:');
       final startStr = startDate != null ? '${startDate.year}-${startDate.month.toString().padLeft(2, '0')}-${startDate.day.toString().padLeft(2, '0')}' : '不限';
       final endStr = endDate != null ? '${endDate.year}-${endDate.month.toString().padLeft(2, '0')}-${endDate.day.toString().padLeft(2, '0')}' : '不限';
       sheet.cell(CellIndex.indexByString('B5')).value = TextCellValue('$startStr 至 $endStr');
     }
     
-    int rowNum = 6;
-    sheet.cell(CellIndex.indexByString('A$rowNum')).value = const TextCellValue('模块');
-    sheet.cell(CellIndex.indexByString('B$rowNum')).value = const TextCellValue('记录数');
-    sheet.cell(CellIndex.indexByString('C$rowNum')).value = const TextCellValue('状态');
+    int rowNum = 7;
+    sheet.cell(CellIndex.indexByString('A$rowNum')).value = TextCellValue('模块');
+    sheet.cell(CellIndex.indexByString('B$rowNum')).value = TextCellValue('记录数');
+    sheet.cell(CellIndex.indexByString('C$rowNum')).value = TextCellValue('状态');
     
     for (var col in ['A', 'B', 'C']) {
       final cell = sheet.cell(CellIndex.indexByString('$col$rowNum'));
-      cell.cellStyle = CellStyle(
-        bold: true,
-        backgroundColorHex: '4F46E5',
-        fontColorHex: 'FFFFFF',
-      );
+      cell.cellStyle = CellStyle(bold: true, backgroundColorHex: '#4F46E5');
     }
     
     rowNum++;
     
     if (includeFood) {
       final count = await (db.select(db.foodRecords)).get().then((r) => r.length);
-      sheet.cell(CellIndex.indexByString('A$rowNum')).value = const TextCellValue('🍜 美食记录');
+      sheet.cell(CellIndex.indexByString('A$rowNum')).value = TextCellValue('美食记录');
       sheet.cell(CellIndex.indexByString('B$rowNum')).value = IntCellValue(count);
-      sheet.cell(CellIndex.indexByString('C$rowNum')).value = const TextCellValue('已导出');
+      sheet.cell(CellIndex.indexByString('C$rowNum')).value = TextCellValue('已导出');
       rowNum++;
     }
     
     if (includeMoment) {
       final count = await (db.select(db.momentRecords)).get().then((r) => r.length);
-      sheet.cell(CellIndex.indexByString('A$rowNum')).value = const TextCellValue('✨ 小确幸');
+      sheet.cell(CellIndex.indexByString('A$rowNum')).value = TextCellValue('小确幸');
       sheet.cell(CellIndex.indexByString('B$rowNum')).value = IntCellValue(count);
-      sheet.cell(CellIndex.indexByString('C$rowNum')).value = const TextCellValue('已导出');
+      sheet.cell(CellIndex.indexByString('C$rowNum')).value = TextCellValue('已导出');
       rowNum++;
     }
     
     if (includeFriend) {
       final count = await (db.select(db.friendRecords)).get().then((r) => r.length);
-      sheet.cell(CellIndex.indexByString('A$rowNum')).value = const TextCellValue('💕 羁绊');
+      sheet.cell(CellIndex.indexByString('A$rowNum')).value = TextCellValue('羁绊');
       sheet.cell(CellIndex.indexByString('B$rowNum')).value = IntCellValue(count);
-      sheet.cell(CellIndex.indexByString('C$rowNum')).value = const TextCellValue('已导出');
+      sheet.cell(CellIndex.indexByString('C$rowNum')).value = TextCellValue('已导出');
       rowNum++;
     }
     
     if (includeTravel) {
       final count = await (db.select(db.travelRecords)).get().then((r) => r.length);
-      sheet.cell(CellIndex.indexByString('A$rowNum')).value = const TextCellValue('✈️ 旅行');
+      sheet.cell(CellIndex.indexByString('A$rowNum')).value = TextCellValue('旅行');
       sheet.cell(CellIndex.indexByString('B$rowNum')).value = IntCellValue(count);
-      sheet.cell(CellIndex.indexByString('C$rowNum')).value = const TextCellValue('已导出');
+      sheet.cell(CellIndex.indexByString('C$rowNum')).value = TextCellValue('已导出');
       rowNum++;
     }
     
     if (includeGoal) {
       final count = await (db.select(db.goalRecords)).get().then((r) => r.length);
-      sheet.cell(CellIndex.indexByString('A$rowNum')).value = const TextCellValue('🎯 目标');
+      sheet.cell(CellIndex.indexByString('A$rowNum')).value = TextCellValue('目标');
       sheet.cell(CellIndex.indexByString('B$rowNum')).value = IntCellValue(count);
-      sheet.cell(CellIndex.indexByString('C$rowNum')).value = const TextCellValue('已导出');
+      sheet.cell(CellIndex.indexByString('C$rowNum')).value = TextCellValue('已导出');
       rowNum++;
     }
     
     if (includeTimeline) {
       final count = await (db.select(db.timelineEvents)).get().then((r) => r.length);
-      sheet.cell(CellIndex.indexByString('A$rowNum')).value = const TextCellValue('⏳ 时间线');
+      sheet.cell(CellIndex.indexByString('A$rowNum')).value = TextCellValue('时间线');
       sheet.cell(CellIndex.indexByString('B$rowNum')).value = IntCellValue(count);
-      sheet.cell(CellIndex.indexByString('C$rowNum')).value = const TextCellValue('已导出');
+      sheet.cell(CellIndex.indexByString('C$rowNum')).value = TextCellValue('已导出');
     }
   }
   
@@ -178,7 +171,7 @@ class ExcelExportService {
     }
     
     final records = await query.get();
-    final sheet = excel['🍜 美食记录'];
+    final sheet = excel['美食记录'];
     
     final headers = [
       'ID', '标题', '内容', '评分', '人均消费', '标签', 
@@ -189,12 +182,7 @@ class ExcelExportService {
     for (var i = 0; i < headers.length; i++) {
       final cell = sheet.cell(CellIndex.indexByString('${_colLetter(i)}1'));
       cell.value = TextCellValue(headers[i]);
-      cell.cellStyle = CellStyle(
-        bold: true,
-        backgroundColorHex: '4F46E5',
-        fontColorHex: 'FFFFFF',
-        horizontalAlign: HorizontalAlign.Center,
-      );
+      cell.cellStyle = CellStyle(bold: true, backgroundColorHex: '#4F46E5');
     }
     
     for (var i = 0; i < records.length; i++) {
@@ -206,7 +194,7 @@ class ExcelExportService {
       sheet.cell(CellIndex.indexByString('C$row')).value = TextCellValue(record.content ?? '');
       sheet.cell(CellIndex.indexByString('D$row')).value = DoubleCellValue(record.rating ?? 0);
       sheet.cell(CellIndex.indexByString('E$row')).value = DoubleCellValue(record.pricePerPerson ?? 0);
-      sheet.cell(CellIndex.indexByString('F$row')).value = TextCellValue(record.tags?.join(', ') ?? '');
+      sheet.cell(CellIndex.indexByString('F$row')).value = TextCellValue(record.tags != null ? record.tags!.join(', ') : '');
       sheet.cell(CellIndex.indexByString('G$row')).value = TextCellValue(record.mood ?? '');
       sheet.cell(CellIndex.indexByString('H$row')).value = TextCellValue(record.poiName ?? '');
       sheet.cell(CellIndex.indexByString('I$row')).value = TextCellValue(record.city ?? '');
@@ -217,15 +205,13 @@ class ExcelExportService {
       sheet.cell(CellIndex.indexByString('N$row')).value = TextCellValue(record.createdAt.toString().split('.')[0]);
       
       if (record.rating != null && record.rating! >= 4.5) {
-        sheet.cell(CellIndex.indexByString('D$row')).cellStyle = CellStyle(
-          backgroundColorHex: 'D1FAE5',
-        );
+        sheet.cell(CellIndex.indexByString('D$row')).cellStyle = CellStyle(backgroundColorHex: '#D1FAE5');
       }
     }
     
     if (records.isNotEmpty) {
       final lastRow = records.length + 2;
-      sheet.cell(CellIndex.indexByString('A$lastRow')).value = const TextCellValue('汇总');
+      sheet.cell(CellIndex.indexByString('A$lastRow')).value = TextCellValue('汇总');
       final avgRating = records.map((r) => r.rating ?? 0).reduce((a, b) => a + b) / records.length;
       sheet.cell(CellIndex.indexByString('D$lastRow')).value = TextCellValue('平均: ${avgRating.toStringAsFixed(1)}');
       final totalExpense = records.map((r) => r.pricePerPerson ?? 0).reduce((a, b) => a + b);
@@ -245,19 +231,14 @@ class ExcelExportService {
     }
     
     final records = await query.get();
-    final sheet = excel['✨ 小确幸'];
+    final sheet = excel['小确幸'];
     
     final headers = ['ID', '内容', '心情', '心情颜色', '标签', '地点', '城市', '收藏', '记录日期', '创建时间'];
     
     for (var i = 0; i < headers.length; i++) {
       final cell = sheet.cell(CellIndex.indexByString('${_colLetter(i)}1'));
       cell.value = TextCellValue(headers[i]);
-      cell.cellStyle = CellStyle(
-        bold: true,
-        backgroundColorHex: '10B981',
-        fontColorHex: 'FFFFFF',
-        horizontalAlign: HorizontalAlign.Center,
-      );
+      cell.cellStyle = CellStyle(bold: true, backgroundColorHex: '#10B981');
     }
     
     for (var i = 0; i < records.length; i++) {
@@ -268,7 +249,7 @@ class ExcelExportService {
       sheet.cell(CellIndex.indexByString('B$row')).value = TextCellValue(record.content);
       sheet.cell(CellIndex.indexByString('C$row')).value = TextCellValue(record.mood ?? '');
       sheet.cell(CellIndex.indexByString('D$row')).value = TextCellValue(record.moodColor ?? '');
-      sheet.cell(CellIndex.indexByString('E$row')).value = TextCellValue(record.tags?.join(', ') ?? '');
+      sheet.cell(CellIndex.indexByString('E$row')).value = TextCellValue(record.tags != null ? record.tags!.join(', ') : '');
       sheet.cell(CellIndex.indexByString('F$row')).value = TextCellValue(record.poiName ?? '');
       sheet.cell(CellIndex.indexByString('G$row')).value = TextCellValue(record.city ?? '');
       sheet.cell(CellIndex.indexByString('H$row')).value = TextCellValue(record.isFavorite ? '是' : '否');
@@ -279,19 +260,14 @@ class ExcelExportService {
   
   Future<void> _exportFriendRecords(Excel excel) async {
     final records = await (db.select(db.friendRecords)).get();
-    final sheet = excel['💕 羁绊'];
+    final sheet = excel['羁绊'];
     
     final headers = ['ID', '姓名', '生日', '联系方式', '相识方式', '相识日期', '印象标签', '分组', '最后见面', '联系频率', '收藏'];
     
     for (var i = 0; i < headers.length; i++) {
       final cell = sheet.cell(CellIndex.indexByString('${_colLetter(i)}1'));
       cell.value = TextCellValue(headers[i]);
-      cell.cellStyle = CellStyle(
-        bold: true,
-        backgroundColorHex: 'EC4899',
-        fontColorHex: 'FFFFFF',
-        horizontalAlign: HorizontalAlign.Center,
-      );
+      cell.cellStyle = CellStyle(bold: true, backgroundColorHex: '#EC4899');
     }
     
     for (var i = 0; i < records.length; i++) {
@@ -304,7 +280,7 @@ class ExcelExportService {
       sheet.cell(CellIndex.indexByString('D$row')).value = TextCellValue(record.contact ?? '');
       sheet.cell(CellIndex.indexByString('E$row')).value = TextCellValue(record.meetWay ?? '');
       sheet.cell(CellIndex.indexByString('F$row')).value = TextCellValue(record.meetDate?.toString().split(' ')[0] ?? '');
-      sheet.cell(CellIndex.indexByString('G$row')).value = TextCellValue(record.impressionTags?.join(', ') ?? '');
+      sheet.cell(CellIndex.indexByString('G$row')).value = TextCellValue(record.impressionTags != null ? record.impressionTags!.join(', ') : '');
       sheet.cell(CellIndex.indexByString('H$row')).value = TextCellValue(record.groupName ?? '');
       sheet.cell(CellIndex.indexByString('I$row')).value = TextCellValue(record.lastMeetDate?.toString().split(' ')[0] ?? '');
       sheet.cell(CellIndex.indexByString('J$row')).value = TextCellValue(record.contactFrequency ?? '');
@@ -324,19 +300,14 @@ class ExcelExportService {
     }
     
     final records = await query.get();
-    final sheet = excel['✈️ 旅行'];
+    final sheet = excel['旅行'];
     
     final headers = ['ID', '目的地', '内容', '开始日期', '结束日期', '地点', '城市', '国家', '心情', '标签', '收藏', '创建时间'];
     
     for (var i = 0; i < headers.length; i++) {
       final cell = sheet.cell(CellIndex.indexByString('${_colLetter(i)}1'));
       cell.value = TextCellValue(headers[i]);
-      cell.cellStyle = CellStyle(
-        bold: true,
-        backgroundColorHex: 'F59E0B',
-        fontColorHex: 'FFFFFF',
-        horizontalAlign: HorizontalAlign.Center,
-      );
+      cell.cellStyle = CellStyle(bold: true, backgroundColorHex: '#F59E0B');
     }
     
     for (var i = 0; i < records.length; i++) {
@@ -352,7 +323,7 @@ class ExcelExportService {
       sheet.cell(CellIndex.indexByString('G$row')).value = TextCellValue(record.city ?? '');
       sheet.cell(CellIndex.indexByString('H$row')).value = TextCellValue(record.country ?? '');
       sheet.cell(CellIndex.indexByString('I$row')).value = TextCellValue(record.mood ?? '');
-      sheet.cell(CellIndex.indexByString('J$row')).value = TextCellValue(record.tags?.join(', ') ?? '');
+      sheet.cell(CellIndex.indexByString('J$row')).value = TextCellValue(record.tags != null ? record.tags!.join(', ') : '');
       sheet.cell(CellIndex.indexByString('K$row')).value = TextCellValue(record.isFavorite ? '是' : '否');
       sheet.cell(CellIndex.indexByString('L$row')).value = TextCellValue(record.createdAt.toString().split('.')[0]);
     }
@@ -360,19 +331,14 @@ class ExcelExportService {
   
   Future<void> _exportGoalRecords(Excel excel) async {
     final records = await (db.select(db.goalRecords)).get();
-    final sheet = excel['🎯 目标'];
+    final sheet = excel['目标'];
     
     final headers = ['ID', '标题', '备注', '总结', '分类', '标签', '层级', '进度', '状态', '目标年月', '截止日期', '延期', '收藏', '创建时间'];
     
     for (var i = 0; i < headers.length; i++) {
       final cell = sheet.cell(CellIndex.indexByString('${_colLetter(i)}1'));
       cell.value = TextCellValue(headers[i]);
-      cell.cellStyle = CellStyle(
-        bold: true,
-        backgroundColorHex: '8B5CF6',
-        fontColorHex: 'FFFFFF',
-        horizontalAlign: HorizontalAlign.Center,
-      );
+      cell.cellStyle = CellStyle(bold: true, backgroundColorHex: '#8B5CF6');
     }
     
     for (var i = 0; i < records.length; i++) {
@@ -384,7 +350,7 @@ class ExcelExportService {
       sheet.cell(CellIndex.indexByString('C$row')).value = TextCellValue(record.note ?? '');
       sheet.cell(CellIndex.indexByString('D$row')).value = TextCellValue(record.summary ?? '');
       sheet.cell(CellIndex.indexByString('E$row')).value = TextCellValue(record.category ?? '');
-      sheet.cell(CellIndex.indexByString('F$row')).value = TextCellValue(record.tags?.join(', ') ?? '');
+      sheet.cell(CellIndex.indexByString('F$row')).value = TextCellValue(record.tags != null ? record.tags!.join(', ') : '');
       sheet.cell(CellIndex.indexByString('G$row')).value = IntCellValue(record.level);
       sheet.cell(CellIndex.indexByString('H$row')).value = IntCellValue(record.progress);
       sheet.cell(CellIndex.indexByString('I$row')).value = TextCellValue(record.status);
@@ -408,19 +374,14 @@ class ExcelExportService {
     }
     
     final records = await query.get();
-    final sheet = excel['⏳ 时间线'];
+    final sheet = excel['时间线'];
     
     final headers = ['ID', '标题', '事件类型', '开始时间', '结束时间', '备注', '标签', '地点', '收藏', '创建时间'];
     
     for (var i = 0; i < headers.length; i++) {
       final cell = sheet.cell(CellIndex.indexByString('${_colLetter(i)}1'));
       cell.value = TextCellValue(headers[i]);
-      cell.cellStyle = CellStyle(
-        bold: true,
-        backgroundColorHex: '6366F1',
-        fontColorHex: 'FFFFFF',
-        horizontalAlign: HorizontalAlign.Center,
-      );
+      cell.cellStyle = CellStyle(bold: true, backgroundColorHex: '#6366F1');
     }
     
     for (var i = 0; i < records.length; i++) {
@@ -433,7 +394,7 @@ class ExcelExportService {
       sheet.cell(CellIndex.indexByString('D$row')).value = TextCellValue(record.startAt?.toString().split('.')[0] ?? '');
       sheet.cell(CellIndex.indexByString('E$row')).value = TextCellValue(record.endAt?.toString().split('.')[0] ?? '');
       sheet.cell(CellIndex.indexByString('F$row')).value = TextCellValue(record.description ?? '');
-      sheet.cell(CellIndex.indexByString('G$row')).value = TextCellValue(record.tags?.join(', ') ?? '');
+      sheet.cell(CellIndex.indexByString('G$row')).value = TextCellValue(record.tags != null ? record.tags!.join(', ') : '');
       sheet.cell(CellIndex.indexByString('H$row')).value = TextCellValue(record.poiName ?? '');
       sheet.cell(CellIndex.indexByString('I$row')).value = TextCellValue(record.isFavorite ? '是' : '否');
       sheet.cell(CellIndex.indexByString('J$row')).value = TextCellValue(record.createdAt.toString().split('.')[0]);

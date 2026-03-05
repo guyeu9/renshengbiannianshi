@@ -929,6 +929,8 @@ class BackupService {
   }) async {
     _emitProgress(BackupStatus.preparing, message: '准备恢复...');
     
+    String? snapshotPath;
+    
     try {
       final tempDir = await getTempDir();
       final extractDir = path.join(tempDir.path, 'extract');
