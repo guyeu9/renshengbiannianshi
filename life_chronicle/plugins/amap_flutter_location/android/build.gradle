@@ -24,6 +24,5 @@ android {
 }
 
 dependencies {
-    compileOnly "com.amap.api:3dmap:10.0.600"
-    compileOnly "com.amap.api:location:6.5.1"
+    compileOnly files("../../app/libs/AMap3DMap_10.1.700_AMapSearch_9.7.4_AMapLocation_6.5.1_20260122.aar")
 }

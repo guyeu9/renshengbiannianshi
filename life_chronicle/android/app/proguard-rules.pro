@@ -10,6 +10,9 @@
 -keep class com.amap.api.maps.utils.** { *; }
 -keep class com.amap.api.location.** { *; }
 
+-keep class * extends com.amap.api.maps.** { *; }
+-keep class * implements com.amap.api.maps.** { *; }
+
 -keepclassmembers class com.amap.api.** {
     public <methods>;
 }

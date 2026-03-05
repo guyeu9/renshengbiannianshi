@@ -581,13 +581,13 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
     final mapTargetLng = _pickedLongitude ?? 116.397499;
     final androidMajor = _androidMajorVersion();
     final isAndroid15OrAbove = androidMajor != null && androidMajor >= 15;
-    final canUseNativeMap = !kIsWeb && _hasNativeKey && !isAndroid15OrAbove;
-    final useWebViewMap = !kIsWeb && isAndroid15OrAbove && _hasWebKey;
+    final canUseNativeMap = !kIsWeb && _hasNativeKey;
+    final useWebViewMap = !kIsWeb && isAndroid15OrAbove && _hasWebKey && !_hasNativeKey;
     final mapUnavailableText = kIsWeb
         ? 'Web 暂不支持内嵌地图'
-        : isAndroid15OrAbove && !_hasWebKey
-            ? 'Android 15+ 需要配置高德 Web Key（AMAP_WEB_KEY）才能显示地图'
-            : '未配置高德 Key';
+        : !_hasNativeKey && !_hasWebKey
+            ? '未配置高德 Key'
+            : '地图加载中...';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8F8),
