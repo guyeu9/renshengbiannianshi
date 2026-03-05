@@ -14,7 +14,6 @@ import 'package:vibration/vibration.dart';
 import '../../../core/config/module_management_config.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
-import '../../../core/database/daos/link_dao.dart';
 import '../../../core/providers/uuid_provider.dart';
 import '../../../core/utils/media_storage.dart';
 import '../../../core/widgets/ai_parse_button.dart';
@@ -2938,6 +2937,7 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
     final tripId = _linkedTripId ?? uuid.v4();
     final travelId = uuid.v4();
 
+    final title = _titleController.text.trim();
     final poiName = _poiName.trim();
     final poiAddress = _poiAddress.trim();
     final city = _city.trim();

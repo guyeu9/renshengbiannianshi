@@ -19,6 +19,7 @@ class AMapWebViewMap extends StatefulWidget {
     this.showLocationButton = true,
     this.enablePoiClick = true,
     this.isPreviewMode = false,
+    this.autoLocate = false,
     this.markerLatitude,
     this.markerLongitude,
     this.webKey = '',
@@ -38,6 +39,7 @@ class AMapWebViewMap extends StatefulWidget {
   final bool showLocationButton;
   final bool enablePoiClick;
   final bool isPreviewMode;
+  final bool autoLocate;
   final double? markerLatitude;
   final double? markerLongitude;
   final String webKey;
@@ -437,6 +439,9 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
             _controller?.runJavaScript('if(window.setCenter) window.setCenter($_pendingLng, $_pendingLat)');
             _pendingLat = null;
             _pendingLng = null;
+          } else if (widget.autoLocate && !widget.isPreviewMode) {
+            debugPrint('AMapWebViewMap: Map ready, auto-locating...');
+            _handleLocationRequest();
           }
           break;
         case 'click':

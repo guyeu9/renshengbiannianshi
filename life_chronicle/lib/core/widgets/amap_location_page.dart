@@ -675,6 +675,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
                           initialLongitude: mapTargetLng,
                           initialZoom: 15,
                           isPreviewMode: isPreview,
+                          autoLocate: !isPreview && widget.initialLatitude == null,
                           markerLatitude: _pickedLatitude,
                           markerLongitude: _pickedLongitude,
                           showLocationButton: true,

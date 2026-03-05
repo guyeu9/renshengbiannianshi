@@ -310,7 +310,7 @@ final journalDetailProvider = StreamProvider.family<JournalDetailState?, String>
   final linksStream = db.select(db.entityLinks).watch();
   final friendsStream = db.friendDao.watchAllActive();
   final foodsStream = db.foodDao.watchAllActive();
-  final goalsStream = db.goalDao.watchAllActive();
+  final goalsStream = (db.select(db.goalRecords)..where((t) => t.isDeleted.equals(false))).watch();
   final allTravelsStream = (db.select(db.travelRecords)..where((t) => t.isDeleted.equals(false))).watch();
 
   return _combineJournalStreams(
