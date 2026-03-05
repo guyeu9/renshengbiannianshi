@@ -14,10 +14,12 @@ import 'package:vibration/vibration.dart';
 import '../../../core/config/module_management_config.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
+import '../../../core/database/daos/link_dao.dart';
 import '../../../core/providers/uuid_provider.dart';
 import '../../../core/utils/media_storage.dart';
 import '../../../core/widgets/ai_parse_button.dart';
 import '../../../core/widgets/amap_location_page.dart';
+import '../../../core/widgets/custom_bottom_sheet.dart';
 import '../providers/travel_detail_provider.dart';
 import '../../bond/presentation/bond_page.dart' show FriendProfilePage;
 
@@ -2611,10 +2613,11 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
 }
 
 class TravelJournalCreatePage extends ConsumerStatefulWidget {
-  const TravelJournalCreatePage({super.key, this.initialTripId, this.initialTripTitle});
+  const TravelJournalCreatePage({super.key, this.initialTripId, this.initialTripTitle, this.initialRecord});
 
   final String? initialTripId;
   final String? initialTripTitle;
+  final TravelRecord? initialRecord;
 
   @override
   ConsumerState<TravelJournalCreatePage> createState() => _TravelJournalCreatePageState();
@@ -2632,7 +2635,7 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
 
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
-  final _imageUrls = <String>[];
+  final List<String> _imageUrls = [];
 
   String _poiName = '';
   String _poiAddress = '';
@@ -2641,11 +2644,30 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
   double? _latitude;
   double? _longitude;
 
+  bool get _isEditMode => widget.initialRecord != null;
+
   @override
   void initState() {
     super.initState();
-    _linkedTripId = widget.initialTripId;
+    _linkedTripId = widget.initialTripId ?? widget.initialRecord?.tripId;
     _linkedTripTitle = widget.initialTripTitle;
+
+    if (widget.initialRecord != null) {
+      final record = widget.initialRecord!;
+      _titleController.text = record.title ?? '';
+      _contentController.text = record.content ?? '';
+      _imageUrls.addAll(_decodeStringList(record.images));
+      _poiName = record.poiName ?? '';
+      _poiAddress = record.poiAddress ?? '';
+      _city = record.city ?? '';
+      _country = record.country ?? '';
+      _latitude = record.latitude;
+      _longitude = record.longitude;
+      _selectedMoodIndex = _moods.indexWhere((m) => m.label == record.mood);
+      if (_selectedMoodIndex < 0) _selectedMoodIndex = 1;
+      _selectedTags.addAll(_decodeStringList(record.tags));
+      _availableTags.addAll(_selectedTags);
+    }
   }
 
   String get _locationTitle {
@@ -2901,6 +2923,14 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
       return;
     }
 
+    if (_isEditMode) {
+      await _updateJournal();
+    } else {
+      await _createJournal();
+    }
+  }
+
+  Future<void> _createJournal() async {
     final db = ref.read(appDatabaseProvider);
     final uuid = ref.read(uuidProvider);
     final now = DateTime.now();
@@ -2996,6 +3026,94 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
       await db.linkDao.createLink(
         sourceType: 'travel',
         sourceId: travelId,
+        targetType: 'food',
+        targetId: id,
+        now: now,
+      );
+    }
+
+    if (!mounted) return;
+    Navigator.of(context).pop();
+  }
+
+  Future<void> _updateJournal() async {
+    final db = ref.read(appDatabaseProvider);
+    final now = DateTime.now();
+    final record = widget.initialRecord!;
+
+    final poiName = _poiName.trim();
+    final poiAddress = _poiAddress.trim();
+    final city = _city.trim();
+    final country = _country.trim();
+    final destination = poiName.isNotEmpty ? poiName : (poiAddress.isNotEmpty ? poiAddress : '');
+    final images = _imageUrls.isEmpty ? null : jsonEncode(_imageUrls);
+    final content = _contentController.text.trim();
+    final title = _titleController.text.trim();
+    final mood = _moods[_selectedMoodIndex].label;
+
+    final tagSet = <String>{};
+    if (destination.isNotEmpty) {
+      tagSet.add(destination);
+    }
+    tagSet.addAll(_selectedTags);
+    final tagsJson = tagSet.isEmpty ? null : jsonEncode(tagSet.toList()..sort());
+
+    await (db.update(db.travelRecords)..where((t) => t.id.equals(record.id))).write(
+      TravelRecordsCompanion(
+        title: Value(title),
+        content: Value(content.isEmpty ? null : content),
+        images: Value(images),
+        destination: Value(destination.isEmpty ? null : destination),
+        tags: Value(tagsJson),
+        poiName: Value(poiName.isEmpty ? null : poiName),
+        poiAddress: Value(poiAddress.isEmpty ? null : poiAddress),
+        city: Value(city.isEmpty ? null : city),
+        country: Value(country.isEmpty ? null : country),
+        latitude: Value(_latitude),
+        longitude: Value(_longitude),
+        mood: Value(mood),
+        updatedAt: Value(now),
+      ),
+    );
+
+    await (db.update(db.timelineEvents)..where((t) => t.id.equals(record.id))).write(
+      TimelineEventsCompanion(
+        title: Value(title),
+        note: Value(content.isEmpty ? null : content),
+        tags: Value(tagsJson),
+        poiName: Value(poiName.isEmpty ? null : poiName),
+        poiAddress: Value(poiAddress.isEmpty ? null : poiAddress),
+        latitude: Value(_latitude),
+        longitude: Value(_longitude),
+        updatedAt: Value(now),
+      ),
+    );
+
+    final linkDao = LinkDao(db);
+    final existingLinks = await linkDao.listLinksForEntity(entityType: 'travel', entityId: record.id);
+    for (final link in existingLinks) {
+      await linkDao.deleteLink(
+        sourceType: link.sourceType,
+        sourceId: link.sourceId,
+        targetType: link.targetType,
+        targetId: link.targetId,
+        linkType: link.linkType,
+        now: now,
+      );
+    }
+    for (final id in _linkedFriendIds) {
+      await linkDao.createLink(
+        sourceType: 'travel',
+        sourceId: record.id,
+        targetType: 'friend',
+        targetId: id,
+        now: now,
+      );
+    }
+    for (final id in _linkedFoodIds) {
+      await linkDao.createLink(
+        sourceType: 'travel',
+        sourceId: record.id,
         targetType: 'food',
         targetId: id,
         now: now,
@@ -3787,70 +3905,79 @@ class _TimelineJournalCard extends StatelessWidget {
     }
     final tags = tagSet.toList()..sort();
     final timeLabel = '${record.recordDate.hour.toString().padLeft(2, '0')}:${record.recordDate.minute.toString().padLeft(2, '0')}';
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(color: const Color(0xFFF97316).withValues(alpha: 0.12), shape: BoxShape.circle),
-                child: const Icon(Icons.edit_note, size: 18, color: Color(0xFFF97316)),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(timeLabel, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(subtitle, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
-                  ],
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => JournalDetailPage(recordId: record.id),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(color: const Color(0xFFF97316).withValues(alpha: 0.12), shape: BoxShape.circle),
+                  child: const Icon(Icons.edit_note, size: 18, color: Color(0xFFF97316)),
                 ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(timeLabel, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(subtitle, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (images.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              _buildWechatStyleImages(context, images, record, trip),
+            ],
+            if (content.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Text(
+                content,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF64748B), height: 1.5),
               ),
             ],
-          ),
-          if (images.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            _buildWechatStyleImages(context, images, record, trip),
+            if (tags.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [for (final tag in tags) _TagChip(label: '#$tag')],
+              ),
+            ],
           ],
-          if (content.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Text(
-              content,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF64748B), height: 1.5),
-            ),
-          ],
-          if (tags.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [for (final tag in tags) _TagChip(label: '#$tag')],
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }
@@ -5672,5 +5799,554 @@ class _CompanionAvatars extends StatelessWidget {
       spans.add(const TextSpan(text: ' 同行', style: TextStyle(color: Color(0xFF64748B))));
     }
     return spans;
+  }
+}
+
+class JournalDetailPage extends ConsumerStatefulWidget {
+  const JournalDetailPage({super.key, required this.recordId});
+
+  final String recordId;
+
+  @override
+  ConsumerState<JournalDetailPage> createState() => _JournalDetailPageState();
+}
+
+class _JournalDetailPageState extends ConsumerState<JournalDetailPage> {
+  @override
+  Widget build(BuildContext context) {
+    final detailAsync = ref.watch(journalDetailProvider(widget.recordId));
+
+    return detailAsync.when(
+      data: (state) {
+        if (state == null) {
+          return Scaffold(
+            backgroundColor: const Color(0xFFF6F8F8),
+            appBar: AppBar(
+              backgroundColor: Colors.white.withValues(alpha: 0.8),
+              title: const SizedBox.shrink(),
+            ),
+            body: const Center(child: Text('游记不存在或已删除')),
+          );
+        }
+        return _buildScaffold(context, state);
+      },
+      loading: () => Scaffold(
+        backgroundColor: const Color(0xFFF6F8F8),
+        body: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (_, __) => Scaffold(
+        backgroundColor: const Color(0xFFF6F8F8),
+        body: const Center(child: Text('加载失败')),
+      ),
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context, JournalDetailState state) {
+    final record = state.record;
+    final content = (record.content ?? '').trim();
+    final images = state.images;
+    final tags = state.tags;
+    final poiName = (record.poiName ?? '').trim();
+    final poiAddress = (record.poiAddress ?? '').trim();
+
+    final linkChips = <String>[
+      ..._buildLinkLabels('关联羁绊', state.linkedFriends.map((f) => f.name).toList()),
+      ..._buildLinkLabels('关联美食', state.linkedFoods.map((f) => f.title).toList()),
+      ..._buildLinkLabels('关联目标', state.linkedGoals.map((g) => g.title).toList()),
+      ..._buildLinkLabels('关联旅行', state.linkedTravels.map((t) => t.title ?? '旅行').toList()),
+    ];
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF6F8F8),
+      appBar: AppBar(
+        backgroundColor: Colors.white.withValues(alpha: 0.8),
+        title: const SizedBox.shrink(),
+        actions: [
+          IconButton(
+            onPressed: () => _showMoreOptions(context, state),
+            icon: const Icon(Icons.more_horiz),
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+        children: [
+          Text(state.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFFF3F4F6)),
+            ),
+            child: Text(
+              content.isEmpty ? '暂无内容' : content,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: Color(0xFF475569), height: 1.6),
+            ),
+          ),
+          const SizedBox(height: 14),
+          if (tags.isNotEmpty || record.mood != null)
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (record.mood != null && record.mood!.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(color: const Color(0xFFF97316).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999)),
+                    child: Text(record.mood!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFFF97316))),
+                  ),
+                for (final tag in tags)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(999)),
+                    child: Text('#$tag', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
+                  ),
+              ],
+            ),
+          if (tags.isNotEmpty || record.mood != null) const SizedBox(height: 14),
+          if (poiName.isNotEmpty || poiAddress.isNotEmpty) ...[
+            _JournalInfoRow(
+              iconBackground: const Color(0xFFFFEDD5),
+              icon: Icons.location_on,
+              iconColor: const Color(0xFFFB923C),
+              label: '地理位置',
+              value: poiName.isNotEmpty ? poiName : poiAddress,
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => AmapLocationPage.preview(
+                      title: state.title,
+                      poiName: poiName,
+                      address: poiAddress,
+                      city: '',
+                      latitude: record.latitude,
+                      longitude: record.longitude,
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 14),
+          ],
+          Row(
+            children: [
+              const Icon(Icons.access_time, size: 16, color: Color(0xFF9CA3AF)),
+              const SizedBox(width: 6),
+              Text(
+                _formatDateTime(record.recordDate),
+                style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280), fontWeight: FontWeight.w500),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (images.isNotEmpty) ...[
+            _buildImageGrid(context, images),
+            const SizedBox(height: 14),
+          ],
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFFF3F4F6)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('万物互联', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                const SizedBox(height: 10),
+                if (linkChips.isEmpty)
+                  const Text('暂无关联内容', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)))
+                else
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [for (final label in linkChips) _JournalLinkChip(label: label)],
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _JournalBottomButton(
+                icon: Icons.edit,
+                label: '编辑',
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => TravelJournalCreatePage(
+                        initialTripId: record.tripId,
+                        initialRecord: record,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              _JournalBottomButton(
+                icon: record.isFavorite ? Icons.favorite : Icons.favorite_border,
+                label: '收藏',
+                iconColor: record.isFavorite ? const Color(0xFFF43F5E) : null,
+                onTap: () => _toggleFavorite(record),
+              ),
+              _JournalBottomButton(
+                icon: Icons.share,
+                label: '分享',
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('分享功能开发中')));
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImageGrid(BuildContext context, List<String> images) {
+    if (images.isEmpty) return const SizedBox.shrink();
+
+    if (images.length == 1) {
+      return GestureDetector(
+        onTap: () => _showImageDialog(context, images[0]),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: AspectRatio(
+            aspectRatio: 16 / 9,
+            child: _buildLocalImage(images[0], fit: BoxFit.cover),
+          ),
+        ),
+      );
+    }
+
+    if (images.length == 2) {
+      return Row(
+        children: images.asMap().entries.map((entry) {
+          final idx = entry.key;
+          final img = entry.value;
+          return Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(right: idx == 0 ? 8 : 0),
+              child: GestureDetector(
+                onTap: () => _showImageDialog(context, img),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: _buildLocalImage(img, fit: BoxFit.cover),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      );
+    }
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+      ),
+      itemCount: images.length,
+      itemBuilder: (context, index) {
+        return GestureDetector(
+          onTap: () => _showImageDialog(context, images[index]),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: _buildLocalImage(images[index], fit: BoxFit.cover),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showImageDialog(BuildContext context, String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(16),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: _buildLocalImage(imageUrl, fit: BoxFit.contain),
+              ),
+              Positioned(
+                top: 0,
+                right: 0,
+                child: IconButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  icon: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.5), shape: BoxShape.circle),
+                    child: const Icon(Icons.close, color: Colors.white, size: 20),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showMoreOptions(BuildContext context, JournalDetailState state) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return _BottomSheetShell(
+          title: '更多操作',
+          actionText: '完成',
+          onAction: () => Navigator.of(sheetContext).pop(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.delete, color: Color(0xFFEF4444)),
+                title: const Text('删除此游记', style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF111827))),
+                subtitle: const Text('删除后将不可恢复，并同步删除万物互联关系', style: TextStyle(fontSize: 12, color: Color(0xFF9CA3AF))),
+                onTap: () async {
+                  Navigator.of(sheetContext).pop();
+                  final confirmed = await showCustomBottomSheet<bool>(
+                    context: context,
+                    builder: (dialogContext) {
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Text('确认删除', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                          const SizedBox(height: 12),
+                          const Text('确定要删除这篇游记吗？', style: TextStyle(fontSize: 14, color: Color(0xFF6B7280))),
+                          const SizedBox(height: 24),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  ),
+                                  child: const Text('取消', style: TextStyle(fontWeight: FontWeight.w800)),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFEF4444),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  ),
+                                  child: const Text('删除', style: TextStyle(fontWeight: FontWeight.w800)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                  if (confirmed == true) {
+                    await _deleteJournal(state.record);
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteJournal(TravelRecord record) async {
+    final db = ref.read(appDatabaseProvider);
+    final now = DateTime.now();
+
+    final linkDao = LinkDao(db);
+    final links = await linkDao.listLinksForEntity(entityType: 'travel', entityId: record.id);
+    for (final link in links) {
+      await linkDao.deleteLink(
+        sourceType: link.sourceType,
+        sourceId: link.sourceId,
+        targetType: link.targetType,
+        targetId: link.targetId,
+        linkType: link.linkType,
+        now: now,
+      );
+    }
+
+    await (db.delete(db.travelRecords)..where((t) => t.id.equals(record.id))).go();
+    await (db.delete(db.timelineEvents)..where((t) => t.id.equals(record.id))).go();
+
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
+  Future<void> _toggleFavorite(TravelRecord record) async {
+    final db = ref.read(appDatabaseProvider);
+    final now = DateTime.now();
+    await (db.update(db.travelRecords)..where((t) => t.id.equals(record.id))).write(
+      TravelRecordsCompanion(
+        isFavorite: Value(!record.isFavorite),
+        updatedAt: Value(now),
+      ),
+    );
+  }
+
+  List<String> _buildLinkLabels(String prefix, List<String> names) {
+    return [for (final name in names) '$prefix · $name'];
+  }
+
+  String _formatDateTime(DateTime date) {
+    return '${date.year}年${date.month}月${date.day}日 ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  }
+}
+
+class _JournalInfoRow extends StatelessWidget {
+  const _JournalInfoRow({
+    required this.iconBackground,
+    required this.icon,
+    required this.iconColor,
+    required this.label,
+    required this.value,
+    this.onTap,
+  });
+
+  final Color iconBackground;
+  final IconData icon;
+  final Color iconColor;
+  final String label;
+  final String value;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFF3F4F6)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(color: iconBackground, shape: BoxShape.circle),
+              child: Icon(icon, size: 18, color: iconColor),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF9CA3AF))),
+                  const SizedBox(height: 4),
+                  Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+                ],
+              ),
+            ),
+            if (onTap != null) const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _JournalLinkChip extends StatelessWidget {
+  const _JournalLinkChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
+    );
+  }
+}
+
+class _JournalBottomButton extends StatelessWidget {
+  const _JournalBottomButton({
+    required this.icon,
+    required this.label,
+    this.iconColor,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color? iconColor;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap == null
+          ? null
+          : () {
+              FocusManager.instance.primaryFocus?.unfocus();
+              onTap!();
+            },
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: iconColor ?? const Color(0xFF6B7280), size: 24),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: iconColor ?? const Color(0xFF6B7280),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

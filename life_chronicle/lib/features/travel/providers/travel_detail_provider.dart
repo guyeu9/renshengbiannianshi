@@ -254,3 +254,182 @@ Stream<(T1, T2, T3, T4, T5, T6, T7)> _combineLatest7<T1, T2, T3, T4, T5, T6, T7>
 
   return controller.stream;
 }
+
+class JournalDetailState {
+  const JournalDetailState({
+    required this.record,
+    required this.trip,
+    required this.linkedFriends,
+    required this.linkedFoods,
+    required this.linkedGoals,
+    required this.linkedTravels,
+  });
+
+  final TravelRecord record;
+  final Trip? trip;
+  final List<FriendRecord> linkedFriends;
+  final List<FoodRecord> linkedFoods;
+  final List<GoalRecord> linkedGoals;
+  final List<TravelRecord> linkedTravels;
+
+  String get title => record.title ?? '游记';
+
+  String get place {
+    final poiName = record.poiName?.trim();
+    if (poiName != null && poiName.isNotEmpty) return poiName;
+    final poiAddress = record.poiAddress?.trim();
+    if (poiAddress != null && poiAddress.isNotEmpty) return poiAddress;
+    return '';
+  }
+
+  List<String> get images => _decodeStringList(record.images);
+  List<String> get tags => _decodeStringList(record.tags);
+
+  static List<String> _decodeStringList(String? json) {
+    if (json == null || json.trim().isEmpty) return const [];
+    try {
+      final decoded = jsonDecode(json);
+      if (decoded is List) {
+        return decoded.map((e) => e.toString()).toList(growable: false);
+      }
+    } catch (_) {}
+    return const [];
+  }
+}
+
+final journalDetailProvider = StreamProvider.family<JournalDetailState?, String>((ref, recordId) {
+  final db = ref.watch(appDatabaseProvider);
+
+  final recordStream = (db.select(db.travelRecords)
+        ..where((t) => t.id.equals(recordId))
+        ..where((t) => t.isDeleted.equals(false))
+        ..where((t) => t.isJournal.equals(true))
+        ..limit(1))
+      .watchSingleOrNull();
+
+  final linksStream = db.select(db.entityLinks).watch();
+  final friendsStream = db.friendDao.watchAllActive();
+  final foodsStream = db.foodDao.watchAllActive();
+  final goalsStream = db.goalDao.watchAllActive();
+  final allTravelsStream = (db.select(db.travelRecords)..where((t) => t.isDeleted.equals(false))).watch();
+
+  return _combineJournalStreams(
+    recordStream: recordStream,
+    linksStream: linksStream,
+    friendsStream: friendsStream,
+    foodsStream: foodsStream,
+    goalsStream: goalsStream,
+    allTravelsStream: allTravelsStream,
+    recordId: recordId,
+    db: db,
+  );
+});
+
+Stream<JournalDetailState?> _combineJournalStreams({
+  required Stream<TravelRecord?> recordStream,
+  required Stream<List<EntityLink>> linksStream,
+  required Stream<List<FriendRecord>> friendsStream,
+  required Stream<List<FoodRecord>> foodsStream,
+  required Stream<List<GoalRecord>> goalsStream,
+  required Stream<List<TravelRecord>> allTravelsStream,
+  required String recordId,
+  required AppDatabase db,
+}) async* {
+  await for (final combined in _combineLatest6(
+    recordStream,
+    linksStream,
+    friendsStream,
+    foodsStream,
+    goalsStream,
+    allTravelsStream,
+  )) {
+    final record = combined.$1;
+    final links = combined.$2;
+    final friends = combined.$3;
+    final foods = combined.$4;
+    final goals = combined.$5;
+    final allTravels = combined.$6;
+
+    if (record == null) {
+      yield null;
+      continue;
+    }
+
+    Trip? trip;
+    if (record.tripId.isNotEmpty) {
+      trip = await (db.select(db.trips)..where((t) => t.id.equals(record.tripId))).getSingleOrNull();
+    }
+
+    final linkedFriendIds = <String>{};
+    final linkedFoodIds = <String>{};
+    final linkedGoalIds = <String>{};
+    final linkedTravelIds = <String>{};
+
+    for (final link in links) {
+      if (link.sourceType == 'travel' && link.sourceId == recordId) {
+        if (link.targetType == 'friend') linkedFriendIds.add(link.targetId);
+        if (link.targetType == 'food') linkedFoodIds.add(link.targetId);
+        if (link.targetType == 'goal') linkedGoalIds.add(link.targetId);
+        if (link.targetType == 'travel') linkedTravelIds.add(link.targetId);
+      } else if (link.targetType == 'travel' && link.targetId == recordId) {
+        if (link.sourceType == 'friend') linkedFriendIds.add(link.sourceId);
+        if (link.sourceType == 'food') linkedFoodIds.add(link.sourceId);
+        if (link.sourceType == 'goal') linkedGoalIds.add(link.sourceId);
+        if (link.sourceType == 'travel') linkedTravelIds.add(link.sourceId);
+      }
+    }
+
+    final linkedFriends = friends.where((f) => linkedFriendIds.contains(f.id)).toList(growable: false);
+    final linkedFoods = foods.where((f) => linkedFoodIds.contains(f.id)).toList(growable: false);
+    final linkedGoals = goals.where((g) => linkedGoalIds.contains(g.id)).toList(growable: false);
+    final linkedTravels = allTravels.where((t) => linkedTravelIds.contains(t.id) && t.id != recordId).toList(growable: false);
+
+    yield JournalDetailState(
+      record: record,
+      trip: trip,
+      linkedFriends: linkedFriends,
+      linkedFoods: linkedFoods,
+      linkedGoals: linkedGoals,
+      linkedTravels: linkedTravels,
+    );
+  }
+}
+
+Stream<(T1, T2, T3, T4, T5, T6)> _combineLatest6<T1, T2, T3, T4, T5, T6>(
+  Stream<T1> s1,
+  Stream<T2> s2,
+  Stream<T3> s3,
+  Stream<T4> s4,
+  Stream<T5> s5,
+  Stream<T6> s6,
+) {
+  T1? v1;
+  T2? v2;
+  T3? v3;
+  T4? v4;
+  T5? v5;
+  T6? v6;
+  var hasV1 = false;
+  var hasV2 = false;
+  var hasV3 = false;
+  var hasV4 = false;
+  var hasV5 = false;
+  var hasV6 = false;
+
+  final controller = StreamController<(T1, T2, T3, T4, T5, T6)>();
+
+  void emit() {
+    if (hasV1 && hasV2 && hasV3 && hasV4 && hasV5 && hasV6) {
+      controller.add((v1 as T1, v2 as T2, v3 as T3, v4 as T4, v5 as T5, v6 as T6));
+    }
+  }
+
+  s1.listen((v) { v1 = v; hasV1 = true; emit(); }, onError: controller.addError, onDone: controller.close);
+  s2.listen((v) { v2 = v; hasV2 = true; emit(); }, onError: controller.addError);
+  s3.listen((v) { v3 = v; hasV3 = true; emit(); }, onError: controller.addError);
+  s4.listen((v) { v4 = v; hasV4 = true; emit(); }, onError: controller.addError);
+  s5.listen((v) { v5 = v; hasV5 = true; emit(); }, onError: controller.addError);
+  s6.listen((v) { v6 = v; hasV6 = true; emit(); }, onError: controller.addError);
+
+  return controller.stream;
+}

@@ -87,6 +87,7 @@ class AmapLocationPage extends StatefulWidget {
 
 class _AmapPoi {
   const _AmapPoi({
+    required this.id,
     required this.name,
     required this.address,
     required this.latitude,
@@ -94,6 +95,7 @@ class _AmapPoi {
     required this.city,
   });
 
+  final String id;
   final String name;
   final String address;
   final double? latitude;
@@ -135,6 +137,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
 
   double? _pickedLatitude;
   double? _pickedLongitude;
+  String? _selectedPoiId;
 
   amap.AMapController? _mapController;
   bool get _hasNativeKey {
@@ -257,6 +260,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
       }
       final poisRaw = decoded['pois'];
       final next = <_AmapPoi>[];
+      final seenIds = <String>{};
       if (poisRaw is List) {
         for (final p in poisRaw) {
           if (p is! Map) continue;
@@ -274,7 +278,10 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
             }
           }
           if (name.isEmpty && address.isEmpty) continue;
-          next.add(_AmapPoi(name: name, address: address, latitude: lat, longitude: lng, city: city));
+          final id = '$name|$address';
+          if (seenIds.contains(id)) continue;
+          seenIds.add(id);
+          next.add(_AmapPoi(id: id, name: name, address: address, latitude: lat, longitude: lng, city: city));
         }
       }
 
@@ -332,6 +339,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
       }
       final poisRaw = decoded['pois'];
       final next = <_AmapPoi>[];
+      final seenIds = <String>{};
       if (poisRaw is List) {
         for (final p in poisRaw) {
           if (p is! Map) continue;
@@ -349,7 +357,10 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
             }
           }
           if (name.isEmpty) continue;
-          next.add(_AmapPoi(name: name, address: address, latitude: poiLat, longitude: poiLng, city: city));
+          final id = '$name|$address';
+          if (seenIds.contains(id)) continue;
+          seenIds.add(id);
+          next.add(_AmapPoi(id: id, name: name, address: address, latitude: poiLat, longitude: poiLng, city: city));
         }
       }
 
@@ -828,6 +839,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
                   itemBuilder: (context, index) {
                     if (index == 0 && (_currentLocationName != null || _currentLocationAddress != null)) {
                       return _buildNearbyPoiCard(
+                        poiId: null,
                         name: _currentLocationName ?? '当前位置',
                         address: _currentLocationAddress ?? '',
                         city: _currentLocationCity ?? '',
@@ -840,6 +852,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
                     if (poiIndex < 0 || poiIndex >= _nearbyPois.length) return const SizedBox.shrink();
                     final p = _nearbyPois[poiIndex];
                     return _buildNearbyPoiCard(
+                      poiId: p.id,
                       name: p.name,
                       address: p.address,
                       city: p.city,
@@ -931,6 +944,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
   }
 
   Widget _buildNearbyPoiCard({
+    required String? poiId,
     required String name,
     required String address,
     required String city,
@@ -938,13 +952,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
     required double? lng,
     required bool isCurrentLocation,
   }) {
-    final isSelected = !isCurrentLocation && 
-                       lat != null && 
-                       lng != null && 
-                       _pickedLatitude != null && 
-                       _pickedLongitude != null &&
-                       (lat - _pickedLatitude!).abs() < 0.00001 && 
-                       (lng - _pickedLongitude!).abs() < 0.00001;
+    final isSelected = poiId != null && _selectedPoiId == poiId;
     
     return InkWell(
       borderRadius: BorderRadius.circular(16),
@@ -955,6 +963,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
           _cityController.text = city;
           _pickedLatitude = lat;
           _pickedLongitude = lng;
+          _selectedPoiId = poiId;
         });
         _syncMarkerAndCamera();
       },
@@ -963,13 +972,13 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: isSelected 
-              ? const Color(0xFFD4F4FB) 
-              : (isCurrentLocation ? const Color(0xFFF0F9FF) : Colors.white),
+              ? const Color(0xFFE8F8FB) 
+              : (isCurrentLocation ? const Color(0xFFE8F8FB) : Colors.white),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected 
                 ? _primary 
-                : (isCurrentLocation ? const Color(0xFFB8E6F0) : const Color(0xFFF3F4F6)),
+                : (isCurrentLocation ? _primary.withValues(alpha: 0.3) : const Color(0xFFF3F4F6)),
             width: isSelected ? 2 : 1,
           ),
           boxShadow: [
@@ -985,16 +994,14 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: isSelected 
-                    ? _primary.withValues(alpha: 0.2) 
-                    : (isCurrentLocation ? const Color(0xFFE0F2FE) : Colors.grey.shade100),
+                color: isSelected || isCurrentLocation 
+                    ? _primary.withValues(alpha: 0.1) 
+                    : Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
                 isCurrentLocation ? Icons.my_location : Icons.place,
-                color: isSelected 
-                    ? _primary 
-                    : (isCurrentLocation ? const Color(0xFF0EA5E9) : Colors.grey.shade500),
+                color: isSelected || isCurrentLocation ? _primary : Colors.grey.shade500,
                 size: 20,
               ),
             ),
@@ -1003,33 +1010,11 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        isCurrentLocation ? '当前位置' : name.isEmpty ? '未命名地点' : name,
-                        style: TextStyle(
-                          fontSize: 13, 
-                          fontWeight: FontWeight.w900,
-                          color: isSelected ? _primary : Colors.black,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (isSelected) ...[
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: _primary,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: const Text(
-                            '已选',
-                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white),
-                          ),
-                        ),
-                      ],
-                    ],
+                  Text(
+                    isCurrentLocation ? '当前位置' : name.isEmpty ? '未命名地点' : name,
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   if (address.isNotEmpty) ...[
                     const SizedBox(height: 4),
