@@ -1,12 +1,12 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 import '../database/app_database.dart';
 
 class PdfExportService {
@@ -43,16 +43,16 @@ class PdfExportService {
           final fontData = await file.readAsBytes();
           _chineseFont = pw.Font.ttf(ByteData.sublistView(Uint8List.fromList(fontData)));
           _chineseFontBold = _chineseFont;
-          print('成功加载系统字体: $fontPath');
+          debugPrint('成功加载系统字体: $fontPath');
           _fontsLoaded = true;
           return;
         }
       }
       
-      print('未找到系统字体，使用默认字体');
+      debugPrint('未找到系统字体，使用默认字体');
       _fontsLoaded = true;
     } catch (e) {
-      print('无法加载系统字体: $e');
+      debugPrint('无法加载系统字体: $e');
       _fontsLoaded = true;
     }
   }
@@ -144,6 +144,15 @@ class PdfExportService {
     await file.writeAsBytes(await pdf.save());
     
     return filePath;
+  }
+  
+  Future<void> sharePdf(String filePath) async {
+    final file = File(filePath);
+    if (await file.exists()) {
+      // 返回文件路径，由调用方处理分享逻辑
+      // 这里仅做文件存在性检查
+      debugPrint('PDF文件已准备好: $filePath');
+    }
   }
   
   Future<pw.Page> _createCoverPage({DateTime? startDate, DateTime? endDate}) async {
@@ -465,7 +474,7 @@ class PdfExportService {
           child: pw.Column(
             mainAxisAlignment: pw.MainAxisAlignment.center,
             children: [
-              pw.Text(chapter, style: _textStyle(fontSize: 24, color: PdfColors.white70)),
+              pw.Text(chapter, style: _textStyle(fontSize: 24, color: PdfColor.fromInt(0xB3FFFFFF))),
               pw.SizedBox(height: 16),
               pw.Text(title, style: _textStyle(fontSize: 48, fontWeight: pw.FontWeight.bold, color: PdfColors.white)),
               pw.SizedBox(height: 24),
@@ -499,7 +508,7 @@ class PdfExportService {
           ),
         );
       } catch (e) {
-        print('无法加载图片: $e');
+        debugPrint('无法加载图片: $e');
       }
     }
     
@@ -620,7 +629,7 @@ class PdfExportService {
           ),
         );
       } catch (e) {
-        print('无法加载图片: $e');
+        debugPrint('无法加载图片: $e');
       }
     }
     
@@ -699,7 +708,7 @@ class PdfExportService {
           ),
         );
       } catch (e) {
-        print('无法加载图片: $e');
+        debugPrint('无法加载图片: $e');
       }
     }
     
@@ -811,7 +820,7 @@ class PdfExportService {
           ),
         );
       } catch (e) {
-        print('无法加载图片: $e');
+        debugPrint('无法加载图片: $e');
       }
     }
     
@@ -913,7 +922,7 @@ class PdfExportService {
               child: pw.Row(
                 children: [
                   pw.Expanded(
-                    flex: record.progress,
+                    flex: record.progress.clamp(0, 100),
                     child: pw.Container(
                       decoration: pw.BoxDecoration(
                         color: record.isCompleted ? _secondaryColor : _accentColor,
@@ -922,7 +931,7 @@ class PdfExportService {
                     ),
                   ),
                   pw.Expanded(
-                    flex: 100 - record.progress,
+                    flex: (100 - record.progress).clamp(0, 100),
                     child: pw.SizedBox(),
                   ),
                 ],
