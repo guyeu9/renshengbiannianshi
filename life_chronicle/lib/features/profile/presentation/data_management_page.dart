@@ -83,7 +83,6 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
 
   bool _obscurePassword = true;
   bool _rememberPassword = false;
-  String? _passwordHint;
   String _backupFrequency = 'daily';
   
   Map<String, bool> _selectedModules = {
@@ -146,7 +145,6 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
       setState(() {
         _config = config;
         _rememberPassword = rememberPassword;
-        _passwordHint = passwordHint;
         if (config != null) {
           _urlController.text = config.url;
           _usernameController.text = config.username;
