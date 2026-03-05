@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_chronicle/core/database/app_database.dart';
 import 'package:life_chronicle/features/moment/providers/moment_detail_provider.dart';
-import 'package:drift/drift.dart';
 
 void main() {
   group('MomentDetailState', () {
@@ -20,6 +19,8 @@ void main() {
         id: 'moment-1',
         mood: '开心',
         content: 'Test content',
+        isDeleted: false,
+        isFavorite: false,
         recordDate: now,
         createdAt: now,
         updatedAt: now,
@@ -32,6 +33,7 @@ void main() {
           sourceId: 'moment-1',
           targetType: 'friend',
           targetId: 'friend-1',
+          linkType: 'manual',
           createdAt: now,
         ),
         EntityLink(
@@ -40,6 +42,7 @@ void main() {
           sourceId: 'moment-1',
           targetType: 'food',
           targetId: 'food-1',
+          linkType: 'manual',
           createdAt: now,
         ),
         EntityLink(
@@ -48,6 +51,7 @@ void main() {
           sourceId: 'travel-1',
           targetType: 'moment',
           targetId: 'moment-1',
+          linkType: 'manual',
           createdAt: now,
         ),
         EntityLink(
@@ -56,6 +60,7 @@ void main() {
           sourceId: 'moment-1',
           targetType: 'goal',
           targetId: 'goal-1',
+          linkType: 'manual',
           createdAt: now,
         ),
       ];
@@ -64,12 +69,16 @@ void main() {
         FriendRecord(
           id: 'friend-1',
           name: '张三',
+          isDeleted: false,
+          isFavorite: false,
           createdAt: now,
           updatedAt: now,
         ),
         FriendRecord(
           id: 'friend-2',
           name: '李四',
+          isDeleted: false,
+          isFavorite: false,
           createdAt: now,
           updatedAt: now,
         ),
@@ -79,6 +88,10 @@ void main() {
         FoodRecord(
           id: 'food-1',
           title: '海底捞',
+          isDeleted: false,
+          isFavorite: false,
+          isWishlist: false,
+          wishlistDone: false,
           recordDate: now,
           createdAt: now,
           updatedAt: now,
@@ -90,6 +103,11 @@ void main() {
           id: 'travel-1',
           tripId: 'trip-1',
           title: '成都之旅',
+          isDeleted: false,
+          isFavorite: false,
+          isWishlist: false,
+          wishlistDone: false,
+          isJournal: false,
           recordDate: now,
           createdAt: now,
           updatedAt: now,
@@ -100,7 +118,12 @@ void main() {
         GoalRecord(
           id: 'goal-1',
           title: '学习 Flutter',
-          level: 'year',
+          level: 'yearly',
+          isDeleted: false,
+          isFavorite: false,
+          isCompleted: false,
+          isPostponed: false,
+          progress: 0.0,
           recordDate: now,
           createdAt: now,
           updatedAt: now,

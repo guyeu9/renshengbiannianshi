@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_chronicle/core/database/app_database.dart';
 import 'package:life_chronicle/test/test_utils/test_utils.dart';
@@ -19,7 +19,7 @@ void main() {
   group('FoodDao CRUD Operations', () {
     test('should insert a food record', () async {
       final record = FoodRecordsCompanion.insert(
-        id: const Value('test-food-1'),
+        id: 'test-food-1',
         title: 'Test Restaurant',
         recordDate: DateTime.now(),
         createdAt: DateTime.now(),
@@ -35,7 +35,7 @@ void main() {
 
     test('should update an existing food record', () async {
       final record = FoodRecordsCompanion.insert(
-        id: const Value('test-food-2'),
+        id: 'test-food-2',
         title: 'Original Title',
         recordDate: DateTime.now(),
         createdAt: DateTime.now(),
@@ -45,7 +45,7 @@ void main() {
       await foodDao.upsert(record);
 
       final updatedRecord = FoodRecordsCompanion.insert(
-        id: const Value('test-food-2'),
+        id: 'test-food-2',
         title: 'Updated Title',
         content: const Value('Updated content'),
         recordDate: DateTime.now(),
@@ -62,7 +62,7 @@ void main() {
 
     test('should soft delete a food record', () async {
       final record = FoodRecordsCompanion.insert(
-        id: const Value('test-food-3'),
+        id: 'test-food-3',
         title: 'To Be Deleted',
         recordDate: DateTime.now(),
         createdAt: DateTime.now(),
@@ -85,7 +85,7 @@ void main() {
   group('FoodDao Favorite Operations', () {
     test('should update favorite status', () async {
       final record = FoodRecordsCompanion.insert(
-        id: const Value('test-food-fav-1'),
+        id: 'test-food-fav-1',
         title: 'Favorite Test',
         recordDate: DateTime.now(),
         createdAt: DateTime.now(),
@@ -101,7 +101,7 @@ void main() {
 
     test('should toggle favorite status', () async {
       final record = FoodRecordsCompanion.insert(
-        id: const Value('test-food-fav-2'),
+        id: 'test-food-fav-2',
         title: 'Toggle Favorite',
         recordDate: DateTime.now(),
         createdAt: DateTime.now(),
@@ -123,7 +123,7 @@ void main() {
   group('FoodDao Wishlist Operations', () {
     test('should update wishlist status', () async {
       final record = FoodRecordsCompanion.insert(
-        id: const Value('test-food-wish-1'),
+        id: 'test-food-wish-1',
         title: 'Wishlist Test',
         recordDate: DateTime.now(),
         createdAt: DateTime.now(),
@@ -145,7 +145,7 @@ void main() {
 
     test('should mark wishlist as done', () async {
       final record = FoodRecordsCompanion.insert(
-        id: const Value('test-food-wish-2'),
+        id: 'test-food-wish-2',
         title: 'Wishlist Done Test',
         recordDate: DateTime.now(),
         createdAt: DateTime.now(),
@@ -169,14 +169,14 @@ void main() {
   group('FoodDao Watch Operations', () {
     test('should watch all active records', () async {
       final record1 = FoodRecordsCompanion.insert(
-        id: const Value('watch-food-1'),
+        id: 'watch-food-1',
         title: 'Food 1',
         recordDate: DateTime.now(),
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
       final record2 = FoodRecordsCompanion.insert(
-        id: const Value('watch-food-2'),
+        id: 'watch-food-2',
         title: 'Food 2',
         recordDate: DateTime.now(),
         createdAt: DateTime.now(),
@@ -192,7 +192,7 @@ void main() {
 
     test('should watch record by id', () async {
       final record = FoodRecordsCompanion.insert(
-        id: const Value('watch-food-3'),
+        id: 'watch-food-3',
         title: 'Watch Test',
         recordDate: DateTime.now(),
         createdAt: DateTime.now(),
@@ -208,14 +208,14 @@ void main() {
 
     test('should not return soft deleted records in watchAllActive', () async {
       final record1 = FoodRecordsCompanion.insert(
-        id: const Value('watch-food-4'),
+        id: 'watch-food-4',
         title: 'Active',
         recordDate: DateTime.now(),
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
       final record2 = FoodRecordsCompanion.insert(
-        id: const Value('watch-food-5'),
+        id: 'watch-food-5',
         title: 'Deleted',
         recordDate: DateTime.now(),
         createdAt: DateTime.now(),
@@ -236,14 +236,14 @@ void main() {
     test('should filter by record date range', () async {
       final now = DateTime.now();
       final record1 = FoodRecordsCompanion.insert(
-        id: const Value('date-food-1'),
+        id: 'date-food-1',
         title: 'Date Test 1',
         recordDate: now.subtract(const Duration(days: 5)),
         createdAt: now,
         updatedAt: now,
       );
       final record2 = FoodRecordsCompanion.insert(
-        id: const Value('date-food-2'),
+        id: 'date-food-2',
         title: 'Date Test 2',
         recordDate: now.subtract(const Duration(days: 1)),
         createdAt: now,

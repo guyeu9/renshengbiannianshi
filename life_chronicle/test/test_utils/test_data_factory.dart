@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:life_chronicle/core/database/app_database.dart';
 
 class TestDataFactory {
@@ -12,7 +12,7 @@ class TestDataFactory {
   }) {
     final now = DateTime.now();
     return FoodRecordsCompanion.insert(
-      id: Value(id ?? 'test-food-${now.microsecondsSinceEpoch}'),
+      id: id ?? 'test-food-${now.microsecondsSinceEpoch}',
       title: title ?? 'Test Food',
       content: Value(content),
       rating: Value(rating ?? 4.0),
@@ -32,7 +32,7 @@ class TestDataFactory {
   }) {
     final now = DateTime.now();
     return MomentRecordsCompanion.insert(
-      id: Value(id ?? 'test-moment-${now.microsecondsSinceEpoch}'),
+      id: id ?? 'test-moment-${now.microsecondsSinceEpoch}',
       content: Value(content),
       mood: mood ?? '开心',
       city: Value(city),
@@ -51,7 +51,7 @@ class TestDataFactory {
   }) {
     final now = DateTime.now();
     return FriendRecordsCompanion.insert(
-      id: Value(id ?? 'test-friend-${now.microsecondsSinceEpoch}'),
+      id: id ?? 'test-friend-${now.microsecondsSinceEpoch}',
       name: name ?? 'Test Friend',
       groupName: Value(groupName),
       impressionTags: Value(impressionTags),
@@ -71,7 +71,7 @@ class TestDataFactory {
   }) {
     final now = DateTime.now();
     return TravelRecordsCompanion.insert(
-      id: Value(id ?? 'test-travel-${now.microsecondsSinceEpoch}'),
+      id: id ?? 'test-travel-${now.microsecondsSinceEpoch}',
       tripId: tripId ?? 'test-trip-${now.microsecondsSinceEpoch}',
       title: Value(title ?? 'Test Travel'),
       content: Value(content),
@@ -92,7 +92,8 @@ class TestDataFactory {
   }) {
     final now = DateTime.now();
     return GoalRecordsCompanion.insert(
-      id: Value(id ?? 'test-goal-${now.microsecondsSinceEpoch}'),
+      id: id ?? 'test-goal-${now.microsecondsSinceEpoch}',
+      level: 'yearly',
       title: title ?? 'Test Goal',
       category: Value(category ?? '学习'),
       note: Value(note),
@@ -112,7 +113,7 @@ class TestDataFactory {
   }) {
     final now = DateTime.now();
     return TimelineEventsCompanion.insert(
-      id: Value(id ?? 'test-event-${now.microsecondsSinceEpoch}'),
+      id: id ?? 'test-event-${now.microsecondsSinceEpoch}',
       title: title ?? 'Test Event',
       eventType: eventType ?? 'moment',
       note: Value(note),
@@ -129,14 +130,16 @@ class TestDataFactory {
     required String sourceId,
     required String targetType,
     required String targetId,
+    String? linkType,
   }) {
     final now = DateTime.now();
     return EntityLinksCompanion.insert(
-      id: Value(id ?? 'test-link-${now.microsecondsSinceEpoch}'),
+      id: id ?? 'test-link-${now.microsecondsSinceEpoch}',
       sourceType: sourceType,
       sourceId: sourceId,
       targetType: targetType,
       targetId: targetId,
+      linkType: Value(linkType ?? 'manual'),
       createdAt: now,
     );
   }
@@ -149,7 +152,7 @@ class TestDataFactory {
   }) {
     final now = DateTime.now();
     return TripsCompanion.insert(
-      id: Value(id ?? 'test-trip-${now.microsecondsSinceEpoch}'),
+      id: id ?? 'test-trip-${now.microsecondsSinceEpoch}',
       name: name ?? 'Test Trip',
       startDate: Value(startDate),
       endDate: Value(endDate),

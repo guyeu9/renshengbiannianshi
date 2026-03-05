@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_chronicle/core/database/app_database.dart';
 import 'package:life_chronicle/test/test_utils/test_utils.dart';
@@ -19,7 +19,7 @@ void main() {
   group('FriendDao CRUD Operations', () {
     test('should insert a friend record', () async {
       final record = FriendRecordsCompanion.insert(
-        id: const Value('test-friend-1'),
+        id: 'test-friend-1',
         name: 'Test Friend',
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
@@ -34,7 +34,7 @@ void main() {
 
     test('should update an existing friend record', () async {
       final record = FriendRecordsCompanion.insert(
-        id: const Value('test-friend-2'),
+        id: 'test-friend-2',
         name: 'Original Name',
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
@@ -43,7 +43,7 @@ void main() {
       await friendDao.upsert(record);
 
       final updatedRecord = FriendRecordsCompanion.insert(
-        id: const Value('test-friend-2'),
+        id: 'test-friend-2',
         name: 'Updated Name',
         groupName: const Value('家人'),
         createdAt: DateTime.now(),
@@ -59,7 +59,7 @@ void main() {
 
     test('should soft delete a friend record', () async {
       final record = FriendRecordsCompanion.insert(
-        id: const Value('test-friend-3'),
+        id: 'test-friend-3',
         name: 'To Be Deleted',
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
@@ -81,7 +81,7 @@ void main() {
   group('FriendDao Favorite Operations', () {
     test('should update favorite status', () async {
       final record = FriendRecordsCompanion.insert(
-        id: const Value('test-friend-fav-1'),
+        id: 'test-friend-fav-1',
         name: 'Favorite Test',
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
@@ -96,7 +96,7 @@ void main() {
 
     test('should toggle favorite status', () async {
       final record = FriendRecordsCompanion.insert(
-        id: const Value('test-friend-fav-2'),
+        id: 'test-friend-fav-2',
         name: 'Toggle Favorite',
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
@@ -117,13 +117,13 @@ void main() {
   group('FriendDao Watch Operations', () {
     test('should watch all active records', () async {
       final record1 = FriendRecordsCompanion.insert(
-        id: const Value('watch-friend-1'),
+        id: 'watch-friend-1',
         name: 'Friend 1',
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
       final record2 = FriendRecordsCompanion.insert(
-        id: const Value('watch-friend-2'),
+        id: 'watch-friend-2',
         name: 'Friend 2',
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
@@ -138,7 +138,7 @@ void main() {
 
     test('should watch record by id', () async {
       final record = FriendRecordsCompanion.insert(
-        id: const Value('watch-friend-3'),
+        id: 'watch-friend-3',
         name: 'Watch Test',
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
@@ -153,13 +153,13 @@ void main() {
 
     test('should not return soft deleted records in watchAllActive', () async {
       final record1 = FriendRecordsCompanion.insert(
-        id: const Value('watch-friend-4'),
+        id: 'watch-friend-4',
         name: 'Active',
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
       final record2 = FriendRecordsCompanion.insert(
-        id: const Value('watch-friend-5'),
+        id: 'watch-friend-5',
         name: 'Deleted',
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
@@ -178,7 +178,7 @@ void main() {
   group('FriendDao Group Operations', () {
     test('should store group name correctly', () async {
       final record = FriendRecordsCompanion.insert(
-        id: const Value('group-friend-1'),
+        id: 'group-friend-1',
         name: 'Group Test',
         groupName: const Value('家人'),
         createdAt: DateTime.now(),
@@ -193,7 +193,7 @@ void main() {
 
     test('should store impression tags correctly', () async {
       final record = FriendRecordsCompanion.insert(
-        id: const Value('tags-friend-1'),
+        id: 'tags-friend-1',
         name: 'Tags Test',
         impressionTags: const Value('["幽默", "聪明", "靠谱"]'),
         createdAt: DateTime.now(),

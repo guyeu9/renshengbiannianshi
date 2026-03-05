@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_chronicle/core/database/app_database.dart';
 import 'package:life_chronicle/test/test_utils/test_utils.dart';
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide isNotNull, isNull;
 
 void main() {
   group('Food Record Integration Tests', () {
@@ -19,7 +19,7 @@ void main() {
       final now = DateTime.now();
       
       final record = FoodRecordsCompanion.insert(
-        id: const Value('integration-food-1'),
+        id: 'integration-food-1',
         title: 'Integration Test Restaurant',
         content: const Value('Great food and service'),
         rating: const Value(4.5),
@@ -37,7 +37,7 @@ void main() {
       expect(found.rating, equals(4.5));
 
       final updatedRecord = FoodRecordsCompanion.insert(
-        id: const Value('integration-food-1'),
+        id: 'integration-food-1',
         title: 'Updated Restaurant Name',
         content: const Value('Even better now'),
         rating: const Value(5.0),
@@ -61,7 +61,7 @@ void main() {
       final now = DateTime.now();
       
       final record = FoodRecordsCompanion.insert(
-        id: const Value('integration-food-2'),
+        id: 'integration-food-2',
         title: 'Wishlist Restaurant',
         recordDate: now,
         createdAt: now,
@@ -109,7 +109,7 @@ void main() {
       final now = DateTime.now();
 
       final food = FoodRecordsCompanion.insert(
-        id: const Value('link-food-1'),
+        id: 'link-food-1',
         title: 'Dinner with friend',
         recordDate: now,
         createdAt: now,
@@ -118,22 +118,20 @@ void main() {
       await db.foodDao.upsert(food);
 
       final friend = FriendRecordsCompanion.insert(
-        id: const Value('link-friend-1'),
+        id: 'link-friend-1',
         name: 'Best Friend',
         createdAt: now,
         updatedAt: now,
       );
       await db.friendDao.upsert(friend);
 
-      final link = EntityLinksCompanion.insert(
-        id: const Value('link-1'),
+      await db.linkDao.createLink(
         sourceType: 'food',
         sourceId: 'link-food-1',
         targetType: 'friend',
         targetId: 'link-friend-1',
-        createdAt: now,
+        now: now,
       );
-      await db.linkDao.createLink(link);
 
       final links = await db.linkDao.listLinksForEntity(entityType: 'food', entityId: 'link-food-1');
       expect(links.length, equals(1));
@@ -145,7 +143,7 @@ void main() {
       final now = DateTime.now();
 
       final moment = MomentRecordsCompanion.insert(
-        id: const Value('link-moment-1'),
+        id: 'link-moment-1',
         mood: '开心',
         recordDate: now,
         createdAt: now,
@@ -155,22 +153,20 @@ void main() {
 
       for (int i = 1; i <= 3; i++) {
         final friend = FriendRecordsCompanion.insert(
-          id: Value('link-friend-$i'),
+          id: 'link-friend-$i',
           name: 'Friend $i',
           createdAt: now,
           updatedAt: now,
         );
         await db.friendDao.upsert(friend);
 
-        final link = EntityLinksCompanion.insert(
-          id: Value('moment-link-$i'),
+        await db.linkDao.createLink(
           sourceType: 'moment',
           sourceId: 'link-moment-1',
           targetType: 'friend',
           targetId: 'link-friend-$i',
-          createdAt: now,
+          now: now,
         );
-        await db.linkDao.createLink(link);
       }
 
       final links = await db.linkDao.listLinksForEntity(entityType: 'moment', entityId: 'link-moment-1');
@@ -194,7 +190,7 @@ void main() {
       final yesterday = now.subtract(const Duration(days: 1));
 
       final event1 = TimelineEventsCompanion.insert(
-        id: const Value('timeline-1'),
+        id: 'timeline-1',
         title: 'Today Event',
         eventType: 'moment',
         startAt: Value(now),
@@ -205,7 +201,7 @@ void main() {
       await db.into(db.timelineEvents).insert(event1);
 
       final event2 = TimelineEventsCompanion.insert(
-        id: const Value('timeline-2'),
+        id: 'timeline-2',
         title: 'Yesterday Event',
         eventType: 'encounter',
         startAt: Value(yesterday),
@@ -238,7 +234,7 @@ void main() {
       final now = DateTime.now();
 
       final food = FoodRecordsCompanion.insert(
-        id: const Value('backup-food-1'),
+        id: 'backup-food-1',
         title: 'Backup Test Food',
         recordDate: now,
         createdAt: now,

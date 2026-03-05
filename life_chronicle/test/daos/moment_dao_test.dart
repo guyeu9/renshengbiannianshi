@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_chronicle/core/database/app_database.dart';
 import 'package:life_chronicle/test/test_utils/test_utils.dart';
@@ -19,7 +19,7 @@ void main() {
   group('MomentDao CRUD Operations', () {
     test('should insert a moment record', () async {
       final record = MomentRecordsCompanion.insert(
-        id: const Value('test-moment-1'),
+        id: 'test-moment-1',
         mood: '开心',
         recordDate: DateTime.now(),
         createdAt: DateTime.now(),
@@ -35,7 +35,7 @@ void main() {
 
     test('should update an existing moment record', () async {
       final record = MomentRecordsCompanion.insert(
-        id: const Value('test-moment-2'),
+        id: 'test-moment-2',
         mood: '开心',
         content: const Value('Original content'),
         recordDate: DateTime.now(),
@@ -46,7 +46,7 @@ void main() {
       await momentDao.upsert(record);
 
       final updatedRecord = MomentRecordsCompanion.insert(
-        id: const Value('test-moment-2'),
+        id: 'test-moment-2',
         mood: '平静',
         content: const Value('Updated content'),
         recordDate: DateTime.now(),
@@ -63,7 +63,7 @@ void main() {
 
     test('should soft delete a moment record', () async {
       final record = MomentRecordsCompanion.insert(
-        id: const Value('test-moment-3'),
+        id: 'test-moment-3',
         mood: '开心',
         recordDate: DateTime.now(),
         createdAt: DateTime.now(),
@@ -86,7 +86,7 @@ void main() {
   group('MomentDao Favorite Operations', () {
     test('should update favorite status', () async {
       final record = MomentRecordsCompanion.insert(
-        id: const Value('test-moment-fav-1'),
+        id: 'test-moment-fav-1',
         mood: '开心',
         recordDate: DateTime.now(),
         createdAt: DateTime.now(),
@@ -104,14 +104,14 @@ void main() {
   group('MomentDao Watch Operations', () {
     test('should watch all active records', () async {
       final record1 = MomentRecordsCompanion.insert(
-        id: const Value('watch-moment-1'),
+        id: 'watch-moment-1',
         mood: '开心',
         recordDate: DateTime.now(),
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
       final record2 = MomentRecordsCompanion.insert(
-        id: const Value('watch-moment-2'),
+        id: 'watch-moment-2',
         mood: '平静',
         recordDate: DateTime.now(),
         createdAt: DateTime.now(),
@@ -127,7 +127,7 @@ void main() {
 
     test('should watch record by id', () async {
       final record = MomentRecordsCompanion.insert(
-        id: const Value('watch-moment-3'),
+        id: 'watch-moment-3',
         mood: '开心',
         recordDate: DateTime.now(),
         createdAt: DateTime.now(),
@@ -143,14 +143,14 @@ void main() {
 
     test('should not return soft deleted records in watchAllActive', () async {
       final record1 = MomentRecordsCompanion.insert(
-        id: const Value('watch-moment-4'),
+        id: 'watch-moment-4',
         mood: '开心',
         recordDate: DateTime.now(),
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
       final record2 = MomentRecordsCompanion.insert(
-        id: const Value('watch-moment-5'),
+        id: 'watch-moment-5',
         mood: '平静',
         recordDate: DateTime.now(),
         createdAt: DateTime.now(),
@@ -171,14 +171,14 @@ void main() {
     test('should filter by record date range', () async {
       final now = DateTime.now();
       final record1 = MomentRecordsCompanion.insert(
-        id: const Value('date-moment-1'),
+        id: 'date-moment-1',
         mood: '开心',
         recordDate: now.subtract(const Duration(days: 5)),
         createdAt: now,
         updatedAt: now,
       );
       final record2 = MomentRecordsCompanion.insert(
-        id: const Value('date-moment-2'),
+        id: 'date-moment-2',
         mood: '平静',
         recordDate: now.subtract(const Duration(days: 1)),
         createdAt: now,
