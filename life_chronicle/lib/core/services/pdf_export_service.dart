@@ -1,8 +1,6 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path/path.dart' as path;
@@ -922,7 +920,7 @@ class PdfExportService {
               child: pw.Row(
                 children: [
                   pw.Expanded(
-                    flex: record.progress.clamp(0, 100),
+                    flex: record.progress.clamp(0, 100).toInt(),
                     child: pw.Container(
                       decoration: pw.BoxDecoration(
                         color: record.isCompleted ? _secondaryColor : _accentColor,
@@ -931,7 +929,7 @@ class PdfExportService {
                     ),
                   ),
                   pw.Expanded(
-                    flex: (100 - record.progress).clamp(0, 100),
+                    flex: (100 - record.progress).clamp(0, 100).toInt(),
                     child: pw.SizedBox(),
                   ),
                 ],
