@@ -715,59 +715,63 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
               height: 220,
               color: Colors.white,
               child: canUseNativeMap
-                  ? Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        amapLog('AmapNative', 'Building AMapWidget...'),
-                        amap.AMapWidget(
-                          privacyStatement: const amap_base.AMapPrivacyStatement(hasContains: true, hasShow: true, hasAgree: true),
-                          apiKey: amap_base.AMapApiKey(androidKey: _amapAndroidKey, iosKey: _amapIosKey),
-                          initialCameraPosition: amap.CameraPosition(
-                            target: amap_base.LatLng(mapTargetLat, mapTargetLng),
-                            zoom: 15,
-                          ),
-                          myLocationStyleOptions: amap.MyLocationStyleOptions(true),
-                          markers: isPreview ? _pickedMarkers : <amap.Marker>{},
-                          onMapCreated: (controller) {
-                            amapLog('AmapNative', '========== onMapCreated called ==========');
-                            _nativeMapCreatedTime = DateTime.now();
-                            _mapController = controller;
-                            _syncMarkerAndCamera();
-                            amapLog('AmapNative', 'Native map initialized successfully');
-                            amapLog('AmapNative', '========================================');
-                          },
-                          onPoiTouched: isPreview
-                              ? null
-                              : (poi) {
-                                  final latLng = poi.latLng;
-                                  if (latLng == null) return;
-                                  setState(() {
-                                    _poiNameController.text = (poi.name ?? '').trim();
-                                    _pickedLatitude = latLng.latitude;
-                                    _pickedLongitude = latLng.longitude;
-                                  });
-                                  _syncMarkerAndCamera();
-                                },
-                          onLongPress: isPreview
-                              ? null
-                              : (position) {
-                                  setState(() {
-                                    _pickedLatitude = position.latitude;
-                                    _pickedLongitude = position.longitude;
-                                  });
-                                  _syncMarkerAndCamera();
-                                },
-                          onCameraMoveEnd: isPreview
-                              ? null
-                              : (position) {
-                                  setState(() {
-                                    _pickedLatitude = position.target.latitude;
-                                    _pickedLongitude = position.target.longitude;
-                                  });
-                                },
-                        ),
-                        if (!isPreview) Center(child: Icon(Icons.place, color: _primary, size: 32)),
-                      ],
+                  ? Builder(
+                      builder: (context) {
+                        amapLog('AmapNative', 'Building AMapWidget...');
+                        return Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            amap.AMapWidget(
+                              privacyStatement: const amap_base.AMapPrivacyStatement(hasContains: true, hasShow: true, hasAgree: true),
+                              apiKey: amap_base.AMapApiKey(androidKey: _amapAndroidKey, iosKey: _amapIosKey),
+                              initialCameraPosition: amap.CameraPosition(
+                                target: amap_base.LatLng(mapTargetLat, mapTargetLng),
+                                zoom: 15,
+                              ),
+                              myLocationStyleOptions: amap.MyLocationStyleOptions(true),
+                              markers: isPreview ? _pickedMarkers : <amap.Marker>{},
+                              onMapCreated: (controller) {
+                                amapLog('AmapNative', '========== onMapCreated called ==========');
+                                _nativeMapCreatedTime = DateTime.now();
+                                _mapController = controller;
+                                _syncMarkerAndCamera();
+                                amapLog('AmapNative', 'Native map initialized successfully');
+                                amapLog('AmapNative', '========================================');
+                              },
+                              onPoiTouched: isPreview
+                                  ? null
+                                  : (poi) {
+                                      final latLng = poi.latLng;
+                                      if (latLng == null) return;
+                                      setState(() {
+                                        _poiNameController.text = (poi.name ?? '').trim();
+                                        _pickedLatitude = latLng.latitude;
+                                        _pickedLongitude = latLng.longitude;
+                                      });
+                                      _syncMarkerAndCamera();
+                                    },
+                              onLongPress: isPreview
+                                  ? null
+                                  : (position) {
+                                      setState(() {
+                                        _pickedLatitude = position.latitude;
+                                        _pickedLongitude = position.longitude;
+                                      });
+                                      _syncMarkerAndCamera();
+                                    },
+                              onCameraMoveEnd: isPreview
+                                  ? null
+                                  : (position) {
+                                      setState(() {
+                                        _pickedLatitude = position.target.latitude;
+                                        _pickedLongitude = position.target.longitude;
+                                      });
+                                    },
+                            ),
+                            if (!isPreview) Center(child: Icon(Icons.place, color: _primary, size: 32)),
+                          ],
+                        );
+                      },
                     )
                   : useWebViewMap
                       ? _buildCachedWebViewMap(isPreview, mapTargetLat, mapTargetLng)
