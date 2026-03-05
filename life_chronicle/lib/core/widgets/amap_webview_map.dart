@@ -357,7 +357,14 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
           
           map.on('complete', function() {
             log('Map complete');
-            try { AMapFlutter.postMessage(JSON.stringify({type: 'mapReady'})); } catch(e) {}
+            try { 
+              var msg = JSON.stringify({type: 'mapReady'});
+              log('Sending mapReady message: ' + msg);
+              AMapFlutter.postMessage(msg);
+              log('mapReady message sent successfully');
+            } catch(e) {
+              log('mapReady postMessage FAILED: ' + e.message);
+            }
           });
           
           ${!isPreviewMode ? '''

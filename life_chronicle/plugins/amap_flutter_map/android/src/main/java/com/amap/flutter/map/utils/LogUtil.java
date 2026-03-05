@@ -13,20 +13,14 @@ public class LogUtil {
     public static boolean isDebugMode = false;
     private static final String TAG = "AMapFlutter_";
     public static void i(String className, String message) {
-        if(isDebugMode) {
-            Log.i(TAG+className, message);
-        }
+        Log.i(TAG+className, message);
     }
     public static void d(String className, String message) {
-        if(isDebugMode) {
-            Log.d(TAG+className, message);
-        }
+        Log.d(TAG+className, message);
     }
 
     public static void w(String className, String message) {
-        if(isDebugMode) {
-            Log.w(TAG+className, message);
-        }
+        Log.w(TAG+className, message);
     }
 
 

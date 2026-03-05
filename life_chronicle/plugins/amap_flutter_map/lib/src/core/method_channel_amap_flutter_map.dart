@@ -98,24 +98,36 @@ class MethodChannelAMapFlutterMap implements AMapFlutterPlatform {
       Map<String, dynamic> creationParams,
       Set<Factory<OneSequenceGestureRecognizer>> gestureRecognizers,
       void Function(int id) onPlatformViewCreated) {
+    debugPrint('[AMapNative] buildView() called');
+    debugPrint('[AMapNative] defaultTargetPlatform: $defaultTargetPlatform');
+    debugPrint('[AMapNative] creationParams: $creationParams');
     if (defaultTargetPlatform == TargetPlatform.android) {
       creationParams['debugMode'] = kDebugMode;
+      debugPrint('[AMapNative] Creating AndroidView...');
       return AndroidView(
         viewType: VIEW_TYPE,
-        onPlatformViewCreated: onPlatformViewCreated,
+        onPlatformViewCreated: (int id) {
+          debugPrint('[AMapNative] AndroidView onPlatformViewCreated called with id: $id');
+          onPlatformViewCreated(id);
+        },
         gestureRecognizers: gestureRecognizers,
         creationParams: creationParams,
         creationParamsCodec: const StandardMessageCodec(),
       );
     } else if (defaultTargetPlatform == TargetPlatform.iOS) {
+      debugPrint('[AMapNative] Creating UiKitView...');
       return UiKitView(
         viewType: VIEW_TYPE,
-        onPlatformViewCreated: onPlatformViewCreated,
+        onPlatformViewCreated: (int id) {
+          debugPrint('[AMapNative] UiKitView onPlatformViewCreated called with id: $id');
+          onPlatformViewCreated(id);
+        },
         gestureRecognizers: gestureRecognizers,
         creationParams: creationParams,
         creationParamsCodec: const StandardMessageCodec(),
       );
     }
+    debugPrint('[AMapNative] Unsupported platform: $defaultTargetPlatform');
     return Text('当前平台:$defaultTargetPlatform, 不支持使用高德地图插件');
   }
 

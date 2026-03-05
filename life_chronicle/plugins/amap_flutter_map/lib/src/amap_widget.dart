@@ -163,11 +163,13 @@ class _MapState extends State<AMapWidget> {
       'polylinesToAdd': serializeOverlaySet(widget.polylines),
       'polygonsToAdd': serializeOverlaySet(widget.polygons),
     };
+    print('[AMapNative] build() called, creationParams: $creationParams');
     Widget mapView = _methodChannel.buildView(
       creationParams,
       widget.gestureRecognizers,
       onPlatformViewCreated,
     );
+    print('[AMapNative] buildView returned: $mapView');
     return mapView;
   }
 
