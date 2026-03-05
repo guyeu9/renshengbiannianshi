@@ -508,11 +508,11 @@ class PdfExportService {
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.Text(record.content, style: pw.TextStyle(fontSize: 12)),
+                pw.Text(record.content ?? '', style: pw.TextStyle(fontSize: 12)),
                 pw.SizedBox(height: 8),
                 pw.Row(
                   children: [
-                    if (record.mood != null) pw.Text('😊 ${record.mood}', style: pw.TextStyle(fontSize: 10, color: _mutedColor)),
+                    pw.Text('😊 ${record.mood}', style: pw.TextStyle(fontSize: 10, color: _mutedColor)),
                     pw.Spacer(),
                     pw.Text(record.recordDate.toString().split(' ')[0], style: pw.TextStyle(fontSize: 10, color: _mutedColor)),
                   ],
@@ -688,8 +688,8 @@ class PdfExportService {
     
     if (records.isEmpty) return;
     
-    final completedCount = records.where((r) => r.status == 'completed').length;
-    final inProgressCount = records.where((r) => r.status == 'in_progress').length;
+    final completedCount = records.where((r) => r.isCompleted).length;
+    final inProgressCount = records.where((r) => !r.isCompleted).length;
     
     pdf.addPage(
       pw.MultiPage(
@@ -741,17 +741,17 @@ class PdfExportService {
                     pw.Container(
                       padding: pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: pw.BoxDecoration(
-                        color: record.status == 'completed' ? PdfColor.fromInt(0x3310B981) : PdfColor.fromInt(0x33F59E0B),
+                        color: record.isCompleted ? PdfColor.fromInt(0x3310B981) : PdfColor.fromInt(0x33F59E0B),
                         borderRadius: pw.BorderRadius.circular(4),
                       ),
                       child: pw.Text(
-                        record.status == 'completed' ? '已完成' : (record.status == 'in_progress' ? '进行中' : record.status),
+                        record.isCompleted ? '已完成' : '进行中',
                         style: pw.TextStyle(fontSize: 10),
                       ),
                     ),
                   ],
                 ),
-                if (record.note != null) ...[
+                if (record.note != null && record.note!.isNotEmpty) ...[
                   pw.SizedBox(height: 8),
                   pw.Text(record.note!, style: pw.TextStyle(fontSize: 11)),
                 ],
@@ -759,9 +759,9 @@ class PdfExportService {
                 pw.Row(
                   children: [
                     pw.Text('进度: ${record.progress}%', style: pw.TextStyle(fontSize: 10, color: _mutedColor)),
-                    if (record.deadline != null) ...[
+                    if (record.dueDate != null) ...[
                       pw.SizedBox(width: 16),
-                      pw.Text('截止: ${record.deadline!.toString().split(' ')[0]}', style: pw.TextStyle(fontSize: 10, color: _mutedColor)),
+                      pw.Text('截止: ${record.dueDate!.toString().split(' ')[0]}', style: pw.TextStyle(fontSize: 10, color: _mutedColor)),
                     ],
                   ],
                 ),
@@ -833,20 +833,19 @@ class PdfExportService {
                     pw.Expanded(
                       child: pw.Text(record.title, style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
                     ),
-                    if (record.type != null)
-                      pw.Container(
-                        padding: pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: pw.BoxDecoration(
-                          color: _bgColor,
-                          borderRadius: pw.BorderRadius.circular(4),
-                        ),
-                        child: pw.Text(record.type!, style: pw.TextStyle(fontSize: 10)),
+                    pw.Container(
+                      padding: pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: pw.BoxDecoration(
+                        color: _bgColor,
+                        borderRadius: pw.BorderRadius.circular(4),
                       ),
+                      child: pw.Text(record.eventType, style: pw.TextStyle(fontSize: 10)),
+                    ),
                   ],
                 ),
-                if (record.description != null) ...[
+                if (record.note != null && record.note!.isNotEmpty) ...[
                   pw.SizedBox(height: 8),
-                  pw.Text(record.description!, style: pw.TextStyle(fontSize: 11)),
+                  pw.Text(record.note!, style: pw.TextStyle(fontSize: 11)),
                 ],
                 pw.SizedBox(height: 8),
                 pw.Row(

@@ -929,8 +929,6 @@ class BackupService {
   }) async {
     _emitProgress(BackupStatus.preparing, message: '准备恢复...');
     
-    String? snapshotPath;
-    
     try {
       final tempDir = await getTempDir();
       final extractDir = path.join(tempDir.path, 'extract');
@@ -964,7 +962,7 @@ class BackupService {
       );
       
       _emitProgress(BackupStatus.exporting, progress: 0.7, message: '创建快照...');
-      snapshotPath = await _createLocalSnapshot();
+      await _createLocalSnapshot();
       
       try {
         _emitProgress(BackupStatus.exporting, progress: 0.8, message: '恢复数据...');

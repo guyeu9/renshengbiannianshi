@@ -106,7 +106,7 @@ class ExcelExportService {
     
     for (var col in ['A', 'B', 'C']) {
       final cell = sheet.cell(CellIndex.indexByString('$col$rowNum'));
-      cell.cellStyle = CellStyle(bold: true, backgroundColorHex: '#4F46E5');
+      cell.cellStyle = CellStyle(bold: true);
     }
     
     rowNum++;
@@ -182,7 +182,7 @@ class ExcelExportService {
     for (var i = 0; i < headers.length; i++) {
       final cell = sheet.cell(CellIndex.indexByString('${_colLetter(i)}1'));
       cell.value = TextCellValue(headers[i]);
-      cell.cellStyle = CellStyle(bold: true, backgroundColorHex: '#4F46E5');
+      cell.cellStyle = CellStyle(bold: true);
     }
     
     for (var i = 0; i < records.length; i++) {
@@ -194,7 +194,7 @@ class ExcelExportService {
       sheet.cell(CellIndex.indexByString('C$row')).value = TextCellValue(record.content ?? '');
       sheet.cell(CellIndex.indexByString('D$row')).value = DoubleCellValue(record.rating ?? 0);
       sheet.cell(CellIndex.indexByString('E$row')).value = DoubleCellValue(record.pricePerPerson ?? 0);
-      sheet.cell(CellIndex.indexByString('F$row')).value = TextCellValue(record.tags != null ? record.tags!.join(', ') : '');
+      sheet.cell(CellIndex.indexByString('F$row')).value = TextCellValue(record.tags ?? '');
       sheet.cell(CellIndex.indexByString('G$row')).value = TextCellValue(record.mood ?? '');
       sheet.cell(CellIndex.indexByString('H$row')).value = TextCellValue(record.poiName ?? '');
       sheet.cell(CellIndex.indexByString('I$row')).value = TextCellValue(record.city ?? '');
@@ -203,10 +203,6 @@ class ExcelExportService {
       sheet.cell(CellIndex.indexByString('L$row')).value = TextCellValue(record.isFavorite ? '是' : '否');
       sheet.cell(CellIndex.indexByString('M$row')).value = TextCellValue(record.recordDate.toString().split('.')[0]);
       sheet.cell(CellIndex.indexByString('N$row')).value = TextCellValue(record.createdAt.toString().split('.')[0]);
-      
-      if (record.rating != null && record.rating! >= 4.5) {
-        sheet.cell(CellIndex.indexByString('D$row')).cellStyle = CellStyle(backgroundColorHex: '#D1FAE5');
-      }
     }
     
     if (records.isNotEmpty) {
@@ -238,7 +234,7 @@ class ExcelExportService {
     for (var i = 0; i < headers.length; i++) {
       final cell = sheet.cell(CellIndex.indexByString('${_colLetter(i)}1'));
       cell.value = TextCellValue(headers[i]);
-      cell.cellStyle = CellStyle(bold: true, backgroundColorHex: '#10B981');
+      cell.cellStyle = CellStyle(bold: true);
     }
     
     for (var i = 0; i < records.length; i++) {
@@ -249,7 +245,7 @@ class ExcelExportService {
       sheet.cell(CellIndex.indexByString('B$row')).value = TextCellValue(record.content);
       sheet.cell(CellIndex.indexByString('C$row')).value = TextCellValue(record.mood ?? '');
       sheet.cell(CellIndex.indexByString('D$row')).value = TextCellValue(record.moodColor ?? '');
-      sheet.cell(CellIndex.indexByString('E$row')).value = TextCellValue(record.tags != null ? record.tags!.join(', ') : '');
+      sheet.cell(CellIndex.indexByString('E$row')).value = TextCellValue(record.tags ?? '');
       sheet.cell(CellIndex.indexByString('F$row')).value = TextCellValue(record.poiName ?? '');
       sheet.cell(CellIndex.indexByString('G$row')).value = TextCellValue(record.city ?? '');
       sheet.cell(CellIndex.indexByString('H$row')).value = TextCellValue(record.isFavorite ? '是' : '否');
@@ -267,7 +263,7 @@ class ExcelExportService {
     for (var i = 0; i < headers.length; i++) {
       final cell = sheet.cell(CellIndex.indexByString('${_colLetter(i)}1'));
       cell.value = TextCellValue(headers[i]);
-      cell.cellStyle = CellStyle(bold: true, backgroundColorHex: '#EC4899');
+      cell.cellStyle = CellStyle(bold: true);
     }
     
     for (var i = 0; i < records.length; i++) {
@@ -280,7 +276,7 @@ class ExcelExportService {
       sheet.cell(CellIndex.indexByString('D$row')).value = TextCellValue(record.contact ?? '');
       sheet.cell(CellIndex.indexByString('E$row')).value = TextCellValue(record.meetWay ?? '');
       sheet.cell(CellIndex.indexByString('F$row')).value = TextCellValue(record.meetDate?.toString().split(' ')[0] ?? '');
-      sheet.cell(CellIndex.indexByString('G$row')).value = TextCellValue(record.impressionTags != null ? record.impressionTags!.join(', ') : '');
+      sheet.cell(CellIndex.indexByString('G$row')).value = TextCellValue(record.impressionTags ?? '');
       sheet.cell(CellIndex.indexByString('H$row')).value = TextCellValue(record.groupName ?? '');
       sheet.cell(CellIndex.indexByString('I$row')).value = TextCellValue(record.lastMeetDate?.toString().split(' ')[0] ?? '');
       sheet.cell(CellIndex.indexByString('J$row')).value = TextCellValue(record.contactFrequency ?? '');
@@ -292,22 +288,22 @@ class ExcelExportService {
     var query = db.select(db.travelRecords);
     
     if (startDate != null) {
-      query = query..where((t) => t.startDate.isBiggerOrEqualValue(startDate));
+      query = query..where((t) => t.recordDate.isBiggerOrEqualValue(startDate));
     }
     if (endDate != null) {
       final endOfDay = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
-      query = query..where((t) => t.startDate.isSmallerOrEqualValue(endOfDay));
+      query = query..where((t) => t.recordDate.isSmallerOrEqualValue(endOfDay));
     }
     
     final records = await query.get();
     final sheet = excel['旅行'];
     
-    final headers = ['ID', '目的地', '内容', '开始日期', '结束日期', '地点', '城市', '国家', '心情', '标签', '收藏', '创建时间'];
+    final headers = ['ID', '目的地', '内容', '计划日期', '地点', '城市', '国家', '心情', '标签', '收藏', '创建时间'];
     
     for (var i = 0; i < headers.length; i++) {
       final cell = sheet.cell(CellIndex.indexByString('${_colLetter(i)}1'));
       cell.value = TextCellValue(headers[i]);
-      cell.cellStyle = CellStyle(bold: true, backgroundColorHex: '#F59E0B');
+      cell.cellStyle = CellStyle(bold: true);
     }
     
     for (var i = 0; i < records.length; i++) {
@@ -315,17 +311,16 @@ class ExcelExportService {
       final row = i + 2;
       
       sheet.cell(CellIndex.indexByString('A$row')).value = TextCellValue(record.id);
-      sheet.cell(CellIndex.indexByString('B$row')).value = TextCellValue(record.destination);
-      sheet.cell(CellIndex.indexByString('C$row')).value = TextCellValue(record.description ?? '');
-      sheet.cell(CellIndex.indexByString('D$row')).value = TextCellValue(record.startDate?.toString().split(' ')[0] ?? '');
-      sheet.cell(CellIndex.indexByString('E$row')).value = TextCellValue(record.endDate?.toString().split(' ')[0] ?? '');
-      sheet.cell(CellIndex.indexByString('F$row')).value = TextCellValue(record.poiName ?? '');
-      sheet.cell(CellIndex.indexByString('G$row')).value = TextCellValue(record.city ?? '');
-      sheet.cell(CellIndex.indexByString('H$row')).value = TextCellValue(record.country ?? '');
-      sheet.cell(CellIndex.indexByString('I$row')).value = TextCellValue(record.mood ?? '');
-      sheet.cell(CellIndex.indexByString('J$row')).value = TextCellValue(record.tags != null ? record.tags!.join(', ') : '');
-      sheet.cell(CellIndex.indexByString('K$row')).value = TextCellValue(record.isFavorite ? '是' : '否');
-      sheet.cell(CellIndex.indexByString('L$row')).value = TextCellValue(record.createdAt.toString().split('.')[0]);
+      sheet.cell(CellIndex.indexByString('B$row')).value = TextCellValue(record.destination ?? '');
+      sheet.cell(CellIndex.indexByString('C$row')).value = TextCellValue(record.content ?? '');
+      sheet.cell(CellIndex.indexByString('D$row')).value = TextCellValue(record.planDate?.toString().split(' ')[0] ?? '');
+      sheet.cell(CellIndex.indexByString('E$row')).value = TextCellValue(record.poiName ?? '');
+      sheet.cell(CellIndex.indexByString('F$row')).value = TextCellValue(record.city ?? '');
+      sheet.cell(CellIndex.indexByString('G$row')).value = TextCellValue(record.country ?? '');
+      sheet.cell(CellIndex.indexByString('H$row')).value = TextCellValue(record.mood ?? '');
+      sheet.cell(CellIndex.indexByString('I$row')).value = TextCellValue(record.tags ?? '');
+      sheet.cell(CellIndex.indexByString('J$row')).value = TextCellValue(record.isFavorite ? '是' : '否');
+      sheet.cell(CellIndex.indexByString('K$row')).value = TextCellValue(record.createdAt.toString().split('.')[0]);
     }
   }
   
@@ -333,12 +328,12 @@ class ExcelExportService {
     final records = await (db.select(db.goalRecords)).get();
     final sheet = excel['目标'];
     
-    final headers = ['ID', '标题', '备注', '总结', '分类', '标签', '层级', '进度', '状态', '目标年月', '截止日期', '延期', '收藏', '创建时间'];
+    final headers = ['ID', '标题', '备注', '总结', '分类', '标签', '层级', '进度', '已完成', '目标年月', '截止日期', '延期', '收藏', '创建时间'];
     
     for (var i = 0; i < headers.length; i++) {
       final cell = sheet.cell(CellIndex.indexByString('${_colLetter(i)}1'));
       cell.value = TextCellValue(headers[i]);
-      cell.cellStyle = CellStyle(bold: true, backgroundColorHex: '#8B5CF6');
+      cell.cellStyle = CellStyle(bold: true);
     }
     
     for (var i = 0; i < records.length; i++) {
@@ -350,12 +345,12 @@ class ExcelExportService {
       sheet.cell(CellIndex.indexByString('C$row')).value = TextCellValue(record.note ?? '');
       sheet.cell(CellIndex.indexByString('D$row')).value = TextCellValue(record.summary ?? '');
       sheet.cell(CellIndex.indexByString('E$row')).value = TextCellValue(record.category ?? '');
-      sheet.cell(CellIndex.indexByString('F$row')).value = TextCellValue(record.tags != null ? record.tags!.join(', ') : '');
-      sheet.cell(CellIndex.indexByString('G$row')).value = IntCellValue(record.level);
-      sheet.cell(CellIndex.indexByString('H$row')).value = IntCellValue(record.progress);
-      sheet.cell(CellIndex.indexByString('I$row')).value = TextCellValue(record.status);
+      sheet.cell(CellIndex.indexByString('F$row')).value = TextCellValue(record.tags ?? '');
+      sheet.cell(CellIndex.indexByString('G$row')).value = TextCellValue(record.level);
+      sheet.cell(CellIndex.indexByString('H$row')).value = DoubleCellValue(record.progress);
+      sheet.cell(CellIndex.indexByString('I$row')).value = TextCellValue(record.isCompleted ? '是' : '否');
       sheet.cell(CellIndex.indexByString('J$row')).value = TextCellValue('${record.targetYear ?? ''}-${record.targetMonth ?? ''}');
-      sheet.cell(CellIndex.indexByString('K$row')).value = TextCellValue(record.deadline?.toString().split(' ')[0] ?? '');
+      sheet.cell(CellIndex.indexByString('K$row')).value = TextCellValue(record.dueDate?.toString().split(' ')[0] ?? '');
       sheet.cell(CellIndex.indexByString('L$row')).value = TextCellValue(record.isPostponed ? '是' : '否');
       sheet.cell(CellIndex.indexByString('M$row')).value = TextCellValue(record.isFavorite ? '是' : '否');
       sheet.cell(CellIndex.indexByString('N$row')).value = TextCellValue(record.createdAt.toString().split('.')[0]);
@@ -381,7 +376,7 @@ class ExcelExportService {
     for (var i = 0; i < headers.length; i++) {
       final cell = sheet.cell(CellIndex.indexByString('${_colLetter(i)}1'));
       cell.value = TextCellValue(headers[i]);
-      cell.cellStyle = CellStyle(bold: true, backgroundColorHex: '#6366F1');
+      cell.cellStyle = CellStyle(bold: true);
     }
     
     for (var i = 0; i < records.length; i++) {
@@ -390,11 +385,11 @@ class ExcelExportService {
       
       sheet.cell(CellIndex.indexByString('A$row')).value = TextCellValue(record.id);
       sheet.cell(CellIndex.indexByString('B$row')).value = TextCellValue(record.title);
-      sheet.cell(CellIndex.indexByString('C$row')).value = TextCellValue(record.type ?? '');
+      sheet.cell(CellIndex.indexByString('C$row')).value = TextCellValue(record.eventType);
       sheet.cell(CellIndex.indexByString('D$row')).value = TextCellValue(record.startAt?.toString().split('.')[0] ?? '');
       sheet.cell(CellIndex.indexByString('E$row')).value = TextCellValue(record.endAt?.toString().split('.')[0] ?? '');
-      sheet.cell(CellIndex.indexByString('F$row')).value = TextCellValue(record.description ?? '');
-      sheet.cell(CellIndex.indexByString('G$row')).value = TextCellValue(record.tags != null ? record.tags!.join(', ') : '');
+      sheet.cell(CellIndex.indexByString('F$row')).value = TextCellValue(record.note ?? '');
+      sheet.cell(CellIndex.indexByString('G$row')).value = TextCellValue(record.tags ?? '');
       sheet.cell(CellIndex.indexByString('H$row')).value = TextCellValue(record.poiName ?? '');
       sheet.cell(CellIndex.indexByString('I$row')).value = TextCellValue(record.isFavorite ? '是' : '否');
       sheet.cell(CellIndex.indexByString('J$row')).value = TextCellValue(record.createdAt.toString().split('.')[0]);
