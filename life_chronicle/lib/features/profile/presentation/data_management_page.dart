@@ -1305,18 +1305,17 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
           ),
           child: Column(
             children: [
-              _buildStatRow(isDark, textMain, textMuted, '总记录数', '${_statistics!.totalRecordCount}'),
+              _buildStatRow(isDark, textMain, textMuted, '总记录数', '${_statistics!.totalRecordCount}', ''),
               const Divider(),
-              _buildStatRow(isDark, textMain, textMuted, '美食记录', '${_statistics!.foodRecordCount}'),
-              _buildStatRow(isDark, textMain, textMuted, '小确幸', '${_statistics!.momentRecordCount}'),
-              _buildStatRow(isDark, textMain, textMuted, '羁绊', '${_statistics!.friendRecordCount}'),
-              _buildStatRow(isDark, textMain, textMuted, '旅行', '${_statistics!.travelRecordCount}'),
-              _buildStatRow(isDark, textMain, textMuted, '目标', '${_statistics!.goalRecordCount}'),
-              _buildStatRow(isDark, textMain, textMuted, '时间线', '${_statistics!.timelineEventCount}'),
+              _buildModuleStatRow(isDark, textMain, textMuted, '🍜 美食记录', _statistics!.foodStats),
+              _buildModuleStatRow(isDark, textMain, textMuted, '✨ 小确幸', _statistics!.momentStats),
+              _buildModuleStatRow(isDark, textMain, textMuted, '💕 羁绊', _statistics!.friendStats),
+              _buildModuleStatRow(isDark, textMain, textMuted, '✈️ 旅行', _statistics!.travelStats),
+              _buildModuleStatRow(isDark, textMain, textMuted, '🎯 目标', _statistics!.goalStats),
+              _buildModuleStatRow(isDark, textMain, textMuted, '⏳ 时间线', _statistics!.timelineStats),
               const Divider(),
-              _buildStatRow(isDark, textMain, textMuted, '媒体文件', '${_statistics!.mediaFileCount} 个'),
-              _buildStatRow(isDark, textMain, textMuted, '媒体大小', _statistics!.formattedMediaSize),
-              _buildStatRow(isDark, textMain, textMuted, '数据库大小', _statistics!.formattedDatabaseSize),
+              _buildStatRow(isDark, textMain, textMuted, '媒体文件', '${_statistics!.totalMediaFileCount} 个', _statistics!.formattedTotalMediaSize),
+              _buildStatRow(isDark, textMain, textMuted, '数据库大小', '', _statistics!.formattedDatabaseSize),
             ],
           ),
         ),
@@ -1324,14 +1323,53 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
     );
   }
 
-  Widget _buildStatRow(bool isDark, Color textMain, Color textMuted, String label, String value) {
+  Widget _buildModuleStatRow(bool isDark, Color textMain, Color textMuted, String label, ModuleStatistics stats) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(label, style: TextStyle(fontSize: 14, color: textMuted)),
+          ),
+          Expanded(
+            flex: 1,
+            child: Text(
+              '${stats.recordCount} 条',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: textMain),
+              textAlign: TextAlign.right,
+            ),
+          ),
+          Expanded(
+            flex: 1,
+            child: Text(
+              stats.formattedMediaSize,
+              style: TextStyle(fontSize: 12, color: textMuted),
+              textAlign: TextAlign.right,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatRow(bool isDark, Color textMain, Color textMuted, String label, String value1, String value2) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: TextStyle(fontSize: 14, color: textMuted)),
-          Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: textMain)),
+          Row(
+            children: [
+              if (value1.isNotEmpty)
+                Text(value1, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: textMain)),
+              if (value2.isNotEmpty) ...[
+                if (value1.isNotEmpty) const SizedBox(width: 16),
+                Text(value2, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: textMain)),
+              ],
+            ],
+          ),
         ],
       ),
     );
