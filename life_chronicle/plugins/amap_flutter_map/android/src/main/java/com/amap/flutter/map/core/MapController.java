@@ -154,16 +154,24 @@ public class MapController
 
     @Override
     public void onMapLoaded() {
-        LogUtil.i(CLASS_NAME, "onMapLoaded==>");
+        LogUtil.i(CLASS_NAME, "=== onMapLoaded START ===");
+        LogUtil.i(CLASS_NAME, "mapLoaded: " + mapLoaded);
+        LogUtil.i(CLASS_NAME, "mapReadyResult: " + (mapReadyResult != null ? "not null" : "null"));
         try {
             mapLoaded = true;
+            LogUtil.i(CLASS_NAME, "mapLoaded set to true");
             if (null != mapReadyResult) {
+                LogUtil.i(CLASS_NAME, "Calling mapReadyResult.success(null)...");
                 mapReadyResult.success(null);
                 mapReadyResult = null;
+                LogUtil.i(CLASS_NAME, "mapReadyResult.success completed");
             }
         } catch (Throwable e) {
-            LogUtil.e(CLASS_NAME, "onMapLoaded", e);
+            LogUtil.e(CLASS_NAME, "onMapLoaded ERROR", e);
+            LogUtil.e(CLASS_NAME, "Error type: " + e.getClass().getName());
+            LogUtil.e(CLASS_NAME, "Error message: " + e.getMessage());
         }
+        LogUtil.i(CLASS_NAME, "=== onMapLoaded END ===");
         if (LogUtil.isDebugMode && !hasStarted) {
             hasStarted = true;
             int index = myArray[0];

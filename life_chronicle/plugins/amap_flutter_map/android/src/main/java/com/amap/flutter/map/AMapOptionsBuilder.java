@@ -49,34 +49,45 @@ class AMapOptionsBuilder implements AMapOptionsSink {
                            Context context,
                            BinaryMessenger binaryMessenger,
                            LifecycleProvider lifecycleProvider) {
+        LogUtil.i(CLASS_NAME, "=== build START ===");
+        LogUtil.i(CLASS_NAME, "id: " + id);
+        LogUtil.i(CLASS_NAME, "context: " + context);
+        LogUtil.i(CLASS_NAME, "options: " + options);
         try {
             //iOS端没有放大缩小UI, Android端强制隐藏
             options.zoomControlsEnabled(false);
+            LogUtil.i(CLASS_NAME, "Creating AMapPlatformView...");
             final AMapPlatformView aMapPlatformView = new AMapPlatformView(id, context, binaryMessenger, lifecycleProvider, options);
+            LogUtil.i(CLASS_NAME, "AMapPlatformView created: " + (aMapPlatformView != null ? "success" : "null"));
 
 
             if (null != customMapStyleOptions) {
+                LogUtil.i(CLASS_NAME, "Setting customMapStyleOptions...");
                 aMapPlatformView.getMapController().setCustomMapStyleOptions(customMapStyleOptions);
             }
 
             if (null != myLocationStyle) {
+                LogUtil.i(CLASS_NAME, "Setting myLocationStyle...");
                 aMapPlatformView.getMapController().setMyLocationStyle(myLocationStyle);
             }
             if (anchorX >= 0
                     && anchorX <= 1.0
                     && anchorY <= 1.0
                     && anchorY >= 0) {
-
+                LogUtil.i(CLASS_NAME, "Setting screenAnchor: " + anchorX + ", " + anchorY);
                 aMapPlatformView.getMapController().setScreenAnchor( anchorX, anchorY);
             }
 
+            LogUtil.i(CLASS_NAME, "Setting zoom levels: " + minZoomLevel + " - " + maxZoomLevel);
             aMapPlatformView.getMapController().setMinZoomLevel(minZoomLevel);
             aMapPlatformView.getMapController().setMaxZoomLevel(maxZoomLevel);
 
             if (null != latLngBounds) {
+                LogUtil.i(CLASS_NAME, "Setting latLngBounds...");
                 aMapPlatformView.getMapController().setLatLngBounds(latLngBounds);
             }
 
+            LogUtil.i(CLASS_NAME, "Setting map options...");
             aMapPlatformView.getMapController().setTrafficEnabled(trafficEnabled);
             aMapPlatformView.getMapController().setTouchPoiEnabled(touchPoiEnabled);
             aMapPlatformView.getMapController().setBuildingsEnabled(buildingsEnabled);
@@ -84,23 +95,30 @@ class AMapOptionsBuilder implements AMapOptionsSink {
 
 
             if (null != initialMarkers) {
+                LogUtil.i(CLASS_NAME, "Adding initial markers...");
                 List<Object> markerList = (List<Object>) initialMarkers;
                 aMapPlatformView.getMarkersController().addByList(markerList);
             }
 
             if (null != initialPolylines) {
+                LogUtil.i(CLASS_NAME, "Adding initial polylines...");
                 List<Object> markerList = (List<Object>) initialPolylines;
                 aMapPlatformView.getPolylinesController().addByList(markerList);
             }
 
             if (null != initialPolygons) {
+                LogUtil.i(CLASS_NAME, "Adding initial polygons...");
                 List<Object> polygonList = (List<Object>) initialPolygons;
                 aMapPlatformView.getPolygonsController().addByList(polygonList);
             }
+            LogUtil.i(CLASS_NAME, "=== build END, returning aMapPlatformView ===");
             return aMapPlatformView;
         } catch (Throwable e) {
-            LogUtil.e(CLASS_NAME, "build", e);
+            LogUtil.e(CLASS_NAME, "build ERROR", e);
+            LogUtil.e(CLASS_NAME, "Error type: " + e.getClass().getName());
+            LogUtil.e(CLASS_NAME, "Error message: " + e.getMessage());
         }
+        LogUtil.e(CLASS_NAME, "=== build END, returning null ===");
         return null;
     }
 

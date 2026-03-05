@@ -81,8 +81,9 @@ class PdfExportService {
     }
     
     final tempDir = await getTemporaryDirectory();
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final fileName = 'life_chronicle_export_$timestamp.pdf';
+    final now = DateTime.now();
+    final timestamp = '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
+    final fileName = '人生编年史导出_$timestamp.pdf';
     final filePath = path.join(tempDir.path, fileName);
     
     final file = File(filePath);

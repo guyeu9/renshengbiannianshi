@@ -24,13 +24,20 @@ class MethodChannelAMapFlutterMap implements AMapFlutterPlatform {
 
   @override
   Future<void> init(int mapId) {
+    debugPrint('[AMapNative] init() called with mapId: $mapId');
     MethodChannel? channel = _channels[mapId];
     if (channel == null) {
+      debugPrint('[AMapNative] Creating new MethodChannel for mapId: $mapId');
       channel = MethodChannel('amap_flutter_map_$mapId');
       channel.setMethodCallHandler((call) => _handleMethodCall(call, mapId));
       _channels[mapId] = channel;
     }
-    return channel.invokeMethod<void>('map#waitForMap');
+    debugPrint('[AMapNative] Invoking map#waitForMap for mapId: $mapId');
+    return channel.invokeMethod<void>('map#waitForMap').then((_) {
+      debugPrint('[AMapNative] map#waitForMap completed for mapId: $mapId');
+    }).catchError((error) {
+      debugPrint('[AMapNative] map#waitForMap FAILED for mapId: $mapId, error: $error');
+    });
   }
 
   ///更新地图参数

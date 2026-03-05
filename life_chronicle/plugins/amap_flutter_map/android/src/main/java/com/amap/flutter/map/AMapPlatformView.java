@@ -60,21 +60,47 @@ public class AMapPlatformView
                      LifecycleProvider lifecycleProvider,
                      AMapOptions options) {
 
+        LogUtil.i(CLASS_NAME, "=== AMapPlatformView constructor START ===");
+        LogUtil.i(CLASS_NAME, "id: " + id);
+        LogUtil.i(CLASS_NAME, "context: " + context);
+        LogUtil.i(CLASS_NAME, "options: " + options);
+
         methodChannel = new MethodChannel(binaryMessenger, "amap_flutter_map_" + id);
         methodChannel.setMethodCallHandler(this);
         myMethodCallHandlerMap = new HashMap<String, MyMethodCallHandler>(8);
 
         try {
+            LogUtil.i(CLASS_NAME, "Creating TextureMapView...");
             mapView = new TextureMapView(context, options);
+            LogUtil.i(CLASS_NAME, "TextureMapView created successfully");
+            
+            LogUtil.i(CLASS_NAME, "Getting AMap instance...");
             AMap amap = mapView.getMap();
+            LogUtil.i(CLASS_NAME, "AMap instance obtained: " + (amap != null ? "success" : "null"));
+            
+            LogUtil.i(CLASS_NAME, "Creating MapController...");
             mapController = new MapController(methodChannel, mapView);
+            LogUtil.i(CLASS_NAME, "MapController created");
+            
+            LogUtil.i(CLASS_NAME, "Creating MarkersController...");
             markersController = new MarkersController(methodChannel, amap);
+            LogUtil.i(CLASS_NAME, "MarkersController created");
+            
+            LogUtil.i(CLASS_NAME, "Creating PolylinesController...");
             polylinesController = new PolylinesController(methodChannel, amap);
+            LogUtil.i(CLASS_NAME, "PolylinesController created");
+            
+            LogUtil.i(CLASS_NAME, "Creating PolygonsController...");
             polygonsController = new PolygonsController(methodChannel, amap);
+            LogUtil.i(CLASS_NAME, "PolygonsController created");
+            
             initMyMethodCallHandlerMap();
             lifecycleProvider.getLifecycle().addObserver(this);
+            LogUtil.i(CLASS_NAME, "=== AMapPlatformView constructor END ===");
         } catch (Throwable e) {
-            LogUtil.e(CLASS_NAME, "<init>", e);
+            LogUtil.e(CLASS_NAME, "=== AMapPlatformView constructor ERROR ===", e);
+            LogUtil.e(CLASS_NAME, "Error type: " + e.getClass().getName());
+            LogUtil.e(CLASS_NAME, "Error message: " + e.getMessage());
         }
     }
 
@@ -141,17 +167,27 @@ public class AMapPlatformView
 
     @Override
     public void onCreate(@NonNull LifecycleOwner owner) {
-        LogUtil.i(CLASS_NAME, "onCreate==>");
+        LogUtil.i(CLASS_NAME, "=== onCreate START ===");
+        LogUtil.i(CLASS_NAME, "disposed: " + disposed);
+        LogUtil.i(CLASS_NAME, "mapView: " + (mapView != null ? "not null" : "null"));
         try {
             if (disposed) {
+                LogUtil.w(CLASS_NAME, "onCreate: disposed is true, returning");
                 return;
             }
             if (null != mapView) {
+                LogUtil.i(CLASS_NAME, "Calling mapView.onCreate(null)...");
                 mapView.onCreate(null);
+                LogUtil.i(CLASS_NAME, "mapView.onCreate(null) completed");
+            } else {
+                LogUtil.e(CLASS_NAME, "onCreate: mapView is null!");
             }
         } catch (Throwable e) {
-            LogUtil.e(CLASS_NAME, "onCreate", e);
+            LogUtil.e(CLASS_NAME, "onCreate ERROR", e);
+            LogUtil.e(CLASS_NAME, "Error type: " + e.getClass().getName());
+            LogUtil.e(CLASS_NAME, "Error message: " + e.getMessage());
         }
+        LogUtil.i(CLASS_NAME, "=== onCreate END ===");
     }
 
     @Override

@@ -178,7 +178,10 @@ class _MapState extends State<AMapWidget> {
     _markers = keyByMarkerId(widget.markers);
     _polygons = keyByPolygonId(widget.polygons);
     _polylines = keyByPolylineId(widget.polylines);
-    print('initState AMapWidget');
+    print('[AMapNative] AMapWidget.initState() called');
+    print('[AMapNative] privacyStatement: ${widget.privacyStatement}');
+    print('[AMapNative] apiKey: ${widget.apiKey}');
+    print('[AMapNative] initialCameraPosition: ${widget.initialCameraPosition}');
   }
 
   @override
@@ -211,15 +214,25 @@ class _MapState extends State<AMapWidget> {
   }
 
   Future<void> onPlatformViewCreated(int id) async {
-    final AMapController controller = await AMapController.init(
-      id,
-      widget.initialCameraPosition,
-      this,
-    );
-    _controller.complete(controller);
-    final MapCreatedCallback? _onMapCreated = widget.onMapCreated;
-    if (_onMapCreated != null) {
-      _onMapCreated(controller);
+    print('[AMapNative] onPlatformViewCreated called with id: $id');
+    try {
+      print('[AMapNative] Initializing AMapController...');
+      final AMapController controller = await AMapController.init(
+        id,
+        widget.initialCameraPosition,
+        this,
+      );
+      print('[AMapNative] AMapController initialized successfully');
+      _controller.complete(controller);
+      final MapCreatedCallback? _onMapCreated = widget.onMapCreated;
+      if (_onMapCreated != null) {
+        print('[AMapNative] Calling onMapCreated callback');
+        _onMapCreated(controller);
+        print('[AMapNative] onMapCreated callback completed');
+      }
+    } catch (e, stackTrace) {
+      print('[AMapNative] onPlatformViewCreated ERROR: $e');
+      print('[AMapNative] StackTrace: $stackTrace');
     }
   }
 

@@ -82,7 +82,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
   final _passwordHintController = TextEditingController();
 
   bool _obscurePassword = true;
-  bool _rememberPassword = false;
+  bool _rememberPassword = true; // 默认记住密码
   String _backupFrequency = 'daily';
   
   Map<String, bool> _selectedModules = {
@@ -342,6 +342,14 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
         ),
       );
       
+      // 更新上次备份时间
+      await db.syncStateDao.updateLastSync(
+        'default',
+        lastSyncTime: DateTime.now(),
+        lastSyncChangeId: null,
+        deviceId: await _getDeviceId(),
+      );
+      
       setState(() => _isBackingUp = false);
       
       if (!mounted) return;
@@ -396,6 +404,11 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
     }
   }
   
+  Future<String> _getDeviceId() async {
+    final uuid = ref.read(uuidProvider);
+    return uuid.v4();
+  }
+
   int _countRecords(Map<String, dynamic> data) {
     int count = 0;
     for (final key in data.keys) {
@@ -1616,40 +1629,22 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                 '推荐开启，保护隐私安全',
                 _config?.encryptBackup ?? true,
                 (value) async {
-                  if (_config != null) {
+                  // 如果配置为空，创建默认配置
+                  if (_config == null) {
+                    final newConfig = WebDavConfig(
+                      url: '',
+                      username: '',
+                      password: '',
+                      encryptBackup: value,
+                    );
+                    await _configService.saveConfig(newConfig);
+                    setState(() => _config = newConfig);
+                  } else {
                     final newConfig = _config!.copyWith(encryptBackup: value);
                     await _configService.saveConfig(newConfig);
                     setState(() => _config = newConfig);
                   }
                 },
-              ),
-              const SizedBox(height: 16),
-              _buildSwitchRow(
-                isDark,
-                textMain,
-                textMuted,
-                '记住密码',
-                '安全存储密码，无需重复输入',
-                _rememberPassword,
-                (value) async {
-                  setState(() => _rememberPassword = value);
-                  await _configService.saveRememberPassword(value);
-                  if (!value) {
-                    await _configService.deleteEncryptionPassword();
-                    _encryptionPasswordController.clear();
-                  }
-                },
-              ),
-              const SizedBox(height: 16),
-              _buildInputField(
-                isDark,
-                textMain,
-                textMuted,
-                '密码提示',
-                Icons.lightbulb_outline,
-                _passwordHintController,
-                '输入提示帮助记忆密码',
-                false,
               ),
               const SizedBox(height: 16),
               _buildInputField(
@@ -1659,7 +1654,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                 '加密密码',
                 Icons.enhanced_encryption,
                 _encryptionPasswordController,
-                '输入加密/解密密码',
+                '输入加密/解密密码（默认记住）',
                 true,
               ),
               const SizedBox(height: 16),
@@ -2255,23 +2250,6 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: _showClearDataDialog,
-                      style: OutlinedButton.styleFrom(
-                        backgroundColor: isDark ? const Color(0xFF1F2937) : const Color(0xFFFEE2E2),
-                        foregroundColor: Colors.red,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        side: BorderSide.none,
-                      ),
-                      icon: const Icon(Icons.delete_forever, size: 20),
-                      label: const Text('清空数据', style: TextStyle(fontWeight: FontWeight.w500)),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton.icon(
                       onPressed: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
@@ -2280,13 +2258,11 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                         );
                       },
                       style: OutlinedButton.styleFrom(
-                        backgroundColor: isDark ? const Color(0xFF1F2937) : const Color(0xFFF3F4F6),
-                        foregroundColor: isDark ? const Color(0xFFD1D5DB) : const Color(0xFF4B5563),
+                        foregroundColor: AppTheme.primary,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        side: BorderSide.none,
                       ),
                       icon: const Icon(Icons.history, size: 20),
                       label: const Text('查看日志', style: TextStyle(fontWeight: FontWeight.w500)),
@@ -2341,96 +2317,6 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
         ),
       ),
     );
-  }
-
-  Future<void> _showClearDataDialog() async {
-    final confirmed = await showDialog<int>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.warning, color: Colors.red),
-            SizedBox(width: 8),
-            Text('清空所有数据'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '⚠️ 警告：此操作将删除所有数据！',
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 16),
-            Text('将要删除的内容：'),
-            SizedBox(height: 8),
-            Text('• 所有记录（美食、小确幸、羁绊、旅行、目标等）'),
-            Text('• 所有媒体文件（图片、视频等）'),
-            Text('• 所有备份日志'),
-            SizedBox(height: 16),
-            Text(
-              '建议：清空前先进行备份！',
-              style: TextStyle(color: Colors.orange),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(0),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(1),
-            child: const Text('先备份再清空'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(2),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('直接清空'),
-          ),
-        ],
-      ),
-    );
-    
-    if (confirmed == null || confirmed == 0) return;
-    
-    if (confirmed == 1) {
-      await _performLocalBackup();
-    }
-    
-    if (!mounted) return;
-    final finalConfirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('最后确认'),
-        content: const Text('确定要清空所有数据吗？此操作不可恢复！'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('确定清空'),
-          ),
-        ],
-      ),
-    );
-    
-    if (finalConfirm != true) return;
-    
-    try {
-      final db = ref.read(appDatabaseProvider);
-      final backupService = BackupService(db);
-      await backupService.clearAllData();
-      
-      _showSnackBar('数据已清空');
-      _loadStatistics();
-    } catch (e) {
-      _showSnackBar('清空失败: $e', isError: true);
-    }
   }
 
   Widget _buildProgressIndicator(bool isDark, Color textMain, Color textMuted) {

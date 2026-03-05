@@ -132,6 +132,8 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
   bool _loadingNearby = false;
   bool _nativeMapFailed = false;
   DateTime? _nativeMapCreatedTime;
+  Widget? _cachedWebViewMap;
+  bool _webViewMapCreated = false;
 
   String get _pickedPoiName => _poiNameController.text.trim();
   String get _pickedAddress => _addressController.text.trim();
@@ -189,6 +191,73 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
         _nativeMapFailed = true;
       });
     }
+  }
+
+  Widget _buildCachedWebViewMap(bool isPreview, double mapTargetLat, double mapTargetLng) {
+    if (_cachedWebViewMap != null && _webViewMapCreated) {
+      return _cachedWebViewMap!;
+    }
+    
+    amapLog('AmapWebView', 'Creating new WebView map instance');
+    _webViewMapCreated = true;
+    
+    _cachedWebViewMap = AMapWebViewMap(
+      webKey: _amapJsKey,
+      securityCode: _amapSecurityCode,
+      initialLatitude: mapTargetLat,
+      initialLongitude: mapTargetLng,
+      initialZoom: 15,
+      isPreviewMode: isPreview,
+      autoLocate: !isPreview && widget.initialLatitude == null,
+      markerLatitude: _pickedLatitude,
+      markerLongitude: _pickedLongitude,
+      showLocationButton: true,
+      enablePoiClick: !isPreview,
+      onLocationSelected: isPreview
+          ? null
+          : (lat, lng) {
+              setState(() {
+                _pickedLatitude = lat;
+                _pickedLongitude = lng;
+              });
+            },
+      onPoiSelected: isPreview
+          ? null
+          : (name, address, lat, lng) {
+              setState(() {
+                _poiNameController.text = name;
+                _addressController.text = address;
+                _pickedLatitude = lat;
+                _pickedLongitude = lng;
+              });
+            },
+      onLocationWithAddress: isPreview
+          ? null
+          : (lat, lng, city, address, description) {
+              setState(() {
+                _currentLocationLat = lat;
+                _currentLocationLng = lng;
+                _currentLocationCity = city;
+                _currentLocationAddress = address;
+                _currentLocationName = description.isNotEmpty ? description : address;
+              });
+            },
+      onLocationReadyForNearbySearch: isPreview
+          ? null
+          : (lat, lng) {
+              _searchNearbyPois(lat, lng);
+            },
+      onMapMoveEnd: isPreview
+          ? null
+          : (lat, lng) {
+              _reverseGeocode(lat, lng);
+            },
+      onError: (error) {
+        amapLog('AmapWebView', 'WebView Map Error: $error');
+      },
+    );
+    
+    return _cachedWebViewMap!;
   }
 
   @override
@@ -649,6 +718,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
                   ? Stack(
                       fit: StackFit.expand,
                       children: [
+                        amapLog('AmapNative', 'Building AMapWidget...'),
                         amap.AMapWidget(
                           privacyStatement: const amap_base.AMapPrivacyStatement(hasContains: true, hasShow: true, hasAgree: true),
                           apiKey: amap_base.AMapApiKey(androidKey: _amapAndroidKey, iosKey: _amapIosKey),
@@ -700,63 +770,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
                       ],
                     )
                   : useWebViewMap
-                      ? AMapWebViewMap(
-                          webKey: _amapJsKey,
-                          securityCode: _amapSecurityCode,
-                          initialLatitude: mapTargetLat,
-                          initialLongitude: mapTargetLng,
-                          initialZoom: 15,
-                          isPreviewMode: isPreview,
-                          autoLocate: !isPreview && widget.initialLatitude == null,
-                          markerLatitude: _pickedLatitude,
-                          markerLongitude: _pickedLongitude,
-                          showLocationButton: true,
-                          enablePoiClick: !isPreview,
-                          onLocationSelected: isPreview
-                              ? null
-                              : (lat, lng) {
-                                  setState(() {
-                                    _pickedLatitude = lat;
-                                    _pickedLongitude = lng;
-                                  });
-                                },
-                          onPoiSelected: isPreview
-                              ? null
-                              : (name, address, lat, lng) {
-                                  setState(() {
-                                    _poiNameController.text = name;
-                                    _addressController.text = address;
-                                    _pickedLatitude = lat;
-                                    _pickedLongitude = lng;
-                                  });
-                                },
-                          onLocationWithAddress: isPreview
-                              ? null
-                              : (lat, lng, city, address, description) {
-                                  setState(() {
-                                    _currentLocationLat = lat;
-                                    _currentLocationLng = lng;
-                                    _currentLocationCity = city;
-                                    _currentLocationAddress = address;
-                                    _currentLocationName = description.isNotEmpty ? description : address;
-                                  });
-                                },
-                          onLocationReadyForNearbySearch: isPreview
-                              ? null
-                              : (lat, lng) {
-                                  _searchNearbyPois(lat, lng);
-                                },
-                          onMapMoveEnd: isPreview
-                              ? null
-                              : (lat, lng) {
-                                  _reverseGeocode(lat, lng);
-                                },
-                          onError: (error) {
-                            if (kDebugMode) {
-                              debugPrint('WebView Map Error: $error');
-                            }
-                          },
-                        )
+                      ? _buildCachedWebViewMap(isPreview, mapTargetLat, mapTargetLng)
                       : Center(
                           child: Text(
                             mapUnavailableText,

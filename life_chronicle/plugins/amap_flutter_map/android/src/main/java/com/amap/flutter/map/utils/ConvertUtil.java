@@ -46,7 +46,9 @@ public class ConvertUtil {
     private static String apiKey;
 
     public static void setPrivacyStatement(Context context, Object object) {
+        LogUtil.i(CLASS_NAME, "=== setPrivacyStatement START ===");
         if (null == object) {
+            LogUtil.w(CLASS_NAME, "setPrivacyStatement: object is null, returning");
             return;
         }
         Map<?, ?> privacyStatementMap = toMap(object);
@@ -54,47 +56,67 @@ public class ConvertUtil {
         Object hasShowObj = privacyStatementMap.get("hasShow");
         Object hasAgreeObj = privacyStatementMap.get("hasAgree");
 
+        LogUtil.i(CLASS_NAME, "privacyStatementMap: " + privacyStatementMap);
+        LogUtil.i(CLASS_NAME, "hasContains: " + hasContainsObj);
+        LogUtil.i(CLASS_NAME, "hasShow: " + hasShowObj);
+        LogUtil.i(CLASS_NAME, "hasAgree: " + hasAgreeObj);
+
         Class<MapsInitializer> clazz = MapsInitializer.class;
 
         if (null != hasContainsObj
                 && null != hasShowObj) {
             boolean hasContains = toBoolean(hasContainsObj);
             boolean hasShow = toBoolean(hasShowObj);
+            LogUtil.i(CLASS_NAME, "Calling updatePrivacyShow: hasContains=" + hasContains + ", hasShow=" + hasShow);
             //使用反射的方法调用适配之前的版本
             try {
                 Method method = clazz.getMethod("updatePrivacyShow", Context.class, boolean.class, boolean.class);
                 method.invoke(null, context, hasContains, hasShow);
+                LogUtil.i(CLASS_NAME, "updatePrivacyShow completed successfully");
             } catch (Throwable e) {
-//                e.printStackTrace();
+                LogUtil.e(CLASS_NAME, "updatePrivacyShow FAILED: " + e.getMessage(), e);
             }
         }
 
         if (null != hasAgreeObj) {
             boolean hasAgree = toBoolean(hasAgreeObj);
+            LogUtil.i(CLASS_NAME, "Calling updatePrivacyAgree: hasAgree=" + hasAgree);
             //使用反射的方法调用适配之前的版本
             try{
                 Method method = clazz.getMethod("updatePrivacyAgree", Context.class, boolean.class);
                 method.invoke(null, context, hasAgree);
+                LogUtil.i(CLASS_NAME, "updatePrivacyAgree completed successfully");
             } catch (Throwable e) {
-//                e.printStackTrace();
+                LogUtil.e(CLASS_NAME, "updatePrivacyAgree FAILED: " + e.getMessage(), e);
             }
         }
+        LogUtil.i(CLASS_NAME, "=== setPrivacyStatement END ===");
     }
 
     public static void checkApiKey(Object object) {
+        LogUtil.i(CLASS_NAME, "=== checkApiKey START ===");
         if (null == object) {
+            LogUtil.w(CLASS_NAME, "checkApiKey: object is null, returning");
             return;
         }
         Map<?, ?> keyMap = toMap(object);
         Object keyObject = keyMap.get("androidKey");
+        LogUtil.i(CLASS_NAME, "keyMap: " + keyMap);
+        LogUtil.i(CLASS_NAME, "androidKey: " + (keyObject != null ? keyObject : "null"));
         if (null != keyObject) {
             final String aKey = toString(keyObject);
+            LogUtil.i(CLASS_NAME, "Current apiKey: " + apiKey);
+            LogUtil.i(CLASS_NAME, "New apiKey: " + aKey);
             if (TextUtils.isEmpty(apiKey)
                     || !aKey.equals(apiKey)) {
                 apiKey = aKey;
                 MapsInitializer.setApiKey(apiKey);
+                LogUtil.i(CLASS_NAME, "MapsInitializer.setApiKey completed");
+            } else {
+                LogUtil.i(CLASS_NAME, "ApiKey unchanged, skipping setApiKey");
             }
         }
+        LogUtil.i(CLASS_NAME, "=== checkApiKey END ===");
     }
 
     public static int toLocalMapType(int dartMapIndex) {
