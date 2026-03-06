@@ -10,6 +10,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:share_plus/share_plus.dart';
 import 'package:confetti/confetti.dart';
 import 'package:vibration/vibration.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../../core/config/module_management_config.dart';
 import '../../../core/database/app_database.dart';
@@ -3987,8 +3988,7 @@ Widget _buildWechatStyleImages(BuildContext context, List<String> images, Travel
   if (images.isEmpty) return const SizedBox.shrink();
 
   void navigateToDetail() {
-    final item = _buildTravelItem(record, trip);
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => TravelDetailPage(item: item)));
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => JournalDetailPage(recordId: record.id)));
   }
 
   if (images.length == 1) {
@@ -5812,6 +5812,33 @@ class JournalDetailPage extends ConsumerStatefulWidget {
 }
 
 class _JournalDetailPageState extends ConsumerState<JournalDetailPage> {
+  final GlobalKey _shareKey = GlobalKey();
+
+  Future<void> _shareLongImage() async {
+    try {
+      final boundary = _shareKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) return;
+
+      await Future.delayed(const Duration(milliseconds: 20));
+
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) return;
+
+      final pngBytes = byteData.buffer.asUint8List();
+      final tempDir = await getTemporaryDirectory();
+      final file = await File('${tempDir.path}/journal_share_${DateTime.now().millisecondsSinceEpoch}.png').create();
+      await file.writeAsBytes(pngBytes);
+
+      final xFile = XFile(file.path);
+      await Share.shareXFiles([xFile], text: '分享我的游记');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('分享失败: $e')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final detailAsync = ref.watch(journalDetailProvider(widget.recordId));
@@ -5868,107 +5895,113 @@ class _JournalDetailPageState extends ConsumerState<JournalDetailPage> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
-        children: [
-          Text(state.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: const Color(0xFFF3F4F6)),
-            ),
-            child: Text(
-              content.isEmpty ? '暂无内容' : content,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: Color(0xFF475569), height: 1.6),
-            ),
-          ),
-          const SizedBox(height: 14),
-          if (tags.isNotEmpty || record.mood != null)
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                if (record.mood != null && record.mood!.isNotEmpty)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(color: const Color(0xFFF97316).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999)),
-                    child: Text(record.mood!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFFF97316))),
-                  ),
-                for (final tag in tags)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(999)),
-                    child: Text('#$tag', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
-                  ),
-              ],
-            ),
-          if (tags.isNotEmpty || record.mood != null) const SizedBox(height: 14),
-          if (poiName.isNotEmpty || poiAddress.isNotEmpty) ...[
-            _JournalInfoRow(
-              iconBackground: const Color(0xFFFFEDD5),
-              icon: Icons.location_on,
-              iconColor: const Color(0xFFFB923C),
-              label: '地理位置',
-              value: poiName.isNotEmpty ? poiName : poiAddress,
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => AmapLocationPage.preview(
-                      title: state.title,
-                      poiName: poiName,
-                      address: poiAddress,
-                      city: '',
-                      latitude: record.latitude,
-                      longitude: record.longitude,
-                    ),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 14),
-          ],
-          Row(
+      body: RepaintBoundary(
+        key: _shareKey,
+        child: Container(
+          color: const Color(0xFFF6F8F8),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
             children: [
-              const Icon(Icons.access_time, size: 16, color: Color(0xFF9CA3AF)),
-              const SizedBox(width: 6),
-              Text(
-                _formatDateTime(record.recordDate),
-                style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280), fontWeight: FontWeight.w500),
+              Text(state.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: const Color(0xFFF3F4F6)),
+                ),
+                child: Text(
+                  content.isEmpty ? '暂无内容' : content,
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: Color(0xFF475569), height: 1.6),
+                ),
+              ),
+              const SizedBox(height: 14),
+              if (tags.isNotEmpty || record.mood != null)
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    if (record.mood != null && record.mood!.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(color: const Color(0xFFF97316).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999)),
+                        child: Text(record.mood!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFFF97316))),
+                      ),
+                    for (final tag in tags)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(999)),
+                        child: Text('#$tag', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
+                      ),
+                  ],
+                ),
+              if (tags.isNotEmpty || record.mood != null) const SizedBox(height: 14),
+              if (poiName.isNotEmpty || poiAddress.isNotEmpty) ...[
+                _JournalInfoRow(
+                  iconBackground: const Color(0xFFFFEDD5),
+                  icon: Icons.location_on,
+                  iconColor: const Color(0xFFFB923C),
+                  label: '地理位置',
+                  value: poiName.isNotEmpty ? poiName : poiAddress,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => AmapLocationPage.preview(
+                          title: state.title,
+                          poiName: poiName,
+                          address: poiAddress,
+                          city: '',
+                          latitude: record.latitude,
+                          longitude: record.longitude,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 14),
+              ],
+              Row(
+                children: [
+                  const Icon(Icons.access_time, size: 16, color: Color(0xFF9CA3AF)),
+                  const SizedBox(width: 6),
+                  Text(
+                    _formatDateTime(record.recordDate),
+                    style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280), fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              if (images.isNotEmpty) ...[
+                _buildImageGrid(context, images),
+                const SizedBox(height: 14),
+              ],
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: const Color(0xFFF3F4F6)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('万物互联', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                    const SizedBox(height: 10),
+                    if (linkChips.isEmpty)
+                      const Text('暂无关联内容', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)))
+                    else
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [for (final label in linkChips) _JournalLinkChip(label: label)],
+                      ),
+                  ],
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          if (images.isNotEmpty) ...[
-            _buildImageGrid(context, images),
-            const SizedBox(height: 14),
-          ],
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: const Color(0xFFF3F4F6)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('万物互联', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                const SizedBox(height: 10),
-                if (linkChips.isEmpty)
-                  const Text('暂无关联内容', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)))
-                else
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [for (final label in linkChips) _JournalLinkChip(label: label)],
-                  ),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
       bottomNavigationBar: SafeArea(
         top: false,
@@ -6010,9 +6043,7 @@ class _JournalDetailPageState extends ConsumerState<JournalDetailPage> {
               _JournalBottomButton(
                 icon: Icons.share,
                 label: '分享',
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('分享功能开发中')));
-                },
+                onTap: _shareLongImage,
               ),
             ],
           ),
