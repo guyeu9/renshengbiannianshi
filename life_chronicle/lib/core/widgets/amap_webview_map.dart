@@ -200,7 +200,6 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
           },
           onHttpError: (error) {
             amapLog('AmapWebView', '>>> onHttpError: ${error.response?.statusCode}');
-            amapLog('AmapWebView', '>>> HTTP error URL: ${error.request?.url}');
           },
           onUrlChange: (change) {
             amapLog('AmapWebView', '>>> onUrlChange: ${change.url}');
