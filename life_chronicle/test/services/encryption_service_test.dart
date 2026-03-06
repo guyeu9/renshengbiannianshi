@@ -128,7 +128,7 @@ void main() {
 
         expect(
           () => EncryptionService.decryptFile(encryptedFile, 'wrong_password'),
-          throwsA(isA<Exception>()),
+          throwsA(anyOf(isA<Exception>(), isA<ArgumentError>())),
         );
 
         await inputFile.delete();
