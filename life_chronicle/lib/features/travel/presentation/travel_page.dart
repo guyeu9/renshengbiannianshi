@@ -4009,45 +4009,52 @@ Widget _buildWechatStyleImages(BuildContext context, List<String> images, Travel
   final displayImages = images.length > 4 ? images.take(4).toList() : images;
   final remainingCount = images.length > 4 ? images.length - 4 : 0;
 
+  // 计算网格行数
+  final rowCount = (displayImages.length + 1) ~/ 2;
+  final gridHeight = rowCount * 160.0 + (rowCount - 1) * 4.0;
+
   return GestureDetector(
     onTap: navigateToDetail,
-    child: GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 4,
-        crossAxisSpacing: 4,
-        childAspectRatio: 1,
-      ),
-      itemCount: displayImages.length,
-      itemBuilder: (context, index) {
-        final isLast = index == displayImages.length - 1;
-        final showOverlay = isLast && remainingCount > 0;
+    child: SizedBox(
+      height: gridHeight,
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisSpacing: 4,
+          crossAxisSpacing: 4,
+          childAspectRatio: 1,
+        ),
+        itemCount: displayImages.length,
+        itemBuilder: (context, index) {
+          final isLast = index == displayImages.length - 1;
+          final showOverlay = isLast && remainingCount > 0;
 
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              _buildLocalImage(displayImages[index], fit: BoxFit.cover),
-              if (showOverlay)
-                Container(
-                  color: Colors.black.withValues(alpha: 0.5),
-                  alignment: Alignment.center,
-                  child: Text(
-                    '+$remainingCount',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                _buildLocalImage(displayImages[index], fit: BoxFit.cover),
+                if (showOverlay)
+                  Container(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    alignment: Alignment.center,
+                    child: Text(
+                      '+$remainingCount',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
-                ),
-            ],
-          ),
-        );
-      },
+              ],
+            ),
+          );
+        },
+      ),
     ),
   );
 }
