@@ -433,3 +433,152 @@ Stream<(T1, T2, T3, T4, T5, T6)> _combineLatest6<T1, T2, T3, T4, T5, T6>(
 
   return controller.stream;
 }
+
+class TravelTimelineState {
+  const TravelTimelineState({
+    required this.records,
+    required this.trips,
+    required this.links,
+    required this.friends,
+    required this.foods,
+  });
+
+  final List<TravelRecord> records;
+  final List<Trip> trips;
+  final List<EntityLink> links;
+  final List<FriendRecord> friends;
+  final List<FoodRecord> foods;
+
+  static List<String> _decodeStringList(String? json) {
+    if (json == null || json.trim().isEmpty) return const [];
+    try {
+      final decoded = jsonDecode(json);
+      if (decoded is List) {
+        return decoded.map((e) => e.toString()).toList(growable: false);
+      }
+    } catch (_) {}
+    return const [];
+  }
+}
+
+final travelTimelineProvider = StreamProvider.family.autoDispose<TravelTimelineState, ({String searchQuery, Set<String> filterFriendIds})>((ref, params) {
+  final db = ref.watch(appDatabaseProvider);
+
+  final recordsStream = db.watchAllActiveTravelRecords();
+  final linksStream = db.select(db.entityLinks).watch();
+  final friendsStream = db.friendDao.watchAllActive();
+  final foodsStream = db.foodDao.watchAllActive();
+
+  return _combineTimelineStreams(
+    recordsStream: recordsStream,
+    linksStream: linksStream,
+    friendsStream: friendsStream,
+    foodsStream: foodsStream,
+    db: db,
+    searchQuery: params.searchQuery,
+    filterFriendIds: params.filterFriendIds,
+  );
+});
+
+Stream<TravelTimelineState> _combineTimelineStreams({
+  required Stream<List<TravelRecord>> recordsStream,
+  required Stream<List<EntityLink>> linksStream,
+  required Stream<List<FriendRecord>> friendsStream,
+  required Stream<List<FoodRecord>> foodsStream,
+  required AppDatabase db,
+  required String searchQuery,
+  required Set<String> filterFriendIds,
+}) async* {
+  await for (final combined in _combineLatest4(
+    recordsStream,
+    linksStream,
+    friendsStream,
+    foodsStream,
+  )) {
+    final allRecords = combined.$1;
+    final links = combined.$2;
+    final friends = combined.$3;
+    final foods = combined.$4;
+
+    var filtered = allRecords.where((r) => !r.isWishlist && !r.isJournal).toList(growable: false);
+
+    final searchLower = searchQuery.toLowerCase().trim();
+    if (searchLower.isNotEmpty) {
+      filtered = filtered.where((r) {
+        final title = (r.title ?? '').toLowerCase();
+        final destination = (r.destination ?? '').toLowerCase();
+        final tags = TravelTimelineState._decodeStringList(r.tags).join(' ').toLowerCase();
+        return title.contains(searchLower) ||
+            destination.contains(searchLower) ||
+            tags.contains(searchLower);
+      }).toList(growable: false);
+    }
+
+    if (filterFriendIds.isNotEmpty) {
+      final friendIdsByTravel = <String, Set<String>>{};
+      for (final link in links) {
+        String? travelId;
+        if (link.sourceType == 'travel' && link.targetType == 'friend') {
+          travelId = link.sourceId;
+          final set = friendIdsByTravel.putIfAbsent(travelId, () => <String>{});
+          set.add(link.targetId);
+        } else if (link.targetType == 'travel' && link.sourceType == 'friend') {
+          travelId = link.targetId;
+          final set = friendIdsByTravel.putIfAbsent(travelId, () => <String>{});
+          set.add(link.sourceId);
+        }
+      }
+      filtered = filtered.where((r) {
+        final linkedFriendIds = friendIdsByTravel[r.id] ?? <String>{};
+        return filterFriendIds.any((id) => linkedFriendIds.contains(id));
+      }).toList(growable: false);
+    }
+
+    final tripIds = filtered.map((e) => e.tripId).toSet().toList();
+    final trips = await _fetchTripsByIds(db, tripIds);
+
+    yield TravelTimelineState(
+      records: filtered,
+      trips: trips,
+      links: links,
+      friends: friends,
+      foods: foods,
+    );
+  }
+}
+
+Future<List<Trip>> _fetchTripsByIds(AppDatabase db, List<String> tripIds) async {
+  if (tripIds.isEmpty) return const [];
+  return (db.select(db.trips)..where((t) => t.id.isIn(tripIds))).get();
+}
+
+Stream<(T1, T2, T3, T4)> _combineLatest4<T1, T2, T3, T4>(
+  Stream<T1> s1,
+  Stream<T2> s2,
+  Stream<T3> s3,
+  Stream<T4> s4,
+) {
+  T1? v1;
+  T2? v2;
+  T3? v3;
+  T4? v4;
+  var hasV1 = false;
+  var hasV2 = false;
+  var hasV3 = false;
+  var hasV4 = false;
+
+  final controller = StreamController<(T1, T2, T3, T4)>();
+
+  void emit() {
+    if (hasV1 && hasV2 && hasV3 && hasV4) {
+      controller.add((v1 as T1, v2 as T2, v3 as T3, v4 as T4));
+    }
+  }
+
+  s1.listen((v) { v1 = v; hasV1 = true; emit(); }, onError: controller.addError, onDone: controller.close);
+  s2.listen((v) { v2 = v; hasV2 = true; emit(); }, onError: controller.addError);
+  s3.listen((v) { v3 = v; hasV3 = true; emit(); }, onError: controller.addError);
+  s4.listen((v) { v4 = v; hasV4 = true; emit(); }, onError: controller.addError);
+
+  return controller.stream;
+}

@@ -356,26 +356,13 @@ class _TravelOnTheRoadView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final db = ref.watch(appDatabaseProvider);
-    return StreamBuilder<List<TravelRecord>>(
-      stream: db.watchAllActiveTravelRecords(),
-      builder: (context, snapshot) {
-        final records = snapshot.data ?? const <TravelRecord>[];
-        var filtered = records.where((r) => !r.isWishlist && !r.isJournal).toList(growable: false);
+    final timelineAsync = ref.watch(travelTimelineProvider(
+      (searchQuery: searchQuery, filterFriendIds: filterFriendIds),
+    ));
 
-        final searchLower = searchQuery.toLowerCase().trim();
-        if (searchLower.isNotEmpty) {
-          filtered = filtered.where((r) {
-            final title = (r.title ?? '').toLowerCase();
-            final destination = (r.destination ?? '').toLowerCase();
-            final tags = _decodeStringList(r.tags).join(' ').toLowerCase();
-            return title.contains(searchLower) ||
-                destination.contains(searchLower) ||
-                tags.contains(searchLower);
-          }).toList(growable: false);
-        }
-
-        if (filtered.isEmpty) {
+    return timelineAsync.when(
+      data: (state) {
+        if (state.records.isEmpty) {
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: const [
@@ -386,80 +373,31 @@ class _TravelOnTheRoadView extends ConsumerWidget {
           );
         }
 
-        final tripIds = filtered.map((e) => e.tripId).toSet().toList();
-        return StreamBuilder<List<Trip>>(
-          stream: _watchTripsByIds(db, tripIds),
-          builder: (context, tripSnapshot) {
-            final trips = tripSnapshot.data ?? const <Trip>[];
-            return StreamBuilder<List<EntityLink>>(
-              stream: db.select(db.entityLinks).watch(),
-              builder: (context, linkSnapshot) {
-                final links = linkSnapshot.data ?? const <EntityLink>[];
-
-                var finalRecords = filtered;
-                if (filterFriendIds.isNotEmpty) {
-                  final friendIdsByTravel = <String, Set<String>>{};
-                  for (final link in links) {
-                    String? travelId;
-                    if (link.sourceType == 'travel' && link.targetType == 'friend') {
-                      travelId = link.sourceId;
-                      final set = friendIdsByTravel.putIfAbsent(travelId, () => <String>{});
-                      set.add(link.targetId);
-                    } else if (link.targetType == 'travel' && link.sourceType == 'friend') {
-                      travelId = link.targetId;
-                      final set = friendIdsByTravel.putIfAbsent(travelId, () => <String>{});
-                      set.add(link.sourceId);
-                    }
-                  }
-                  finalRecords = finalRecords.where((r) {
-                    final linkedFriendIds = friendIdsByTravel[r.id] ?? <String>{};
-                    return filterFriendIds.any((id) => linkedFriendIds.contains(id));
-                  }).toList(growable: false);
-                }
-
-                if (finalRecords.isEmpty) {
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      _TravelFootprintCard(onTap: null),
-                      SizedBox(height: 18),
-                      _EmptyTravelState(label: '没有匹配的旅行记录'),
-                    ],
-                  );
-                }
-
-                return StreamBuilder<List<FriendRecord>>(
-                  stream: db.friendDao.watchAllActive(),
-                  builder: (context, friendSnapshot) {
-                    final friends = friendSnapshot.data ?? const <FriendRecord>[];
-                    return StreamBuilder<List<FoodRecord>>(
-                      stream: db.foodDao.watchAllActive(),
-                      builder: (context, foodSnapshot) {
-                        final foods = foodSnapshot.data ?? const <FoodRecord>[];
-                        final entries = _buildTravelEntries(
-                          records: finalRecords,
-                          trips: trips,
-                          friends: friends,
-                          links: links,
-                          foods: foods,
-                        );
-                        return Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _TravelFootprintCard(onTap: () {}),
-                            const SizedBox(height: 18),
-                            _TravelOnTheRoadTimeline(entries: entries),
-                          ],
-                        );
-                      },
-                    );
-                  },
-                );
-              },
-            );
-          },
+        final entries = _buildTravelEntries(
+          records: state.records,
+          trips: state.trips,
+          friends: state.friends,
+          links: state.links,
+          foods: state.foods,
+        );
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _TravelFootprintCard(onTap: () {}),
+            const SizedBox(height: 18),
+            _TravelOnTheRoadTimeline(entries: entries),
+          ],
         );
       },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: const [
+          _TravelFootprintCard(onTap: null),
+          SizedBox(height: 18),
+          _EmptyTravelState(label: '加载失败，请重试'),
+        ],
+      ),
     );
   }
 }
