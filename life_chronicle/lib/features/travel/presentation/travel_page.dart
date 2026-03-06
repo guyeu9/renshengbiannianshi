@@ -4,6 +4,7 @@ import 'dart:ui';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:drift/drift.dart' show Value;
@@ -5816,13 +5817,14 @@ class _JournalDetailPageState extends ConsumerState<JournalDetailPage> {
 
   Future<void> _shareLongImage() async {
     try {
-      final boundary = _shareKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      final boundary = _shareKey.currentContext?.findRenderObject();
       if (boundary == null) return;
+      if (boundary is! RenderRepaintBoundary) return;
 
       await Future.delayed(const Duration(milliseconds: 20));
 
       final image = await boundary.toImage(pixelRatio: 3.0);
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      final byteData = await image.toByteData(format: ImageByteFormat.png);
       if (byteData == null) return;
 
       final pngBytes = byteData.buffer.asUint8List();

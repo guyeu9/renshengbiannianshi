@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:pdf/pdf.dart';
@@ -807,7 +806,7 @@ class PdfExportService {
           children: [
             pw.Row(
               children: [
-                avatarWidget,
+                if (avatarWidget != null) avatarWidget,
                 pw.SizedBox(width: 20),
                 pw.Expanded(
                   child: pw.Column(
