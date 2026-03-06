@@ -227,7 +227,7 @@ class ModuleManagementConfig {
         'moment': ModuleConfig(
           key: 'moment',
           title: '小确幸',
-          iconName: 'self_improvement',
+          iconName: 'auto_awesome',
           tagTitle: '场景标签管理',
           showOnCalendar: true,
           tags: const [
@@ -240,7 +240,7 @@ class ModuleManagementConfig {
         'bond': ModuleConfig(
           key: 'bond',
           title: '人际关系',
-          iconName: 'favorite',
+          iconName: 'group',
           tagTitle: '印象标签管理',
           showOnCalendar: true,
           tags: const [
@@ -261,7 +261,7 @@ class ModuleManagementConfig {
         'goal': ModuleConfig(
           key: 'goal',
           title: '目标',
-          iconName: 'flag',
+          iconName: 'outlined_flag',
           tagTitle: '分类标签管理',
           showOnCalendar: true,
           tags: const [
@@ -332,6 +332,21 @@ ModuleManagementConfig? _migrateModuleConfig(ModuleManagementConfig config) {
 
     if (module.key == 'travel' && module.iconName != 'airplanemode_active') {
       newIconName = 'airplanemode_active';
+      needsMigration = true;
+    }
+
+    if (module.key == 'moment' && module.iconName == 'self_improvement') {
+      newIconName = 'auto_awesome';
+      needsMigration = true;
+    }
+
+    if (module.key == 'bond' && module.iconName == 'favorite') {
+      newIconName = 'group';
+      needsMigration = true;
+    }
+
+    if (module.key == 'goal' && module.iconName == 'flag') {
+      newIconName = 'outlined_flag';
       needsMigration = true;
     }
 

@@ -54,6 +54,121 @@ void main() {
         final icon = IconUtils.fromName('airplanemode_active');
         expect(icon, equals(Icons.airplanemode_active));
       });
+
+      test('should return correct icon for auto_awesome icon (小确幸)', () {
+        final icon = IconUtils.fromName('auto_awesome');
+        expect(icon, equals(Icons.auto_awesome));
+      });
+
+      test('should return correct icon for group icon (羁绊)', () {
+        final icon = IconUtils.fromName('group');
+        expect(icon, equals(Icons.group));
+      });
+
+      test('should return correct icon for outlined_flag icon (目标)', () {
+        final icon = IconUtils.fromName('outlined_flag');
+        expect(icon, equals(Icons.outlined_flag));
+      });
+
+      test('should return correct icon for sunny icon', () {
+        final icon = IconUtils.fromName('sunny');
+        expect(icon, equals(Icons.sunny));
+      });
+
+      test('should return correct icon for coffee icon', () {
+        final icon = IconUtils.fromName('coffee');
+        expect(icon, equals(Icons.coffee));
+      });
+
+      test('should return correct icon for beach_access icon', () {
+        final icon = IconUtils.fromName('beach_access');
+        expect(icon, equals(Icons.beach_access));
+      });
+
+      test('should return correct icon for nightlife icon', () {
+        final icon = IconUtils.fromName('nightlife');
+        expect(icon, equals(Icons.nightlife));
+      });
+
+      test('should return correct icon for sports_gymnastics icon', () {
+        final icon = IconUtils.fromName('sports_gymnastics');
+        expect(icon, equals(Icons.sports_gymnastics));
+      });
+
+      test('should return correct icon for sports_basketball icon', () {
+        final icon = IconUtils.fromName('sports_basketball');
+        expect(icon, equals(Icons.sports_basketball));
+      });
+
+      test('should return correct icon for sports_tennis icon', () {
+        final icon = IconUtils.fromName('sports_tennis');
+        expect(icon, equals(Icons.sports_tennis));
+      });
+
+      test('should return correct icon for pool icon', () {
+        final icon = IconUtils.fromName('pool');
+        expect(icon, equals(Icons.pool));
+      });
+
+      test('should return correct icon for menu_book icon', () {
+        final icon = IconUtils.fromName('menu_book');
+        expect(icon, equals(Icons.menu_book));
+      });
+
+      test('should return correct icon for edit_note icon', () {
+        final icon = IconUtils.fromName('edit_note');
+        expect(icon, equals(Icons.edit_note));
+      });
+
+      test('should return correct icon for cake icon', () {
+        final icon = IconUtils.fromName('cake');
+        expect(icon, equals(Icons.cake));
+      });
+
+      test('should return correct icon for icecream icon', () {
+        final icon = IconUtils.fromName('icecream');
+        expect(icon, equals(Icons.icecream));
+      });
+
+      test('should return correct icon for redeem icon', () {
+        final icon = IconUtils.fromName('redeem');
+        expect(icon, equals(Icons.redeem));
+      });
+
+      test('should return correct icon for spa icon', () {
+        final icon = IconUtils.fromName('spa');
+        expect(icon, equals(Icons.spa));
+      });
+
+      test('should return correct icon for flight icon', () {
+        final icon = IconUtils.fromName('flight');
+        expect(icon, equals(Icons.flight));
+      });
+
+      test('should return correct icon for train icon', () {
+        final icon = IconUtils.fromName('train');
+        expect(icon, equals(Icons.train));
+      });
+
+      test('should return correct icon for volunteer_activism icon', () {
+        final icon = IconUtils.fromName('volunteer_activism');
+        expect(icon, equals(Icons.volunteer_activism));
+      });
+
+      test('should return correct icon for diversity_3 icon', () {
+        final icon = IconUtils.fromName('diversity_3');
+        expect(icon, equals(Icons.diversity_3));
+      });
+
+      test('should return correct icon for diversity_1 icon', () {
+        final icon = IconUtils.fromName('diversity_1');
+        expect(icon, equals(Icons.diversity_1));
+      });
+
+      test('should return correct icon for directions_walk icon', () {
+        final icon = IconUtils.fromName('directions_walk');
+        expect(icon, equals(Icons.directions_walk));
+      });
     });
 
     group('toName', () {
