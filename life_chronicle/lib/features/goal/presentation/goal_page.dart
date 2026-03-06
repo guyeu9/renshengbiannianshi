@@ -4686,7 +4686,7 @@ class _GoalAllLinksPageState extends ConsumerState<GoalAllLinksPage> {
     _FilterOption(value: 'food', label: '美食', icon: Icons.restaurant),
     _FilterOption(value: 'travel', label: '旅行', icon: Icons.airplanemode_active),
     _FilterOption(value: 'moment', label: '小确幸', icon: Icons.auto_awesome),
-    _FilterOption(value: 'friend', label: '羁绊', icon: Icons.people),
+    _FilterOption(value: 'friend', label: '羁绊', icon: Icons.group),
   ];
 
   @override

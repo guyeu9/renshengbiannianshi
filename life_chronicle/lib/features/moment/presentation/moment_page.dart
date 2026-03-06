@@ -1800,7 +1800,7 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
                     (g) => _SelectItem(
                       id: g.id,
                       title: g.title,
-                      leading: const _IconSquare(color: Color(0xFFE0F2FE), icon: Icons.flag, iconColor: Color(0xFF0284C7)),
+                      leading: const _IconSquare(color: Color(0xFFF3E8FF), icon: Icons.outlined_flag, iconColor: Color(0xFFA855F7)),
                     ),
                   )
                   .toList(growable: false),

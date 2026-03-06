@@ -1968,13 +1968,13 @@ class FoodDetailPage extends ConsumerWidget {
     if (!showContent) {
       return Column(
         children: [
-          _LinkBlock(icon: Icons.people, title: '关联人物', chips: const []),
+          _LinkBlock(icon: Icons.group, title: '关联人物', chips: const []),
           const SizedBox(height: 10),
           _LinkBlock(icon: Icons.auto_awesome, title: '关联小确幸', chips: const []),
           const SizedBox(height: 10),
           _LinkBlock(icon: Icons.airplanemode_active, title: '关联旅行', chips: const []),
           const SizedBox(height: 10),
-          _LinkBlock(icon: Icons.flag, title: '关联目标', chips: const []),
+          _LinkBlock(icon: Icons.outlined_flag, title: '关联目标', chips: const []),
         ],
       );
     }

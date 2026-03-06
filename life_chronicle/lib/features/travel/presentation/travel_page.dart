@@ -3323,7 +3323,7 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
                 _AssociationRow(
                   iconBg: const Color(0xFFA855F7).withValues(alpha: 0.12),
                   iconColor: const Color(0xFFA855F7),
-                  icon: Icons.groups,
+                  icon: Icons.group,
                   title: '同行朋友',
                   subtitle: null,
                   onTap: _selectLinkedFriends,

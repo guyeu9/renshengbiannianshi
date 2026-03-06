@@ -90,9 +90,77 @@ class IconUtils {
     'event': Icons.event,
   };
 
-  static IconData fromName(String? name) {
-    if (name == null || name.isEmpty) return Icons.flag;
-    return _iconMap[name] ?? Icons.flag;
+  static const Map<String, IconData> _moduleIcons = {
+    'food': Icons.restaurant,
+    'travel': Icons.airplanemode_active,
+    'moment': Icons.auto_awesome,
+    'bond': Icons.group,
+    'goal': Icons.outlined_flag,
+    'schedule': Icons.calendar_today,
+  };
+
+  static const Map<String, IconData> _actionIcons = {
+    'add': Icons.add,
+    'edit': Icons.edit,
+    'delete': Icons.delete_outline,
+    'share': Icons.share,
+    'search': Icons.search,
+    'filter': Icons.filter_list,
+    'more': Icons.more_vert,
+    'close': Icons.close,
+    'back': Icons.arrow_back_ios_new,
+    'forward': Icons.arrow_forward_ios,
+    'refresh': Icons.refresh,
+    'save': Icons.save,
+    'cancel': Icons.close,
+    'confirm': Icons.check,
+    'settings': Icons.settings,
+    'help': Icons.help_outline,
+    'info': Icons.info_outline,
+    'warning': Icons.warning_amber,
+    'error': Icons.error_outline,
+    'success': Icons.check_circle_outline,
+  };
+
+  static const Map<String, IconData> _statusIcons = {
+    'favorite': Icons.favorite,
+    'favorite_border': Icons.favorite_border,
+    'bookmark': Icons.bookmark,
+    'bookmark_border': Icons.bookmark_border,
+    'check_circle': Icons.check_circle,
+    'radio_unchecked': Icons.radio_button_unchecked,
+    'check': Icons.check,
+    'expand_more': Icons.expand_more,
+    'expand_less': Icons.expand_less,
+    'chevron_right': Icons.chevron_right,
+    'chevron_left': Icons.chevron_left,
+  };
+
+  static const List<String> _momentTagIcons = [
+    'card_giftcard', 'sunny', 'directions_walk', 'local_florist', 'coffee',
+    'beach_access', 'pets', 'music_note', 'nightlife', 'movie',
+    'celebration', 'camera_alt', 'fitness_center', 'directions_run',
+    'sports_gymnastics', 'sports_soccer', 'sports_basketball', 'sports_tennis',
+    'pool', 'directions_bike', 'menu_book', 'school', 'edit_note',
+    'palette', 'restaurant', 'cake', 'local_cafe', 'icecream',
+    'shopping_bag', 'redeem', 'spa', 'flight', 'train',
+    'favorite', 'star', 'volunteer_activism',
+  ];
+
+  static const List<String> _goalTagIcons = [
+    'work', 'favorite', 'airplanemode_active', 'school', 'fitness_center',
+    'self_improvement', 'psychology', 'lightbulb', 'star', 'emoji_events',
+    'celebration', 'explore', 'public', 'language', 'attach_money',
+    'trending_up', 'business', 'laptop', 'code', 'book',
+    'menu_book', 'edit_note', 'task', 'checklist', 'flag',
+    'savings', 'home', 'directions_car', 'directions_bike', 'directions_run',
+    'sports_soccer', 'sports_basketball', 'pool', 'palette', 'music_note',
+    'camera_alt', 'pets', 'restaurant', 'local_cafe',
+  ];
+
+  static IconData fromName(String? name, {IconData defaultIcon = Icons.flag}) {
+    if (name == null || name.isEmpty) return defaultIcon;
+    return _iconMap[name] ?? defaultIcon;
   }
 
   static String toName(IconData icon) {
@@ -102,7 +170,110 @@ class IconUtils {
     return 'flag';
   }
 
+  static IconData getModuleIcon(String moduleKey, {IconData defaultIcon = Icons.event}) {
+    return _moduleIcons[moduleKey] ?? defaultIcon;
+  }
+
+  static String getModuleIconName(String moduleKey) {
+    final icon = _moduleIcons[moduleKey];
+    if (icon == null) return 'event';
+    return toName(icon);
+  }
+
+  static IconData getActionIcon(String actionKey, {IconData defaultIcon = Icons.help_outline}) {
+    return _actionIcons[actionKey] ?? defaultIcon;
+  }
+
+  static IconData getStatusIcon(String statusKey, {IconData defaultIcon = Icons.circle}) {
+    return _statusIcons[statusKey] ?? defaultIcon;
+  }
+
   static List<String> get availableIcons => _iconMap.keys.toList();
 
   static List<IconData> get allIcons => _iconMap.values.toList();
+
+  static List<String> get moduleKeys => _moduleIcons.keys.toList();
+
+  static List<String> get actionKeys => _actionIcons.keys.toList();
+
+  static List<String> get statusKeys => _statusIcons.keys.toList();
+
+  static List<IconData> getMomentTagIcons() {
+    return _momentTagIcons.map((name) => fromName(name)).toList();
+  }
+
+  static List<String> getMomentTagIconNames() {
+    return List.from(_momentTagIcons);
+  }
+
+  static List<IconData> getGoalTagIcons() {
+    return _goalTagIcons.map((name) => fromName(name)).toList();
+  }
+
+  static List<String> getGoalTagIconNames() {
+    return List.from(_goalTagIcons);
+  }
+
+  static List<IconData> getTagIconsForModule(String moduleKey) {
+    switch (moduleKey) {
+      case 'moment':
+        return getMomentTagIcons();
+      case 'goal':
+        return getGoalTagIcons();
+      default:
+        return allIcons;
+    }
+  }
+
+  static List<String> getTagIconNamesForModule(String moduleKey) {
+    switch (moduleKey) {
+      case 'moment':
+        return getMomentTagIconNames();
+      case 'goal':
+        return getGoalTagIconNames();
+      default:
+        return availableIcons;
+    }
+  }
+
+  static bool isValidIconName(String? name) {
+    if (name == null || name.isEmpty) return false;
+    return _iconMap.containsKey(name);
+  }
+
+  static Map<String, IconData> get moduleIcons => Map.from(_moduleIcons);
+  static Map<String, IconData> get actionIcons => Map.from(_actionIcons);
+  static Map<String, IconData> get statusIcons => Map.from(_statusIcons);
+}
+
+class IconOption {
+  const IconOption({
+    required this.name,
+    required this.icon,
+    this.category = '',
+  });
+
+  final String name;
+  final IconData icon;
+  final String category;
+
+  static List<IconOption> fromNames(List<String> names, {String category = ''}) {
+    return names.map((name) => IconOption(
+      name: name,
+      icon: IconUtils.fromName(name),
+      category: category,
+    )).toList();
+  }
+
+  static List<IconOption> getMomentOptions() {
+    return fromNames(IconUtils.getMomentTagIconNames(), category: 'moment');
+  }
+
+  static List<IconOption> getGoalOptions() {
+    return fromNames(IconUtils.getGoalTagIconNames(), category: 'goal');
+  }
+
+  static List<IconOption> getOptionsForModule(String moduleKey) {
+    return fromNames(IconUtils.getTagIconNamesForModule(moduleKey), category: moduleKey);
+  }
 }

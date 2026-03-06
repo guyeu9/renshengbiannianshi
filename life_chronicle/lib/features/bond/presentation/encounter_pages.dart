@@ -628,7 +628,7 @@ class _EncounterCreatePageState extends ConsumerState<EncounterCreatePage> {
                   (g) => SelectItem(
                     id: g.id,
                     title: g.title,
-                    leading: const _IconSquare(color: Color(0xFFF3E8FF), icon: Icons.flag, iconColor: Color(0xFFA855F7)),
+                    leading: const _IconSquare(color: Color(0xFFF3E8FF), icon: Icons.outlined_flag, iconColor: Color(0xFFA855F7)),
                   ),
                 )
                 .toList(growable: false);

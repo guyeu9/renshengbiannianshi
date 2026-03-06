@@ -213,5 +213,228 @@ void main() {
         expect(icons, contains(Icons.favorite));
       });
     });
+
+    group('getModuleIcon', () {
+      test('should return correct icon for food module', () {
+        final icon = IconUtils.getModuleIcon('food');
+        expect(icon, equals(Icons.restaurant));
+      });
+
+      test('should return correct icon for travel module', () {
+        final icon = IconUtils.getModuleIcon('travel');
+        expect(icon, equals(Icons.airplanemode_active));
+      });
+
+      test('should return correct icon for moment module', () {
+        final icon = IconUtils.getModuleIcon('moment');
+        expect(icon, equals(Icons.auto_awesome));
+      });
+
+      test('should return correct icon for bond module', () {
+        final icon = IconUtils.getModuleIcon('bond');
+        expect(icon, equals(Icons.group));
+      });
+
+      test('should return correct icon for goal module', () {
+        final icon = IconUtils.getModuleIcon('goal');
+        expect(icon, equals(Icons.outlined_flag));
+      });
+
+      test('should return correct icon for schedule module', () {
+        final icon = IconUtils.getModuleIcon('schedule');
+        expect(icon, equals(Icons.calendar_today));
+      });
+
+      test('should return default icon for unknown module', () {
+        final icon = IconUtils.getModuleIcon('unknown');
+        expect(icon, equals(Icons.event));
+      });
+    });
+
+    group('getModuleIconName', () {
+      test('should return correct icon name for food module', () {
+        final name = IconUtils.getModuleIconName('food');
+        expect(name, equals('restaurant'));
+      });
+
+      test('should return correct icon name for moment module', () {
+        final name = IconUtils.getModuleIconName('moment');
+        expect(name, equals('auto_awesome'));
+      });
+    });
+
+    group('getActionIcon', () {
+      test('should return correct icon for add action', () {
+        final icon = IconUtils.getActionIcon('add');
+        expect(icon, equals(Icons.add));
+      });
+
+      test('should return correct icon for edit action', () {
+        final icon = IconUtils.getActionIcon('edit');
+        expect(icon, equals(Icons.edit));
+      });
+
+      test('should return correct icon for delete action', () {
+        final icon = IconUtils.getActionIcon('delete');
+        expect(icon, equals(Icons.delete_outline));
+      });
+
+      test('should return correct icon for search action', () {
+        final icon = IconUtils.getActionIcon('search');
+        expect(icon, equals(Icons.search));
+      });
+
+      test('should return default icon for unknown action', () {
+        final icon = IconUtils.getActionIcon('unknown');
+        expect(icon, equals(Icons.help_outline));
+      });
+    });
+
+    group('getStatusIcon', () {
+      test('should return correct icon for favorite status', () {
+        final icon = IconUtils.getStatusIcon('favorite');
+        expect(icon, equals(Icons.favorite));
+      });
+
+      test('should return correct icon for bookmark status', () {
+        final icon = IconUtils.getStatusIcon('bookmark');
+        expect(icon, equals(Icons.bookmark));
+      });
+
+      test('should return correct icon for chevron_right status', () {
+        final icon = IconUtils.getStatusIcon('chevron_right');
+        expect(icon, equals(Icons.chevron_right));
+      });
+
+      test('should return default icon for unknown status', () {
+        final icon = IconUtils.getStatusIcon('unknown');
+        expect(icon, equals(Icons.circle));
+      });
+    });
+
+    group('getMomentTagIconNames', () {
+      test('should return list of moment tag icon names', () {
+        final names = IconUtils.getMomentTagIconNames();
+        expect(names, isNotEmpty);
+        expect(names, contains('card_giftcard'));
+        expect(names, contains('sunny'));
+        expect(names, contains('favorite'));
+      });
+    });
+
+    group('getGoalTagIconNames', () {
+      test('should return list of goal tag icon names', () {
+        final names = IconUtils.getGoalTagIconNames();
+        expect(names, isNotEmpty);
+        expect(names, contains('work'));
+        expect(names, contains('school'));
+        expect(names, contains('fitness_center'));
+      });
+    });
+
+    group('getTagIconNamesForModule', () {
+      test('should return moment icons for moment module', () {
+        final names = IconUtils.getTagIconNamesForModule('moment');
+        expect(names, contains('card_giftcard'));
+        expect(names, contains('sunny'));
+      });
+
+      test('should return goal icons for goal module', () {
+        final names = IconUtils.getTagIconNamesForModule('goal');
+        expect(names, contains('work'));
+        expect(names, contains('school'));
+      });
+
+      test('should return all icons for unknown module', () {
+        final names = IconUtils.getTagIconNamesForModule('unknown');
+        expect(names, equals(IconUtils.availableIcons));
+      });
+    });
+
+    group('isValidIconName', () {
+      test('should return true for valid icon name', () {
+        expect(IconUtils.isValidIconName('home'), isTrue);
+        expect(IconUtils.isValidIconName('restaurant'), isTrue);
+        expect(IconUtils.isValidIconName('auto_awesome'), isTrue);
+      });
+
+      test('should return false for invalid icon name', () {
+        expect(IconUtils.isValidIconName('unknown_icon'), isFalse);
+        expect(IconUtils.isValidIconName(''), isFalse);
+        expect(IconUtils.isValidIconName(null), isFalse);
+      });
+    });
+
+    group('moduleIcons', () {
+      test('should return map of module icons', () {
+        final icons = IconUtils.moduleIcons;
+        expect(icons, isNotEmpty);
+        expect(icons['food'], equals(Icons.restaurant));
+        expect(icons['moment'], equals(Icons.auto_awesome));
+      });
+    });
+
+    group('actionIcons', () {
+      test('should return map of action icons', () {
+        final icons = IconUtils.actionIcons;
+        expect(icons, isNotEmpty);
+        expect(icons['add'], equals(Icons.add));
+        expect(icons['edit'], equals(Icons.edit));
+      });
+    });
+
+    group('statusIcons', () {
+      test('should return map of status icons', () {
+        final icons = IconUtils.statusIcons;
+        expect(icons, isNotEmpty);
+        expect(icons['favorite'], equals(Icons.favorite));
+        expect(icons['chevron_right'], equals(Icons.chevron_right));
+      });
+    });
+  });
+
+  group('IconOption', () {
+    group('fromNames', () {
+      test('should create list of IconOption from names', () {
+        final options = IconOption.fromNames(['home', 'work']);
+        expect(options.length, equals(2));
+        expect(options[0].name, equals('home'));
+        expect(options[0].icon, equals(Icons.home));
+        expect(options[1].name, equals('work'));
+        expect(options[1].icon, equals(Icons.work));
+      });
+    });
+
+    group('getMomentOptions', () {
+      test('should return list of moment icon options', () {
+        final options = IconOption.getMomentOptions();
+        expect(options, isNotEmpty);
+        expect(options.any((o) => o.name == 'card_giftcard'), isTrue);
+        expect(options.any((o) => o.name == 'sunny'), isTrue);
+      });
+    });
+
+    group('getGoalOptions', () {
+      test('should return list of goal icon options', () {
+        final options = IconOption.getGoalOptions();
+        expect(options, isNotEmpty);
+        expect(options.any((o) => o.name == 'work'), isTrue);
+        expect(options.any((o) => o.name == 'school'), isTrue);
+      });
+    });
+
+    group('getOptionsForModule', () {
+      test('should return moment options for moment module', () {
+        final options = IconOption.getOptionsForModule('moment');
+        expect(options, isNotEmpty);
+        expect(options.any((o) => o.name == 'card_giftcard'), isTrue);
+      });
+
+      test('should return goal options for goal module', () {
+        final options = IconOption.getOptionsForModule('goal');
+        expect(options, isNotEmpty);
+        expect(options.any((o) => o.name == 'work'), isTrue);
+      });
+    });
   });
 }
