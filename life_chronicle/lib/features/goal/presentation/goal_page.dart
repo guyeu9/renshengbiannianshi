@@ -222,6 +222,7 @@ class _GoalPageState extends State<GoalPage> {
               searchController: _searchController,
               onSearchChanged: (v) => setState(() => _searchQuery = v),
               onFilterTap: _openFilterSheet,
+              hasActiveFilter: _filterStatusIndex != 0 || _filterTypeIndex != 0 || _filterFavorite,
             ),
             Expanded(
               child: _GoalHomeBody(
@@ -243,11 +244,13 @@ class _GoalHeader extends StatelessWidget {
     required this.searchController,
     required this.onSearchChanged,
     required this.onFilterTap,
+    this.hasActiveFilter = false,
   });
 
   final TextEditingController searchController;
   final ValueChanged<String> onSearchChanged;
   final VoidCallback onFilterTap;
+  final bool hasActiveFilter;
 
   @override
   Widget build(BuildContext context) {
@@ -297,7 +300,7 @@ class _GoalHeader extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              _CircleButton(icon: Icons.tune, onTap: onFilterTap),
+              _CircleButton(icon: Icons.tune, onTap: onFilterTap, hasActiveFilter: hasActiveFilter),
               const SizedBox(width: 12),
               _CircleButton(
                 icon: Icons.add,
@@ -313,21 +316,26 @@ class _GoalHeader extends StatelessWidget {
 }
 
 class _CircleButton extends StatelessWidget {
-  const _CircleButton({required this.icon, required this.onTap, this.iconColor});
+  const _CircleButton({required this.icon, required this.onTap, this.iconColor, this.hasActiveFilter = false});
 
   final IconData icon;
   final VoidCallback onTap;
   final Color? iconColor;
+  final bool hasActiveFilter;
 
   @override
   Widget build(BuildContext context) {
+    final bgColor = hasActiveFilter ? const Color(0xFF2BCDEE).withValues(alpha: 0.12) : Colors.white;
+    final borderColor = hasActiveFilter ? const Color(0xFF2BCDEE).withValues(alpha: 0.35) : Colors.transparent;
+    final fgColor = hasActiveFilter ? const Color(0xFF2BCDEE) : (iconColor ?? const Color(0xFF6B7280));
+    
     return Material(
-      color: Colors.white,
-      shape: const CircleBorder(),
+      color: bgColor,
+      shape: CircleBorder(side: BorderSide(color: borderColor, width: 2)),
       child: InkWell(
         onTap: onTap,
         customBorder: const CircleBorder(),
-        child: SizedBox(width: 48, height: 48, child: Icon(icon, color: iconColor ?? const Color(0xFF6B7280), size: 22)),
+        child: SizedBox(width: 48, height: 48, child: Icon(icon, color: fgColor, size: 22)),
       ),
     );
   }

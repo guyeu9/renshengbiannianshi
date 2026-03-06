@@ -179,6 +179,7 @@ class _MomentPageState extends State<MomentPage> {
               onSearchChanged: (v) => setState(() => _searchQuery = v),
               selectedMood: _selectedMood,
               onMoodSelected: (mood) => setState(() => _selectedMood = mood),
+              hasActiveFilter: _filterDateIndex != 0 || _filterFriendIds.isNotEmpty || _filterFavorite || _selectedMood != '全部',
             ),
             Expanded(
               child: _MomentHomeBody(
@@ -204,6 +205,7 @@ class _MomentHeader extends StatelessWidget {
     required this.onSearchChanged,
     required this.selectedMood,
     required this.onMoodSelected,
+    this.hasActiveFilter = false,
   });
 
   final VoidCallback onFilterTap;
@@ -211,6 +213,7 @@ class _MomentHeader extends StatelessWidget {
   final ValueChanged<String> onSearchChanged;
   final String selectedMood;
   final ValueChanged<String> onMoodSelected;
+  final bool hasActiveFilter;
 
   @override
   Widget build(BuildContext context) {
@@ -263,7 +266,7 @@ class _MomentHeader extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              _HeaderCircle(icon: Icons.tune, onTap: onFilterTap),
+              _HeaderCircle(icon: Icons.tune, onTap: onFilterTap, hasActiveFilter: hasActiveFilter),
               const SizedBox(width: 12),
               _HeaderCircle(
                 icon: Icons.add,
@@ -304,24 +307,29 @@ class _MomentHeader extends StatelessWidget {
 }
 
 class _HeaderCircle extends StatelessWidget {
-  const _HeaderCircle({required this.icon, required this.onTap, this.iconColor});
+  const _HeaderCircle({required this.icon, required this.onTap, this.iconColor, this.hasActiveFilter = false});
 
   final IconData icon;
   final VoidCallback onTap;
   final Color? iconColor;
+  final bool hasActiveFilter;
 
   @override
   Widget build(BuildContext context) {
+    final bgColor = hasActiveFilter ? const Color(0xFF2BCDEE).withValues(alpha: 0.12) : Colors.white;
+    final borderColor = hasActiveFilter ? const Color(0xFF2BCDEE).withValues(alpha: 0.35) : Colors.transparent;
+    final fgColor = hasActiveFilter ? const Color(0xFF2BCDEE) : (iconColor ?? const Color(0xFF6B7280));
+    
     return Material(
-      color: Colors.white,
-      shape: const CircleBorder(),
+      color: bgColor,
+      shape: CircleBorder(side: BorderSide(color: borderColor, width: 2)),
       child: InkWell(
         onTap: onTap,
         customBorder: const CircleBorder(),
         child: SizedBox(
           width: 48,
           height: 48,
-          child: Icon(icon, color: iconColor ?? const Color(0xFF6B7280), size: 22),
+          child: Icon(icon, color: fgColor, size: 22),
         ),
       ),
     );

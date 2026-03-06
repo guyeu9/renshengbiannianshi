@@ -309,6 +309,17 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
                 _currentLocationCity = city;
                 _currentLocationAddress = address;
                 _currentLocationName = description.isNotEmpty ? description : address;
+                if (_pickedLatitude == null && _pickedLongitude == null) {
+                  _pickedLatitude = lat;
+                  _pickedLongitude = lng;
+                  if (address.isNotEmpty) {
+                    _addressController.text = address;
+                    _poiNameController.text = description.isNotEmpty ? description : '当前位置';
+                  }
+                  if (city.isNotEmpty) {
+                    _cityController.text = city;
+                  }
+                }
               });
               if (address.isEmpty && city.isEmpty) {
                 amapLog('AmapLocation', 'Address empty, calling reverse geocode...');
@@ -317,6 +328,9 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
                     _currentLocationName = _pickedAddress.isNotEmpty ? _pickedAddress : '当前位置';
                     _currentLocationAddress = _pickedAddress;
                     _currentLocationCity = _pickedCity;
+                    if (_pickedAddress.isNotEmpty && _pickedPoiName.isEmpty) {
+                      _poiNameController.text = '当前位置';
+                    }
                   });
                 });
               }

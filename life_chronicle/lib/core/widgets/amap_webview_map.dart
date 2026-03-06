@@ -161,33 +161,46 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
   }
 
   void _initWebView() {
-    amapLog('AmapWebView', '========== Initializing WebView ==========');
-    amapLog('AmapWebView', 'Platform: ${Platform.operatingSystem}');
-    amapLog('AmapWebView', 'webKey length: ${widget.webKey.length}');
-    amapLog('AmapWebView', 'securityCode length: ${widget.securityCode.length}');
+    final initStartTime = DateTime.now();
+    amapInfo('AmapWebView', '========== [STEP-1] Initializing WebView ==========');
+    amapInfo('AmapWebView', 'Platform: ${Platform.operatingSystem}');
+    amapDebug('AmapWebView', 'webKey (masked): ${maskApiKey(widget.webKey)}');
+    amapDebug('AmapWebView', 'securityCode configured: ${widget.securityCode.isNotEmpty}');
+    amapDebug('AmapWebView', 'initialLatitude: ${widget.initialLatitude}');
+    amapDebug('AmapWebView', 'initialLongitude: ${widget.initialLongitude}');
+    amapDebug('AmapWebView', 'autoLocate: ${widget.autoLocate}');
+    amapDebug('AmapWebView', 'isPreviewMode: ${widget.isPreviewMode}');
     
     final htmlContent = _buildMapHtml();
-    amapLog('AmapWebView', 'HTML content length: ${htmlContent.length}');
-    amapLog('AmapWebView', 'HTML content preview (first 500 chars): ${htmlContent.substring(0, htmlContent.length > 500 ? 500 : htmlContent.length)}');
+    final htmlSize = htmlContent.length;
+    amapInfo('AmapWebView', '[STEP-2] HTML content generated: size=$htmlSize bytes');
+    amapDebug('AmapWebView', 'HTML preview (first 300 chars): ${htmlContent.substring(0, htmlSize > 300 ? 300 : htmlSize)}...');
     
-    amapLog('AmapWebView', 'Creating WebViewController...');
+    final controllerStartTime = DateTime.now();
+    amapInfo('AmapWebView', '[STEP-3] Creating WebViewController...');
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.white)
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (String url) {
-            amapLog('AmapWebView', '>>> onPageStarted: $url');
+            final now = DateTime.now();
+            final elapsed = now.difference(initStartTime).inMilliseconds;
+            amapInfo('AmapWebView', '[EVENT] onPageStarted: url=$url, elapsed=${elapsed}ms');
           },
           onPageFinished: (String url) {
-            amapLog('AmapWebView', '>>> onPageFinished: $url');
-            amapLog('AmapWebView', '>>> Setting _isLoading = false');
+            final now = DateTime.now();
+            final elapsed = now.difference(initStartTime).inMilliseconds;
+            amapInfo('AmapWebView', '[EVENT] onPageFinished: url=$url, elapsed=${elapsed}ms');
+            amapDebug('AmapWebView', 'Setting _isLoading = false');
             setState(() => _isLoading = false);
+            amapPerf('AmapWebView', 'WebView page load', elapsed);
           },
           onWebResourceError: (WebResourceError error) {
-            amapLog('AmapWebView', '>>> onWebResourceError: ${error.description}');
-            amapLog('AmapWebView', '>>> Error code: ${error.errorCode}, type: ${error.errorType}');
-            amapLog('AmapWebView', '>>> Error URL: ${error.url}');
+            final now = DateTime.now();
+            final elapsed = now.difference(initStartTime).inMilliseconds;
+            amapError('AmapWebView', '[ERROR] onWebResourceError: ${error.description}');
+            amapError('AmapWebView', '[ERROR] errorCode=${error.errorCode}, errorType=${error.errorType}, url=${error.url}, elapsed=${elapsed}ms');
             setState(() {
               _hasError = true;
               _errorMessage = '资源加载失败 (${error.errorCode}): ${error.description}';
@@ -196,44 +209,53 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
             widget.onError?.call(_errorMessage);
           },
           onNavigationRequest: (NavigationRequest request) {
-            amapLog('AmapWebView', '>>> onNavigationRequest: ${request.url}');
+            amapDebug('AmapWebView', '[NAV] onNavigationRequest: ${request.url}');
             return NavigationDecision.navigate;
           },
           onHttpError: (error) {
-            amapLog('AmapWebView', '>>> onHttpError: ${error.response?.statusCode}');
+            amapWarn('AmapWebView', '[WARN] onHttpError: statusCode=${error.response?.statusCode}');
           },
           onUrlChange: (change) {
-            amapLog('AmapWebView', '>>> onUrlChange: ${change.url}');
+            amapDebug('AmapWebView', '[EVENT] onUrlChange: ${change.url}');
           },
         ),
       )
       ..addJavaScriptChannel(
         'AMapFlutter',
         onMessageReceived: (message) {
-          amapLog('AmapWebView', '>>> AMapFlutter message received: ${message.message}');
+          amapDebug('AmapWebView', '[JS->Flutter] AMapFlutter: ${message.message}');
           _handleJsMessage(message);
         },
       )
       ..addJavaScriptChannel(
         'ConsoleLog',
         onMessageReceived: (message) {
-          amapLog('WebViewConsole', message.message);
+          amapDebug('WebViewConsole', message.message);
         },
       );
 
-    amapLog('AmapWebView', 'Loading HTML content...');
+    final controllerCreateTime = DateTime.now();
+    final controllerElapsed = controllerCreateTime.difference(controllerStartTime).inMilliseconds;
+    amapInfo('AmapWebView', '[STEP-4] WebViewController created: elapsed=${controllerElapsed}ms');
+
+    amapInfo('AmapWebView', '[STEP-5] Loading HTML content...');
+    final loadStartTime = DateTime.now();
     if (Platform.isAndroid) {
-      amapLog('AmapWebView', 'Android platform, using baseUrl: https://webapi.amap.com/');
+      amapDebug('AmapWebView', 'Android platform, using baseUrl: https://webapi.amap.com/');
       _controller!.loadHtmlString(htmlContent, baseUrl: 'https://webapi.amap.com/');
     } else {
-      amapLog('AmapWebView', 'iOS platform, no baseUrl');
+      amapDebug('AmapWebView', 'iOS platform, no baseUrl');
       _controller!.loadHtmlString(htmlContent);
     }
+    final loadElapsed = DateTime.now().difference(loadStartTime).inMilliseconds;
+    amapInfo('AmapWebView', '[STEP-6] loadHtmlString called: elapsed=${loadElapsed}ms');
 
     setState(() {});
-    amapLog('AmapWebView', 'WebView initialization complete');
-    amapLog('AmapWebView', '_controller is null: ${_controller == null}');
-    amapLog('AmapWebView', '========================================');
+    final totalElapsed = DateTime.now().difference(initStartTime).inMilliseconds;
+    amapInfo('AmapWebView', '[DONE] WebView initialization complete: total=${totalElapsed}ms');
+    amapDebug('AmapWebView', '_controller is null: ${_controller == null}');
+    amapPerf('AmapWebView', 'WebView init total', totalElapsed, sizeBytes: htmlSize);
+    amapInfo('AmapWebView', '========================================');
   }
 
   String _buildMapHtml() {
@@ -329,12 +351,20 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
       var statusEl = document.getElementById('status');
       var centerMarker = document.getElementById('centerMarker');
       var locationBtn = document.getElementById('locationBtn');
+      var initStartTime = Date.now();
+      var scriptLoadTime = null;
       
       function log(msg) {
         try { ConsoleLog.postMessage('[AMap] ' + msg); } catch(e) {}
       }
       
+      function logPerf(operation, startTime) {
+        var elapsed = Date.now() - startTime;
+        log('[PERF] ' + operation + ': elapsed=' + elapsed + 'ms');
+      }
+      
       function showError(msg) {
+        log('[ERROR] ' + msg);
         statusEl.className = 'status error';
         statusEl.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg><div>' + msg + '</div>';
         try { AMapFlutter.postMessage(JSON.stringify({type: 'error', message: msg})); } catch(e) {}
@@ -345,65 +375,91 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
         statusEl.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg><div>' + msg + '</div>';
       }
       
+      function getContainerSize() {
+        var container = document.getElementById('container');
+        if (container) {
+          return { width: container.offsetWidth, height: container.offsetHeight };
+        }
+        return { width: 0, height: 0 };
+      }
+      
       if (locationBtn) {
         locationBtn.onclick = function() {
+          log('[UI] Location button clicked');
           try { AMapFlutter.postMessage(JSON.stringify({type: 'locateRequest'})); } catch(e) {}
         };
       }
       
       window.onerror = function(msg, url, line, col, error) {
-        log('JS Error: ' + msg + ' @ ' + line + ':' + col);
+        log('[JS-ERROR] ' + msg + ' @ ' + url + ':' + line + ':' + col);
         showError('脚本错误: ' + msg);
         return true;
       };
       
       window.initAMap = function() {
-        log('>>> initAMap callback fired');
-        log('>>> typeof AMap: ' + typeof AMap);
+        var callbackTime = Date.now();
+        log('[STEP-1] initAMap callback fired, elapsed=' + (callbackTime - initStartTime) + 'ms');
+        log('[STEP-2] typeof AMap: ' + typeof AMap);
         
         if (typeof AMap === 'undefined') {
-          log('>>> ERROR: AMap is undefined!');
+          log('[ERROR] AMap is undefined!');
           showError('地图 API 未定义');
           return;
         }
         
-        log('>>> AMap is defined, creating map...');
+        log('[STEP-3] AMap is defined, creating map...');
         try {
+          var containerSize = getContainerSize();
+          log('[DEBUG] Container size: ' + containerSize.width + 'x' + containerSize.height);
+          
           statusEl.style.display = 'none';
           if (centerMarker) centerMarker.style.display = 'block';
           
-          log('>>> Creating AMap.Map with container, zoom=$initialZoom, center=[$initialLng, $initialLat]');
+          var mapCreateTime = Date.now();
+          log('[STEP-4] Creating AMap.Map with zoom=$initialZoom, center=[$initialLng, $initialLat]');
           map = new AMap.Map('container', {
             zoom: $initialZoom,
             center: [$initialLng, $initialLat],
             resizeEnable: true
           });
-          log('>>> Map created successfully: ' + (map ? 'yes' : 'no'));
+          log('[STEP-5] Map instance created: ' + (map ? 'yes' : 'no') + ', elapsed=' + (Date.now() - mapCreateTime) + 'ms');
           
           ${hasMarker ? '''
-          log('>>> Creating marker at [$markerLng, $markerLat]');
+          log('[STEP-6] Creating marker at [$markerLng, $markerLat]');
           marker = new AMap.Marker({
             position: [$markerLng, $markerLat],
             map: map
           });
           map.setCenter([$markerLng, $markerLat]);
-          log('>>> Marker created and center set');
+          log('[STEP-7] Marker created and center set');
           ''' : ''}
           
           map.on('complete', function() {
-            log('>>> Map complete event fired');
+            var completeTime = Date.now();
+            var totalElapsed = completeTime - initStartTime;
+            log('[EVENT] Map complete event fired, total=' + totalElapsed + 'ms');
             try { 
               var msg = JSON.stringify({type: 'mapReady'});
-              log('>>> Sending mapReady message: ' + msg);
+              log('[MSG] Sending mapReady message: ' + msg);
               AMapFlutter.postMessage(msg);
-              log('>>> mapReady message sent successfully');
+              log('[MSG] mapReady message sent successfully');
             } catch(e) {
-              log('>>> mapReady postMessage FAILED: ' + e.message);
+              log('[ERROR] mapReady postMessage FAILED: ' + e.message);
             }
+            logPerf('Map total init', initStartTime);
+          });
+          
+          map.on('tilesloadstart', function() {
+            log('[TILE] Tiles load started');
+          });
+          
+          map.on('tilesloadend', function() {
+            log('[TILE] Tiles load ended');
           });
           
           ${!isPreviewMode ? '''
           map.on('click', function(e) {
+            log('[EVENT] Map clicked: lng=' + e.lnglat.getLng() + ', lat=' + e.lnglat.getLat());
             try {
               AMapFlutter.postMessage(JSON.stringify({
                 type: 'click',
@@ -417,6 +473,7 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
             if (centerMarker) {
               try {
                 var c = map.getCenter();
+                log('[EVENT] Map moveend: lng=' + c.getLng() + ', lat=' + c.getLat());
                 AMapFlutter.postMessage(JSON.stringify({
                   type: 'moveEnd',
                   lng: c.getLng(),
@@ -431,6 +488,7 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
           map.on('poiClick', function(e) {
             var poi = e.poi;
             if (poi && poi.location) {
+              log('[EVENT] POI clicked: name=' + poi.name);
               try {
                 AMapFlutter.postMessage(JSON.stringify({
                   type: 'poiClick',
@@ -445,16 +503,18 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
           ''' : ''}
           
         } catch (e) {
-          log('Map init failed: ' + e.message);
+          log('[ERROR] Map init failed: ' + e.message);
           showError('地图初始化失败: ' + e.message);
         }
       };
       
       window.setCenter = function(lat, lng) {
+        log('[API] setCenter called: lat=' + lat + ', lng=' + lng);
         if (map) map.setCenter([lng, lat]);
       };
       
       window.setMarker = function(lat, lng) {
+        log('[API] setMarker called: lat=' + lat + ', lng=' + lng);
         if (marker) {
           marker.setPosition([lng, lat]);
         } else if (map) {
@@ -463,36 +523,42 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
       };
       
       window.clearMarker = function() {
+        log('[API] clearMarker called');
         if (marker) { marker.setMap(null); marker = null; }
       };
       
-      log('Loading AMap JS API v2.0...');
-      log('Key: $webKey');
-      log('Security Code: ${securityCode.isNotEmpty ? "已配置" : "未配置"}');
-      log('Initial position: lat=$initialLat, lng=$initialLng, zoom=$initialZoom');
-      log('isPreviewMode: $isPreviewMode, hasMarker: $hasMarker');
+      log('========== [JS-INIT] Starting AMap JS API v2.0 ==========');
+      log('[CONFIG] Key: ${webKey.substring(0, 4)}****${webKey.length > 8 ? webKey.substring(webKey.length - 4) : ""}');
+      log('[CONFIG] Security Code: ${securityCode.isNotEmpty ? "已配置" : "未配置"}');
+      log('[CONFIG] Initial position: lat=$initialLat, lng=$initialLng, zoom=$initialZoom');
+      log('[CONFIG] isPreviewMode: $isPreviewMode, hasMarker: $hasMarker');
       
-      // 安全密钥配置
+      var containerSize = getContainerSize();
+      log('[DOM] Container size: ' + containerSize.width + 'x' + containerSize.height);
+      
       window._AMapSecurityConfig = {
         securityJsCode: '$securityCode',
       };
-      log('Security config set');
+      log('[SECURITY] Security config set');
       
       var script = document.createElement('script');
       var scriptUrl = 'https://webapi.amap.com/maps?v=2.0&key=$webKey&callback=initAMap';
-      log('Creating script tag with URL: ' + scriptUrl);
+      log('[SCRIPT] Creating script tag: ' + scriptUrl);
       script.src = scriptUrl;
       script.async = true;
+      scriptLoadTime = Date.now();
       script.onload = function() {
-        log('>>> Script onload fired - script loaded successfully');
+        var elapsed = Date.now() - scriptLoadTime;
+        log('[SCRIPT] onload fired, script loaded in ' + elapsed + 'ms');
       };
       script.onerror = function(e) {
-        log('>>> Script onerror fired: ' + (e || 'unknown error'));
+        var elapsed = Date.now() - scriptLoadTime;
+        log('[ERROR] Script onerror fired after ' + elapsed + 'ms: ' + (e || 'unknown error'));
         showError('地图脚本加载失败，请检查网络');
       };
-      log('Appending script to document.head');
+      log('[SCRIPT] Appending script to document.head');
       document.head.appendChild(script);
-      log('Script appended, waiting for callback...');
+      log('[SCRIPT] Script appended, waiting for initAMap callback...');
       
     })();
   </script>
@@ -525,37 +591,48 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
     amapLog('AmapWebView', 'Location success: lat=$lat, lng=$lng, city=$city, address=$address');
   }
 
-  Future<void> _tryIpLocation() async {
-    amapLog('AmapWebView', '========== Trying IP-based location ==========');
+  Future<void> _tryIpLocation(DateTime locateStartTime) async {
+    amapInfo('AmapWebView', '========== [IP-LOCATE-1] Trying IP-based location ==========');
+    
     try {
       final uri = Uri.https('restapi.amap.com', '/v3/ip', {
         'key': _amapWebKey,
       });
+      amapDebug('AmapWebView', '[IP-LOCATE-2] Request URL: $uri');
+      
       final client = HttpClient();
+      final requestStartTime = DateTime.now();
       final request = await client.getUrl(uri);
       final response = await request.close();
       final body = await response.transform(utf8.decoder).join();
       client.close(force: true);
-
-      amapLog('AmapWebView', 'IP location response: $body');
+      
+      final requestElapsed = DateTime.now().difference(requestStartTime).inMilliseconds;
+      amapInfo('AmapWebView', '[IP-LOCATE-3] Response received: statusCode=${response.statusCode}, elapsed=${requestElapsed}ms, size=${body.length} bytes');
+      amapDebug('AmapWebView', '[IP-LOCATE] Response body: $body');
+      
       final decoded = jsonDecode(body);
       if (decoded is! Map) {
-        throw Exception('Invalid response');
+        throw Exception('Invalid response type: ${decoded.runtimeType}');
       }
       
       final status = '${decoded['status'] ?? ''}'.trim();
+      final info = '${decoded['info'] ?? ''}'.trim();
+      amapDebug('AmapWebView', '[IP-LOCATE] API status=$status, info=$info');
+      
       if (status != '1') {
-        throw Exception('API returned status: $status');
+        throw Exception('API returned status=$status, info=$info');
       }
       
       final rectangle = '${decoded['rectangle'] ?? ''}'.trim();
       if (rectangle.isEmpty) {
         throw Exception('No rectangle in response');
       }
+      amapDebug('AmapWebView', '[IP-LOCATE-4] Rectangle: $rectangle');
       
       final parts = rectangle.split(';');
       if (parts.length < 2) {
-        throw Exception('Invalid rectangle format');
+        throw Exception('Invalid rectangle format: expected 2 parts, got ${parts.length}');
       }
       
       final coord1 = parts[0].split(',');
@@ -572,7 +649,7 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
       final centerLng = (lng1 + lng2) / 2;
       final centerLat = (lat1 + lat2) / 2;
       
-      amapLog('AmapWebView', 'IP location center: lat=$centerLat, lng=$centerLng');
+      amapInfo('AmapWebView', '[IP-LOCATE-5] Calculated center: lat=$centerLat, lng=$centerLng');
       
       if (!_isValidChinaCoordinate(centerLat, centerLng)) {
         throw Exception('IP location outside China: lat=$centerLat, lng=$centerLng');
@@ -580,6 +657,9 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
       
       final province = '${decoded['province'] ?? ''}'.trim();
       final city = '${decoded['city'] ?? ''}'.trim();
+      final adcode = '${decoded['adcode'] ?? ''}'.trim();
+      
+      amapDebug('AmapWebView', '[IP-LOCATE-6] province=$province, city=$city, adcode=$adcode');
       
       String address = '';
       if (province.isNotEmpty) address += province;
@@ -587,14 +667,18 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
       
       String description = city.isNotEmpty ? city : province;
       
+      final totalElapsed = DateTime.now().difference(locateStartTime).inMilliseconds;
+      amapPerf('AmapWebView', 'IP Location total', totalElapsed);
+      
       if (mounted) {
         _handleValidLocation(centerLat, centerLng, city, address, description);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('已使用网络定位：${city.isNotEmpty ? city : province}')),
         );
       }
+      amapInfo('AmapWebView', '[IP-LOCATE] Success: city=$city, province=$province');
     } catch (e) {
-      amapLog('AmapWebView', 'IP location failed: $e');
+      amapError('AmapWebView', '[IP-LOCATE-ERROR] Failed: $e');
       if (mounted) {
         setState(() => _isLocating = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -602,7 +686,7 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
         );
       }
     }
-    amapLog('AmapWebView', '===========================================');
+    amapInfo('AmapWebView', '===========================================');
   }
 
   void _handleJsMessage(JavaScriptMessage message) {
@@ -679,25 +763,27 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
   }
 
   Future<void> _handleLocationRequest() async {
-    amapLog('AmapWebView', '========== Handling location request ==========');
+    final locateStartTime = DateTime.now();
+    amapInfo('AmapWebView', '========== [LOCATE-1] Handling location request ==========');
+    
     if (_isLocating) {
-      amapLog('AmapWebView', 'Already locating, skip');
+      amapWarn('AmapWebView', '[LOCATE] Already locating, skip');
       return;
     }
 
-    amapLog('AmapWebView', 'Cancelling existing subscription...');
+    amapDebug('AmapWebView', '[LOCATE-2] Cancelling existing subscription...');
     _locationSubscription?.cancel();
     _locationSubscription = null;
 
-    amapLog('AmapWebView', 'Reinitializing location plugin...');
+    amapDebug('AmapWebView', '[LOCATE-3] Reinitializing location plugin...');
     _locationPlugin?.destroy();
     _initLocationPlugin();
     
     if (!_locationPermissionGranted) {
-      amapLog('AmapWebView', 'Permission not granted, requesting...');
+      amapInfo('AmapWebView', '[LOCATE-4] Permission not granted, requesting...');
       await _requestLocationPermission();
       if (!_locationPermissionGranted) {
-        amapLog('AmapWebView', 'Location permission still not granted');
+        amapWarn('AmapWebView', '[LOCATE] Location permission still not granted');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('定位权限未授权，请在设置中开启')),
@@ -707,25 +793,38 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
       }
     }
 
-    amapLog('AmapWebView', 'Setting _isLocating = true');
+    amapInfo('AmapWebView', '[LOCATE-5] Starting location, permission granted=$_locationPermissionGranted');
     setState(() => _isLocating = true);
     
     try {
-      amapLog('AmapWebView', 'Setting up location listener...');
+      amapDebug('AmapWebView', '[LOCATE-6] Setting up location listener...');
       _locationSubscription = _locationPlugin?.onLocationChanged().listen(
         (result) {
-          amapLog('AmapWebView', '========== Location result received ==========');
-          amapLog('AmapWebView', 'Full location result: $result');
-          amapLog('AmapWebView', 'Result keys: ${result.keys.toList()}');
-          result.forEach((key, value) {
-            amapLog('AmapWebView', '  $key: $value');
-          });
+          final resultTime = DateTime.now();
+          final elapsed = resultTime.difference(locateStartTime).inMilliseconds;
+          amapInfo('AmapWebView', '[LOCATE-7] Location result received, elapsed=${elapsed}ms');
+          amapDebug('AmapWebView', '[LOCATE] Result keys: ${result.keys.toList()}');
+          
+          final lat = result['latitude'] as double?;
+          final lng = result['longitude'] as double?;
+          final accuracy = result['accuracy'] as double?;
+          var city = (result['city'] as String?) ?? '';
+          var province = (result['province'] as String?) ?? '';
+          var district = (result['district'] as String?) ?? '';
+          var street = (result['street'] as String?) ?? '';
+          var address = (result['address'] as String?) ?? '';
+          var description = (result['description'] as String?) ?? '';
+          
+          amapInfo('AmapWebView', '[LOCATE] lat=$lat, lng=$lng, accuracy=$accuracy');
+          amapDebug('AmapWebView', '[LOCATE] province=$province, city=$city, district=$district, street=$street');
+          amapDebug('AmapWebView', '[LOCATE] address=$address, description=$description');
+          
           _locationSubscription?.cancel();
           
           final errorCode = result['errorCode'];
           if (errorCode != null && errorCode != 0) {
             final errorInfo = result['errorInfo'] ?? '定位失败';
-            amapLog('AmapWebView', 'Location error code=$errorCode, info=$errorInfo');
+            amapError('AmapWebView', '[LOCATE-ERROR] errorCode=$errorCode, errorInfo=$errorInfo');
             if (mounted) {
               setState(() => _isLocating = false);
               ScaffoldMessenger.of(context).showSnackBar(
@@ -735,28 +834,21 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
             return;
           }
           
-          final lat = result['latitude'] as double?;
-          final lng = result['longitude'] as double?;
-          var city = (result['city'] as String?) ?? '';
-          var address = (result['address'] as String?) ?? '';
-          var description = (result['description'] as String?) ?? '';
-          
-          amapLog('AmapWebView', 'Location details - lat=$lat, lng=$lng, city=$city, address=$address, description=$description');
-          
           if (lat != null && lng != null && mounted) {
             final isValidCoord = _isValidChinaCoordinate(lat, lng);
-            amapLog('AmapWebView', 'Coordinate validation: isValid=$isValidCoord (lat=$lat, lng=$lng)');
+            amapInfo('AmapWebView', '[LOCATE-8] Coordinate validation: isValid=$isValidCoord');
             
             if (!isValidCoord) {
-              amapLog('AmapWebView', 'Invalid coordinate detected (outside China), trying IP location as fallback...');
+              amapWarn('AmapWebView', '[LOCATE] Invalid coordinate (outside China), trying IP location...');
               _locationPlugin?.stopLocation();
-              _tryIpLocation();
+              _tryIpLocation(locateStartTime);
               return;
             }
             
+            amapPerf('AmapWebView', 'Location total', elapsed);
             _handleValidLocation(lat, lng, city, address, description);
           } else {
-            amapLog('AmapWebView', 'Location result invalid: $result');
+            amapError('AmapWebView', '[LOCATE-ERROR] Invalid result: lat=$lat, lng=$lng');
             if (mounted) {
               setState(() => _isLocating = false);
               ScaffoldMessenger.of(context).showSnackBar(
@@ -765,12 +857,12 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
             }
           }
           
-          amapLog('AmapWebView', 'Stopping location...');
+          amapDebug('AmapWebView', '[LOCATE-9] Stopping location...');
           _locationPlugin?.stopLocation();
-          amapLog('AmapWebView', '===========================================');
+          amapInfo('AmapWebView', '===========================================');
         },
         onError: (error) {
-          amapLog('AmapWebView', 'Location stream error: $error');
+          amapError('AmapWebView', '[LOCATE-ERROR] Stream error: $error');
           if (mounted) {
             setState(() => _isLocating = false);
             ScaffoldMessenger.of(context).showSnackBar(
@@ -780,11 +872,11 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
         },
       );
       
-      amapLog('AmapWebView', 'Starting location...');
+      amapInfo('AmapWebView', '[LOCATE-10] Starting location...');
       _locationPlugin?.startLocation();
-      amapLog('AmapWebView', 'Location started, waiting for result...');
+      amapDebug('AmapWebView', '[LOCATE] Location started, waiting for result...');
       
-      amapLog('AmapWebView', 'Setting 15 second timeout...');
+      amapDebug('AmapWebView', '[LOCATE-11] Setting 15 second timeout...');
       await Future.delayed(const Duration(seconds: 15));
       if (_isLocating && mounted) {
         amapLog('AmapWebView', '========== Location timeout after 15 seconds ==========');

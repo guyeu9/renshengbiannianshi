@@ -99,7 +99,7 @@ class TravelDetailState {
   }
 }
 
-final travelDetailProvider = StreamProvider.family<TravelDetailState, ({String travelId, String tripId})>((ref, params) {
+final travelDetailProvider = StreamProvider.family.autoDispose<TravelDetailState, ({String travelId, String tripId})>((ref, params) {
   final db = ref.watch(appDatabaseProvider);
 
   final recordStream = (db.select(db.travelRecords)
@@ -297,7 +297,7 @@ class JournalDetailState {
   }
 }
 
-final journalDetailProvider = StreamProvider.family<JournalDetailState?, String>((ref, recordId) {
+final journalDetailProvider = StreamProvider.family.autoDispose<JournalDetailState?, String>((ref, recordId) {
   final db = ref.watch(appDatabaseProvider);
 
   final recordStream = (db.select(db.travelRecords)

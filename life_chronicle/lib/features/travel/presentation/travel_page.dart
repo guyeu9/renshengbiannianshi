@@ -93,7 +93,11 @@ class _TravelPageState extends State<TravelPage> {
         child: CustomScrollView(
           slivers: [
             const SliverToBoxAdapter(child: _TravelTopBar()),
-            SliverToBoxAdapter(child: _TravelSearchRow(onFilterTap: _openFilterSheet, controller: _searchController)),
+            SliverToBoxAdapter(child: _TravelSearchRow(
+              onFilterTap: _openFilterSheet, 
+              controller: _searchController,
+              hasActiveFilter: _filterDateIndex != 0 || _filterFriendIds.isNotEmpty,
+            )),
             SliverPersistentHeader(
               pinned: true,
               delegate: _PinnedHeaderDelegate(
@@ -152,10 +156,11 @@ class _TravelTopBar extends StatelessWidget {
 }
 
 class _TravelSearchRow extends StatelessWidget {
-  const _TravelSearchRow({required this.onFilterTap, required this.controller});
+  const _TravelSearchRow({required this.onFilterTap, required this.controller, this.hasActiveFilter = false});
 
   final VoidCallback onFilterTap;
   final TextEditingController controller;
+  final bool hasActiveFilter;
 
   @override
   Widget build(BuildContext context) {
@@ -193,7 +198,7 @@ class _TravelSearchRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          _FilterButton(onTap: onFilterTap),
+          _FilterButton(onTap: onFilterTap, hasActiveFilter: hasActiveFilter),
         ],
       ),
     );
@@ -201,22 +206,27 @@ class _TravelSearchRow extends StatelessWidget {
 }
 
 class _FilterButton extends StatelessWidget {
-  const _FilterButton({required this.onTap});
+  const _FilterButton({required this.onTap, this.hasActiveFilter = false});
 
   final VoidCallback onTap;
+  final bool hasActiveFilter;
 
   @override
   Widget build(BuildContext context) {
+    final bgColor = hasActiveFilter ? const Color(0xFF2BCDEE).withValues(alpha: 0.12) : Colors.white;
+    final borderColor = hasActiveFilter ? const Color(0xFF2BCDEE).withValues(alpha: 0.35) : Colors.transparent;
+    final fgColor = hasActiveFilter ? const Color(0xFF2BCDEE) : const Color(0xFF6B7280);
+    
     return Material(
-      color: Colors.white,
-      shape: const CircleBorder(),
+      color: bgColor,
+      shape: CircleBorder(side: BorderSide(color: borderColor, width: 2)),
       child: InkWell(
         onTap: onTap,
         customBorder: const CircleBorder(),
-        child: const SizedBox(
+        child: SizedBox(
           width: 48,
           height: 48,
-          child: Icon(Icons.tune, color: Color(0xFF6B7280), size: 22),
+          child: Icon(Icons.tune, color: fgColor, size: 22),
         ),
       ),
     );
@@ -2645,6 +2655,8 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
   double? _latitude;
   double? _longitude;
 
+  DateTime _recordDate = DateTime.now();
+
   bool get _isEditMode => widget.initialRecord != null;
 
   @override
@@ -2668,6 +2680,7 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
       if (_selectedMoodIndex < 0) _selectedMoodIndex = 1;
       _selectedTags.addAll(_decodeStringList(record.tags));
       _availableTags.addAll(_selectedTags);
+      _recordDate = record.recordDate;
     }
   }
 
@@ -2682,6 +2695,37 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
   String? get _locationSubtitle {
     final address = _poiAddress.trim();
     return address.isEmpty ? null : address;
+  }
+
+  Future<void> _pickDateTime() async {
+    final now = DateTime.now();
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _recordDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(now.year + 10),
+    );
+    if (!mounted || date == null) return;
+    
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_recordDate),
+    );
+    if (!mounted || time == null) return;
+    
+    setState(() {
+      _recordDate = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time.hour,
+        time.minute,
+      );
+    });
+  }
+
+  String get _formattedDateTime {
+    return '${_recordDate.year}-${_recordDate.month.toString().padLeft(2, '0')}-${_recordDate.day.toString().padLeft(2, '0')} ${_recordDate.hour.toString().padLeft(2, '0')}:${_recordDate.minute.toString().padLeft(2, '0')}';
   }
 
   Future<void> _pickLocation() async {
@@ -2935,7 +2979,7 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
     final db = ref.read(appDatabaseProvider);
     final uuid = ref.read(uuidProvider);
     final now = DateTime.now();
-    final recordDate = DateTime(now.year, now.month, now.day);
+    final recordDate = _recordDate;
     final tripId = _linkedTripId ?? uuid.v4();
     final travelId = uuid.v4();
 
@@ -3209,6 +3253,31 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
                   hintText: '给这段游记起个标题...',
                   fillColor: const Color(0xFFF1F5F9),
                   textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
+                ),
+                const SizedBox(height: 12),
+                InkWell(
+                  onTap: _pickDateTime,
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.access_time, color: Color(0xFF6B7280), size: 20),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            _formattedDateTime,
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right, color: Color(0xFFCBD5E1), size: 20),
+                      ],
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 _RoundedFilledField(
@@ -3906,7 +3975,7 @@ class _TimelineJournalCard extends StatelessWidget {
       tagSet.add(destination);
     }
     final tags = tagSet.toList()..sort();
-    final timeLabel = '${record.recordDate.hour.toString().padLeft(2, '0')}:${record.recordDate.minute.toString().padLeft(2, '0')}';
+    final timeLabel = '${record.recordDate.year}-${record.recordDate.month.toString().padLeft(2, '0')}-${record.recordDate.day.toString().padLeft(2, '0')} ${record.recordDate.hour.toString().padLeft(2, '0')}:${record.recordDate.minute.toString().padLeft(2, '0')}';
     return GestureDetector(
       onTap: () {
         Navigator.of(context).push(
@@ -4017,43 +4086,47 @@ Widget _buildWechatStyleImages(BuildContext context, List<String> images, Travel
     onTap: navigateToDetail,
     child: SizedBox(
       height: gridHeight,
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          mainAxisSpacing: 4,
-          crossAxisSpacing: 4,
-          childAspectRatio: 1,
-        ),
-        itemCount: displayImages.length,
-        itemBuilder: (context, index) {
-          final isLast = index == displayImages.length - 1;
-          final showOverlay = isLast && remainingCount > 0;
+      child: RepaintBoundary(
+        child: GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisSpacing: 4,
+            crossAxisSpacing: 4,
+            childAspectRatio: 1,
+          ),
+          itemCount: displayImages.length,
+          itemBuilder: (context, index) {
+            final isLast = index == displayImages.length - 1;
+            final showOverlay = isLast && remainingCount > 0;
 
-          return ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                _buildLocalImage(displayImages[index], fit: BoxFit.cover),
-                if (showOverlay)
-                  Container(
-                    color: Colors.black.withValues(alpha: 0.5),
-                    alignment: Alignment.center,
-                    child: Text(
-                      '+$remainingCount',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
+            return RepaintBoundary(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    _buildLocalImage(displayImages[index], fit: BoxFit.cover),
+                    if (showOverlay)
+                      Container(
+                        color: Colors.black.withValues(alpha: 0.5),
+                        alignment: Alignment.center,
+                        child: Text(
+                          '+$remainingCount',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-              ],
-            ),
-          );
-        },
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
       ),
     ),
   );
@@ -5819,8 +5892,20 @@ class JournalDetailPage extends ConsumerStatefulWidget {
   ConsumerState<JournalDetailPage> createState() => _JournalDetailPageState();
 }
 
-class _JournalDetailPageState extends ConsumerState<JournalDetailPage> {
+class _JournalDetailPageState extends ConsumerState<JournalDetailPage>
+    with AutomaticKeepAliveClientMixin {
   final GlobalKey _shareKey = GlobalKey();
+  
+  @override
+  bool get wantKeepAlive => true;
+  
+  @override
+  void didUpdateWidget(JournalDetailPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.recordId != widget.recordId) {
+      ref.invalidate(journalDetailProvider(oldWidget.recordId));
+    }
+  }
 
   Future<void> _shareLongImage() async {
     try {
@@ -5850,6 +5935,7 @@ class _JournalDetailPageState extends ConsumerState<JournalDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final detailAsync = ref.watch(journalDetailProvider(widget.recordId));
 
     return detailAsync.when(
@@ -5870,9 +5956,29 @@ class _JournalDetailPageState extends ConsumerState<JournalDetailPage> {
         backgroundColor: const Color(0xFFF6F8F8),
         body: const Center(child: CircularProgressIndicator()),
       ),
-      error: (_, __) => Scaffold(
+      error: (error, stack) => Scaffold(
         backgroundColor: const Color(0xFFF6F8F8),
-        body: const Center(child: Text('加载失败')),
+        appBar: AppBar(
+          backgroundColor: Colors.white.withValues(alpha: 0.8),
+          title: const SizedBox.shrink(),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('加载失败'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => ref.invalidate(journalDetailProvider(widget.recordId)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2BCDEE),
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('重试'),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -6110,24 +6216,28 @@ class _JournalDetailPageState extends ConsumerState<JournalDetailPage> {
 
     return SizedBox(
       height: gridHeight,
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
+      child: RepaintBoundary(
+        child: GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+          ),
+          itemCount: images.length,
+          itemBuilder: (context, index) {
+            return RepaintBoundary(
+              child: GestureDetector(
+                onTap: () => _showImageDialog(context, images[index]),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: _buildLocalImage(images[index], fit: BoxFit.cover),
+                ),
+              ),
+            );
+          },
         ),
-        itemCount: images.length,
-        itemBuilder: (context, index) {
-          return GestureDetector(
-            onTap: () => _showImageDialog(context, images[index]),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: _buildLocalImage(images[index], fit: BoxFit.cover),
-            ),
-          );
-        },
       ),
     );
   }
@@ -6278,7 +6388,7 @@ class _JournalDetailPageState extends ConsumerState<JournalDetailPage> {
   }
 
   String _formatDateTime(DateTime date) {
-    return '${date.year}年${date.month}月${date.day}日 ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 }
 
