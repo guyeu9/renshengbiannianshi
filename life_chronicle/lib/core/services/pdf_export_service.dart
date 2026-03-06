@@ -1,10 +1,13 @@
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../database/app_database.dart';
 
 class PdfExportService {
@@ -31,26 +34,36 @@ class PdfExportService {
       final systemFontPaths = [
         '/system/fonts/NotoSansCJK-Regular.ttc',
         '/system/fonts/NotoSansSC-Regular.otf',
+        '/system/fonts/NotoSansCJKsc-Regular.otf',
         '/system/fonts/DroidSansFallbackFull.ttf',
+        '/system/fonts/DroidSansFallback.ttf',
         '/system/fonts/SourceHanSansSC-Regular.otf',
+        '/system/fonts/Roboto-Regular.ttf',
+        '/system/fonts/sans-serif.ttf',
       ];
       
       for (final fontPath in systemFontPaths) {
-        final file = File(fontPath);
-        if (await file.exists()) {
-          final fontData = await file.readAsBytes();
-          _chineseFont = pw.Font.ttf(ByteData.sublistView(Uint8List.fromList(fontData)));
-          _chineseFontBold = _chineseFont;
-          debugPrint('成功加载系统字体: $fontPath');
-          _fontsLoaded = true;
-          return;
+        try {
+          final file = File(fontPath);
+          if (await file.exists()) {
+            final fontData = await file.readAsBytes();
+            _chineseFont = pw.Font.ttf(ByteData.sublistView(Uint8List.fromList(fontData)));
+            _chineseFontBold = _chineseFont;
+            debugPrint('成功加载系统字体: $fontPath');
+            _fontsLoaded = true;
+            return;
+          }
+        } catch (e) {
+          debugPrint('加载字体 $fontPath 失败: $e');
+          continue;
         }
       }
       
-      debugPrint('未找到系统字体，使用默认字体');
+      debugPrint('未找到系统字体，PDF将使用默认字体（中文可能显示异常）');
       _fontsLoaded = true;
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('无法加载系统字体: $e');
+      debugPrint('堆栈: $stack');
       _fontsLoaded = true;
     }
   }
@@ -83,73 +96,99 @@ class PdfExportService {
     DateTime? startDate,
     DateTime? endDate,
   }) async {
+    debugPrint('开始PDF导出...');
     await _loadFonts();
     
     final pdf = pw.Document();
     
-    if (includeCover) {
-      pdf.addPage(await _createCoverPage(startDate: startDate, endDate: endDate));
-    }
-    
-    if (includeToc) {
-      pdf.addPage(await _createTableOfContents(
+    try {
+      if (includeCover) {
+        debugPrint('创建封面页...');
+        pdf.addPage(await _createCoverPage(startDate: startDate, endDate: endDate));
+      }
+      
+      if (includeToc) {
+        debugPrint('创建目录页...');
+        pdf.addPage(await _createTableOfContents(
+          includeFood: includeFood,
+          includeMoment: includeMoment,
+          includeFriend: includeFriend,
+          includeTravel: includeTravel,
+          includeGoal: includeGoal,
+          includeTimeline: includeTimeline,
+        ));
+      }
+      
+      debugPrint('创建概览章节...');
+      pdf.addPage(await _createOverviewChapter(
         includeFood: includeFood,
         includeMoment: includeMoment,
         includeFriend: includeFriend,
         includeTravel: includeTravel,
         includeGoal: includeGoal,
         includeTimeline: includeTimeline,
+        startDate: startDate,
+        endDate: endDate,
       ));
+      
+      if (includeFood) {
+        debugPrint('添加美食章节...');
+        await _addFoodChapter(pdf, includePhotos: includePhotos, startDate: startDate, endDate: endDate);
+      }
+      if (includeMoment) {
+        debugPrint('添加小确幸章节...');
+        await _addMomentChapter(pdf, includePhotos: includePhotos, startDate: startDate, endDate: endDate);
+      }
+      if (includeFriend) {
+        debugPrint('添加羁绊章节...');
+        await _addFriendChapter(pdf, includePhotos: includePhotos);
+      }
+      if (includeTravel) {
+        debugPrint('添加旅行章节...');
+        await _addTravelChapter(pdf, includePhotos: includePhotos, startDate: startDate, endDate: endDate);
+      }
+      if (includeGoal) {
+        debugPrint('添加目标章节...');
+        await _addGoalChapter(pdf);
+      }
+      if (includeTimeline) {
+        debugPrint('添加时间线章节...');
+        await _addTimelineChapter(pdf, startDate: startDate, endDate: endDate);
+      }
+      
+      debugPrint('保存PDF文件...');
+      final tempDir = await getTemporaryDirectory();
+      final now = DateTime.now();
+      final timestamp = '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
+      final fileName = '人生编年史导出_$timestamp.pdf';
+      final filePath = path.join(tempDir.path, fileName);
+      
+      final file = File(filePath);
+      await file.writeAsBytes(await pdf.save());
+      
+      debugPrint('PDF导出成功: $filePath');
+      return filePath;
+    } catch (e, stack) {
+      debugPrint('PDF导出错误: $e');
+      debugPrint('堆栈: $stack');
+      rethrow;
     }
-    
-    pdf.addPage(await _createOverviewChapter(
-      includeFood: includeFood,
-      includeMoment: includeMoment,
-      includeFriend: includeFriend,
-      includeTravel: includeTravel,
-      includeGoal: includeGoal,
-      includeTimeline: includeTimeline,
-      startDate: startDate,
-      endDate: endDate,
-    ));
-    
-    if (includeFood) {
-      await _addFoodChapter(pdf, includePhotos: includePhotos, startDate: startDate, endDate: endDate);
-    }
-    if (includeMoment) {
-      await _addMomentChapter(pdf, includePhotos: includePhotos, startDate: startDate, endDate: endDate);
-    }
-    if (includeFriend) {
-      await _addFriendChapter(pdf, includePhotos: includePhotos);
-    }
-    if (includeTravel) {
-      await _addTravelChapter(pdf, includePhotos: includePhotos, startDate: startDate, endDate: endDate);
-    }
-    if (includeGoal) {
-      await _addGoalChapter(pdf);
-    }
-    if (includeTimeline) {
-      await _addTimelineChapter(pdf, startDate: startDate, endDate: endDate);
-    }
-    
-    final tempDir = await getTemporaryDirectory();
-    final now = DateTime.now();
-    final timestamp = '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
-    final fileName = '人生编年史导出_$timestamp.pdf';
-    final filePath = path.join(tempDir.path, fileName);
-    
-    final file = File(filePath);
-    await file.writeAsBytes(await pdf.save());
-    
-    return filePath;
   }
   
   Future<void> sharePdf(String filePath) async {
-    final file = File(filePath);
-    if (await file.exists()) {
-      // 返回文件路径，由调用方处理分享逻辑
-      // 这里仅做文件存在性检查
-      debugPrint('PDF文件已准备好: $filePath');
+    try {
+      final file = File(filePath);
+      if (await file.exists()) {
+        await Share.shareXFiles(
+          [XFile(filePath)],
+          subject: '人生编年史导出',
+          text: '人生编年史数据导出报告',
+        );
+      }
+    } catch (e, stack) {
+      debugPrint('分享PDF错误: $e');
+      debugPrint('堆栈: $stack');
+      rethrow;
     }
   }
   
@@ -418,10 +457,12 @@ class PdfExportService {
     
     if (records.isEmpty) return;
     
-    final avgRating = records.map((r) => r.rating ?? 0).reduce((a, b) => a + b) / records.length;
-    final totalExpense = records.map((r) => r.pricePerPerson ?? 0).reduce((a, b) => a + b);
+    final ratings = records.map((r) => r.rating ?? 0).toList();
+    final avgRating = ratings.isEmpty ? 0.0 : ratings.reduce((a, b) => a + b) / ratings.length;
     
-    // 添加章节封面
+    final expenses = records.map((r) => r.pricePerPerson ?? 0).toList();
+    final totalExpense = expenses.isEmpty ? 0.0 : expenses.reduce((a, b) => a + b);
+    
     pdf.addPage(await _createChapterCoverPage(
       '第二章',
       '美食记忆',
@@ -429,32 +470,60 @@ class PdfExportService {
       _primaryColor,
     ));
     
-    // 添加详细记录
     for (final record in records) {
-      final images = await _getRecordImages('food', record.id);
-      pdf.addPage(await _createFoodDetailPage(record, images));
+      try {
+        final images = includePhotos ? await _getRecordImages('food', record.images) : <File>[];
+        pdf.addPage(await _createFoodDetailPage(record, images));
+      } catch (e) {
+        debugPrint('添加美食记录详情页失败: $e');
+      }
     }
   }
   
-  Future<List<File>> _getRecordImages(String module, String recordId) async {
-    final appDocDir = await getApplicationDocumentsDirectory();
-    final recordDir = Directory(path.join(appDocDir.path, 'media', module, recordId));
-    
-    if (!await recordDir.exists()) {
-      return [];
-    }
-    
-    final files = <File>[];
-    await for (final entity in recordDir.list()) {
-      if (entity is File) {
-        final ext = path.extension(entity.path).toLowerCase();
-        if (['.jpg', '.jpeg', '.png', '.gif', '.webp'].contains(ext)) {
-          files.add(entity);
+  Future<List<File>> _getRecordImages(String module, String? imagesJson) async {
+    try {
+      if (imagesJson == null || imagesJson.isEmpty) {
+        return [];
+      }
+      
+      final List<dynamic> imagePaths;
+      try {
+        imagePaths = jsonDecode(imagesJson) as List<dynamic>;
+      } catch (e) {
+        debugPrint('解析图片JSON失败: $e, 原始数据: $imagesJson');
+        return [];
+      }
+      
+      if (imagePaths.isEmpty) {
+        return [];
+      }
+      
+      final files = <File>[];
+      for (final imagePath in imagePaths) {
+        if (imagePath is! String || imagePath.isEmpty) continue;
+        
+        final trimmed = imagePath.trim();
+        if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+          continue;
+        }
+        
+        try {
+          final file = File(trimmed);
+          if (await file.exists()) {
+            files.add(file);
+          } else {
+            debugPrint('图片文件不存在: $trimmed');
+          }
+        } catch (e) {
+          debugPrint('检查图片文件失败: $trimmed, 错误: $e');
         }
       }
+      
+      return files;
+    } catch (e) {
+      debugPrint('获取图片失败: $e');
+      return [];
     }
-    
-    return files;
   }
   
   Future<pw.Page> _createChapterCoverPage(String chapter, String title, String subtitle, PdfColor color) async {
@@ -517,7 +586,6 @@ class PdfExportService {
         child: pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            // 标题栏
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
@@ -537,7 +605,6 @@ class PdfExportService {
             ),
             pw.SizedBox(height: 16),
             
-            // 图片网格
             if (imageWidgets.isNotEmpty) ...[
               pw.Container(
                 height: 200,
@@ -552,13 +619,11 @@ class PdfExportService {
               pw.SizedBox(height: 16),
             ],
             
-            // 内容
             if (record.content != null && record.content!.isNotEmpty) ...[
               pw.Text(record.content!, style: _textStyle(fontSize: 12, color: _textColor)),
               pw.SizedBox(height: 16),
             ],
             
-            // 元信息
             pw.Container(
               padding: const pw.EdgeInsets.all(12),
               decoration: pw.BoxDecoration(
@@ -607,8 +672,12 @@ class PdfExportService {
     ));
     
     for (final record in records) {
-      final images = await _getRecordImages('moment', record.id);
-      pdf.addPage(await _createMomentDetailPage(record, images));
+      try {
+        final images = includePhotos ? await _getRecordImages('moment', record.images) : <File>[];
+        pdf.addPage(await _createMomentDetailPage(record, images));
+      } catch (e) {
+        debugPrint('添加小确幸记录详情页失败: $e');
+      }
     }
   }
   
@@ -686,29 +755,48 @@ class PdfExportService {
     ));
     
     for (final record in records) {
-      final images = await _getRecordImages('friend', record.id);
-      pdf.addPage(await _createFriendDetailPage(record, images));
+      try {
+        pdf.addPage(await _createFriendDetailPage(record, includePhotos: includePhotos));
+      } catch (e) {
+        debugPrint('添加羁绊记录详情页失败: $e');
+      }
     }
   }
   
-  Future<pw.Page> _createFriendDetailPage(FriendRecord record, List<File> images) async {
-    final imageWidgets = <pw.Widget>[];
+  Future<pw.Page> _createFriendDetailPage(FriendRecord record, {required bool includePhotos}) async {
+    pw.Widget? avatarWidget;
     
-    for (final imageFile in images.take(2)) {
+    if (includePhotos && record.avatarPath != null && record.avatarPath!.isNotEmpty) {
       try {
-        final bytes = await imageFile.readAsBytes();
-        final image = pw.MemoryImage(bytes);
-        imageWidgets.add(
-          pw.ClipRRect(
-            horizontalRadius: 12,
-            verticalRadius: 12,
-            child: pw.Image(image, fit: pw.BoxFit.cover),
-          ),
-        );
+        final avatarFile = File(record.avatarPath!);
+        if (await avatarFile.exists()) {
+          final bytes = await avatarFile.readAsBytes();
+          final image = pw.MemoryImage(bytes);
+          avatarWidget = pw.ClipRRect(
+            horizontalRadius: 40,
+            verticalRadius: 40,
+            child: pw.Image(image, fit: pw.BoxFit.cover, width: 80, height: 80),
+          );
+        }
       } catch (e) {
-        debugPrint('无法加载图片: $e');
+        debugPrint('无法加载头像: $e');
       }
     }
+    
+    avatarWidget ??= pw.Container(
+      width: 80,
+      height: 80,
+      decoration: pw.BoxDecoration(
+        color: const PdfColor.fromInt(0xFFEC4899),
+        borderRadius: pw.BorderRadius.circular(40),
+      ),
+      child: pw.Center(
+        child: pw.Text(
+          record.name.isNotEmpty ? record.name[0] : '?',
+          style: _textStyle(fontSize: 32, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+        ),
+      ),
+    );
     
     return pw.Page(
       pageFormat: PdfPageFormat.a4,
@@ -719,20 +807,7 @@ class PdfExportService {
           children: [
             pw.Row(
               children: [
-                pw.Container(
-                  width: 80,
-                  height: 80,
-                  decoration: pw.BoxDecoration(
-                    color: const PdfColor.fromInt(0xFFEC4899),
-                    borderRadius: pw.BorderRadius.circular(40),
-                  ),
-                  child: pw.Center(
-                    child: pw.Text(
-                      record.name.isNotEmpty ? record.name[0] : '?',
-                      style: _textStyle(fontSize: 32, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
-                    ),
-                  ),
-                ),
+                avatarWidget,
                 pw.SizedBox(width: 20),
                 pw.Expanded(
                   child: pw.Column(
@@ -754,16 +829,6 @@ class PdfExportService {
               ],
             ),
             pw.SizedBox(height: 24),
-            
-            if (imageWidgets.isNotEmpty) ...[
-              pw.Container(
-                height: 150,
-                child: pw.Row(
-                  children: imageWidgets.map((img) => pw.Expanded(child: pw.Padding(padding: const pw.EdgeInsets.only(right: 8), child: img))).toList(),
-                ),
-              ),
-              pw.SizedBox(height: 16),
-            ],
             
             if (record.impressionTags != null && record.impressionTags!.isNotEmpty)
               pw.Text('印象: ${record.impressionTags}', style: _textStyle(fontSize: 12, color: _mutedColor)),
@@ -790,16 +855,26 @@ class PdfExportService {
     
     if (records.isEmpty) return;
     
+    final destinations = records
+        .where((r) => r.destination != null)
+        .map((r) => r.destination!)
+        .toSet()
+        .length;
+    
     pdf.addPage(await _createChapterCoverPage(
       '第五章',
       '旅行足迹',
-      '共 ${records.length} 次旅行 · ${records.where((r) => r.destination != null).map((r) => r.destination).toSet().length} 个目的地',
+      '共 ${records.length} 次旅行 · $destinations 个目的地',
       _accentColor,
     ));
     
     for (final record in records) {
-      final images = await _getRecordImages('travel', record.id);
-      pdf.addPage(await _createTravelDetailPage(record, images));
+      try {
+        final images = includePhotos ? await _getRecordImages('travel', record.images) : <File>[];
+        pdf.addPage(await _createTravelDetailPage(record, images));
+      } catch (e) {
+        debugPrint('添加旅行记录详情页失败: $e');
+      }
     }
   }
   
@@ -878,11 +953,18 @@ class PdfExportService {
     ));
     
     for (final record in records) {
-      pdf.addPage(await _createGoalDetailPage(record));
+      try {
+        pdf.addPage(await _createGoalDetailPage(record));
+      } catch (e) {
+        debugPrint('添加目标详情页失败: $e');
+      }
     }
   }
   
   Future<pw.Page> _createGoalDetailPage(GoalRecord record) async {
+    final progress = record.progress.clamp(0, 100).toInt();
+    final remaining = (100 - progress).clamp(0, 100);
+    
     return pw.Page(
       pageFormat: PdfPageFormat.a4,
       build: (context) => pw.Padding(
@@ -910,7 +992,6 @@ class PdfExportService {
             ),
             pw.SizedBox(height: 16),
             
-            // 进度条
             pw.Container(
               height: 8,
               decoration: pw.BoxDecoration(
@@ -919,24 +1000,26 @@ class PdfExportService {
               ),
               child: pw.Row(
                 children: [
-                  pw.Expanded(
-                    flex: record.progress.clamp(0, 100).toInt(),
-                    child: pw.Container(
-                      decoration: pw.BoxDecoration(
-                        color: record.isCompleted ? _secondaryColor : _accentColor,
-                        borderRadius: pw.BorderRadius.circular(4),
+                  if (progress > 0)
+                    pw.Expanded(
+                      flex: progress,
+                      child: pw.Container(
+                        decoration: pw.BoxDecoration(
+                          color: record.isCompleted ? _secondaryColor : _accentColor,
+                          borderRadius: pw.BorderRadius.circular(4),
+                        ),
                       ),
                     ),
-                  ),
-                  pw.Expanded(
-                    flex: (100 - record.progress).clamp(0, 100).toInt(),
-                    child: pw.SizedBox(),
-                  ),
+                  if (remaining > 0)
+                    pw.Expanded(
+                      flex: remaining,
+                      child: pw.SizedBox(),
+                    ),
                 ],
               ),
             ),
             pw.SizedBox(height: 8),
-            pw.Text('进度: ${record.progress}%', style: _textStyle(fontSize: 12, color: _mutedColor)),
+            pw.Text('进度: $progress%', style: _textStyle(fontSize: 12, color: _mutedColor)),
             pw.SizedBox(height: 16),
             
             if (record.note != null && record.note!.isNotEmpty) ...[
@@ -974,7 +1057,6 @@ class PdfExportService {
       const PdfColor.fromInt(0xFF6366F1),
     ));
     
-    // 时间线使用列表形式展示
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
