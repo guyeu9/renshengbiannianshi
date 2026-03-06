@@ -587,7 +587,8 @@ class PdfExportService {
         final image = pw.MemoryImage(bytes);
         imageWidgets.add(
           pw.ClipRRect(
-            borderRadius: pw.BorderRadius.circular(12),
+            horizontalRadius: 12,
+            verticalRadius: 12,
             child: pw.Image(image, fit: pw.BoxFit.cover),
           ),
         );
@@ -707,7 +708,8 @@ class PdfExportService {
         final image = pw.MemoryImage(bytes);
         imageWidgets.add(
           pw.ClipRRect(
-            borderRadius: pw.BorderRadius.circular(12),
+            horizontalRadius: 12,
+            verticalRadius: 12,
             child: pw.Image(image, fit: pw.BoxFit.cover),
           ),
         );
@@ -789,7 +791,8 @@ class PdfExportService {
           final bytes = await avatarFile.readAsBytes();
           final image = pw.MemoryImage(bytes);
           avatarWidget = pw.ClipRRect(
-            borderRadius: pw.BorderRadius.circular(40),
+            horizontalRadius: 40,
+            verticalRadius: 40,
             child: pw.Image(image, fit: pw.BoxFit.cover, width: 80, height: 80),
           );
         }
@@ -902,7 +905,8 @@ class PdfExportService {
         final image = pw.MemoryImage(bytes);
         imageWidgets.add(
           pw.ClipRRect(
-            borderRadius: pw.BorderRadius.circular(12),
+            horizontalRadius: 12,
+            verticalRadius: 12,
             child: pw.Image(image, fit: pw.BoxFit.cover),
           ),
         );
