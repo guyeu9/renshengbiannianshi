@@ -82,13 +82,28 @@ jobs:
         run: flutter analyze
         working-directory: life_chronicle
       - name: Test with Coverage
-        run: flutter test --coverage
+        run: flutter test --coverage --machine > test-results.json
         working-directory: life_chronicle
+      - name: Publish Test Results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Flutter Tests
+          path: life_chronicle/test-results.json
+          reporter: flutter-json
+          fail-on-error: true
       - name: Upload Coverage Report
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: coverage-report
           path: life_chronicle/coverage/lcov.info
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: life_chronicle/test-results.json
       - name: Build APK
         run: flutter build apk --release
         working-directory: life_chronicle
