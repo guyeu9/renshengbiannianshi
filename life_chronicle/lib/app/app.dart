@@ -5,6 +5,26 @@ import 'app_shell.dart';
 import 'app_theme.dart';
 import '../core/widgets/unfocus_on_tap.dart';
 
+class BottomSheetFocusObserver extends RouteObserver<ModalRoute<void>> {
+  @override
+  void didPop(Route<void> route, Route<void>? previousRoute) {
+    super.didPop(route, previousRoute);
+    
+    if (previousRoute != null) {
+      final context = previousRoute.navigator?.context;
+      if (context != null && context.mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (context.mounted) {
+            FocusScope.of(context).unfocus();
+          }
+        });
+      }
+    }
+  }
+}
+
+final bottomSheetFocusObserver = BottomSheetFocusObserver();
+
 class LifeChronicleApp extends StatelessWidget {
   const LifeChronicleApp({super.key});
 
@@ -23,6 +43,7 @@ class LifeChronicleApp extends StatelessWidget {
           Locale('zh', 'CN'),
           Locale('en', 'US'),
         ],
+        navigatorObservers: [bottomSheetFocusObserver],
         home: const AppShell(),
       ),
     );

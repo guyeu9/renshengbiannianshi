@@ -74,6 +74,7 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
   static const _primaryColor = '#2BCDEE';
   static const _amapAndroidKey = String.fromEnvironment('AMAP_ANDROID_KEY', defaultValue: 'a5a3e21e2d17ffa851374ed158a985a6');
   static const _amapIosKey = String.fromEnvironment('AMAP_IOS_KEY', defaultValue: '');
+  static const _amapWebKey = String.fromEnvironment('AMAP_WEB_KEY', defaultValue: '76e66f23c7045fbe296f9aa9b7e7f12c');
 
   @override
   void initState() {
@@ -500,6 +501,110 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
 ''';
   }
 
+  bool _isValidChinaCoordinate(double lat, double lng) {
+    return lat >= 18.0 && lat <= 53.0 && lng >= 73.0 && lng <= 135.0;
+  }
+
+  void _handleValidLocation(double lat, double lng, String city, String address, String description) {
+    if (address.isEmpty && city.isEmpty) {
+      amapLog('AmapWebView', 'Address empty, will use reverse geocode from parent widget');
+    }
+    
+    if (_isMapReady) {
+      amapLog('AmapWebView', 'Map is ready, setting center...');
+      _controller?.runJavaScript('if(window.setCenter) window.setCenter($lng, $lat)');
+    } else {
+      _pendingLat = lat;
+      _pendingLng = lng;
+      amapLog('AmapWebView', 'Map not ready, caching location: lat=$lat, lng=$lng');
+    }
+    widget.onLocationSelected?.call(lat, lng);
+    widget.onLocationWithAddress?.call(lat, lng, city, address, description);
+    widget.onLocationReadyForNearbySearch?.call(lat, lng);
+    setState(() => _isLocating = false);
+    amapLog('AmapWebView', 'Location success: lat=$lat, lng=$lng, city=$city, address=$address');
+  }
+
+  Future<void> _tryIpLocation() async {
+    amapLog('AmapWebView', '========== Trying IP-based location ==========');
+    try {
+      final uri = Uri.https('restapi.amap.com', '/v3/ip', {
+        'key': _amapWebKey,
+      });
+      final client = HttpClient();
+      final request = await client.getUrl(uri);
+      final response = await request.close();
+      final body = await response.transform(utf8.decoder).join();
+      client.close(force: true);
+
+      amapLog('AmapWebView', 'IP location response: $body');
+      final decoded = jsonDecode(body);
+      if (decoded is! Map) {
+        throw Exception('Invalid response');
+      }
+      
+      final status = '${decoded['status'] ?? ''}'.trim();
+      if (status != '1') {
+        throw Exception('API returned status: $status');
+      }
+      
+      final rectangle = '${decoded['rectangle'] ?? ''}'.trim();
+      if (rectangle.isEmpty) {
+        throw Exception('No rectangle in response');
+      }
+      
+      final parts = rectangle.split(';');
+      if (parts.length < 2) {
+        throw Exception('Invalid rectangle format');
+      }
+      
+      final coord1 = parts[0].split(',');
+      final coord2 = parts[1].split(',');
+      if (coord1.length < 2 || coord2.length < 2) {
+        throw Exception('Invalid coordinate format');
+      }
+      
+      final lng1 = double.tryParse(coord1[0].trim()) ?? 0;
+      final lat1 = double.tryParse(coord1[1].trim()) ?? 0;
+      final lng2 = double.tryParse(coord2[0].trim()) ?? 0;
+      final lat2 = double.tryParse(coord2[1].trim()) ?? 0;
+      
+      final centerLng = (lng1 + lng2) / 2;
+      final centerLat = (lat1 + lat2) / 2;
+      
+      amapLog('AmapWebView', 'IP location center: lat=$centerLat, lng=$centerLng');
+      
+      if (!_isValidChinaCoordinate(centerLat, centerLng)) {
+        throw Exception('IP location outside China: lat=$centerLat, lng=$centerLng');
+      }
+      
+      final province = '${decoded['province'] ?? ''}'.trim();
+      final city = '${decoded['city'] ?? ''}'.trim();
+      
+      String address = '';
+      if (province.isNotEmpty) address += province;
+      if (city.isNotEmpty) address += city;
+      
+      String description = city.isNotEmpty ? city : province;
+      
+      if (mounted) {
+        _handleValidLocation(centerLat, centerLng, city, address, description);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('已使用网络定位：${city.isNotEmpty ? city : province}')),
+        );
+      }
+    } catch (e) {
+      amapLog('AmapWebView', 'IP location failed: $e');
+      if (mounted) {
+        setState(() => _isLocating = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('定位失败，请检查设备定位服务或稍后重试')),
+        );
+      }
+    }
+    amapLog('AmapWebView', '===========================================');
+  }
+
   void _handleJsMessage(JavaScriptMessage message) {
     amapLog('AmapWebView', '>>> _handleJsMessage called');
     amapLog('AmapWebView', '>>> Raw message: ${message.message}');
@@ -519,8 +624,12 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
           widget.onMapReady?.call();
           amapLog('AmapWebView', '_isMapReady set to true, _isLoading set to false');
           if (_pendingLat != null && _pendingLng != null) {
-            amapLog('AmapWebView', 'Map ready, setting cached location: lat=$_pendingLat, lng=$_pendingLng');
-            _controller?.runJavaScript('if(window.setCenter) window.setCenter($_pendingLng, $_pendingLat)');
+            if (_isValidChinaCoordinate(_pendingLat!, _pendingLng!)) {
+              amapLog('AmapWebView', 'Map ready, setting cached location: lat=$_pendingLat, lng=$_pendingLng');
+              _controller?.runJavaScript('if(window.setCenter) window.setCenter($_pendingLng, $_pendingLat)');
+            } else {
+              amapLog('AmapWebView', 'Cached location invalid (outside China): lat=$_pendingLat, lng=$_pendingLng, ignoring');
+            }
             _pendingLat = null;
             _pendingLng = null;
           } else if (widget.autoLocate && !widget.isPreviewMode) {
@@ -628,26 +737,24 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
           
           final lat = result['latitude'] as double?;
           final lng = result['longitude'] as double?;
-          final city = (result['city'] as String?) ?? '';
-          final address = (result['address'] as String?) ?? '';
-          final description = (result['description'] as String?) ?? '';
+          var city = (result['city'] as String?) ?? '';
+          var address = (result['address'] as String?) ?? '';
+          var description = (result['description'] as String?) ?? '';
           
-          amapLog('AmapWebView', 'Location details - city=$city, address=$address, description=$description');
+          amapLog('AmapWebView', 'Location details - lat=$lat, lng=$lng, city=$city, address=$address, description=$description');
           
           if (lat != null && lng != null && mounted) {
-            if (_isMapReady) {
-              amapLog('AmapWebView', 'Map is ready, setting center...');
-              _controller?.runJavaScript('if(window.setCenter) window.setCenter($lng, $lat)');
-            } else {
-              _pendingLat = lat;
-              _pendingLng = lng;
-              amapLog('AmapWebView', 'Map not ready, caching location: lat=$lat, lng=$lng');
+            final isValidCoord = _isValidChinaCoordinate(lat, lng);
+            amapLog('AmapWebView', 'Coordinate validation: isValid=$isValidCoord (lat=$lat, lng=$lng)');
+            
+            if (!isValidCoord) {
+              amapLog('AmapWebView', 'Invalid coordinate detected (outside China), trying IP location as fallback...');
+              _locationPlugin?.stopLocation();
+              _tryIpLocation();
+              return;
             }
-            widget.onLocationSelected?.call(lat, lng);
-            widget.onLocationWithAddress?.call(lat, lng, city, address, description);
-            widget.onLocationReadyForNearbySearch?.call(lat, lng);
-            setState(() => _isLocating = false);
-            amapLog('AmapWebView', 'Location success: lat=$lat, lng=$lng, city=$city, address=$address');
+            
+            _handleValidLocation(lat, lng, city, address, description);
           } else {
             amapLog('AmapWebView', 'Location result invalid: $result');
             if (mounted) {
@@ -768,20 +875,6 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
             Factory<HorizontalDragGestureRecognizer>(() => HorizontalDragGestureRecognizer()),
           },
         ),
-        if (_isLoading || !_isMapReady)
-          Container(
-            color: Colors.white.withValues(alpha: 0.9),
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const CircularProgressIndicator(),
-                  const SizedBox(height: 16),
-                  const Text('正在加载地图...', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF64748B))),
-                ],
-              ),
-            ),
-          ),
         if (_isLocating)
           Positioned(
             top: 16,

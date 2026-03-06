@@ -6101,24 +6101,34 @@ class _JournalDetailPageState extends ConsumerState<JournalDetailPage> {
       );
     }
 
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
+    final rowCount = (images.length + 2) ~/ 3;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final gridPadding = 32.0;
+    final crossAxisSpacing = 8.0;
+    final itemWidth = (screenWidth - gridPadding - 2 * crossAxisSpacing) / 3;
+    final gridHeight = rowCount * itemWidth + (rowCount - 1) * 8.0;
+
+    return SizedBox(
+      height: gridHeight,
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
+        ),
+        itemCount: images.length,
+        itemBuilder: (context, index) {
+          return GestureDetector(
+            onTap: () => _showImageDialog(context, images[index]),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: _buildLocalImage(images[index], fit: BoxFit.cover),
+            ),
+          );
+        },
       ),
-      itemCount: images.length,
-      itemBuilder: (context, index) {
-        return GestureDetector(
-          onTap: () => _showImageDialog(context, images[index]),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: _buildLocalImage(images[index], fit: BoxFit.cover),
-          ),
-        );
-      },
     );
   }
 

@@ -302,6 +302,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
       onLocationWithAddress: isPreview
           ? null
           : (lat, lng, city, address, description) {
+              amapLog('AmapLocation', 'onLocationWithAddress: lat=$lat, lng=$lng, city=$city, address=$address');
               setState(() {
                 _currentLocationLat = lat;
                 _currentLocationLng = lng;
@@ -309,6 +310,16 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
                 _currentLocationAddress = address;
                 _currentLocationName = description.isNotEmpty ? description : address;
               });
+              if (address.isEmpty && city.isEmpty) {
+                amapLog('AmapLocation', 'Address empty, calling reverse geocode...');
+                _reverseGeocode(lat, lng).then((_) {
+                  setState(() {
+                    _currentLocationName = _pickedAddress.isNotEmpty ? _pickedAddress : '当前位置';
+                    _currentLocationAddress = _pickedAddress;
+                    _currentLocationCity = _pickedCity;
+                  });
+                });
+              }
             },
       onLocationReadyForNearbySearch: isPreview
           ? null
