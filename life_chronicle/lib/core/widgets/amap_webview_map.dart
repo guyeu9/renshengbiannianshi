@@ -145,13 +145,29 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
     } catch (e) {
       amapLog('AmapWebView', 'Permission request error: $e');
     }
+    
+    try {
+      final preciseStatus = await Permission.locationAlways.status;
+      amapLog('AmapWebView', 'LocationAlways status: $preciseStatus');
+      final whenInUseStatus = await Permission.locationWhenInUse.status;
+      amapLog('AmapWebView', 'LocationWhenInUse status: $whenInUseStatus');
+    } catch (e) {
+      amapLog('AmapWebView', 'Precise location permission check error: $e');
+    }
+    
     amapLog('AmapWebView', '_locationPermissionGranted: $_locationPermissionGranted');
     amapLog('AmapWebView', '===================================================');
   }
 
   void _initWebView() {
     amapLog('AmapWebView', '========== Initializing WebView ==========');
+    amapLog('AmapWebView', 'Platform: ${Platform.operatingSystem}');
+    amapLog('AmapWebView', 'webKey length: ${widget.webKey.length}');
+    amapLog('AmapWebView', 'securityCode length: ${widget.securityCode.length}');
+    
     final htmlContent = _buildMapHtml();
+    amapLog('AmapWebView', 'HTML content length: ${htmlContent.length}');
+    amapLog('AmapWebView', 'HTML content preview (first 500 chars): ${htmlContent.substring(0, htmlContent.length > 500 ? 500 : htmlContent.length)}');
     
     amapLog('AmapWebView', 'Creating WebViewController...');
     _controller = WebViewController()
@@ -160,14 +176,17 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (String url) {
-            amapLog('AmapWebView', 'Page started loading: $url');
+            amapLog('AmapWebView', '>>> onPageStarted: $url');
           },
           onPageFinished: (String url) {
-            amapLog('AmapWebView', 'Page finished loading: $url');
+            amapLog('AmapWebView', '>>> onPageFinished: $url');
+            amapLog('AmapWebView', '>>> Setting _isLoading = false');
             setState(() => _isLoading = false);
           },
           onWebResourceError: (WebResourceError error) {
-            amapLog('AmapWebView', 'Resource error: ${error.description}, code: ${error.errorCode}, type: ${error.errorType}');
+            amapLog('AmapWebView', '>>> onWebResourceError: ${error.description}');
+            amapLog('AmapWebView', '>>> Error code: ${error.errorCode}, type: ${error.errorType}');
+            amapLog('AmapWebView', '>>> Error URL: ${error.url}');
             setState(() {
               _hasError = true;
               _errorMessage = '资源加载失败 (${error.errorCode}): ${error.description}';
@@ -176,17 +195,24 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
             widget.onError?.call(_errorMessage);
           },
           onNavigationRequest: (NavigationRequest request) {
-            amapLog('AmapWebView', 'Navigation request: ${request.url}');
+            amapLog('AmapWebView', '>>> onNavigationRequest: ${request.url}');
             return NavigationDecision.navigate;
           },
           onHttpError: (error) {
-            amapLog('AmapWebView', 'HTTP error: ${error.response?.statusCode}');
+            amapLog('AmapWebView', '>>> onHttpError: ${error.response?.statusCode}');
+            amapLog('AmapWebView', '>>> HTTP error URL: ${error.request?.url}');
+          },
+          onUrlChange: (change) {
+            amapLog('AmapWebView', '>>> onUrlChange: ${change.url}');
           },
         ),
       )
       ..addJavaScriptChannel(
         'AMapFlutter',
-        onMessageReceived: _handleJsMessage,
+        onMessageReceived: (message) {
+          amapLog('AmapWebView', '>>> AMapFlutter message received: ${message.message}');
+          _handleJsMessage(message);
+        },
       )
       ..addJavaScriptChannel(
         'ConsoleLog',
@@ -200,11 +226,13 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
       amapLog('AmapWebView', 'Android platform, using baseUrl: https://webapi.amap.com/');
       _controller!.loadHtmlString(htmlContent, baseUrl: 'https://webapi.amap.com/');
     } else {
+      amapLog('AmapWebView', 'iOS platform, no baseUrl');
       _controller!.loadHtmlString(htmlContent);
     }
 
     setState(() {});
     amapLog('AmapWebView', 'WebView initialization complete');
+    amapLog('AmapWebView', '_controller is null: ${_controller == null}');
     amapLog('AmapWebView', '========================================');
   }
 
@@ -330,40 +358,47 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
       };
       
       window.initAMap = function() {
-        log('AMap callback fired');
+        log('>>> initAMap callback fired');
+        log('>>> typeof AMap: ' + typeof AMap);
         
         if (typeof AMap === 'undefined') {
+          log('>>> ERROR: AMap is undefined!');
           showError('地图 API 未定义');
           return;
         }
         
+        log('>>> AMap is defined, creating map...');
         try {
           statusEl.style.display = 'none';
           if (centerMarker) centerMarker.style.display = 'block';
           
+          log('>>> Creating AMap.Map with container, zoom=$initialZoom, center=[$initialLng, $initialLat]');
           map = new AMap.Map('container', {
             zoom: $initialZoom,
             center: [$initialLng, $initialLat],
             resizeEnable: true
           });
+          log('>>> Map created successfully: ' + (map ? 'yes' : 'no'));
           
           ${hasMarker ? '''
+          log('>>> Creating marker at [$markerLng, $markerLat]');
           marker = new AMap.Marker({
             position: [$markerLng, $markerLat],
             map: map
           });
           map.setCenter([$markerLng, $markerLat]);
+          log('>>> Marker created and center set');
           ''' : ''}
           
           map.on('complete', function() {
-            log('Map complete');
+            log('>>> Map complete event fired');
             try { 
               var msg = JSON.stringify({type: 'mapReady'});
-              log('Sending mapReady message: ' + msg);
+              log('>>> Sending mapReady message: ' + msg);
               AMapFlutter.postMessage(msg);
-              log('mapReady message sent successfully');
+              log('>>> mapReady message sent successfully');
             } catch(e) {
-              log('mapReady postMessage FAILED: ' + e.message);
+              log('>>> mapReady postMessage FAILED: ' + e.message);
             }
           });
           
@@ -434,23 +469,30 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
       log('Loading AMap JS API v2.0...');
       log('Key: $webKey');
       log('Security Code: ${securityCode.isNotEmpty ? "已配置" : "未配置"}');
+      log('Initial position: lat=$initialLat, lng=$initialLng, zoom=$initialZoom');
+      log('isPreviewMode: $isPreviewMode, hasMarker: $hasMarker');
       
       // 安全密钥配置
       window._AMapSecurityConfig = {
         securityJsCode: '$securityCode',
       };
+      log('Security config set');
       
       var script = document.createElement('script');
-      script.src = 'https://webapi.amap.com/maps?v=2.0&key=$webKey&callback=initAMap';
+      var scriptUrl = 'https://webapi.amap.com/maps?v=2.0&key=$webKey&callback=initAMap';
+      log('Creating script tag with URL: ' + scriptUrl);
+      script.src = scriptUrl;
       script.async = true;
       script.onload = function() {
-        log('Script loaded successfully');
+        log('>>> Script onload fired - script loaded successfully');
       };
       script.onerror = function(e) {
-        log('Script load failed: ' + (e || 'unknown error'));
+        log('>>> Script onerror fired: ' + (e || 'unknown error'));
         showError('地图脚本加载失败，请检查网络');
       };
+      log('Appending script to document.head');
       document.head.appendChild(script);
+      log('Script appended, waiting for callback...');
       
     })();
   </script>
@@ -460,9 +502,13 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
   }
 
   void _handleJsMessage(JavaScriptMessage message) {
+    amapLog('AmapWebView', '>>> _handleJsMessage called');
+    amapLog('AmapWebView', '>>> Raw message: ${message.message}');
     try {
       final data = jsonDecode(message.message) as Map<String, dynamic>;
       final type = data['type'] as String?;
+      amapLog('AmapWebView', '>>> Parsed type: $type');
+      amapLog('AmapWebView', '>>> Parsed data: $data');
 
       switch (type) {
         case 'mapReady':
@@ -484,17 +530,20 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
           }
           break;
         case 'click':
+          amapLog('AmapWebView', '>>> click event received');
           final lat = (data['lat'] as num).toDouble();
           final lng = (data['lng'] as num).toDouble();
           widget.onLocationSelected?.call(lat, lng);
           break;
         case 'moveEnd':
+          amapLog('AmapWebView', '>>> moveEnd event received');
           final lat = (data['lat'] as num).toDouble();
           final lng = (data['lng'] as num).toDouble();
           widget.onLocationSelected?.call(lat, lng);
           widget.onMapMoveEnd?.call(lat, lng);
           break;
         case 'poiClick':
+          amapLog('AmapWebView', '>>> poiClick event received');
           final name = data['name'] as String? ?? '';
           final address = data['address'] as String? ?? '';
           final lat = (data['lat'] as num).toDouble();
@@ -502,9 +551,11 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
           widget.onPoiSelected?.call(name, address, lat, lng);
           break;
         case 'locateRequest':
+          amapLog('AmapWebView', '>>> locateRequest event received');
           _handleLocationRequest();
           break;
         case 'error':
+          amapLog('AmapWebView', '>>> error event received');
           final errorMsg = data['message'] as String? ?? 'Unknown error';
           setState(() {
             _hasError = true;
@@ -556,7 +607,11 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
       _locationSubscription = _locationPlugin?.onLocationChanged().listen(
         (result) {
           amapLog('AmapWebView', '========== Location result received ==========');
-          amapLog('AmapWebView', 'Location result: $result');
+          amapLog('AmapWebView', 'Full location result: $result');
+          amapLog('AmapWebView', 'Result keys: ${result.keys.toList()}');
+          result.forEach((key, value) {
+            amapLog('AmapWebView', '  $key: $value');
+          });
           _locationSubscription?.cancel();
           
           final errorCode = result['errorCode'];
@@ -660,11 +715,19 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
 
   @override
   Widget build(BuildContext context) {
+    amapLog('AmapWebView', '>>> build() called');
+    amapLog('AmapWebView', '>>> _controller == null: ${_controller == null}');
+    amapLog('AmapWebView', '>>> _hasError: $_hasError');
+    amapLog('AmapWebView', '>>> _isLoading: $_isLoading');
+    amapLog('AmapWebView', '>>> _isMapReady: $_isMapReady');
+    
     if (_controller == null) {
+      amapLog('AmapWebView', '>>> Returning CircularProgressIndicator (controller is null)');
       return const Center(child: CircularProgressIndicator());
     }
 
     if (_hasError) {
+      amapLog('AmapWebView', '>>> Returning error widget');
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(16),
