@@ -17,7 +17,6 @@ class PdfExportService {
   static const _accentColor = PdfColor.fromInt(0xFFF59E0B);
   static const _textColor = PdfColor.fromInt(0xFF1F2937);
   static const _mutedColor = PdfColor.fromInt(0xFF6B7280);
-  static const _bgColor = PdfColor.fromInt(0xFFF9FAFB);
   
   pw.Font? _chineseFont;
   pw.Font? _chineseFontBold;
@@ -651,9 +650,9 @@ class PdfExportService {
         _log('DEBUG', '处理美食记录', data: {'id': record.id, 'title': record.title});
         
         List<File> images = [];
-        if (includePhotos && record.imagePaths != null && record.imagePaths!.isNotEmpty) {
+        if (includePhotos && record.images != null && record.images!.isNotEmpty) {
           try {
-            final imageList = jsonDecode(record.imagePaths!) as List<dynamic>;
+            final imageList = jsonDecode(record.images!) as List<dynamic>;
             images = imageList
                 .map((p) => File(p.toString()))
                 .where((f) => f.existsSync())
@@ -715,7 +714,7 @@ class PdfExportService {
                 ],
               ),
               pw.SizedBox(height: 8),
-              pw.Text('${record.restaurantName ?? '未知餐厅'} | ${record.cuisineType ?? '未知菜系'}', 
+              pw.Text('${record.title} | ${record.tags ?? '未知菜系'}', 
                   style: _textStyle(fontSize: 14, color: _mutedColor)),
               pw.SizedBox(height: 16),
               
@@ -783,9 +782,9 @@ class PdfExportService {
         _log('DEBUG', '处理小确幸记录', data: {'id': record.id});
         
         List<File> images = [];
-        if (includePhotos && record.imagePaths != null && record.imagePaths!.isNotEmpty) {
+        if (includePhotos && record.images != null && record.images!.isNotEmpty) {
           try {
-            final imageList = jsonDecode(record.imagePaths!) as List<dynamic>;
+            final imageList = jsonDecode(record.images!) as List<dynamic>;
             images = imageList
                 .map((p) => File(p.toString()))
                 .where((f) => f.existsSync())
@@ -945,6 +944,8 @@ class PdfExportService {
         ),
       );
       
+      final avatar = avatarWidget;
+      
       return pw.Page(
         pageFormat: PdfPageFormat.a4,
         build: (context) => pw.Padding(
@@ -954,7 +955,7 @@ class PdfExportService {
             children: [
               pw.Row(
                 children: [
-                  avatarWidget,
+                  avatar,
                   pw.SizedBox(width: 16),
                   pw.Expanded(
                     child: pw.Column(
@@ -962,8 +963,8 @@ class PdfExportService {
                       children: [
                         pw.Text(record.name, style: _textStyle(fontSize: 28, bold: true)),
                         pw.SizedBox(height: 4),
-                        if (record.relationship != null && record.relationship!.isNotEmpty)
-                          pw.Text(record.relationship!, style: _textStyle(fontSize: 14, color: _mutedColor)),
+                        if (record.groupName != null && record.groupName!.isNotEmpty)
+                          pw.Text(record.groupName!, style: _textStyle(fontSize: 14, color: _mutedColor)),
                       ],
                     ),
                   ),
@@ -979,10 +980,10 @@ class PdfExportService {
                 pw.Text('相识于: ${record.meetDate!.toString().split(' ')[0]}', style: _textStyle(fontSize: 12, color: _mutedColor)),
               pw.SizedBox(height: 16),
               
-              if (record.notes != null && record.notes!.isNotEmpty) ...[
+              if (record.impressionTags != null && record.impressionTags!.isNotEmpty) ...[
                 pw.Text('备注:', style: _textStyle(fontSize: 14, bold: true)),
                 pw.SizedBox(height: 4),
-                pw.Text(record.notes!, style: _textStyle(fontSize: 12)),
+                pw.Text(record.impressionTags!, style: _textStyle(fontSize: 12)),
               ],
             ],
           ),
@@ -1023,9 +1024,9 @@ class PdfExportService {
         _log('DEBUG', '处理旅行记录', data: {'id': record.id, 'destination': record.destination});
         
         List<File> images = [];
-        if (includePhotos && record.imagePaths != null && record.imagePaths!.isNotEmpty) {
+        if (includePhotos && record.images != null && record.images!.isNotEmpty) {
           try {
-            final imageList = jsonDecode(record.imagePaths!) as List<dynamic>;
+            final imageList = jsonDecode(record.images!) as List<dynamic>;
             images = imageList
                 .map((p) => File(p.toString()))
                 .where((f) => f.existsSync())
@@ -1097,14 +1098,14 @@ class PdfExportService {
                 pw.SizedBox(height: 16),
               ],
               
-              if (record.description != null && record.description!.isNotEmpty) ...[
+              if (record.content != null && record.content!.isNotEmpty) ...[
                 pw.Text('旅行计划:', style: _textStyle(fontSize: 14, bold: true)),
                 pw.SizedBox(height: 4),
-                pw.Text(record.description!, style: _textStyle(fontSize: 12)),
+                pw.Text(record.content!, style: _textStyle(fontSize: 12)),
                 pw.SizedBox(height: 8),
               ],
               
-              pw.Text('状态: ${record.status}', style: _textStyle(fontSize: 12, color: _secondaryColor)),
+              pw.Text('状态: ${record.isWishlist ? "愿望清单" : (record.wishlistDone ? "已完成" : "进行中")}', style: _textStyle(fontSize: 12, color: _secondaryColor)),
             ],
           ),
         ),
@@ -1161,13 +1162,13 @@ class PdfExportService {
                   pw.Container(
                     padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     decoration: pw.BoxDecoration(
-                      color: record.status == 'completed' 
+                      color: record.isCompleted 
                           ? const PdfColor.fromInt(0xFF10B981) 
                           : const PdfColor.fromInt(0xFFF59E0B),
                       borderRadius: pw.BorderRadius.circular(12),
                     ),
                     child: pw.Text(
-                      record.status == 'completed' ? '已完成' : '进行中',
+                      record.isCompleted ? '已完成' : '进行中',
                       style: _textStyle(fontSize: 12, color: PdfColors.white),
                     ),
                   ),
@@ -1284,7 +1285,7 @@ class PdfExportService {
               ),
               pw.SizedBox(height: 16),
               
-              pw.Text('${record.startAt.toString().split('.')[0]}', style: _textStyle(fontSize: 12, color: _mutedColor)),
+              pw.Text(record.startAt.toString().split('.')[0], style: _textStyle(fontSize: 12, color: _mutedColor)),
               if (record.endAt != null)
                 pw.Text('至 ${record.endAt!.toString().split('.')[0]}', style: _textStyle(fontSize: 12, color: _mutedColor)),
               pw.SizedBox(height: 16),
