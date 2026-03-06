@@ -29,7 +29,6 @@ class PdfExportService {
     if (_fontsLoaded) return;
     
     try {
-      // 尝试从系统加载中文字体（Android 系统字体路径）
       final systemFontPaths = [
         '/system/fonts/NotoSansCJK-Regular.ttc',
         '/system/fonts/NotoSansSC-Regular.otf',
@@ -39,6 +38,21 @@ class PdfExportService {
         '/system/fonts/SourceHanSansSC-Regular.otf',
         '/system/fonts/Roboto-Regular.ttf',
         '/system/fonts/sans-serif.ttf',
+        'C:\\Windows\\Fonts\\msyh.ttc',
+        'C:\\Windows\\Fonts\\simhei.ttf',
+        'C:\\Windows\\Fonts\\simsun.ttc',
+        '/System/Library/Fonts/PingFang.ttc',
+        '/System/Library/Fonts/STHeiti Light.ttc',
+        '/System/Library/Fonts/Hiragino Sans GB.ttc',
+      ];
+      
+      final boldFontPaths = [
+        '/system/fonts/NotoSansCJK-Bold.ttc',
+        '/system/fonts/NotoSansSC-Bold.otf',
+        '/system/fonts/SourceHanSansSC-Bold.otf',
+        'C:\\Windows\\Fonts\\msyhbd.ttc',
+        'C:\\Windows\\Fonts\\simhei.ttf',
+        '/System/Library/Fonts/PingFang.ttc',
       ];
       
       for (final fontPath in systemFontPaths) {
@@ -47,10 +61,8 @@ class PdfExportService {
           if (await file.exists()) {
             final fontData = await file.readAsBytes();
             _chineseFont = pw.Font.ttf(ByteData.sublistView(Uint8List.fromList(fontData)));
-            _chineseFontBold = _chineseFont;
             debugPrint('成功加载系统字体: $fontPath');
-            _fontsLoaded = true;
-            return;
+            break;
           }
         } catch (e) {
           debugPrint('加载字体 $fontPath 失败: $e');
@@ -58,7 +70,23 @@ class PdfExportService {
         }
       }
       
-      debugPrint('未找到系统字体，PDF将使用默认字体（中文可能显示异常）');
+      for (final fontPath in boldFontPaths) {
+        try {
+          final file = File(fontPath);
+          if (await file.exists()) {
+            final fontData = await file.readAsBytes();
+            _chineseFontBold = pw.Font.ttf(ByteData.sublistView(Uint8List.fromList(fontData)));
+            debugPrint('成功加载粗体字体: $fontPath');
+            break;
+          }
+        } catch (e) {
+          debugPrint('加载粗体字体 $fontPath 失败: $e');
+          continue;
+        }
+      }
+      
+      _chineseFontBold ??= _chineseFont;
+      
       _fontsLoaded = true;
     } catch (e, stack) {
       debugPrint('无法加载系统字体: $e');
@@ -69,15 +97,13 @@ class PdfExportService {
   
   pw.TextStyle _textStyle({
     double fontSize = 12,
-    pw.FontWeight fontWeight = pw.FontWeight.normal,
+    bool bold = false,
     PdfColor color = _textColor,
   }) {
     return pw.TextStyle(
-      font: _chineseFont,
-      fontBold: _chineseFontBold,
       fontSize: fontSize,
-      fontWeight: fontWeight,
       color: color,
+      font: bold ? (_chineseFontBold ?? _chineseFont) : _chineseFont,
     );
   }
   
@@ -223,22 +249,15 @@ class PdfExportService {
                 decoration: pw.BoxDecoration(
                   color: PdfColors.white,
                   borderRadius: pw.BorderRadius.circular(60),
-                  boxShadow: [
-                    pw.BoxShadow(
-                      color: PdfColor.fromInt(0x40000000),
-                      blurRadius: 20,
-                      offset: const PdfPoint(0, 10),
-                    ),
-                  ],
                 ),
                 child: pw.Center(
-                  child: pw.Text('LC', style: _textStyle(fontSize: 48, fontWeight: pw.FontWeight.bold, color: _primaryColor)),
+                  child: pw.Text('LC', style: _textStyle(fontSize: 48, bold: true, color: _primaryColor)),
                 ),
               ),
               pw.SizedBox(height: 40),
               pw.Text(
                 '人生编年史',
-                style: _textStyle(fontSize: 42, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+                style: _textStyle(fontSize: 42, bold: true, color: PdfColors.white),
               ),
               pw.SizedBox(height: 16),
               pw.Text(
@@ -292,7 +311,7 @@ class PdfExportService {
         child: pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            pw.Text('目录', style: _textStyle(fontSize: 32, fontWeight: pw.FontWeight.bold, color: _primaryColor)),
+            pw.Text('目录', style: _textStyle(fontSize: 32, bold: true, color: _primaryColor)),
             pw.SizedBox(height: 40),
             ...chapters,
           ],
@@ -400,9 +419,9 @@ class PdfExportService {
         child: pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            pw.Text('第一章 数据概览$dateRangeText', style: _textStyle(fontSize: 28, fontWeight: pw.FontWeight.bold, color: _primaryColor)),
+            pw.Text('第一章 数据概览$dateRangeText', style: _textStyle(fontSize: 28, bold: true, color: _primaryColor)),
             pw.SizedBox(height: 24),
-            pw.Text('记录统计', style: _textStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+            pw.Text('记录统计', style: _textStyle(fontSize: 18, bold: true)),
             pw.SizedBox(height: 20),
             pw.Wrap(
               spacing: 20,
@@ -435,7 +454,7 @@ class PdfExportService {
         children: [
           pw.Text(title, style: _textStyle(fontSize: 14, color: _mutedColor)),
           pw.SizedBox(height: 12),
-          pw.Text('$count', style: _textStyle(fontSize: 32, fontWeight: pw.FontWeight.bold, color: color)),
+          pw.Text('$count', style: _textStyle(fontSize: 32, bold: true, color: color)),
         ],
       ),
     );
@@ -542,7 +561,7 @@ class PdfExportService {
             children: [
               pw.Text(chapter, style: _textStyle(fontSize: 24, color: PdfColor.fromInt(0xB3FFFFFF))),
               pw.SizedBox(height: 16),
-              pw.Text(title, style: _textStyle(fontSize: 48, fontWeight: pw.FontWeight.bold, color: PdfColors.white)),
+              pw.Text(title, style: _textStyle(fontSize: 48, bold: true, color: PdfColors.white)),
               pw.SizedBox(height: 24),
               pw.Container(
                 padding: const pw.EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -568,8 +587,7 @@ class PdfExportService {
         final image = pw.MemoryImage(bytes);
         imageWidgets.add(
           pw.ClipRRect(
-            horizontalRadius: 12,
-            verticalRadius: 12,
+            borderRadius: pw.BorderRadius.circular(12),
             child: pw.Image(image, fit: pw.BoxFit.cover),
           ),
         );
@@ -589,7 +607,7 @@ class PdfExportService {
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
                 pw.Expanded(
-                  child: pw.Text(record.title, style: _textStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+                  child: pw.Text(record.title, style: _textStyle(fontSize: 24, bold: true)),
                 ),
                 if (record.rating != null)
                   pw.Container(
@@ -689,8 +707,7 @@ class PdfExportService {
         final image = pw.MemoryImage(bytes);
         imageWidgets.add(
           pw.ClipRRect(
-            horizontalRadius: 12,
-            verticalRadius: 12,
+            borderRadius: pw.BorderRadius.circular(12),
             child: pw.Image(image, fit: pw.BoxFit.cover),
           ),
         );
@@ -709,7 +726,7 @@ class PdfExportService {
             pw.Row(
               children: [
                 pw.Expanded(
-                  child: pw.Text(record.mood, style: _textStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: _secondaryColor)),
+                  child: pw.Text(record.mood, style: _textStyle(fontSize: 20, bold: true, color: _secondaryColor)),
                 ),
                 if (record.isFavorite)
                   pw.Text('❤', style: _textStyle(fontSize: 20, color: const PdfColor.fromInt(0xFFEC4899))),
@@ -772,8 +789,7 @@ class PdfExportService {
           final bytes = await avatarFile.readAsBytes();
           final image = pw.MemoryImage(bytes);
           avatarWidget = pw.ClipRRect(
-            horizontalRadius: 40,
-            verticalRadius: 40,
+            borderRadius: pw.BorderRadius.circular(40),
             child: pw.Image(image, fit: pw.BoxFit.cover, width: 80, height: 80),
           );
         }
@@ -792,7 +808,7 @@ class PdfExportService {
       child: pw.Center(
         child: pw.Text(
           record.name.isNotEmpty ? record.name[0] : '?',
-          style: _textStyle(fontSize: 32, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+          style: _textStyle(fontSize: 32, bold: true, color: PdfColors.white),
         ),
       ),
     );
@@ -812,7 +828,7 @@ class PdfExportService {
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      pw.Text(record.name, style: _textStyle(fontSize: 28, fontWeight: pw.FontWeight.bold)),
+                      pw.Text(record.name, style: _textStyle(fontSize: 28, bold: true)),
                       if (record.groupName != null)
                         pw.Container(
                           padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -886,8 +902,7 @@ class PdfExportService {
         final image = pw.MemoryImage(bytes);
         imageWidgets.add(
           pw.ClipRRect(
-            horizontalRadius: 12,
-            verticalRadius: 12,
+            borderRadius: pw.BorderRadius.circular(12),
             child: pw.Image(image, fit: pw.BoxFit.cover),
           ),
         );
@@ -903,7 +918,7 @@ class PdfExportService {
         child: pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            pw.Text(record.destination ?? '未知目的地', style: _textStyle(fontSize: 28, fontWeight: pw.FontWeight.bold, color: _accentColor)),
+            pw.Text(record.destination ?? '未知目的地', style: _textStyle(fontSize: 28, bold: true, color: _accentColor)),
             pw.SizedBox(height: 8),
             if (record.planDate != null)
               pw.Text('计划日期: ${record.planDate!.toString().split(' ')[0]}', style: _textStyle(fontSize: 12, color: _mutedColor)),
@@ -974,7 +989,7 @@ class PdfExportService {
             pw.Row(
               children: [
                 pw.Expanded(
-                  child: pw.Text(record.title, style: _textStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+                  child: pw.Text(record.title, style: _textStyle(fontSize: 24, bold: true)),
                 ),
                 pw.Container(
                   padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -1074,7 +1089,7 @@ class PdfExportService {
                 pw.Row(
                   children: [
                     pw.Expanded(
-                      child: pw.Text(record.title, style: _textStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+                      child: pw.Text(record.title, style: _textStyle(fontSize: 16, bold: true)),
                     ),
                     pw.Container(
                       padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
