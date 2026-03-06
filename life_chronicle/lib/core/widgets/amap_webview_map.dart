@@ -412,6 +412,12 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
           var containerSize = getContainerSize();
           log('[DEBUG] Container size: ' + containerSize.width + 'x' + containerSize.height);
           
+          if (containerSize.width === 0 || containerSize.height === 0) {
+            log('[ERROR] Container size is ZERO! This will cause blank map!');
+            showError('地图容器尺寸为 0');
+            return;
+          }
+          
           statusEl.style.display = 'none';
           if (centerMarker) centerMarker.style.display = 'block';
           
@@ -423,6 +429,12 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
             resizeEnable: true
           });
           log('[STEP-5] Map instance created: ' + (map ? 'yes' : 'no') + ', elapsed=' + (Date.now() - mapCreateTime) + 'ms');
+          
+          if (!map) {
+            log('[ERROR] Map instance is null!');
+            showError('地图实例创建失败');
+            return;
+          }
           
           ${hasMarker ? '''
           log('[STEP-6] Creating marker at [$markerLng, $markerLat]');
@@ -450,11 +462,25 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
           });
           
           map.on('tilesloadstart', function() {
-            log('[TILE] Tiles load started');
+            log('[TILE] Tiles load STARTED - network is working');
           });
           
           map.on('tilesloadend', function() {
-            log('[TILE] Tiles load ended');
+            log('[TILE] Tiles load ENDED - tiles rendered successfully');
+          });
+          
+          map.on('error', function(e) {
+            log('[ERROR] Map error event: ' + JSON.stringify(e));
+            if (e && e.message) {
+              showError('地图错误: ' + e.message);
+            }
+          });
+          
+          map.on('tileerror', function(e) {
+            log('[ERROR] Tile error: ' + JSON.stringify(e));
+            if (e && e.tile) {
+              log('[ERROR] Failed tile URL: ' + e.tile.src);
+            }
           });
           
           ${!isPreviewMode ? '''
@@ -508,13 +534,13 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
         }
       };
       
-      window.setCenter = function(lat, lng) {
-        log('[API] setCenter called: lat=' + lat + ', lng=' + lng);
+      window.setCenter = function(lng, lat) {
+        log('[API] setCenter called: lng=' + lng + ', lat=' + lat);
         if (map) map.setCenter([lng, lat]);
       };
       
-      window.setMarker = function(lat, lng) {
-        log('[API] setMarker called: lat=' + lat + ', lng=' + lng);
+      window.setMarker = function(lng, lat) {
+        log('[API] setMarker called: lng=' + lng + ', lat=' + lat);
         if (marker) {
           marker.setPosition([lng, lat]);
         } else if (map) {
@@ -553,12 +579,24 @@ class _AMapWebViewMapState extends State<AMapWebViewMap> {
       };
       script.onerror = function(e) {
         var elapsed = Date.now() - scriptLoadTime;
-        log('[ERROR] Script onerror fired after ' + elapsed + 'ms: ' + (e || 'unknown error'));
-        showError('地图脚本加载失败，请检查网络');
+        log('[ERROR] Script onerror fired after ' + elapsed + 'ms');
+        log('[ERROR] Error details: ' + (e ? JSON.stringify(e) : 'unknown'));
+        showError('地图脚本加载失败，请检查网络连接或 API Key 配置');
       };
       log('[SCRIPT] Appending script to document.head');
       document.head.appendChild(script);
       log('[SCRIPT] Script appended, waiting for initAMap callback...');
+      
+      setTimeout(function() {
+        if (typeof AMap === 'undefined') {
+          log('[ERROR] AMap still undefined after 10 seconds - possible causes:');
+          log('[ERROR] 1. Network blocked or slow');
+          log('[ERROR] 2. Invalid API Key');
+          log('[ERROR] 3. Security code mismatch');
+          log('[ERROR] 4. Domain not whitelisted');
+          showError('地图 API 加载超时，请检查网络或 API Key 配置');
+        }
+      }, 10000);
       
     })();
   </script>

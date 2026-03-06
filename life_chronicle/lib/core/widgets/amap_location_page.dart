@@ -1,8 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:amap_flutter_base/amap_flutter_base.dart' as amap_base;
-import 'package:amap_flutter_map/amap_flutter_map.dart' as amap;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -105,8 +103,6 @@ class _AmapPoi {
 }
 
 class _AmapLocationPageState extends State<AmapLocationPage> {
-  static const String _amapAndroidKey = String.fromEnvironment('AMAP_ANDROID_KEY', defaultValue: 'a5a3e21e2d17ffa851374ed158a985a6');
-  static const String _amapIosKey = String.fromEnvironment('AMAP_IOS_KEY', defaultValue: '');
   static const String _amapWebKey = String.fromEnvironment('AMAP_WEB_KEY', defaultValue: '76e66f23c7045fbe296f9aa9b7e7f12c');
   static const String _amapJsKey = String.fromEnvironment('AMAP_JS_KEY', defaultValue: 'fbe9be9664c1c2b31f7783a10ec61bc8');
   static const String _amapSecurityCode = String.fromEnvironment('AMAP_SECURITY_CODE', defaultValue: '08b0afcf6f31af1de9d21d23f22baa66');
@@ -130,12 +126,8 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
   
   var _nearbyPois = <_AmapPoi>[];
   bool _loadingNearby = false;
-  bool _nativeMapFailed = false;
-  DateTime? _nativeMapCreatedTime;
   Widget? _cachedWebViewMap;
-  Widget? _cachedNativeMap;
   bool _webViewMapCreated = false;
-  bool _nativeMapCreated = false;
   bool _buildLogged = false;
 
   String get _pickedPoiName => _poiNameController.text.trim();
@@ -146,18 +138,6 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
   double? _pickedLatitude;
   double? _pickedLongitude;
   String? _selectedPoiId;
-
-  amap.AMapController? _mapController;
-  bool get _hasNativeKey {
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-        return _amapAndroidKey.trim().isNotEmpty;
-      case TargetPlatform.iOS:
-        return _amapIosKey.trim().isNotEmpty;
-      default:
-        return _amapAndroidKey.trim().isNotEmpty || _amapIosKey.trim().isNotEmpty;
-    }
-  }
 
   bool get _hasWebKey => _amapWebKey.trim().isNotEmpty;
 
@@ -181,84 +161,6 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
       _pickedLongitude = widget.initialLongitude;
       _searchController.text = widget.initialPoiName.trim().isNotEmpty ? widget.initialPoiName.trim() : widget.initialAddress.trim();
     }
-    
-    _checkNativeMapTimeout();
-  }
-
-  Future<void> _checkNativeMapTimeout() async {
-    await Future.delayed(const Duration(seconds: 10));
-    if (!mounted) return;
-    if (_nativeMapCreatedTime == null && !_nativeMapFailed && !kIsWeb && _hasNativeKey) {
-      amapLog('AmapNative', '========== Native map timeout, fallback to WebView ==========');
-      setState(() {
-        _nativeMapFailed = true;
-      });
-    }
-  }
-
-  Widget _buildCachedNativeMap(bool isPreview, double mapTargetLat, double mapTargetLng) {
-    if (_cachedNativeMap != null && _nativeMapCreated) {
-      return _cachedNativeMap!;
-    }
-    
-    amapLog('AmapNative', 'Creating new Native map instance');
-    _nativeMapCreated = true;
-    
-    _cachedNativeMap = Stack(
-      fit: StackFit.expand,
-      children: [
-        amap.AMapWidget(
-          privacyStatement: const amap_base.AMapPrivacyStatement(hasContains: true, hasShow: true, hasAgree: true),
-          apiKey: amap_base.AMapApiKey(androidKey: _amapAndroidKey, iosKey: _amapIosKey),
-          initialCameraPosition: amap.CameraPosition(
-            target: amap_base.LatLng(mapTargetLat, mapTargetLng),
-            zoom: 15,
-          ),
-          myLocationStyleOptions: amap.MyLocationStyleOptions(true),
-          markers: isPreview ? _pickedMarkers : <amap.Marker>{},
-          onMapCreated: (controller) {
-            amapLog('AmapNative', '========== onMapCreated called ==========');
-            _nativeMapCreatedTime = DateTime.now();
-            _mapController = controller;
-            _syncMarkerAndCamera();
-            amapLog('AmapNative', 'Native map initialized successfully');
-            amapLog('AmapNative', '========================================');
-          },
-          onPoiTouched: isPreview
-              ? null
-              : (poi) {
-                  final latLng = poi.latLng;
-                  if (latLng == null) return;
-                  setState(() {
-                    _poiNameController.text = (poi.name ?? '').trim();
-                    _pickedLatitude = latLng.latitude;
-                    _pickedLongitude = latLng.longitude;
-                  });
-                  _syncMarkerAndCamera();
-                },
-          onLongPress: isPreview
-              ? null
-              : (position) {
-                  setState(() {
-                    _pickedLatitude = position.latitude;
-                    _pickedLongitude = position.longitude;
-                  });
-                  _syncMarkerAndCamera();
-                },
-          onCameraMoveEnd: isPreview
-              ? null
-              : (position) {
-                  setState(() {
-                    _pickedLatitude = position.target.latitude;
-                    _pickedLongitude = position.target.longitude;
-                  });
-                },
-        ),
-        if (!isPreview) Center(child: Icon(Icons.place, color: _primary, size: 32)),
-      ],
-    );
-    
-    return _cachedNativeMap!;
   }
 
   Widget _buildCachedWebViewMap(bool isPreview, double mapTargetLat, double mapTargetLng) {
@@ -361,33 +263,6 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
     _cityController.dispose();
     _countryController.dispose();
     super.dispose();
-  }
-
-  Set<amap.Marker> get _pickedMarkers {
-    final lat = _pickedLatitude;
-    final lng = _pickedLongitude;
-    if (lat == null || lng == null) return <amap.Marker>{};
-    return {
-      amap.Marker(
-        position: amap_base.LatLng(lat, lng),
-      ),
-    };
-  }
-
-  void _syncMarkerAndCamera() {
-    final controller = _mapController;
-    final lat = _pickedLatitude;
-    final lng = _pickedLongitude;
-    if (controller == null || lat == null || lng == null) return;
-    controller.moveCamera(
-      amap.CameraUpdate.newCameraPosition(
-        amap.CameraPosition(
-          target: amap_base.LatLng(lat, lng),
-          zoom: 15,
-        ),
-      ),
-      duration: 220,
-    );
   }
 
   Future<void> _searchPoi() async {
@@ -757,30 +632,16 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
 
     final mapTargetLat = _pickedLatitude ?? 39.908722;
     final mapTargetLng = _pickedLongitude ?? 116.397499;
-    final androidMajor = _androidMajorVersion();
-    final isAndroid15OrAbove = androidMajor != null && androidMajor >= 15;
-    final canUseNativeMap = !kIsWeb && _hasNativeKey && !_nativeMapFailed;
-    final useWebViewMap = (!kIsWeb && isAndroid15OrAbove && _hasWebKey && !_hasNativeKey) || (_nativeMapFailed && _hasWebKey);
-    final mapUnavailableText = kIsWeb
-        ? 'Web 暂不支持内嵌地图'
-        : !_hasNativeKey && !_hasWebKey
-            ? '未配置高德 Key'
-            : '地图加载中...';
+    final useWebViewMap = _hasWebKey;
+    final mapUnavailableText = '未配置高德 Web Key';
 
     if (!_buildLogged) {
       _buildLogged = true;
       amapLog('AmapLocation', '========== 地图初始化 ==========');
-      amapLog('AmapLocation', 'Android version: $androidMajor');
-      amapLog('AmapLocation', 'isAndroid15OrAbove: $isAndroid15OrAbove');
-      amapLog('AmapLocation', 'canUseNativeMap: $canUseNativeMap');
       amapLog('AmapLocation', 'useWebViewMap: $useWebViewMap');
-      amapLog('AmapLocation', 'hasNativeKey: $_hasNativeKey');
       amapLog('AmapLocation', 'hasWebKey: $_hasWebKey');
-      amapLog('AmapLocation', 'kIsWeb: $kIsWeb');
       amapLog('AmapLocation', 'Platform: $defaultTargetPlatform');
-      amapLog('AmapLocation', '_nativeMapFailed: $_nativeMapFailed');
       amapLog('AmapLocation', '====================================');
-      _checkNativeMapTimeout();
     }
 
     return Scaffold(
@@ -811,17 +672,15 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
             child: Container(
               height: 220,
               color: Colors.white,
-              child: canUseNativeMap
-                  ? _buildCachedNativeMap(isPreview, mapTargetLat, mapTargetLng)
-                  : useWebViewMap
-                      ? _buildCachedWebViewMap(isPreview, mapTargetLat, mapTargetLng)
-                      : Center(
-                          child: Text(
-                            mapUnavailableText,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF64748B), height: 1.4),
-                          ),
-                        ),
+              child: useWebViewMap
+                  ? _buildCachedWebViewMap(isPreview, mapTargetLat, mapTargetLng)
+                  : Center(
+                      child: Text(
+                        mapUnavailableText,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF64748B), height: 1.4),
+                      ),
+                    ),
             ),
           ),
           const SizedBox(height: 12),
@@ -897,13 +756,6 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
                 ),
               ],
             ),
-            if (isAndroid15OrAbove && useWebViewMap) ...[
-              const SizedBox(height: 10),
-              Text(
-                '提示：Android 15+ 使用 WebView 加载地图，部分功能可能不如原生流畅。如需更好体验，可使用"外部导航"打开地图应用。',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF64748B), height: 1.3),
-              ),
-            ],
             if (_errorText.isNotEmpty) ...[
               const SizedBox(height: 10),
               Text(_errorText, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFFEF4444))),
@@ -975,7 +827,6 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
                         _pickedLatitude = p.latitude;
                         _pickedLongitude = p.longitude;
                       });
-                      _syncMarkerAndCamera();
                     },
                     child: Container(
                       padding: const EdgeInsets.all(14),
@@ -1056,7 +907,6 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
           _pickedLongitude = lng;
           _selectedPoiId = poiId;
         });
-        _syncMarkerAndCamera();
       },
       child: Container(
         width: double.infinity,
@@ -1131,20 +981,6 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
         ),
       ),
     );
-  }
-
-  int? _androidMajorVersion() {
-    if (!Platform.isAndroid) return null;
-    final raw = Platform.operatingSystemVersion;
-    var match = RegExp(r'Android\s+(\d+)').firstMatch(raw);
-    if (match != null) {
-      return int.tryParse(match.group(1) ?? '');
-    }
-    match = RegExp(r'^(\d+)').firstMatch(raw.trim());
-    if (match != null) {
-      return int.tryParse(match.group(1) ?? '');
-    }
-    return 99;
   }
 }
 

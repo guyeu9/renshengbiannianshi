@@ -22,7 +22,7 @@ class GoalDetailState {
   static GoalDetailState? empty() => null;
 }
 
-final goalDetailProvider = StreamProvider.family<GoalDetailState?, String>((ref, goalId) async* {
+final goalDetailProvider = StreamProvider.family.autoDispose<GoalDetailState?, String>((ref, goalId) async* {
   final db = ref.watch(appDatabaseProvider);
 
   final goalStream = (db.select(db.goalRecords)

@@ -26,6 +26,13 @@ class FoodRecords extends Table {
 
   @override
   Set<Column> get primaryKey => {id};
+
+  @override
+  List<Set<Column>> get keys => [
+    {recordDate},
+    {isDeleted},
+    {isFavorite},
+  ];
 }
 
 class MomentRecords extends Table {
@@ -48,6 +55,13 @@ class MomentRecords extends Table {
 
   @override
   Set<Column> get primaryKey => {id};
+
+  @override
+  List<Set<Column>> get keys => [
+    {recordDate},
+    {isDeleted},
+    {isFavorite},
+  ];
 }
 
 class FriendRecords extends Table {
@@ -69,6 +83,12 @@ class FriendRecords extends Table {
 
   @override
   Set<Column> get primaryKey => {id};
+
+  @override
+  List<Set<Column>> get keys => [
+    {isDeleted},
+    {isFavorite},
+  ];
 }
 
 class TravelRecords extends Table {
@@ -104,6 +124,14 @@ class TravelRecords extends Table {
 
   @override
   Set<Column> get primaryKey => {id};
+
+  @override
+  List<Set<Column>> get keys => [
+    {recordDate},
+    {isDeleted},
+    {isFavorite},
+    {tripId},
+  ];
 }
 
 class Trips extends Table {
@@ -145,6 +173,16 @@ class GoalRecords extends Table {
 
   @override
   Set<Column> get primaryKey => {id};
+
+  @override
+  List<Set<Column>> get keys => [
+    {recordDate},
+    {isDeleted},
+    {isFavorite},
+    {parentId},
+    {level},
+    {isCompleted},
+  ];
 }
 
 class TimelineEvents extends Table {
@@ -167,6 +205,13 @@ class TimelineEvents extends Table {
 
   @override
   Set<Column> get primaryKey => {id};
+
+  @override
+  List<Set<Column>> get keys => [
+    {recordDate},
+    {isDeleted},
+    {eventType},
+  ];
 }
 
 class EntityLinks extends Table {
@@ -185,6 +230,12 @@ class EntityLinks extends Table {
   List<Set<Column>> get uniqueKeys => [
         {sourceType, sourceId, targetType, targetId},
       ];
+
+  @override
+  List<Set<Column>> get keys => [
+    {sourceType, sourceId},
+    {targetType, targetId},
+  ];
 }
 
 class LinkLogs extends Table {
@@ -255,6 +306,11 @@ class ChangeLogs extends Table {
   TextColumn get changedFields => text().nullable()();
   DateTimeColumn get timestamp => dateTime()();
   BoolColumn get synced => boolean().withDefault(const Constant(false))();
+
+  @override
+  List<Set<Column>> get keys => [
+    {synced},
+  ];
 }
 
 class SyncState extends Table {

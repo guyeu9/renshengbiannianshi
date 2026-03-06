@@ -27,7 +27,6 @@ dependencies:
   pdf: ^3.8.4
   epubx: ^4.0.0
   amap_flutter_base: ^3.0.0
-  amap_flutter_map: ^3.0.0
   amap_flutter_location: ^3.0.0
   webview_flutter: ^4.10.0
   permission_handler: ^11.3.1
@@ -59,8 +58,6 @@ dev_dependencies:
 dependency_overrides:
   amap_flutter_base:
     path: plugins/amap_flutter_base
-  amap_flutter_map:
-    path: plugins/amap_flutter_map
   amap_flutter_location:
     path: plugins/amap_flutter_location
 

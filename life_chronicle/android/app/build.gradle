@@ -97,6 +97,5 @@ flutter {
 }
 
 dependencies {
-    implementation files("libs/AMap3DMap_10.1.700_AMapSearch_9.7.4_AMapLocation_6.5.1_20260122.aar")
     coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.0.4"
 }

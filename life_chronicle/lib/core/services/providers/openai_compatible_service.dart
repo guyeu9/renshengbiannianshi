@@ -6,9 +6,10 @@ import 'package:life_chronicle/core/services/ai_service.dart';
 import 'package:life_chronicle/core/services/embedding_service.dart';
 
 class OpenAiCompatibleService extends AiServiceBase {
-  OpenAiCompatibleService(super.provider);
+  OpenAiCompatibleService(super.provider, {http.Client? client})
+      : _client = client ?? http.Client();
   
-  final _client = http.Client();
+  final http.Client _client;
   
   @override
   String getChatEndpoint() {
@@ -126,9 +127,10 @@ class OpenAiCompatibleService extends AiServiceBase {
 }
 
 class OpenAiCompatibleEmbeddingService extends EmbeddingServiceBase {
-  OpenAiCompatibleEmbeddingService(super.provider);
+  OpenAiCompatibleEmbeddingService(super.provider, {http.Client? client})
+      : _client = client ?? http.Client();
   
-  final _client = http.Client();
+  final http.Client _client;
   
   @override
   String getEmbeddingEndpoint() {

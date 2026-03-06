@@ -119,6 +119,18 @@ jobs:
         with:
           name: test-results
           path: life_chronicle/test-results.json
+      - name: Generate Friendly Test Report
+        run: |
+          dart run scripts/generate_friendly_test_report.dart
+        working-directory: life_chronicle
+        if: always()
+        continue-on-error: true
+      - name: Upload Friendly Test Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: friendly-test-report
+          path: life_chronicle/friendly-test-report.html
       - name: Build APK
         run: flutter build apk --release
         working-directory: life_chronicle

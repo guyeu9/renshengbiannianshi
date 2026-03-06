@@ -103,7 +103,7 @@ class EncounterDetailState {
   }
 }
 
-final encounterDetailProvider = StreamProvider.family<EncounterDetailState?, String>((ref, encounterId) async* {
+final encounterDetailProvider = StreamProvider.family.autoDispose<EncounterDetailState?, String>((ref, encounterId) async* {
   final db = ref.watch(appDatabaseProvider);
 
   final eventStream = (db.select(db.timelineEvents)

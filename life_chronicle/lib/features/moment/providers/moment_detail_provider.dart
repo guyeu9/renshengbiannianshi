@@ -70,7 +70,7 @@ class MomentDetailState {
   }
 }
 
-final momentDetailProvider = StreamProvider.family<MomentDetailState?, String>((ref, recordId) async* {
+final momentDetailProvider = StreamProvider.family.autoDispose<MomentDetailState?, String>((ref, recordId) async* {
   final db = ref.watch(appDatabaseProvider);
 
   final recordStream = db.momentDao.watchById(recordId);

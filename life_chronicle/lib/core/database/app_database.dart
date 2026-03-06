@@ -29,7 +29,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.connect(super.executor);
 
   @override
-  int get schemaVersion => 20;
+  int get schemaVersion => 21;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -158,8 +158,46 @@ class AppDatabase extends _$AppDatabase {
             );
             await customStatement('ALTER TABLE moment_records RENAME COLUMN scene_tag TO tags');
           }
+
+          if (from < 21) {
+            await _createIndexes();
+          }
         },
       );
+
+  Future<void> _createIndexes() async {
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_food_records_record_date ON food_records (record_date)');
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_food_records_is_deleted ON food_records (is_deleted)');
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_food_records_is_favorite ON food_records (is_favorite)');
+
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_moment_records_record_date ON moment_records (record_date)');
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_moment_records_is_deleted ON moment_records (is_deleted)');
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_moment_records_is_favorite ON moment_records (is_favorite)');
+
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_friend_records_is_deleted ON friend_records (is_deleted)');
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_friend_records_is_favorite ON friend_records (is_favorite)');
+
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_travel_records_record_date ON travel_records (record_date)');
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_travel_records_is_deleted ON travel_records (is_deleted)');
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_travel_records_is_favorite ON travel_records (is_favorite)');
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_travel_records_trip_id ON travel_records (trip_id)');
+
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_goal_records_record_date ON goal_records (record_date)');
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_goal_records_is_deleted ON goal_records (is_deleted)');
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_goal_records_is_favorite ON goal_records (is_favorite)');
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_goal_records_parent_id ON goal_records (parent_id)');
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_goal_records_level ON goal_records (level)');
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_goal_records_is_completed ON goal_records (is_completed)');
+
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_timeline_events_record_date ON timeline_events (record_date)');
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_timeline_events_is_deleted ON timeline_events (is_deleted)');
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_timeline_events_event_type ON timeline_events (event_type)');
+
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_entity_links_source ON entity_links (source_type, source_id)');
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_entity_links_target ON entity_links (target_type, target_id)');
+
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_change_logs_synced ON change_logs (synced)');
+  }
 
   Future<List<TimelineEvent>> listEventsForDate(DateTime date) {
     final start = DateTime(date.year, date.month, date.day);

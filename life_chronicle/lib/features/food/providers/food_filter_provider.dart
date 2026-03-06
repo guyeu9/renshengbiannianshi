@@ -83,7 +83,7 @@ class FoodFilterState {
   }
 }
 
-final foodFilterProvider = StreamProvider.family<FoodFilterState, FoodFilterParams>((ref, params) {
+final foodFilterProvider = StreamProvider.family.autoDispose<FoodFilterState, FoodFilterParams>((ref, params) {
   final db = ref.watch(appDatabaseProvider);
 
   final range = _resolveDateRange(params.filterDateIndex, params.filterCustomRange);
