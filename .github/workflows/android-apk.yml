@@ -122,17 +122,17 @@ jobs:
         id: generate_report
         run: |
           dart run scripts/generate_friendly_test_report.dart
-          echo "report_file=$(ls 测试报告_*.html 2>/dev/null | head -1 || echo 'test-report-latest.html')" >> $GITHUB_OUTPUT
+          echo "report_file=$(ls 检测报告_*.html 2>/dev/null | head -1 || echo '检测报告-latest.html')" >> $GITHUB_OUTPUT
         working-directory: life_chronicle
         if: always()
       - name: Upload Friendly Test Report
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: test-report
+          name: 检测报告
           path: |
-            life_chronicle/测试报告_*.html
-            life_chronicle/test-report-latest.html
+            life_chronicle/检测报告_*.html
+            life_chronicle/检测报告-latest.html
       - name: Build APK
         run: flutter build apk --release
         working-directory: life_chronicle
