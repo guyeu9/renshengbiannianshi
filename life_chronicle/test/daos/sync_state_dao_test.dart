@@ -61,7 +61,6 @@ void main() {
     });
 
     test('should update last sync', () async {
-      final now = DateTime.now();
       final syncTime = DateTime(2025, 1, 1);
       
       await syncStateDao.updateLastSync(

@@ -4,7 +4,6 @@ import 'package:http/http.dart' as http;
 import 'package:mocktail/mocktail.dart';
 import 'package:life_chronicle/core/database/app_database.dart';
 import 'package:life_chronicle/core/services/ai_service.dart';
-import 'package:life_chronicle/core/services/embedding_service.dart';
 import 'package:life_chronicle/core/services/providers/openai_compatible_service.dart';
 
 class MockHttpClient extends Mock implements http.Client {}

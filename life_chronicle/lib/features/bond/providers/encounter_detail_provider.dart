@@ -1,7 +1,7 @@
-import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:life_chronicle/core/database/app_database.dart';
 import 'package:life_chronicle/core/database/database_providers.dart';
+import 'package:rxdart/rxdart.dart';
 
 class EncounterDetailState {
   const EncounterDetailState({
@@ -103,7 +103,7 @@ class EncounterDetailState {
   }
 }
 
-final encounterDetailProvider = StreamProvider.family.autoDispose<EncounterDetailState?, String>((ref, encounterId) async* {
+final encounterDetailProvider = StreamProvider.family.autoDispose<EncounterDetailState?, String>((ref, encounterId) {
   final db = ref.watch(appDatabaseProvider);
 
   final eventStream = (db.select(db.timelineEvents)
@@ -121,65 +121,23 @@ final encounterDetailProvider = StreamProvider.family.autoDispose<EncounterDetai
         ..where((t) => t.eventType.equals('goal')))
       .watch();
 
-  await for (final combined in _combineLatest6(
+  return Rx.combineLatest6(
     eventStream,
     linksStream,
     friendsStream,
     foodsStream,
     travelsStream,
     goalsStream,
-  )) {
-    final event = combined.$1;
-    if (event == null) {
-      yield null;
-      continue;
-    }
-    yield EncounterDetailState(
-      event: event,
-      links: combined.$2,
-      friends: combined.$3,
-      foods: combined.$4,
-      travels: combined.$5,
-      goals: combined.$6,
-    );
-  }
+    (event, links, friends, foods, travels, goals) {
+      if (event == null) return null;
+      return EncounterDetailState(
+        event: event,
+        links: links,
+        friends: friends,
+        foods: foods,
+        travels: travels,
+        goals: goals,
+      );
+    },
+  );
 });
-
-Stream<(T1, T2, T3, T4, T5, T6)> _combineLatest6<T1, T2, T3, T4, T5, T6>(
-  Stream<T1> s1,
-  Stream<T2> s2,
-  Stream<T3> s3,
-  Stream<T4> s4,
-  Stream<T5> s5,
-  Stream<T6> s6,
-) {
-  T1? v1;
-  T2? v2;
-  T3? v3;
-  T4? v4;
-  T5? v5;
-  T6? v6;
-  var hasV1 = false;
-  var hasV2 = false;
-  var hasV3 = false;
-  var hasV4 = false;
-  var hasV5 = false;
-  var hasV6 = false;
-
-  final controller = StreamController<(T1, T2, T3, T4, T5, T6)>();
-
-  void emit() {
-    if (hasV1 && hasV2 && hasV3 && hasV4 && hasV5 && hasV6) {
-      controller.add((v1 as T1, v2 as T2, v3 as T3, v4 as T4, v5 as T5, v6 as T6));
-    }
-  }
-
-  s1.listen((v) { v1 = v; hasV1 = true; emit(); }, onError: controller.addError, onDone: controller.close);
-  s2.listen((v) { v2 = v; hasV2 = true; emit(); }, onError: controller.addError);
-  s3.listen((v) { v3 = v; hasV3 = true; emit(); }, onError: controller.addError);
-  s4.listen((v) { v4 = v; hasV4 = true; emit(); }, onError: controller.addError);
-  s5.listen((v) { v5 = v; hasV5 = true; emit(); }, onError: controller.addError);
-  s6.listen((v) { v6 = v; hasV6 = true; emit(); }, onError: controller.addError);
-
-  return controller.stream;
-}

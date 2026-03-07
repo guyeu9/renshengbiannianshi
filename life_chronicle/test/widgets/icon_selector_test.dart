@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_chronicle/core/widgets/icon_selector.dart';
-import 'package:life_chronicle/core/utils/icon_utils.dart';
 
 void main() {
   group('IconSelector', () {

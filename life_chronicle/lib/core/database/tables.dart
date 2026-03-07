@@ -27,7 +27,6 @@ class FoodRecords extends Table {
   @override
   Set<Column> get primaryKey => {id};
 
-  @override
   List<Set<Column>> get keys => [
     {recordDate},
     {isDeleted},
@@ -56,7 +55,6 @@ class MomentRecords extends Table {
   @override
   Set<Column> get primaryKey => {id};
 
-  @override
   List<Set<Column>> get keys => [
     {recordDate},
     {isDeleted},
@@ -84,7 +82,6 @@ class FriendRecords extends Table {
   @override
   Set<Column> get primaryKey => {id};
 
-  @override
   List<Set<Column>> get keys => [
     {isDeleted},
     {isFavorite},
@@ -125,7 +122,6 @@ class TravelRecords extends Table {
   @override
   Set<Column> get primaryKey => {id};
 
-  @override
   List<Set<Column>> get keys => [
     {recordDate},
     {isDeleted},
@@ -174,7 +170,6 @@ class GoalRecords extends Table {
   @override
   Set<Column> get primaryKey => {id};
 
-  @override
   List<Set<Column>> get keys => [
     {recordDate},
     {isDeleted},
@@ -206,7 +201,6 @@ class TimelineEvents extends Table {
   @override
   Set<Column> get primaryKey => {id};
 
-  @override
   List<Set<Column>> get keys => [
     {recordDate},
     {isDeleted},
@@ -231,7 +225,6 @@ class EntityLinks extends Table {
         {sourceType, sourceId, targetType, targetId},
       ];
 
-  @override
   List<Set<Column>> get keys => [
     {sourceType, sourceId},
     {targetType, targetId},
@@ -307,7 +300,6 @@ class ChangeLogs extends Table {
   DateTimeColumn get timestamp => dateTime()();
   BoolColumn get synced => boolean().withDefault(const Constant(false))();
 
-  @override
   List<Set<Column>> get keys => [
     {synced},
   ];

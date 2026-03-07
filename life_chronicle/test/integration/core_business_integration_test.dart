@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_chronicle/core/database/app_database.dart';
 import '../test_utils/test_utils.dart';
-import '../test_utils/test_data_factory.dart';
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 
 void main() {
@@ -170,8 +169,6 @@ void main() {
     });
 
     test('Complete friend record lifecycle: create, read, update, delete', () async {
-      final now = DateTime.now();
-      
       final record = TestDataFactory.createFriendRecord(
         id: 'integration-friend-1',
         name: '张三',

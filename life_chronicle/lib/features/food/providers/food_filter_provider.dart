@@ -1,8 +1,8 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:life_chronicle/core/database/app_database.dart';
 import 'package:life_chronicle/core/database/database_providers.dart';
+import 'package:rxdart/rxdart.dart';
 
 class FoodFilterParams {
   const FoodFilterParams({
@@ -96,7 +96,14 @@ final foodFilterProvider = StreamProvider.family.autoDispose<FoodFilterState, Fo
         ..where((t) => t.targetType.equals('friend')))
       .watch();
 
-  return _combineLatest2(recordsStream, friendLinksStream, params);
+  return Rx.combineLatest2(
+    recordsStream,
+    friendLinksStream,
+    (records, links) => FoodFilterState(
+      records: _applyFilters(records, links, params),
+      friendLinks: links,
+    ),
+  );
 });
 
 (DateTime, DateTime)? _resolveDateRange(int index, DateTimeRange? customRange) {
@@ -117,41 +124,6 @@ final foodFilterProvider = StreamProvider.family.autoDispose<FoodFilterState, Fo
     default:
       return null;
   }
-}
-
-Stream<FoodFilterState> _combineLatest2(
-  Stream<List<FoodRecord>> s1,
-  Stream<List<EntityLink>> s2,
-  FoodFilterParams params,
-) {
-  List<FoodRecord>? v1;
-  List<EntityLink>? v2;
-  var hasV1 = false;
-  var hasV2 = false;
-
-  final controller = StreamController<FoodFilterState>();
-
-  void emit() {
-    if (hasV1 && hasV2) {
-      final records = _applyFilters(v1!, v2!, params);
-      controller.add(FoodFilterState(
-        records: records,
-        friendLinks: v2!,
-      ));
-    }
-  }
-
-  s1.listen(
-    (data) { v1 = data; hasV1 = true; emit(); },
-    onError: controller.addError,
-    onDone: controller.close,
-  );
-  s2.listen(
-    (data) { v2 = data; hasV2 = true; emit(); },
-    onError: controller.addError,
-  );
-
-  return controller.stream;
 }
 
 List<FoodRecord> _applyFilters(List<FoodRecord> records, List<EntityLink> links, FoodFilterParams params) {

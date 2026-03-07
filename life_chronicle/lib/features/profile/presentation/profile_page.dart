@@ -21,6 +21,12 @@ import '../../../core/utils/media_storage.dart';
 import '../../../core/utils/icon_utils.dart';
 import '../../../core/config/module_management_config.dart';
 import '../../../app/app_theme.dart';
+import '../../food/presentation/food_page.dart';
+import '../../travel/presentation/travel_page.dart';
+import '../../moment/presentation/moment_page.dart';
+import '../../bond/presentation/bond_page.dart' hide EncounterDetailPage;
+import '../../bond/presentation/encounter_pages.dart';
+import '../../goal/presentation/goal_page.dart';
 import 'ai_model_management_page.dart';
 import 'data_management_page.dart';
 
@@ -3207,6 +3213,38 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
     return '${date.year}.$month.$day';
   }
 
+  void _navigateToDetail(BuildContext context, String id) async {
+    if (id.startsWith('food-')) {
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => FoodDetailPage(recordId: id.substring(5))));
+    } else if (id.startsWith('travel-')) {
+      final db = ref.read(appDatabaseProvider);
+      final travelId = id.substring(7);
+      final travel = await (db.select(db.travelRecords)..where((t) => t.id.equals(travelId))).getSingleOrNull();
+      if (travel == null || !context.mounted) return;
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => TravelDetailPage(item: TravelItem(
+        travelId: travel.id,
+        tripId: '',
+        recordDate: travel.recordDate,
+        date: '${travel.recordDate.year}年${travel.recordDate.month}月${travel.recordDate.day}日',
+        title: travel.title ?? '',
+        subtitle: travel.destination ?? '',
+        imageUrl: _parseStringList(travel.images).firstOrNull ?? '',
+      ))));
+    } else if (id.startsWith('moment-')) {
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => MomentDetailPage(recordId: id.substring(7))));
+    } else if (id.startsWith('bond-')) {
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => FriendProfilePage(friendId: id.substring(5))));
+    } else if (id.startsWith('goal-')) {
+      final db = ref.read(appDatabaseProvider);
+      final goalId = id.substring(5);
+      final goal = await (db.select(db.goalRecords)..where((t) => t.id.equals(goalId))).getSingleOrNull();
+      if (goal == null || !context.mounted) return;
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => GoalDetailPage(record: goal)));
+    } else if (id.startsWith('encounter-')) {
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => EncounterDetailPage(encounterId: id.substring(10))));
+    }
+  }
+
   String _momentTitle(String? content) {
     final text = (content ?? '').trim();
     if (text.isEmpty) return '小确幸记录';
@@ -3640,6 +3678,8 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
                                                     _selectedIds.add(item.id);
                                                   }
                                                 });
+                                              } else {
+                                                _navigateToDetail(context, item.id);
                                               }
                                             },
                                           ),

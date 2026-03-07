@@ -1,4 +1,3 @@
-import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_chronicle/core/database/app_database.dart';
 import '../test_utils/test_utils.dart';
@@ -18,8 +17,6 @@ void main() {
 
   group('LinkDao Basic Operations', () {
     test('should check if link exists', () async {
-      final now = DateTime.now();
-      
       expect(await linkDao.linkExists(
         sourceType: 'moment',
         sourceId: 'test-moment-1',

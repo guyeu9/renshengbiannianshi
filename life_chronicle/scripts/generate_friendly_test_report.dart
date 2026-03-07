@@ -6,7 +6,7 @@ void main() {
   final outputPath = 'friendly-test-report.html';
 
   if (!File(testResultsPath).existsSync()) {
-    print('错误: 找不到测试结果文件 $testResultsPath');
+    stderr.writeln('错误: 找不到测试结果文件 $testResultsPath');
     exit(1);
   }
 
@@ -16,7 +16,7 @@ void main() {
   final html = generateFriendlyReport(testResults);
   File(outputPath).writeAsStringSync(html);
 
-  print('友好测试报告已生成: $outputPath');
+  stdout.writeln('友好测试报告已生成: $outputPath');
 }
 
 String generateFriendlyReport(dynamic testResults) {
@@ -171,7 +171,6 @@ String generateTestItem(dynamic test, bool isFailed) {
   final name = test['name'] as String? ?? '未知测试';
   final path = test['path'] as String? ?? '';
   final module = getModuleName(path);
-  final result = test['result'] as String? ?? '';
   final error = test['error'] as String? ?? '';
   
   String errorHtml = '';
