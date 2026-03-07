@@ -1,5 +1,4 @@
 import 'package:life_chronicle/core/database/app_database.dart';
-import 'package:life_chronicle/core/services/embedding_service.dart';
 import 'package:life_chronicle/core/services/vector_index_service.dart';
 
 class SemanticSearchResult {
@@ -33,9 +32,8 @@ class SearchFilters {
 class SemanticSearchService {
   final AppDatabase _db;
   final VectorIndexService _vectorIndexService;
-  final EmbeddingServiceBase? Function() _embeddingServiceGetter;
 
-  SemanticSearchService(this._db, this._vectorIndexService, this._embeddingServiceGetter);
+  SemanticSearchService(this._db, this._vectorIndexService);
 
   Future<List<SemanticSearchResult>> search({
     required String query,

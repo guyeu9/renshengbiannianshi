@@ -39,6 +39,26 @@ class AppDatabase extends _$AppDatabase {
         },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
+          
+          if (details.wasCreated) {
+            final now = DateTime.now();
+            const uuid = Uuid();
+            
+            await into(aiProviders).insert(
+              AiProvidersCompanion(
+                id: Value(uuid.v4()),
+                name: const Value('模力方舟'),
+                apiType: const Value('openai'),
+                serviceType: const Value('embedding'),
+                baseUrl: const Value('https://ai.gitee.com/v1'),
+                apiKey: const Value('AAMX6RZWNFGZ9H1CERSNPTQOQSIHSR5TBTNI8Y8G'),
+                modelName: const Value('Qwen3-Embedding-8B'),
+                isActive: const Value(true),
+                createdAt: Value(now),
+                updatedAt: Value(now),
+              ),
+            );
+          }
         },
         onUpgrade: (m, from, to) async {
           Future<bool> tableExists(String name) async {

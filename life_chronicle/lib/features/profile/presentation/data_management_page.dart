@@ -16,6 +16,7 @@ import '../../../core/providers/uuid_provider.dart';
 import '../../../core/services/backup/backup.dart';
 import '../../../core/services/data_statistics_service.dart';
 import '../../../core/services/excel_export_service.dart';
+import '../../../core/services/markdown_export_service.dart';
 import '../../../core/services/pdf_export_service.dart';
 import 'backup_log_page.dart';
 import 'amap_log_page.dart';
@@ -683,6 +684,60 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
       }
     } catch (e) {
       _showSnackBar('PDF导出失败: $e', isError: true);
+    } finally {
+      if (mounted) {
+        setState(() => _isExporting = false);
+      }
+    }
+  }
+
+  Future<void> _exportToMarkdown() async {
+    final config = await _showExportModuleSelector();
+    if (config == null) return;
+    
+    setState(() => _isExporting = true);
+    
+    try {
+      final db = ref.read(appDatabaseProvider);
+      final service = MarkdownExportService(db);
+      final filePath = await service.exportToMarkdown(
+        includeFood: config.includeFood,
+        includeMoment: config.includeMoment,
+        includeFriend: config.includeFriend,
+        includeTravel: config.includeTravel,
+        includeGoal: config.includeGoal,
+        includeTimeline: config.includeTimeline,
+        includePhotos: config.includePhotos,
+        startDate: config.startDate,
+        endDate: config.endDate,
+      );
+      
+      setState(() => _isExporting = false);
+      
+      if (!mounted) return;
+      final shouldShare = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('导出成功'),
+          content: const Text('Markdown文件已生成\n\n是否分享到其他应用？\n\n提示：您可以将此文件导入到飞书文档、WPS云文档、腾讯文档等任意支持Markdown的云文档平台。'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('关闭'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('分享'),
+            ),
+          ],
+        ),
+      );
+      
+      if (shouldShare == true && mounted) {
+        await service.shareMarkdown(filePath);
+      }
+    } catch (e) {
+      _showSnackBar('Markdown导出失败: $e', isError: true);
     } finally {
       if (mounted) {
         setState(() => _isExporting = false);
@@ -1438,6 +1493,17 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                 'PDF 导出',
                 '适合阅读与打印',
                 _isExporting ? null : _exportToPdf,
+              ),
+              Divider(height: 1, color: dividerColor),
+              _buildExportItem(
+                isDark,
+                textMain,
+                textMuted,
+                Icons.text_format,
+                Colors.blue,
+                'Markdown 导出',
+                '适合备份和导入云文档',
+                _isExporting ? null : _exportToMarkdown,
               ),
             ],
           ),

@@ -132,6 +132,14 @@ class OpenAiCompatibleEmbeddingService extends EmbeddingServiceBase {
   
   final http.Client _client;
   
+  static const List<String> _fallbackModels = [
+    'Qwen3-Embedding-8B',
+    'Qwen3-Embedding-4B',
+    'Qwen3-Embedding-0.6B',
+    'jina-embeddings-v4',
+    'bge-m3',
+  ];
+  
   @override
   String getEmbeddingEndpoint() {
     final base = provider.baseUrl.endsWith('/')
@@ -156,12 +164,14 @@ class OpenAiCompatibleEmbeddingService extends EmbeddingServiceBase {
     };
   }
   
-  @override
-  Future<List<double>> embed(String text) async {
+  Future<List<double>> _tryEmbedWithModel(String model, String text) async {
     final response = await _client.post(
       Uri.parse(getEmbeddingEndpoint()),
       headers: getHeaders(),
-      body: jsonEncode(buildRequestBody(text)),
+      body: jsonEncode({
+        'model': model,
+        'input': text,
+      }),
     );
     
     if (response.statusCode != 200) {
@@ -174,12 +184,37 @@ class OpenAiCompatibleEmbeddingService extends EmbeddingServiceBase {
   }
   
   @override
-  Future<List<List<double>>> embedBatch(List<String> texts) async {
+  Future<List<double>> embed(String text) async {
+    final originalModel = provider.modelName ?? 'Qwen3-Embedding-8B';
+    List<String> modelsToTry = [originalModel];
+    
+    if (provider.baseUrl.contains('ai.gitee.com')) {
+      for (final model in _fallbackModels) {
+        if (!modelsToTry.contains(model)) {
+          modelsToTry.add(model);
+        }
+      }
+    }
+    
+    for (final model in modelsToTry) {
+      try {
+        return await _tryEmbedWithModel(model, text);
+      } catch (e) {
+        if (model == modelsToTry.last) {
+          rethrow;
+        }
+      }
+    }
+    
+    throw Exception('All embedding models failed');
+  }
+  
+  Future<List<List<double>>> _tryEmbedBatchWithModel(String model, List<String> texts) async {
     final response = await _client.post(
       Uri.parse(getEmbeddingEndpoint()),
       headers: getHeaders(),
       body: jsonEncode({
-        'model': provider.modelName ?? 'text-embedding-3-small',
+        'model': model,
         'input': texts,
       }),
     );
@@ -191,5 +226,31 @@ class OpenAiCompatibleEmbeddingService extends EmbeddingServiceBase {
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     final embeddings = data['data'] as List?;
     return embeddings?.map((e) => ((e as Map<String, dynamic>)['embedding'] as List).cast<double>()).toList() ?? [];
+  }
+  
+  @override
+  Future<List<List<double>>> embedBatch(List<String> texts) async {
+    final originalModel = provider.modelName ?? 'Qwen3-Embedding-8B';
+    List<String> modelsToTry = [originalModel];
+    
+    if (provider.baseUrl.contains('ai.gitee.com')) {
+      for (final model in _fallbackModels) {
+        if (!modelsToTry.contains(model)) {
+          modelsToTry.add(model);
+        }
+      }
+    }
+    
+    for (final model in modelsToTry) {
+      try {
+        return await _tryEmbedBatchWithModel(model, texts);
+      } catch (e) {
+        if (model == modelsToTry.last) {
+          rethrow;
+        }
+      }
+    }
+    
+    throw Exception('All embedding models failed');
   }
 }

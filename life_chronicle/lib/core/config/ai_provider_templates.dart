@@ -62,6 +62,13 @@ class AiProviderTemplates {
 
   static const List<AiProviderTemplate> embeddingTemplates = [
     AiProviderTemplate(
+      name: '模力方舟',
+      apiType: 'openai',
+      serviceType: 'embedding',
+      baseUrl: 'https://ai.gitee.com/v1',
+      defaultModel: 'Qwen3-Embedding-8B',
+    ),
+    AiProviderTemplate(
       name: 'OpenAI Embedding',
       apiType: 'openai',
       serviceType: 'embedding',

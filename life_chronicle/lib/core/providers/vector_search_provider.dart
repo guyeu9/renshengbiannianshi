@@ -18,7 +18,6 @@ final semanticSearchServiceProvider = Provider<SemanticSearchService>((ref) {
   return SemanticSearchService(
     db,
     vectorIndexService,
-    () => ref.read(activeEmbeddingServiceProvider),
   );
 });
 

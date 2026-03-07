@@ -64,6 +64,54 @@ class _AiModelManagementPageState extends ConsumerState<AiModelManagementPage> w
     );
   }
 
+  void _showMoarkHelpDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.lightbulb, color: Color(0xFFF59E0B), size: 24),
+            SizedBox(width: 8),
+            Text('模力方舟 介绍', style: TextStyle(fontWeight: FontWeight.w700)),
+          ],
+        ),
+        content: const SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('✨ 核心优势', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: Color(0xFF1F2937))),
+              SizedBox(height: 8),
+              Text('• 完全免费：所有 Embedding 和 Reranker 模型全部免费'),
+              Text('• 不限次数：无调用次数限制，尽情使用'),
+              Text('• 即开即用：无需申请、无需授权、直接接入'),
+              SizedBox(height: 16),
+              Text('🎯 支持能力', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: Color(0xFF1F2937))),
+              SizedBox(height: 8),
+              Text('• 中文、英文、多语言编码'),
+              Text('• 适配主流语义检索任务'),
+              Text('• RAG 架构必备的检索向量能力'),
+              SizedBox(height: 16),
+              Text('📌 快速配置', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: Color(0xFF1F2937))),
+              SizedBox(height: 8),
+              Text('1. 在 Embedding 服务标签页，点击"添加服务商"'),
+              Text('2. 在"快速选择模板"中点击"模力方舟"'),
+              Text('3. 填写 API Key（前往 ai.gitee.com 获取）'),
+              Text('4. 可选：点击"加载"按钮获取可用模型列表'),
+              Text('5. 点击"保存"即可使用'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('知道了', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF2563EB))),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildHeader(BuildContext context) {
     return Container(
       color: Colors.white,
@@ -87,7 +135,11 @@ class _AiModelManagementPageState extends ConsumerState<AiModelManagementPage> w
                   ),
                 ),
               ),
-              const SizedBox(width: 40),
+              IconButton(
+                icon: const Icon(Icons.help_outline, size: 24, color: Color(0xFF6B7280)),
+                onPressed: () => _showMoarkHelpDialog(context),
+                tooltip: '模力方舟介绍',
+              ),
             ],
           ),
           const SizedBox(height: 12),

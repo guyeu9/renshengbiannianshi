@@ -798,7 +798,7 @@ class PdfExportService {
     try {
       final imageWidgets = <pw.Widget>[];
       
-      for (final imageFile in images.take(4)) {
+      for (final imageFile in images) {
         try {
           _log('DEBUG', '加载美食图片', data: {'path': imageFile.path});
           final bytes = await imageFile.readAsBytes();
@@ -816,53 +816,62 @@ class PdfExportService {
         }
       }
       
+      final children = <pw.Widget>[
+        pw.Row(
+          children: [
+            pw.Expanded(
+              child: pw.Text(record.title, style: _textStyle(fontSize: 24, bold: true)),
+            ),
+            if (record.isFavorite)
+              pw.Text('★', style: _textStyle(fontSize: 24, color: const PdfColor.fromInt(0xFFF59E0B))),
+          ],
+        ),
+        pw.SizedBox(height: 8),
+        pw.Text('${record.title} | ${record.tags ?? '未知菜系'}', 
+            style: _textStyle(fontSize: 14, color: _mutedColor)),
+        pw.SizedBox(height: 16),
+      ];
+      
+      if (imageWidgets.isNotEmpty) {
+        final crossAxisCount = imageWidgets.length > 4 ? 3 : (imageWidgets.length > 2 ? 2 : imageWidgets.length);
+        final gridHeight = imageWidgets.length <= 4 ? 200.0 : (imageWidgets.length <= 9 ? 300.0 : 400.0);
+        
+        children.addAll([
+          pw.Container(
+            height: gridHeight,
+            child: pw.GridView(
+              crossAxisCount: crossAxisCount,
+              childAspectRatio: 1,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+              children: imageWidgets,
+            ),
+          ),
+          pw.SizedBox(height: 16),
+        ]);
+      }
+      
+      children.addAll([
+        pw.Text('评分: ${record.rating}/5', style: _textStyle(fontSize: 14, color: _secondaryColor)),
+        pw.SizedBox(height: 8),
+        
+        if (record.content != null && record.content!.isNotEmpty) ...[
+          pw.Text('评价:', style: _textStyle(fontSize: 14, bold: true)),
+          pw.SizedBox(height: 4),
+          pw.Text(record.content!, style: _textStyle(fontSize: 12)),
+          pw.SizedBox(height: 8),
+        ],
+        
+        pw.Text(record.recordDate.toString().split(' ')[0], style: _textStyle(fontSize: 10, color: _mutedColor)),
+      ]);
+      
       return pw.Page(
         pageFormat: PdfPageFormat.a4,
         build: (context) => pw.Padding(
           padding: const pw.EdgeInsets.all(32),
           child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Row(
-                children: [
-                  pw.Expanded(
-                    child: pw.Text(record.title, style: _textStyle(fontSize: 24, bold: true)),
-                  ),
-                  if (record.isFavorite)
-                    pw.Text('★', style: _textStyle(fontSize: 24, color: const PdfColor.fromInt(0xFFF59E0B))),
-                ],
-              ),
-              pw.SizedBox(height: 8),
-              pw.Text('${record.title} | ${record.tags ?? '未知菜系'}', 
-                  style: _textStyle(fontSize: 14, color: _mutedColor)),
-              pw.SizedBox(height: 16),
-              
-              if (imageWidgets.isNotEmpty) ...[
-                pw.Container(
-                  height: 200,
-                  child: pw.GridView(
-                    crossAxisCount: imageWidgets.length > 2 ? 2 : imageWidgets.length,
-                    childAspectRatio: 1,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
-                    children: imageWidgets,
-                  ),
-                ),
-                pw.SizedBox(height: 16),
-              ],
-              
-              pw.Text('评分: ${record.rating}/5', style: _textStyle(fontSize: 14, color: _secondaryColor)),
-              pw.SizedBox(height: 8),
-              
-              if (record.content != null && record.content!.isNotEmpty) ...[
-                pw.Text('评价:', style: _textStyle(fontSize: 14, bold: true)),
-                pw.SizedBox(height: 4),
-                pw.Text(record.content!, style: _textStyle(fontSize: 12)),
-                pw.SizedBox(height: 8),
-              ],
-              
-              pw.Text(record.recordDate.toString().split(' ')[0], style: _textStyle(fontSize: 10, color: _mutedColor)),
-            ],
+            children: children,
           ),
         ),
       );
@@ -930,7 +939,7 @@ class PdfExportService {
     try {
       final imageWidgets = <pw.Widget>[];
       
-      for (final imageFile in images.take(4)) {
+      for (final imageFile in images) {
         try {
           _log('DEBUG', '加载小确幸图片', data: {'path': imageFile.path});
           final bytes = await imageFile.readAsBytes();
@@ -948,43 +957,52 @@ class PdfExportService {
         }
       }
       
+      final children = <pw.Widget>[
+        pw.Row(
+          children: [
+            pw.Expanded(
+              child: pw.Text(record.mood, style: _textStyle(fontSize: 20, color: _secondaryColor, bold: true)),
+            ),
+            if (record.isFavorite)
+              pw.Text('❤', style: _textStyle(fontSize: 20, color: const PdfColor.fromInt(0xFFEC4899))),
+          ],
+        ),
+        pw.SizedBox(height: 16),
+      ];
+      
+      if (imageWidgets.isNotEmpty) {
+        final crossAxisCount = imageWidgets.length > 4 ? 3 : (imageWidgets.length > 2 ? 2 : imageWidgets.length);
+        final gridHeight = imageWidgets.length <= 4 ? 200.0 : (imageWidgets.length <= 9 ? 300.0 : 400.0);
+        
+        children.addAll([
+          pw.Container(
+            height: gridHeight,
+            child: pw.GridView(
+              crossAxisCount: crossAxisCount,
+              childAspectRatio: 1,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+              children: imageWidgets,
+            ),
+          ),
+          pw.SizedBox(height: 16),
+        ]);
+      }
+      
+      children.addAll([
+        pw.Text(record.content ?? '', style: _textStyle(fontSize: 14, color: _textColor)),
+        pw.SizedBox(height: 16),
+        
+        pw.Text(record.recordDate.toString().split(' ')[0], style: _textStyle(fontSize: 10, color: _mutedColor)),
+      ]);
+      
       return pw.Page(
         pageFormat: PdfPageFormat.a4,
         build: (context) => pw.Padding(
           padding: const pw.EdgeInsets.all(32),
           child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Row(
-                children: [
-                  pw.Expanded(
-                    child: pw.Text(record.mood, style: _textStyle(fontSize: 20, color: _secondaryColor, bold: true)),
-                  ),
-                  if (record.isFavorite)
-                    pw.Text('❤', style: _textStyle(fontSize: 20, color: const PdfColor.fromInt(0xFFEC4899))),
-                ],
-              ),
-              pw.SizedBox(height: 16),
-              
-              if (imageWidgets.isNotEmpty) ...[
-                pw.Container(
-                  height: 200,
-                  child: pw.GridView(
-                    crossAxisCount: imageWidgets.length > 2 ? 2 : imageWidgets.length,
-                    childAspectRatio: 1,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
-                    children: imageWidgets,
-                  ),
-                ),
-                pw.SizedBox(height: 16),
-              ],
-              
-              pw.Text(record.content ?? '', style: _textStyle(fontSize: 14, color: _textColor)),
-              pw.SizedBox(height: 16),
-              
-              pw.Text(record.recordDate.toString().split(' ')[0], style: _textStyle(fontSize: 10, color: _mutedColor)),
-            ],
+            children: children,
           ),
         ),
       );
@@ -1172,7 +1190,7 @@ class PdfExportService {
     try {
       final imageWidgets = <pw.Widget>[];
       
-      for (final imageFile in images.take(4)) {
+      for (final imageFile in images) {
         try {
           _log('DEBUG', '加载旅行图片', data: {'path': imageFile.path});
           final bytes = await imageFile.readAsBytes();
@@ -1190,42 +1208,51 @@ class PdfExportService {
         }
       }
       
+      final children = <pw.Widget>[
+        pw.Text(record.destination ?? '未知目的地', style: _textStyle(fontSize: 28, color: _accentColor, bold: true)),
+        pw.SizedBox(height: 8),
+        if (record.planDate != null)
+          pw.Text('计划日期: ${record.planDate!.toString().split(' ')[0]}', style: _textStyle(fontSize: 12, color: _mutedColor)),
+        pw.SizedBox(height: 16),
+      ];
+      
+      if (imageWidgets.isNotEmpty) {
+        final crossAxisCount = imageWidgets.length > 4 ? 3 : (imageWidgets.length > 2 ? 2 : imageWidgets.length);
+        final gridHeight = imageWidgets.length <= 4 ? 200.0 : (imageWidgets.length <= 9 ? 300.0 : 400.0);
+        
+        children.addAll([
+          pw.Container(
+            height: gridHeight,
+            child: pw.GridView(
+              crossAxisCount: crossAxisCount,
+              childAspectRatio: 1,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+              children: imageWidgets,
+            ),
+          ),
+          pw.SizedBox(height: 16),
+        ]);
+      }
+      
+      children.addAll([
+        if (record.content != null && record.content!.isNotEmpty) ...[
+          pw.Text('旅行计划:', style: _textStyle(fontSize: 14, bold: true)),
+          pw.SizedBox(height: 4),
+          pw.Text(record.content!, style: _textStyle(fontSize: 12)),
+          pw.SizedBox(height: 8),
+        ],
+        
+        pw.Text('状态: ${record.isWishlist ? "愿望清单" : (record.wishlistDone ? "已完成" : "进行中")}', style: _textStyle(fontSize: 12, color: _secondaryColor)),
+      ]);
+      
       return pw.Page(
         pageFormat: PdfPageFormat.a4,
         build: (context) => pw.Padding(
           padding: const pw.EdgeInsets.all(32),
           child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Text(record.destination ?? '未知目的地', style: _textStyle(fontSize: 28, color: _accentColor, bold: true)),
-              pw.SizedBox(height: 8),
-              if (record.planDate != null)
-                pw.Text('计划日期: ${record.planDate!.toString().split(' ')[0]}', style: _textStyle(fontSize: 12, color: _mutedColor)),
-              pw.SizedBox(height: 16),
-              
-              if (imageWidgets.isNotEmpty) ...[
-                pw.Container(
-                  height: 200,
-                  child: pw.GridView(
-                    crossAxisCount: imageWidgets.length > 2 ? 2 : imageWidgets.length,
-                    childAspectRatio: 1,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
-                    children: imageWidgets,
-                  ),
-                ),
-                pw.SizedBox(height: 16),
-              ],
-              
-              if (record.content != null && record.content!.isNotEmpty) ...[
-                pw.Text('旅行计划:', style: _textStyle(fontSize: 14, bold: true)),
-                pw.SizedBox(height: 4),
-                pw.Text(record.content!, style: _textStyle(fontSize: 12)),
-                pw.SizedBox(height: 8),
-              ],
-              
-              pw.Text('状态: ${record.isWishlist ? "愿望清单" : (record.wishlistDone ? "已完成" : "进行中")}', style: _textStyle(fontSize: 12, color: _secondaryColor)),
-            ],
+            children: children,
           ),
         ),
       );

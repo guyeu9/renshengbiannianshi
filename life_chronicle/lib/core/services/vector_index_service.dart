@@ -1,5 +1,4 @@
-import 'dart:typed_data';
-
+import 'package:drift/drift.dart';
 import 'package:life_chronicle/core/database/app_database.dart';
 import 'package:life_chronicle/core/services/embedding_service.dart';
 import 'package:life_chronicle/core/utils/vector_utils.dart';
@@ -33,7 +32,7 @@ class VectorIndexService {
         id: id,
         entityType: entityType,
         entityId: entityId,
-        embedding: Value(vectorToBlob(embedding)),
+        embedding: vectorToBlob(embedding),
         dimension: embedding.length,
         modelName: modelName ?? embeddingService.provider.modelName ?? 'unknown',
         sourceText: Value(text),
