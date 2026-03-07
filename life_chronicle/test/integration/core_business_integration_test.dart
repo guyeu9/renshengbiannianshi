@@ -213,7 +213,6 @@ void main() {
         id: 'integration-friend-2',
         name: '王五',
         groupName: '家人',
-        recordDate: now,
       );
       await db.friendDao.upsert(record);
 
