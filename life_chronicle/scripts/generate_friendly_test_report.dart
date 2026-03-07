@@ -11,19 +11,42 @@ void main() {
   }
 
   final testResultsJson = File(testResultsPath).readAsStringSync();
-  final testResults = json.decode(testResultsJson);
+  
+  final tests = <Map<String, dynamic>>[];
+  int totalTests = 0;
+  int passedTests = 0;
+  final failedTests = <Map<String, dynamic>>[];
 
-  final html = generateFriendlyReport(testResults);
-  File(outputPath).writeAsStringSync(html);
+  final lines = testResultsJson.split('\n');
+  for (final line in lines) {
+    if (line.trim().isEmpty) continue;
+    
+    try {
+      final jsonLine = json.decode(line);
+      if (jsonLine is Map<String, dynamic>) {
+        if (jsonLine.containsKey('test')) {
+          final test = jsonLine['test'] as Map<String, dynamic>;
+          tests.add(test);
+          totalTests++;
+          final result = test['result'] as String?;
+          if (result == 'success') {
+            passedTests++;
+          } else if (result == 'error' || result == 'failure') {
+            failedTests.add(test);
+          }
+        } else if (jsonLine.containsKey('success')) {
+          final success = jsonLine['success'] as bool?;
+          if (success == false && jsonLine.containsKey('error')) {
+            final error = jsonLine['error'] as String?;
+            stderr.writeln('测试运行错误: $error');
+          }
+        }
+      }
+    } catch (e) {
+      stderr.writeln('解析JSON行失败: $line');
+    }
+  }
 
-  stdout.writeln('友好测试报告已生成: $outputPath');
-}
-
-String generateFriendlyReport(dynamic testResults) {
-  final tests = testResults['tests'] as List? ?? [];
-  final totalTests = tests.length;
-  final passedTests = tests.where((t) => t['result'] == 'success').length;
-  final failedTests = tests.where((t) => t['result'] == 'error' || t['result'] == 'failure').toList();
   final hasProblems = failedTests.isNotEmpty;
 
   final reportTitle = hasProblems ? '有问题 - Flutter测试报告' : '正常 - Flutter测试报告';
@@ -34,6 +57,36 @@ String generateFriendlyReport(dynamic testResults) {
 
   final moduleInfo = analyzeModules(tests);
 
+  final html = generateFriendlyReport(
+    tests: tests,
+    totalTests: totalTests,
+    passedTests: passedTests,
+    failedTests: failedTests,
+    reportTitle: reportTitle,
+    statusIcon: statusIcon,
+    statusText: statusText,
+    statusColor: statusColor,
+    passRate: passRate,
+    moduleInfo: moduleInfo,
+  );
+
+  File(outputPath).writeAsStringSync(html);
+
+  stdout.writeln('友好测试报告已生成: $outputPath');
+}
+
+String generateFriendlyReport({
+  required List<Map<String, dynamic>> tests,
+  required int totalTests,
+  required int passedTests,
+  required List<Map<String, dynamic>> failedTests,
+  required String reportTitle,
+  required String statusIcon,
+  required String statusText,
+  required String statusColor,
+  required String passRate,
+  required Map<String, int> moduleInfo,
+}) {
   return '''
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -144,7 +197,7 @@ String generateFriendlyReport(dynamic testResults) {
 ''';
 }
 
-Map<String, int> analyzeModules(List<dynamic> tests) {
+Map<String, int> analyzeModules(List<Map<String, dynamic>> tests) {
   final modules = <String, int>{};
   
   for (final test in tests) {
@@ -166,8 +219,7 @@ String getModuleName(String path) {
   if (path.contains('widget_test')) return 'Widget测试';
   return '其他测试';
 }
-
-String generateTestItem(dynamic test, bool isFailed) {
+String generateTestItem(Map<String, dynamic> test, bool isFailed) {
   final name = test['name'] as String? ?? '未知测试';
   final path = test['path'] as String? ?? '';
   final module = getModuleName(path);
@@ -200,31 +252,38 @@ String generateTestItem(dynamic test, bool isFailed) {
     </div>
     $errorHtml
   </div>
-  ''';
+''';
 }
 
 Map<String, String> makeErrorFriendly(String error) {
   String message = error;
   String? explanation;
-  
+
   if (error.contains('Expected:') && error.contains('Actual:')) {
-    explanation = '断言失败：预期结果和实际结果不一致，请检查代码逻辑是否正确。';
+    message = '断言失败：预期结果和实际结果不一致，请检查代码逻辑是否正确。';
+    explanation = 'Expected 表示期望值，Actual 表示实际值';
   } else if (error.contains('NoSuchMethodError')) {
-    explanation = '调用了不存在的方法：可能是某个对象为空或者方法名写错了。';
+    message = '调用了不存在的方法：可能是某个对象为空或者方法名写错了。';
+    explanation = '请检查对象是否正确初始化，以及方法名是否正确';
   } else if (error.contains('TimeoutException')) {
-    explanation = '超时错误：测试运行时间太长，可能是代码中有死循环或者性能问题。';
+    message = '超时错误：测试运行时间太长，可能是代码中有死循环或者性能问题。';
+    explanation = '检查代码是否有无限循环，或者考虑优化算法';
   } else if (error.contains('TestFailedException')) {
-    explanation = '测试失败：这是一个一般性的测试失败，请查看详细信息。';
+    message = '测试失败：测试框架捕获到了一个失败情况。';
   } else if (error.contains('Null check operator used on a null value')) {
-    explanation = '空值错误：代码中使用了一个空对象，请确保对象在使用前已正确初始化。';
+    message = '空值错误：尝试对空值进行操作，请检查数据是否正确加载。';
+    explanation = '使用 ?. 或 ?? 操作符可以避免此错误';
+  } else if (error.contains('RangeError')) {
+    message = '范围错误：数组或列表索引超出范围。';
+    explanation = '检查索引值是否在有效范围内';
+  } else if (error.contains('FormatException')) {
+    message = '格式错误：数据格式不正确，无法解析。';
+  } else if (error.contains('StateError') || error.contains('Bad state')) {
+    message = '状态错误：组件或对象的状态不正确。';
+    explanation = '检查状态管理逻辑是否正确';
   }
-  
-  message = message.split('\n').take(10).join('\n');
-  
-  return {
-    'message': message,
-    'explanation': explanation ?? ''
-  };
+
+  return {'message': message, 'explanation': explanation};
 }
 
 String htmlEscape(String text) {

@@ -50,7 +50,7 @@ jobs:
       - name: Install Android SDK platforms
         run: |
           yes | sdkmanager --licenses || true
-          sdkmanager "platforms;android-36" "platforms;android-35" "platforms;android-31" "platforms;android-29" "build-tools;36.0.0"
+          sdkmanager "platforms;android-36" "platforms;android-35" "platforms;android-31" "platforms;android-29" "build-tools;36.0.0" "ndk;28.0.12674087"
       - name: Cache Pub
         uses: actions/cache@v4
         with:
