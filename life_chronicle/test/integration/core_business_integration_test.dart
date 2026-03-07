@@ -1,9 +1,79 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_chronicle/core/database/app_database.dart';
 import '../test_utils/test_utils.dart';
+import '../test_utils/test_data_factory.dart';
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 
 void main() {
+  group('Moment Record Integration Tests', () {
+    late AppDatabase db;
+
+    setUp(() async {
+      db = createTestDatabase();
+    });
+
+    tearDown(() async {
+      await closeTestDatabase(db);
+    });
+
+    test('Complete moment record lifecycle: create, read, update, delete', () async {
+      final now = DateTime.now();
+      
+      final record = TestDataFactory.createMomentRecord(
+        id: 'integration-moment-1',
+        mood: '开心',
+        content: '今天天气很好',
+        city: '北京',
+        recordDate: now,
+      );
+
+      await db.momentDao.upsert(record);
+
+      var found = await db.momentDao.findById('integration-moment-1');
+      expect(found, isNotNull);
+      expect(found!.mood, equals('开心'));
+      expect(found.content, equals('今天天气很好'));
+
+      final updatedRecord = TestDataFactory.createMomentRecord(
+        id: 'integration-moment-1',
+        mood: '平静',
+        content: '今天学习了很多新东西',
+        city: '上海',
+        recordDate: now,
+      );
+      await db.momentDao.upsert(updatedRecord);
+
+      found = await db.momentDao.findById('integration-moment-1');
+      expect(found!.mood, equals('平静'));
+      expect(found.content, equals('今天学习了很多新东西'));
+      expect(found.city, equals('上海'));
+
+      await db.momentDao.softDeleteById('integration-moment-1', now: DateTime.now());
+      found = await db.momentDao.findById('integration-moment-1');
+      expect(found!.isDeleted, isTrue);
+    });
+
+    test('Moment record with favorite operations', () async {
+      final now = DateTime.now();
+      
+      final record = TestDataFactory.createMomentRecord(
+        id: 'integration-moment-2',
+        mood: '开心',
+        content: '美好的一天',
+        recordDate: now,
+      );
+      await db.momentDao.upsert(record);
+
+      await db.momentDao.updateFavorite('integration-moment-2', isFavorite: true, now: now);
+      var found = await db.momentDao.findById('integration-moment-2');
+      expect(found!.isFavorite, isTrue);
+
+      await db.momentDao.updateFavorite('integration-moment-2', isFavorite: false, now: now);
+      found = await db.momentDao.findById('integration-moment-2');
+      expect(found!.isFavorite, isFalse);
+    });
+  });
+
   group('Food Record Integration Tests', () {
     late AppDatabase db;
 
@@ -18,15 +88,13 @@ void main() {
     test('Complete food record lifecycle: create, read, update, delete', () async {
       final now = DateTime.now();
       
-      final record = FoodRecordsCompanion.insert(
+      final record = TestDataFactory.createFoodRecord(
         id: 'integration-food-1',
         title: 'Integration Test Restaurant',
-        content: const Value('Great food and service'),
-        rating: const Value(4.5),
-        city: const Value('Beijing'),
+        content: 'Great food and service',
+        rating: 4.5,
+        city: 'Beijing',
         recordDate: now,
-        createdAt: now,
-        updatedAt: now,
       );
 
       await db.foodDao.upsert(record);
@@ -36,15 +104,13 @@ void main() {
       expect(found!.title, equals('Integration Test Restaurant'));
       expect(found.rating, equals(4.5));
 
-      final updatedRecord = FoodRecordsCompanion.insert(
+      final updatedRecord = TestDataFactory.createFoodRecord(
         id: 'integration-food-1',
         title: 'Updated Restaurant Name',
-        content: const Value('Even better now'),
-        rating: const Value(5.0),
-        city: const Value('Beijing'),
+        content: 'Even better now',
+        rating: 5.0,
+        city: 'Beijing',
         recordDate: now,
-        createdAt: now,
-        updatedAt: now,
       );
       await db.foodDao.upsert(updatedRecord);
 
@@ -60,12 +126,10 @@ void main() {
     test('Food record with favorite and wishlist operations', () async {
       final now = DateTime.now();
       
-      final record = FoodRecordsCompanion.insert(
+      final record = TestDataFactory.createFoodRecord(
         id: 'integration-food-2',
         title: 'Wishlist Restaurant',
         recordDate: now,
-        createdAt: now,
-        updatedAt: now,
       );
       await db.foodDao.upsert(record);
 
@@ -91,6 +155,75 @@ void main() {
       await db.foodDao.updateFavorite('integration-food-2', isFavorite: true, now: now);
       found = await db.foodDao.findById('integration-food-2');
       expect(found!.isFavorite, isTrue);
+    });
+  });
+
+  group('Friend Record Integration Tests', () {
+    late AppDatabase db;
+
+    setUp(() async {
+      db = createTestDatabase();
+    });
+
+    tearDown(() async {
+      await closeTestDatabase(db);
+    });
+
+    test('Complete friend record lifecycle: create, read, update, delete', () async {
+      final now = DateTime.now();
+      
+      final record = TestDataFactory.createFriendRecord(
+        id: 'integration-friend-1',
+        name: '张三',
+        groupName: '同学',
+        impressionTags: '["幽默", "聪明"]',
+        meetDate: DateTime(2020, 1, 1),
+      );
+
+      await db.friendDao.upsert(record);
+
+      var found = await db.friendDao.findById('integration-friend-1');
+      expect(found, isNotNull);
+      expect(found!.name, equals('张三'));
+      expect(found.groupName, equals('同学'));
+
+      final updatedRecord = TestDataFactory.createFriendRecord(
+        id: 'integration-friend-1',
+        name: '李四',
+        groupName: '朋友',
+        impressionTags: '["靠谱", "有趣"]',
+        meetDate: DateTime(2021, 6, 15),
+      );
+      await db.friendDao.upsert(updatedRecord);
+
+      found = await db.friendDao.findById('integration-friend-1');
+      expect(found!.name, equals('李四'));
+      expect(found.groupName, equals('朋友'));
+      expect(found.impressionTags, equals('["靠谱", "有趣"]'));
+
+      await db.friendDao.softDeleteById('integration-friend-1', now: DateTime.now());
+      found = await db.friendDao.findById('integration-friend-1');
+      expect(found!.isDeleted, isTrue);
+    });
+
+    test('Friend record with favorite and group operations', () async {
+      final now = DateTime.now();
+      
+      final record = TestDataFactory.createFriendRecord(
+        id: 'integration-friend-2',
+        name: '王五',
+        groupName: '家人',
+        recordDate: now,
+      );
+      await db.friendDao.upsert(record);
+
+      await db.friendDao.updateFavorite('integration-friend-2', isFavorite: true, now: now);
+      var found = await db.friendDao.findById('integration-friend-2');
+      expect(found!.isFavorite, isTrue);
+
+      await db.friendDao.updateFavorite('integration-friend-2', isFavorite: false, now: now);
+      found = await db.friendDao.findById('integration-friend-2');
+      expect(found!.isFavorite, isFalse);
     });
   });
 
