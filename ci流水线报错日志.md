@@ -1,13 +1,32 @@
 Run flutter build apk --release
 Upgrading build.gradle
+Your project is configured with Android NDK 28.0.12674087, but the following plugin(s) depend on a different Android NDK version:
 Running Gradle task 'assembleRelease'...                        
-Checking the license for package NDK (Side by side) 27.0.12077973 in /usr/local/lib/android/sdk/licenses
-License for package NDK (Side by side) 27.0.12077973 accepted.
-Preparing "Install NDK (Side by side) 27.0.12077973 v.27.0.12077973".
-"Install NDK (Side by side) 27.0.12077973 v.27.0.12077973" ready.
-Installing NDK (Side by side) 27.0.12077973 in /usr/local/lib/android/sdk/ndk/27.0.12077973
-"Install NDK (Side by side) 27.0.12077973 v.27.0.12077973" complete.
-"Install NDK (Side by side) 27.0.12077973 v.27.0.12077973" finished.
+- amap_flutter_location requires Android NDK 27.0.12077973
+- connectivity_plus requires Android NDK 27.0.12077973
+- device_info_plus requires Android NDK 27.0.12077973
+- file_picker requires Android NDK 27.0.12077973
+- flutter_local_notifications requires Android NDK 27.0.12077973
+- flutter_plugin_android_lifecycle requires Android NDK 27.0.12077973
+- flutter_secure_storage requires Android NDK 27.0.12077973
+- image_picker_android requires Android NDK 27.0.12077973
+- integration_test requires Android NDK 28.2.13676358
+- path_provider_android requires Android NDK 27.0.12077973
+- permission_handler_android requires Android NDK 27.0.12077973
+- share_plus requires Android NDK 27.0.12077973
+- sqflite_android requires Android NDK 27.0.12077973
+- sqlite3_flutter_libs requires Android NDK 27.0.12077973
+- url_launcher_android requires Android NDK 27.0.12077973
+- vibration requires Android NDK 27.0.12077973
+- webview_flutter_android requires Android NDK 27.0.12077973
+- workmanager_android requires Android NDK 27.0.12077973
+Fix this issue by using the highest Android NDK version (they are backward compatible).
+Add the following to /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/android/app/build.gradle:
+
+    android {
+        ndkVersion = "28.2.13676358"
+        ...
+    }
 Checking the license for package Android SDK Platform 33 in /usr/local/lib/android/sdk/licenses
 License for package Android SDK Platform 33 accepted.
 Preparing "Install Android SDK Platform 33 (revision 3)".
@@ -15,169 +34,202 @@ Preparing "Install Android SDK Platform 33 (revision 3)".
 Installing Android SDK Platform 33 in /usr/local/lib/android/sdk/platforms/android-33
 "Install Android SDK Platform 33 (revision 3)" complete.
 "Install Android SDK Platform 33 (revision 3)" finished.
-Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 27444 bytes (98.3% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
-/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_map/android/src/main/java/com/amap/flutter/map/AMapPlatformViewFactory.java:93: error: method e in class LogUtil cannot be applied to given types;
-            LogUtil.e(CLASS_NAME, "Error type: " + e.getClass().getName());
-                   ^
-  required: String,String,Throwable
-  found:    String,String
-  reason: actual and formal argument lists differ in length
-/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_map/android/src/main/java/com/amap/flutter/map/AMapPlatformViewFactory.java:94: error: method e in class LogUtil cannot be applied to given types;
-            LogUtil.e(CLASS_NAME, "Error message: " + e.getMessage());
-                   ^
-  required: String,String,Throwable
-  found:    String,String
-  reason: actual and formal argument lists differ in length
-/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_map/android/src/main/java/com/amap/flutter/map/AMapOptionsBuilder.java:118: error: method e in class LogUtil cannot be applied to given types;
-            LogUtil.e(CLASS_NAME, "Error type: " + e.getClass().getName());
-                   ^
-  required: String,String,Throwable
-  found:    String,String
-  reason: actual and formal argument lists differ in length
-/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_map/android/src/main/java/com/amap/flutter/map/AMapOptionsBuilder.java:119: error: method e in class LogUtil cannot be applied to given types;
-            LogUtil.e(CLASS_NAME, "Error message: " + e.getMessage());
-                   ^
-  required: String,String,Throwable
-  found:    String,String
-  reason: actual and formal argument lists differ in length
-/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_map/android/src/main/java/com/amap/flutter/map/AMapOptionsBuilder.java:121: error: method e in class LogUtil cannot be applied to given types;
-        LogUtil.e(CLASS_NAME, "=== build END, returning null ===");
-               ^
-  required: String,String,Throwable
-  found:    String,String
-  reason: actual and formal argument lists differ in length
-/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_map/android/src/main/java/com/amap/flutter/map/AMapPlatformView.java:102: error: method e in class LogUtil cannot be applied to given types;
-            LogUtil.e(CLASS_NAME, "Error type: " + e.getClass().getName());
-                   ^
-  required: String,String,Throwable
-  found:    String,String
-  reason: actual and formal argument lists differ in length
-/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_map/android/src/main/java/com/amap/flutter/map/AMapPlatformView.java:103: error: method e in class LogUtil cannot be applied to given types;
-            LogUtil.e(CLASS_NAME, "Error message: " + e.getMessage());
-                   ^
-  required: String,String,Throwable
-  found:    String,String
-  reason: actual and formal argument lists differ in length
-/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_map/android/src/main/java/com/amap/flutter/map/AMapPlatformView.java:183: error: method e in class LogUtil cannot be applied to given types;
-                LogUtil.e(CLASS_NAME, "onCreate: mapView is null!");
-                       ^
-  required: String,String,Throwable
-  found:    String,String
-  reason: actual and formal argument lists differ in length
-/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_map/android/src/main/java/com/amap/flutter/map/AMapPlatformView.java:187: error: method e in class LogUtil cannot be applied to given types;
-            LogUtil.e(CLASS_NAME, "Error type: " + e.getClass().getName());
-                   ^
-  required: String,String,Throwable
-  found:    String,String
-  reason: actual and formal argument lists differ in length
-/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_map/android/src/main/java/com/amap/flutter/map/AMapPlatformView.java:188: error: method e in class LogUtil cannot be applied to given types;
-            LogUtil.e(CLASS_NAME, "Error message: " + e.getMessage());
-                   ^
-  required: String,String,Throwable
-  found:    String,String
-  reason: actual and formal argument lists differ in length
-/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_map/android/src/main/java/com/amap/flutter/map/core/MapController.java:171: error: method e in class LogUtil cannot be applied to given types;
-            LogUtil.e(CLASS_NAME, "Error type: " + e.getClass().getName());
-                   ^
-  required: String,String,Throwable
-  found:    String,String
-  reason: actual and formal argument lists differ in length
-/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_map/android/src/main/java/com/amap/flutter/map/core/MapController.java:172: error: method e in class LogUtil cannot be applied to given types;
-            LogUtil.e(CLASS_NAME, "Error message: " + e.getMessage());
-                   ^
-  required: String,String,Throwable
-  found:    String,String
-  reason: actual and formal argument lists differ in length
-Note: Some input files use unchecked or unsafe operations.
-Note: Recompile with -Xlint:unchecked for details.
-12 errors
+/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapLocationClientImpl.java:6: error: package com.amap.api.location does not exist
+import com.amap.api.location.AMapLocation;
+                            ^
+/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapLocationClientImpl.java:7: error: package com.amap.api.location does not exist
+import com.amap.api.location.AMapLocationClient;
+                            ^
+/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapLocationClientImpl.java:8: error: package com.amap.api.location does not exist
+import com.amap.api.location.AMapLocationClientOption;
+                            ^
+/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapLocationClientImpl.java:9: error: package com.amap.api.location does not exist
+import com.amap.api.location.AMapLocationListener;
+                            ^
+/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapLocationClientImpl.java:15: error: cannot find symbol
+public class AMapLocationClientImpl implements AMapLocationListener {
+                                               ^
+  symbol: class AMapLocationListener
+/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapLocationClientImpl.java:20: error: cannot find symbol
+    private AMapLocationClientOption locationOption = new AMapLocationClientOption();
+            ^
+  symbol:   class AMapLocationClientOption
+  location: class AMapLocationClientImpl
+/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapLocationClientImpl.java:21: error: cannot find symbol
+    private AMapLocationClient locationClient = null;
+            ^
+  symbol:   class AMapLocationClient
+  location: class AMapLocationClientImpl
+/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapLocationClientImpl.java:90: error: cannot find symbol
+    public void onLocationChanged(AMapLocation location) {
+                                  ^
+  symbol:   class AMapLocation
+  location: class AMapLocationClientImpl
+/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapFlutterLocationPlugin.java:8: error: package com.amap.api.location does not exist
+import com.amap.api.location.AMapLocationClient;
+                            ^
+/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/Utils.java:5: error: package com.amap.api.location does not exist
+import com.amap.api.location.AMapLocation;
+                            ^
+/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/Utils.java:15: error: cannot find symbol
+    public static Map<String, Object> buildLocationResultMap(AMapLocation location) {
+                                                             ^
+  symbol:   class AMapLocation
+  location: class Utils
+/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapLocationClientImpl.java:20: error: cannot find symbol
+    private AMapLocationClientOption locationOption = new AMapLocationClientOption();
+                                                          ^
+  symbol:   class AMapLocationClientOption
+  location: class AMapLocationClientImpl
+/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapLocationClientImpl.java:39: error: cannot find symbol
+                    AMapLocationClient.updatePrivacyShow(mContext, true, true);
+                    ^
+  symbol:   variable AMapLocationClient
+  location: class AMapLocationClientImpl
+/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapLocationClientImpl.java:40: error: cannot find symbol
+                    AMapLocationClient.updatePrivacyAgree(mContext, true);
+                    ^
+  symbol:   variable AMapLocationClient
+  location: class AMapLocationClientImpl
+/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapLocationClientImpl.java:46: error: cannot find symbol
+                locationClient = new AMapLocationClient(mContext);
+                                     ^
+  symbol:   class AMapLocationClient
+  location: class AMapLocationClientImpl
+/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapLocationClientImpl.java:89: error: method does not override or implement a method from a supertype
+    @Override
+    ^
+/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapLocationClientImpl.java:116: error: cannot find symbol
+            locationOption = new AMapLocationClientOption();
+                                 ^
+  symbol:   class AMapLocationClientOption
+  location: class AMapLocationClientImpl
+/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapLocationClientImpl.java:134: error: package AMapLocationClientOption does not exist
+                locationOption.setLocationMode(AMapLocationClientOption.AMapLocationMode.values()[(int) optionMap.get("locationMode")]);
+                                                                       ^
+/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapLocationClientImpl.java:142: error: package AMapLocationClientOption does not exist
+                locationOption.setGeoLanguage(AMapLocationClientOption.GeoLanguage.values()[(int) optionMap.get("geoLanguage")]);
+                                                                      ^
+/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapFlutterLocationPlugin.java:120: error: cannot find symbol
+                AMapLocationClient.updatePrivacyShow(context, hasContains, hasShow);
+                ^
+  symbol:   variable AMapLocationClient
+  location: class AMapFlutterLocationPlugin
+/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapFlutterLocationPlugin.java:124: error: cannot find symbol
+                AMapLocationClient.updatePrivacyAgree(context, hasAgree);
+                ^
+  symbol:   variable AMapLocationClient
+  location: class AMapFlutterLocationPlugin
+/home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/Utils.java:19: error: cannot find symbol
+            if (location.getErrorCode() == AMapLocation.LOCATION_SUCCESS) {
+                                           ^
+  symbol:   variable AMapLocation
+  location: class Utils
+22 errors
 
 FAILURE: Build failed with an exception.
 
 * What went wrong:
-Execution failed for task ':amap_flutter_map:compileReleaseJavaWithJavac'.
+Execution failed for task ':amap_flutter_location:compileReleaseJavaWithJavac'.
 > Compilation failed; see the compiler output below.
-  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_map/android/src/main/java/com/amap/flutter/map/AMapPlatformViewFactory.java:93: error: method e in class LogUtil cannot be applied to given types;
-              LogUtil.e(CLASS_NAME, "Error type: " + e.getClass().getName());
-                     ^
-    required: String,String,Throwable
-    found:    String,String
-    reason: actual and formal argument lists differ in length
-  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_map/android/src/main/java/com/amap/flutter/map/AMapPlatformViewFactory.java:94: error: method e in class LogUtil cannot be applied to given types;
-              LogUtil.e(CLASS_NAME, "Error message: " + e.getMessage());
-                     ^
-    required: String,String,Throwable
-    found:    String,String
-    reason: actual and formal argument lists differ in length
-  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_map/android/src/main/java/com/amap/flutter/map/AMapOptionsBuilder.java:118: error: method e in class LogUtil cannot be applied to given types;
-              LogUtil.e(CLASS_NAME, "Error type: " + e.getClass().getName());
-                     ^
-    required: String,String,Throwable
-    found:    String,String
-    reason: actual and formal argument lists differ in length
-  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_map/android/src/main/java/com/amap/flutter/map/AMapOptionsBuilder.java:119: error: method e in class LogUtil cannot be applied to given types;
-              LogUtil.e(CLASS_NAME, "Error message: " + e.getMessage());
-                     ^
-    required: String,String,Throwable
-    found:    String,String
-    reason: actual and formal argument lists differ in length
-  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_map/android/src/main/java/com/amap/flutter/map/AMapOptionsBuilder.java:121: error: method e in class LogUtil cannot be applied to given types;
-          LogUtil.e(CLASS_NAME, "=== build END, returning null ===");
-                 ^
-    required: String,String,Throwable
-    found:    String,String
-    reason: actual and formal argument lists differ in length
-  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_map/android/src/main/java/com/amap/flutter/map/AMapPlatformView.java:102: error: method e in class LogUtil cannot be applied to given types;
-              LogUtil.e(CLASS_NAME, "Error type: " + e.getClass().getName());
-                     ^
-    required: String,String,Throwable
-    found:    String,String
-    reason: actual and formal argument lists differ in length
-  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_map/android/src/main/java/com/amap/flutter/map/AMapPlatformView.java:103: error: method e in class LogUtil cannot be applied to given types;
-              LogUtil.e(CLASS_NAME, "Error message: " + e.getMessage());
-                     ^
-    required: String,String,Throwable
-    found:    String,String
-    reason: actual and formal argument lists differ in length
-  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_map/android/src/main/java/com/amap/flutter/map/AMapPlatformView.java:183: error: method e in class LogUtil cannot be applied to given types;
-                  LogUtil.e(CLASS_NAME, "onCreate: mapView is null!");
-                         ^
-    required: String,String,Throwable
-    found:    String,String
-    reason: actual and formal argument lists differ in length
-  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_map/android/src/main/java/com/amap/flutter/map/AMapPlatformView.java:187: error: method e in class LogUtil cannot be applied to given types;
-              LogUtil.e(CLASS_NAME, "Error type: " + e.getClass().getName());
-                     ^
-    required: String,String,Throwable
-    found:    String,String
-    reason: actual and formal argument lists differ in length
-  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_map/android/src/main/java/com/amap/flutter/map/AMapPlatformView.java:188: error: method e in class LogUtil cannot be applied to given types;
-              LogUtil.e(CLASS_NAME, "Error message: " + e.getMessage());
-                     ^
-    required: String,String,Throwable
-    found:    String,String
-    reason: actual and formal argument lists differ in length
-  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_map/android/src/main/java/com/amap/flutter/map/core/MapController.java:171: error: method e in class LogUtil cannot be applied to given types;
-              LogUtil.e(CLASS_NAME, "Error type: " + e.getClass().getName());
-                     ^
-    required: String,String,Throwable
-    found:    String,String
-    reason: actual and formal argument lists differ in length
-  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_map/android/src/main/java/com/amap/flutter/map/core/MapController.java:172: error: method e in class LogUtil cannot be applied to given types;
-              LogUtil.e(CLASS_NAME, "Error message: " + e.getMessage());
-                     ^
-    required: String,String,Throwable
-    found:    String,String
-    reason: actual and formal argument lists differ in length
-  Note: Recompile with -Xlint:unchecked for details.
-  Note: Some input files use unchecked or unsafe operations.
-  12 errors
+  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapLocationClientImpl.java:20: error: cannot find symbol
+      private AMapLocationClientOption locationOption = new AMapLocationClientOption();
+              ^
+    symbol:   class AMapLocationClientOption
+    location: class AMapLocationClientImpl
+  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapLocationClientImpl.java:21: error: cannot find symbol
+      private AMapLocationClient locationClient = null;
+              ^
+    symbol:   class AMapLocationClient
+    location: class AMapLocationClientImpl
+  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapLocationClientImpl.java:90: error: cannot find symbol
+      public void onLocationChanged(AMapLocation location) {
+                                    ^
+    symbol:   class AMapLocation
+    location: class AMapLocationClientImpl
+  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/Utils.java:15: error: cannot find symbol
+      public static Map<String, Object> buildLocationResultMap(AMapLocation location) {
+                                                               ^
+    symbol:   class AMapLocation
+    location: class Utils
+  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapLocationClientImpl.java:20: error: cannot find symbol
+      private AMapLocationClientOption locationOption = new AMapLocationClientOption();
+                                                            ^
+    symbol:   class AMapLocationClientOption
+    location: class AMapLocationClientImpl
+  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapLocationClientImpl.java:39: error: cannot find symbol
+                      AMapLocationClient.updatePrivacyShow(mContext, true, true);
+                      ^
+    symbol:   variable AMapLocationClient
+    location: class AMapLocationClientImpl
+  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapLocationClientImpl.java:40: error: cannot find symbol
+                      AMapLocationClient.updatePrivacyAgree(mContext, true);
+                      ^
+    symbol:   variable AMapLocationClient
+    location: class AMapLocationClientImpl
+  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapLocationClientImpl.java:46: error: cannot find symbol
+                  locationClient = new AMapLocationClient(mContext);
+                                       ^
+    symbol:   class AMapLocationClient
+    location: class AMapLocationClientImpl
+  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapLocationClientImpl.java:116: error: cannot find symbol
+              locationOption = new AMapLocationClientOption();
+                                   ^
+    symbol:   class AMapLocationClientOption
+    location: class AMapLocationClientImpl
+  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapFlutterLocationPlugin.java:120: error: cannot find symbol
+                  AMapLocationClient.updatePrivacyShow(context, hasContains, hasShow);
+                  ^
+    symbol:   variable AMapLocationClient
+    location: class AMapFlutterLocationPlugin
+  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapFlutterLocationPlugin.java:124: error: cannot find symbol
+                  AMapLocationClient.updatePrivacyAgree(context, hasAgree);
+                  ^
+    symbol:   variable AMapLocationClient
+    location: class AMapFlutterLocationPlugin
+  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/Utils.java:19: error: cannot find symbol
+              if (location.getErrorCode() == AMapLocation.LOCATION_SUCCESS) {
+                                             ^
+    symbol:   variable AMapLocation
+    location: class Utils
+  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapLocationClientImpl.java:89: error: method does not override or implement a method from a supertype
+      @Override
+      ^
+  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapLocationClientImpl.java:15: error: cannot find symbol
+  public class AMapLocationClientImpl implements AMapLocationListener {
+                                                 ^
+    symbol: class AMapLocationListener
+  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapLocationClientImpl.java:6: error: package com.amap.api.location does not exist
+  import com.amap.api.location.AMapLocation;
+                              ^
+  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapLocationClientImpl.java:7: error: package com.amap.api.location does not exist
+  import com.amap.api.location.AMapLocationClient;
+                              ^
+  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapLocationClientImpl.java:8: error: package com.amap.api.location does not exist
+  import com.amap.api.location.AMapLocationClientOption;
+                              ^
+  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapLocationClientImpl.java:9: error: package com.amap.api.location does not exist
+  import com.amap.api.location.AMapLocationListener;
+                              ^
+  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapFlutterLocationPlugin.java:8: error: package com.amap.api.location does not exist
+  import com.amap.api.location.AMapLocationClient;
+                              ^
+  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/Utils.java:5: error: package com.amap.api.location does not exist
+  import com.amap.api.location.AMapLocation;
+                              ^
+  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapLocationClientImpl.java:134: error: package AMapLocationClientOption does not exist
+                  locationOption.setLocationMode(AMapLocationClientOption.AMapLocationMode.values()[(int) optionMap.get("locationMode")]);
+                                                                         ^
+  /home/runner/work/renshengbiannianshi/renshengbiannianshi/life_chronicle/plugins/amap_flutter_location/android/src/main/java/com/amap/flutter/location/AMapLocationClientImpl.java:142: error: package AMapLocationClientOption does not exist
+                  locationOption.setGeoLanguage(AMapLocationClientOption.GeoLanguage.values()[(int) optionMap.get("geoLanguage")]);
+                                                                        ^
+  22 errors
 
 * Try:
 > Check your code and dependencies to fix the compilation error(s)
 > Run with --scan to get full insights.
 
-BUILD FAILED in 1m 41s
-Running Gradle task 'assembleRelease'...                          102.4s
+BUILD FAILED in 31s
+Running Gradle task 'assembleRelease'...                           31.8s
 Gradle task assembleRelease failed with exit code 1
 Error: Process completed with exit code 1.
