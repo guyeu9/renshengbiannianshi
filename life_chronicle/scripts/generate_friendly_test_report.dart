@@ -257,7 +257,7 @@ String generateTestItem(Map<String, dynamic> test, bool isFailed) {
 
 Map<String, String> makeErrorFriendly(String error) {
   String message = error;
-  String? explanation;
+  String explanation = '';
 
   if (error.contains('Expected:') && error.contains('Actual:')) {
     message = '断言失败：预期结果和实际结果不一致，请检查代码逻辑是否正确。';
