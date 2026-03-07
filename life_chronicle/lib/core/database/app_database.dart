@@ -19,17 +19,18 @@ part 'daos/goal_postponement_dao.dart';
 part 'daos/goal_review_dao.dart';
 part 'daos/backup_log_dao.dart';
 part 'daos/annual_review_dao.dart';
+part 'daos/embedding_dao.dart';
 
 @DriftDatabase(
-  tables: [FoodRecords, MomentRecords, FriendRecords, TravelRecords, Trips, GoalRecords, TimelineEvents, EntityLinks, LinkLogs, UserProfiles, AiProviders, ChangeLogs, SyncState, ChecklistItems, GoalPostponements, GoalReviews, BackupLogs, AnnualReviews],
-  daos: [FoodDao, MomentDao, FriendDao, LinkDao, AiProviderDao, ChangeLogDao, SyncStateDao, ChecklistDao, GoalPostponementDao, GoalReviewDao, BackupLogDao, AnnualReviewDao],
+  tables: [FoodRecords, MomentRecords, FriendRecords, TravelRecords, Trips, GoalRecords, TimelineEvents, EntityLinks, LinkLogs, UserProfiles, AiProviders, ChangeLogs, SyncState, ChecklistItems, GoalPostponements, GoalReviews, BackupLogs, AnnualReviews, RecordEmbeddings],
+  daos: [FoodDao, MomentDao, FriendDao, LinkDao, AiProviderDao, ChangeLogDao, SyncStateDao, ChecklistDao, GoalPostponementDao, GoalReviewDao, BackupLogDao, AnnualReviewDao, EmbeddingDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(dbconn.openConnection());
   AppDatabase.connect(super.executor);
 
   @override
-  int get schemaVersion => 22;
+  int get schemaVersion => 23;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -166,8 +167,38 @@ class AppDatabase extends _$AppDatabase {
           if (from < 22) {
             await _createFTSTables();
           }
+
+          if (from < 23) {
+            await _createEmbeddingsTable();
+          }
         },
       );
+
+  Future<void> _createEmbeddingsTable() async {
+    await customStatement('''
+      CREATE TABLE IF NOT EXISTS record_embeddings (
+        id TEXT PRIMARY KEY,
+        entity_type TEXT NOT NULL,
+        entity_id TEXT NOT NULL,
+        embedding BLOB NOT NULL,
+        dimension INTEGER NOT NULL,
+        model_name TEXT NOT NULL,
+        source_text TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    ''');
+
+    await customStatement('''
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_record_embeddings_entity 
+      ON record_embeddings (entity_type, entity_id)
+    ''');
+
+    await customStatement('''
+      CREATE INDEX IF NOT EXISTS idx_record_embeddings_entity_type 
+      ON record_embeddings (entity_type)
+    ''');
+  }
 
   Future<void> _createFTSTables() async {
     await customStatement('''

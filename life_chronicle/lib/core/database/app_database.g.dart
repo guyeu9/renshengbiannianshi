@@ -10687,6 +10687,492 @@ class AnnualReviewsCompanion extends UpdateCompanion<AnnualReview> {
   }
 }
 
+class $RecordEmbeddingsTable extends RecordEmbeddings
+    with TableInfo<$RecordEmbeddingsTable, RecordEmbedding> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RecordEmbeddingsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _entityTypeMeta =
+      const VerificationMeta('entityType');
+  @override
+  late final GeneratedColumn<String> entityType = GeneratedColumn<String>(
+      'entity_type', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _entityIdMeta =
+      const VerificationMeta('entityId');
+  @override
+  late final GeneratedColumn<String> entityId = GeneratedColumn<String>(
+      'entity_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _embeddingMeta =
+      const VerificationMeta('embedding');
+  @override
+  late final GeneratedColumn<Uint8List> embedding = GeneratedColumn<Uint8List>(
+      'embedding', aliasedName, false,
+      type: DriftSqlType.blob, requiredDuringInsert: true);
+  static const VerificationMeta _dimensionMeta =
+      const VerificationMeta('dimension');
+  @override
+  late final GeneratedColumn<int> dimension = GeneratedColumn<int>(
+      'dimension', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _modelNameMeta =
+      const VerificationMeta('modelName');
+  @override
+  late final GeneratedColumn<String> modelName = GeneratedColumn<String>(
+      'model_name', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _sourceTextMeta =
+      const VerificationMeta('sourceText');
+  @override
+  late final GeneratedColumn<String> sourceText = GeneratedColumn<String>(
+      'source_text', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        entityType,
+        entityId,
+        embedding,
+        dimension,
+        modelName,
+        sourceText,
+        createdAt,
+        updatedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'record_embeddings';
+  @override
+  VerificationContext validateIntegrity(Insertable<RecordEmbedding> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('entity_type')) {
+      context.handle(
+          _entityTypeMeta,
+          entityType.isAcceptableOrUnknown(
+              data['entity_type']!, _entityTypeMeta));
+    } else if (isInserting) {
+      context.missing(_entityTypeMeta);
+    }
+    if (data.containsKey('entity_id')) {
+      context.handle(_entityIdMeta,
+          entityId.isAcceptableOrUnknown(data['entity_id']!, _entityIdMeta));
+    } else if (isInserting) {
+      context.missing(_entityIdMeta);
+    }
+    if (data.containsKey('embedding')) {
+      context.handle(_embeddingMeta,
+          embedding.isAcceptableOrUnknown(data['embedding']!, _embeddingMeta));
+    } else if (isInserting) {
+      context.missing(_embeddingMeta);
+    }
+    if (data.containsKey('dimension')) {
+      context.handle(_dimensionMeta,
+          dimension.isAcceptableOrUnknown(data['dimension']!, _dimensionMeta));
+    } else if (isInserting) {
+      context.missing(_dimensionMeta);
+    }
+    if (data.containsKey('model_name')) {
+      context.handle(_modelNameMeta,
+          modelName.isAcceptableOrUnknown(data['model_name']!, _modelNameMeta));
+    } else if (isInserting) {
+      context.missing(_modelNameMeta);
+    }
+    if (data.containsKey('source_text')) {
+      context.handle(
+          _sourceTextMeta,
+          sourceText.isAcceptableOrUnknown(
+              data['source_text']!, _sourceTextMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+        {entityType, entityId},
+      ];
+  @override
+  RecordEmbedding map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RecordEmbedding(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      entityType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}entity_type'])!,
+      entityId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}entity_id'])!,
+      embedding: attachedDatabase.typeMapping
+          .read(DriftSqlType.blob, data['${effectivePrefix}embedding'])!,
+      dimension: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}dimension'])!,
+      modelName: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}model_name'])!,
+      sourceText: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}source_text']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+    );
+  }
+
+  @override
+  $RecordEmbeddingsTable createAlias(String alias) {
+    return $RecordEmbeddingsTable(attachedDatabase, alias);
+  }
+}
+
+class RecordEmbedding extends DataClass implements Insertable<RecordEmbedding> {
+  final String id;
+  final String entityType;
+  final String entityId;
+  final Uint8List embedding;
+  final int dimension;
+  final String modelName;
+  final String? sourceText;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const RecordEmbedding(
+      {required this.id,
+      required this.entityType,
+      required this.entityId,
+      required this.embedding,
+      required this.dimension,
+      required this.modelName,
+      this.sourceText,
+      required this.createdAt,
+      required this.updatedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['entity_type'] = Variable<String>(entityType);
+    map['entity_id'] = Variable<String>(entityId);
+    map['embedding'] = Variable<Uint8List>(embedding);
+    map['dimension'] = Variable<int>(dimension);
+    map['model_name'] = Variable<String>(modelName);
+    if (!nullToAbsent || sourceText != null) {
+      map['source_text'] = Variable<String>(sourceText);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  RecordEmbeddingsCompanion toCompanion(bool nullToAbsent) {
+    return RecordEmbeddingsCompanion(
+      id: Value(id),
+      entityType: Value(entityType),
+      entityId: Value(entityId),
+      embedding: Value(embedding),
+      dimension: Value(dimension),
+      modelName: Value(modelName),
+      sourceText: sourceText == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceText),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory RecordEmbedding.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RecordEmbedding(
+      id: serializer.fromJson<String>(json['id']),
+      entityType: serializer.fromJson<String>(json['entityType']),
+      entityId: serializer.fromJson<String>(json['entityId']),
+      embedding: serializer.fromJson<Uint8List>(json['embedding']),
+      dimension: serializer.fromJson<int>(json['dimension']),
+      modelName: serializer.fromJson<String>(json['modelName']),
+      sourceText: serializer.fromJson<String?>(json['sourceText']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'entityType': serializer.toJson<String>(entityType),
+      'entityId': serializer.toJson<String>(entityId),
+      'embedding': serializer.toJson<Uint8List>(embedding),
+      'dimension': serializer.toJson<int>(dimension),
+      'modelName': serializer.toJson<String>(modelName),
+      'sourceText': serializer.toJson<String?>(sourceText),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  RecordEmbedding copyWith(
+          {String? id,
+          String? entityType,
+          String? entityId,
+          Uint8List? embedding,
+          int? dimension,
+          String? modelName,
+          Value<String?> sourceText = const Value.absent(),
+          DateTime? createdAt,
+          DateTime? updatedAt}) =>
+      RecordEmbedding(
+        id: id ?? this.id,
+        entityType: entityType ?? this.entityType,
+        entityId: entityId ?? this.entityId,
+        embedding: embedding ?? this.embedding,
+        dimension: dimension ?? this.dimension,
+        modelName: modelName ?? this.modelName,
+        sourceText: sourceText.present ? sourceText.value : this.sourceText,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+  RecordEmbedding copyWithCompanion(RecordEmbeddingsCompanion data) {
+    return RecordEmbedding(
+      id: data.id.present ? data.id.value : this.id,
+      entityType:
+          data.entityType.present ? data.entityType.value : this.entityType,
+      entityId: data.entityId.present ? data.entityId.value : this.entityId,
+      embedding: data.embedding.present ? data.embedding.value : this.embedding,
+      dimension: data.dimension.present ? data.dimension.value : this.dimension,
+      modelName: data.modelName.present ? data.modelName.value : this.modelName,
+      sourceText:
+          data.sourceText.present ? data.sourceText.value : this.sourceText,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecordEmbedding(')
+          ..write('id: $id, ')
+          ..write('entityType: $entityType, ')
+          ..write('entityId: $entityId, ')
+          ..write('embedding: $embedding, ')
+          ..write('dimension: $dimension, ')
+          ..write('modelName: $modelName, ')
+          ..write('sourceText: $sourceText, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id,
+      entityType,
+      entityId,
+      $driftBlobEquality.hash(embedding),
+      dimension,
+      modelName,
+      sourceText,
+      createdAt,
+      updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RecordEmbedding &&
+          other.id == this.id &&
+          other.entityType == this.entityType &&
+          other.entityId == this.entityId &&
+          $driftBlobEquality.equals(other.embedding, this.embedding) &&
+          other.dimension == this.dimension &&
+          other.modelName == this.modelName &&
+          other.sourceText == this.sourceText &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class RecordEmbeddingsCompanion extends UpdateCompanion<RecordEmbedding> {
+  final Value<String> id;
+  final Value<String> entityType;
+  final Value<String> entityId;
+  final Value<Uint8List> embedding;
+  final Value<int> dimension;
+  final Value<String> modelName;
+  final Value<String?> sourceText;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const RecordEmbeddingsCompanion({
+    this.id = const Value.absent(),
+    this.entityType = const Value.absent(),
+    this.entityId = const Value.absent(),
+    this.embedding = const Value.absent(),
+    this.dimension = const Value.absent(),
+    this.modelName = const Value.absent(),
+    this.sourceText = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RecordEmbeddingsCompanion.insert({
+    required String id,
+    required String entityType,
+    required String entityId,
+    required Uint8List embedding,
+    required int dimension,
+    required String modelName,
+    this.sourceText = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        entityType = Value(entityType),
+        entityId = Value(entityId),
+        embedding = Value(embedding),
+        dimension = Value(dimension),
+        modelName = Value(modelName),
+        createdAt = Value(createdAt),
+        updatedAt = Value(updatedAt);
+  static Insertable<RecordEmbedding> custom({
+    Expression<String>? id,
+    Expression<String>? entityType,
+    Expression<String>? entityId,
+    Expression<Uint8List>? embedding,
+    Expression<int>? dimension,
+    Expression<String>? modelName,
+    Expression<String>? sourceText,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (entityType != null) 'entity_type': entityType,
+      if (entityId != null) 'entity_id': entityId,
+      if (embedding != null) 'embedding': embedding,
+      if (dimension != null) 'dimension': dimension,
+      if (modelName != null) 'model_name': modelName,
+      if (sourceText != null) 'source_text': sourceText,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RecordEmbeddingsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? entityType,
+      Value<String>? entityId,
+      Value<Uint8List>? embedding,
+      Value<int>? dimension,
+      Value<String>? modelName,
+      Value<String?>? sourceText,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<int>? rowid}) {
+    return RecordEmbeddingsCompanion(
+      id: id ?? this.id,
+      entityType: entityType ?? this.entityType,
+      entityId: entityId ?? this.entityId,
+      embedding: embedding ?? this.embedding,
+      dimension: dimension ?? this.dimension,
+      modelName: modelName ?? this.modelName,
+      sourceText: sourceText ?? this.sourceText,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (entityType.present) {
+      map['entity_type'] = Variable<String>(entityType.value);
+    }
+    if (entityId.present) {
+      map['entity_id'] = Variable<String>(entityId.value);
+    }
+    if (embedding.present) {
+      map['embedding'] = Variable<Uint8List>(embedding.value);
+    }
+    if (dimension.present) {
+      map['dimension'] = Variable<int>(dimension.value);
+    }
+    if (modelName.present) {
+      map['model_name'] = Variable<String>(modelName.value);
+    }
+    if (sourceText.present) {
+      map['source_text'] = Variable<String>(sourceText.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecordEmbeddingsCompanion(')
+          ..write('id: $id, ')
+          ..write('entityType: $entityType, ')
+          ..write('entityId: $entityId, ')
+          ..write('embedding: $embedding, ')
+          ..write('dimension: $dimension, ')
+          ..write('modelName: $modelName, ')
+          ..write('sourceText: $sourceText, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -10709,6 +11195,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $GoalReviewsTable goalReviews = $GoalReviewsTable(this);
   late final $BackupLogsTable backupLogs = $BackupLogsTable(this);
   late final $AnnualReviewsTable annualReviews = $AnnualReviewsTable(this);
+  late final $RecordEmbeddingsTable recordEmbeddings =
+      $RecordEmbeddingsTable(this);
   late final FoodDao foodDao = FoodDao(this as AppDatabase);
   late final MomentDao momentDao = MomentDao(this as AppDatabase);
   late final FriendDao friendDao = FriendDao(this as AppDatabase);
@@ -10723,6 +11211,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final BackupLogDao backupLogDao = BackupLogDao(this as AppDatabase);
   late final AnnualReviewDao annualReviewDao =
       AnnualReviewDao(this as AppDatabase);
+  late final EmbeddingDao embeddingDao = EmbeddingDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -10745,7 +11234,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         goalPostponements,
         goalReviews,
         backupLogs,
-        annualReviews
+        annualReviews,
+        recordEmbeddings
       ];
 }
 
@@ -15666,6 +16156,240 @@ typedef $$AnnualReviewsTableProcessedTableManager = ProcessedTableManager<
     ),
     AnnualReview,
     PrefetchHooks Function()>;
+typedef $$RecordEmbeddingsTableCreateCompanionBuilder
+    = RecordEmbeddingsCompanion Function({
+  required String id,
+  required String entityType,
+  required String entityId,
+  required Uint8List embedding,
+  required int dimension,
+  required String modelName,
+  Value<String?> sourceText,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+  Value<int> rowid,
+});
+typedef $$RecordEmbeddingsTableUpdateCompanionBuilder
+    = RecordEmbeddingsCompanion Function({
+  Value<String> id,
+  Value<String> entityType,
+  Value<String> entityId,
+  Value<Uint8List> embedding,
+  Value<int> dimension,
+  Value<String> modelName,
+  Value<String?> sourceText,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+
+class $$RecordEmbeddingsTableFilterComposer
+    extends Composer<_$AppDatabase, $RecordEmbeddingsTable> {
+  $$RecordEmbeddingsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get entityType => $composableBuilder(
+      column: $table.entityType, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get entityId => $composableBuilder(
+      column: $table.entityId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<Uint8List> get embedding => $composableBuilder(
+      column: $table.embedding, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get dimension => $composableBuilder(
+      column: $table.dimension, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get modelName => $composableBuilder(
+      column: $table.modelName, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get sourceText => $composableBuilder(
+      column: $table.sourceText, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$RecordEmbeddingsTableOrderingComposer
+    extends Composer<_$AppDatabase, $RecordEmbeddingsTable> {
+  $$RecordEmbeddingsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get entityType => $composableBuilder(
+      column: $table.entityType, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get entityId => $composableBuilder(
+      column: $table.entityId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<Uint8List> get embedding => $composableBuilder(
+      column: $table.embedding, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get dimension => $composableBuilder(
+      column: $table.dimension, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get modelName => $composableBuilder(
+      column: $table.modelName, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get sourceText => $composableBuilder(
+      column: $table.sourceText, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$RecordEmbeddingsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RecordEmbeddingsTable> {
+  $$RecordEmbeddingsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get entityType => $composableBuilder(
+      column: $table.entityType, builder: (column) => column);
+
+  GeneratedColumn<String> get entityId =>
+      $composableBuilder(column: $table.entityId, builder: (column) => column);
+
+  GeneratedColumn<Uint8List> get embedding =>
+      $composableBuilder(column: $table.embedding, builder: (column) => column);
+
+  GeneratedColumn<int> get dimension =>
+      $composableBuilder(column: $table.dimension, builder: (column) => column);
+
+  GeneratedColumn<String> get modelName =>
+      $composableBuilder(column: $table.modelName, builder: (column) => column);
+
+  GeneratedColumn<String> get sourceText => $composableBuilder(
+      column: $table.sourceText, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$RecordEmbeddingsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $RecordEmbeddingsTable,
+    RecordEmbedding,
+    $$RecordEmbeddingsTableFilterComposer,
+    $$RecordEmbeddingsTableOrderingComposer,
+    $$RecordEmbeddingsTableAnnotationComposer,
+    $$RecordEmbeddingsTableCreateCompanionBuilder,
+    $$RecordEmbeddingsTableUpdateCompanionBuilder,
+    (
+      RecordEmbedding,
+      BaseReferences<_$AppDatabase, $RecordEmbeddingsTable, RecordEmbedding>
+    ),
+    RecordEmbedding,
+    PrefetchHooks Function()> {
+  $$RecordEmbeddingsTableTableManager(
+      _$AppDatabase db, $RecordEmbeddingsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RecordEmbeddingsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RecordEmbeddingsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RecordEmbeddingsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> entityType = const Value.absent(),
+            Value<String> entityId = const Value.absent(),
+            Value<Uint8List> embedding = const Value.absent(),
+            Value<int> dimension = const Value.absent(),
+            Value<String> modelName = const Value.absent(),
+            Value<String?> sourceText = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              RecordEmbeddingsCompanion(
+            id: id,
+            entityType: entityType,
+            entityId: entityId,
+            embedding: embedding,
+            dimension: dimension,
+            modelName: modelName,
+            sourceText: sourceText,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String entityType,
+            required String entityId,
+            required Uint8List embedding,
+            required int dimension,
+            required String modelName,
+            Value<String?> sourceText = const Value.absent(),
+            required DateTime createdAt,
+            required DateTime updatedAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              RecordEmbeddingsCompanion.insert(
+            id: id,
+            entityType: entityType,
+            entityId: entityId,
+            embedding: embedding,
+            dimension: dimension,
+            modelName: modelName,
+            sourceText: sourceText,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$RecordEmbeddingsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $RecordEmbeddingsTable,
+    RecordEmbedding,
+    $$RecordEmbeddingsTableFilterComposer,
+    $$RecordEmbeddingsTableOrderingComposer,
+    $$RecordEmbeddingsTableAnnotationComposer,
+    $$RecordEmbeddingsTableCreateCompanionBuilder,
+    $$RecordEmbeddingsTableUpdateCompanionBuilder,
+    (
+      RecordEmbedding,
+      BaseReferences<_$AppDatabase, $RecordEmbeddingsTable, RecordEmbedding>
+    ),
+    RecordEmbedding,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -15706,6 +16430,8 @@ class $AppDatabaseManager {
       $$BackupLogsTableTableManager(_db, _db.backupLogs);
   $$AnnualReviewsTableTableManager get annualReviews =>
       $$AnnualReviewsTableTableManager(_db, _db.annualReviews);
+  $$RecordEmbeddingsTableTableManager get recordEmbeddings =>
+      $$RecordEmbeddingsTableTableManager(_db, _db.recordEmbeddings);
 }
 
 mixin _$FoodDaoMixin on DatabaseAccessor<AppDatabase> {
@@ -15856,4 +16582,18 @@ class AnnualReviewDaoManager {
   AnnualReviewDaoManager(this._db);
   $$AnnualReviewsTableTableManager get annualReviews =>
       $$AnnualReviewsTableTableManager(_db.attachedDatabase, _db.annualReviews);
+}
+
+mixin _$EmbeddingDaoMixin on DatabaseAccessor<AppDatabase> {
+  $RecordEmbeddingsTable get recordEmbeddings =>
+      attachedDatabase.recordEmbeddings;
+  EmbeddingDaoManager get managers => EmbeddingDaoManager(this);
+}
+
+class EmbeddingDaoManager {
+  final _$EmbeddingDaoMixin _db;
+  EmbeddingDaoManager(this._db);
+  $$RecordEmbeddingsTableTableManager get recordEmbeddings =>
+      $$RecordEmbeddingsTableTableManager(
+          _db.attachedDatabase, _db.recordEmbeddings);
 }

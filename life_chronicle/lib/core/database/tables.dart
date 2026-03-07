@@ -370,3 +370,23 @@ class AnnualReviews extends Table {
   @override
   Set<Column> get primaryKey => {id};
 }
+
+class RecordEmbeddings extends Table {
+  TextColumn get id => text()();
+  TextColumn get entityType => text()();
+  TextColumn get entityId => text()();
+  BlobColumn get embedding => blob()();
+  IntColumn get dimension => integer()();
+  TextColumn get modelName => text()();
+  TextColumn get sourceText => text().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+        {entityType, entityId},
+      ];
+}

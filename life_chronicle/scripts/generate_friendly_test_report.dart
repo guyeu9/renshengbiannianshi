@@ -65,7 +65,7 @@ void main() {
   final timestamp = DateTime.now().toLocal().toString().replaceAll(':', '-').replaceAll(' ', '_').substring(0, 19);
   
   final statusText = hasProblems ? '有问题' : '正常';
-  final fileName = '检测报告_$statusText\_通过${passedTests}_失败${failedTests}_跳过${skippedTests}_$timestamp.html';
+  final fileName = '检测报告_${statusText}_通过${passedTests}_失败${failedTests}_跳过${skippedTests}_$timestamp.html';
 
   final reportTitle = hasProblems ? '❌ 检测报告 - 有问题' : '✅ 检测报告 - 正常';
   final statusIcon = hasProblems ? '❌' : '✅';
