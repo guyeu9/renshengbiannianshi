@@ -3,15 +3,21 @@ import 'dart:io';
 
 void main() {
   final testResultsPath = 'test-results.json';
-  final outputPath = 'friendly-test-report.html';
 
   if (!File(testResultsPath).existsSync()) {
-    stderr.writeln('错误: 找不到测试结果文件 $testResultsPath');
-    exit(1);
+    stderr.writeln('警告: 找不到测试结果文件 $testResultsPath，生成空报告');
+    generateEmptyReport();
+    return;
   }
 
   final testResultsJson = File(testResultsPath).readAsStringSync();
   
+  if (testResultsJson.trim().isEmpty) {
+    stderr.writeln('警告: 测试结果文件为空，生成空报告');
+    generateEmptyReport();
+    return;
+  }
+
   final tests = <Map<String, dynamic>>[];
   int totalTests = 0;
   int passedTests = 0;
@@ -48,6 +54,9 @@ void main() {
   }
 
   final hasProblems = failedTests.isNotEmpty;
+  final statusPrefix = hasProblems ? '失败' : '成功';
+  final timestamp = DateTime.now().toLocal().toString().replaceAll(':', '-').replaceAll(' ', '_').substring(0, 19);
+  final outputPath = 'test-report-$statusPrefix-$timestamp.html';
 
   final reportTitle = hasProblems ? '有问题 - Flutter测试报告' : '正常 - Flutter测试报告';
   final statusIcon = hasProblems ? '❌' : '✅';
@@ -71,8 +80,39 @@ void main() {
   );
 
   File(outputPath).writeAsStringSync(html);
+  
+  File('test-report-latest.html').writeAsStringSync(html);
 
-  stdout.writeln('友好测试报告已生成: $outputPath');
+  stdout.writeln('测试报告已生成:');
+  stdout.writeln('  - 详细报告: $outputPath');
+  stdout.writeln('  - 最新报告: test-report-latest.html');
+  stdout.writeln('  - 测试结果: ${hasProblems ? "失败" : "成功"}');
+  stdout.writeln('  - 总测试数: $totalTests');
+  stdout.writeln('  - 通过: $passedTests');
+  stdout.writeln('  - 失败: ${failedTests.length}');
+}
+
+void generateEmptyReport() {
+  final timestamp = DateTime.now().toLocal().toString().replaceAll(':', '-').replaceAll(' ', '_').substring(0, 19);
+  final outputPath = 'test-report-未知-$timestamp.html';
+  
+  final html = generateFriendlyReport(
+    tests: [],
+    totalTests: 0,
+    passedTests: 0,
+    failedTests: [],
+    reportTitle: '未知 - Flutter测试报告',
+    statusIcon: '⚠️',
+    statusText: '无测试结果',
+    statusColor: '#f59e0b',
+    passRate: '0',
+    moduleInfo: {},
+  );
+
+  File(outputPath).writeAsStringSync(html);
+  File('test-report-latest.html').writeAsStringSync(html);
+  
+  stdout.writeln('测试报告已生成: $outputPath');
 }
 
 String generateFriendlyReport({
@@ -124,9 +164,11 @@ String generateFriendlyReport({
     .test-module { font-size: 12px; color: #6b7280; margin-top: 5px; }
     .error-box { margin-top: 15px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 15px; }
     .error-title { font-weight: bold; color: #991b1b; margin-bottom: 10px; }
-    .error-message { font-family: monospace; font-size: 13px; color: #7f1d1d; white-space: pre-wrap; word-break: break-all; }
+    .error-message { font-family: monospace; font-size: 13px; color: #7f1d1d; white-space: pre-wrap; word-break: break-all; max-height: 300px; overflow-y: auto; }
     .term-explanation { margin-top: 10px; padding: 10px; background: #fffbeb; border-radius: 6px; font-size: 13px; color: #92400e; }
     .footer { padding: 20px; text-align: center; color: #9ca3af; font-size: 14px; background: #f9fafb; }
+    .no-tests { padding: 40px; text-align: center; color: #6b7280; }
+    .no-tests-icon { font-size: 48px; margin-bottom: 20px; }
   </style>
 </head>
 <body>
@@ -158,6 +200,7 @@ String generateFriendlyReport({
       </div>
     </div>
 
+    ${moduleInfo.isNotEmpty ? '''
     <div class="section">
       <h2 class="section-title">📦 测试覆盖模块</h2>
       <ul class="module-list">
@@ -169,6 +212,7 @@ String generateFriendlyReport({
         ''').join()}
       </ul>
     </div>
+    ''' : ''}
 
     ${failedTests.isNotEmpty ? '''
     <div class="section">
@@ -180,6 +224,7 @@ String generateFriendlyReport({
     </div>
     ''' : ''}
 
+    ${tests.isNotEmpty ? '''
     <div class="section">
       <h2 class="section-title">✅ 无问题的测试项</h2>
       <div class="test-group">
@@ -187,6 +232,15 @@ String generateFriendlyReport({
         ${tests.where((t) => t['result'] == 'success').map((test) => generateTestItem(test, false)).join()}
       </div>
     </div>
+    ''' : '''
+    <div class="section">
+      <div class="no-tests">
+        <div class="no-tests-icon">⚠️</div>
+        <p>没有找到测试结果</p>
+        <p style="margin-top: 10px; font-size: 14px;">可能是测试未运行或测试结果文件为空</p>
+      </div>
+    </div>
+    '''}
 
     <div class="footer">
       人生编年史 - 测试报告 | 生成时间: ${DateTime.now().toLocal().toString().substring(0, 19)}
@@ -216,9 +270,10 @@ String getModuleName(String path) {
   if (path.contains('utils/')) return '工具类';
   if (path.contains('integration/')) return '集成测试';
   if (path.contains('backup/')) return '备份服务';
-  if (path.contains('widget_test')) return 'Widget测试';
+  if (path.contains('widgets/')) return 'Widget测试';
   return '其他测试';
 }
+
 String generateTestItem(Map<String, dynamic> test, bool isFailed) {
   final name = test['name'] as String? ?? '未知测试';
   final path = test['path'] as String? ?? '';
