@@ -140,7 +140,9 @@ class PdfExportService {
       
       _fontsLoaded = true;
     } catch (e, stack) {
-      _log('ERROR', '字体加载过程发生异常', data: {'error': e.toString()}, stackTrace: stack);
+      _log('ERROR', '字体加载过程发生异常，继续使用默认字体', data: {'error': e.toString()}, stackTrace: stack);
+      _chineseFont = null;
+      _chineseFontBold = null;
       _fontsLoaded = true;
     }
   }
@@ -150,29 +152,37 @@ class PdfExportService {
     bool bold = false,
     PdfColor color = _textColor,
   }) {
-    final font = bold ? (_chineseFontBold ?? _chineseFont) : _chineseFont;
-    
-    _log('DEBUG', '创建TextStyle', data: {
-      'fontSize': fontSize,
-      'bold': bold,
-      'hasFont': font != null,
-      'hasRegularFont': _chineseFont != null,
-      'hasBoldFont': _chineseFontBold != null,
-    });
-    
-    if (font != null) {
+    try {
+      final font = bold ? (_chineseFontBold ?? _chineseFont) : _chineseFont;
+      
+      _log('DEBUG', '创建TextStyle', data: {
+        'fontSize': fontSize,
+        'bold': bold,
+        'hasFont': font != null,
+        'hasRegularFont': _chineseFont != null,
+        'hasBoldFont': _chineseFontBold != null,
+      });
+      
+      if (font != null) {
+        return pw.TextStyle(
+          fontSize: fontSize,
+          color: color,
+          font: font,
+        );
+      }
+      
+      _log('WARNING', '使用默认字体（无中文字体）', data: {'fontSize': fontSize, 'bold': bold});
       return pw.TextStyle(
         fontSize: fontSize,
         color: color,
-        font: font,
+      );
+    } catch (e, stack) {
+      _log('ERROR', 'TextStyle创建失败，使用最安全的默认样式', data: {'error': e.toString()}, stackTrace: stack);
+      return pw.TextStyle(
+        fontSize: fontSize,
+        color: color,
       );
     }
-    
-    _log('WARNING', '使用默认字体（无中文字体）', data: {'fontSize': fontSize, 'bold': bold});
-    return pw.TextStyle(
-      fontSize: fontSize,
-      color: color,
-    );
   }
   
   Future<String> exportToPdf({
@@ -551,15 +561,18 @@ class PdfExportService {
     _log('DEBUG', '创建统计卡片', data: {'title': title, 'count': count});
     
     try {
+      final bgColor = PdfColor.fromInt((color.toInt() & 0x00FFFFFF) | 0x1A000000);
+      final shadowColor = PdfColor.fromInt(0x10000000);
+      
       return pw.Container(
         width: 140,
         padding: const pw.EdgeInsets.all(20),
         decoration: pw.BoxDecoration(
-          color: PdfColor.fromInt((color.toInt() & 0x00FFFFFF) | 0x1A000000),
+          color: bgColor,
           borderRadius: pw.BorderRadius.circular(16),
           boxShadow: [
             pw.BoxShadow(
-              color: PdfColor.fromInt(0x10000000),
+              color: shadowColor,
               blurRadius: 8,
               offset: const PdfPoint(0, 4),
             ),
@@ -575,8 +588,23 @@ class PdfExportService {
         ),
       );
     } catch (e, stack) {
-      _log('ERROR', '统计卡片创建失败', data: {'title': title, 'error': e.toString()}, stackTrace: stack);
-      rethrow;
+      _log('ERROR', '统计卡片创建失败，使用简化版本', data: {'title': title, 'error': e.toString()}, stackTrace: stack);
+      return pw.Container(
+        width: 140,
+        padding: const pw.EdgeInsets.all(20),
+        decoration: pw.BoxDecoration(
+          color: PdfColor.fromInt(0x1A000000),
+          borderRadius: pw.BorderRadius.circular(16),
+        ),
+        child: pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text(title, style: pw.TextStyle(fontSize: 14, color: _mutedColor)),
+            pw.SizedBox(height: 12),
+            pw.Text('$count', style: pw.TextStyle(fontSize: 32, color: color)),
+          ],
+        ),
+      );
     }
   }
   
@@ -584,12 +612,16 @@ class PdfExportService {
     _log('DEBUG', '创建章节封面页', data: {'chapter': chapter, 'title': title});
     
     try {
+      final gradientEndColor = PdfColor.fromInt((color.toInt() & 0x00FFFFFF) | 0xFF000000);
+      final semiTransparentWhite = PdfColor.fromInt(0xB3FFFFFF);
+      final containerBgColor = PdfColor.fromInt(0x33FFFFFF);
+      
       return pw.Page(
         pageFormat: PdfPageFormat.a4,
         build: (context) => pw.Container(
           decoration: pw.BoxDecoration(
             gradient: pw.LinearGradient(
-              colors: [color, PdfColor.fromInt((color.toInt() & 0x00FFFFFF) | 0xFF000000)],
+              colors: [color, gradientEndColor],
               begin: pw.Alignment.topLeft,
               end: pw.Alignment.bottomRight,
             ),
@@ -598,14 +630,14 @@ class PdfExportService {
             child: pw.Column(
               mainAxisAlignment: pw.MainAxisAlignment.center,
               children: [
-                pw.Text(chapter, style: _textStyle(fontSize: 24, color: PdfColor.fromInt(0xB3FFFFFF))),
+                pw.Text(chapter, style: _textStyle(fontSize: 24, color: semiTransparentWhite)),
                 pw.SizedBox(height: 16),
                 pw.Text(title, style: _textStyle(fontSize: 48, bold: true, color: PdfColors.white)),
                 pw.SizedBox(height: 24),
                 pw.Container(
                   padding: const pw.EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   decoration: pw.BoxDecoration(
-                    color: PdfColor.fromInt(0x33FFFFFF),
+                    color: containerBgColor,
                     borderRadius: pw.BorderRadius.circular(20),
                   ),
                   child: pw.Text(subtitle, style: _textStyle(fontSize: 14, color: PdfColors.white)),
@@ -616,8 +648,25 @@ class PdfExportService {
         ),
       );
     } catch (e, stack) {
-      _log('ERROR', '章节封面页创建失败', data: {'chapter': chapter, 'error': e.toString()}, stackTrace: stack);
-      rethrow;
+      _log('ERROR', '章节封面页创建失败，使用简化版本', data: {'chapter': chapter, 'error': e.toString()}, stackTrace: stack);
+      return pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        build: (context) => pw.Container(
+          color: color,
+          child: pw.Center(
+            child: pw.Column(
+              mainAxisAlignment: pw.MainAxisAlignment.center,
+              children: [
+                pw.Text(chapter, style: pw.TextStyle(fontSize: 24, color: PdfColors.white)),
+                pw.SizedBox(height: 16),
+                pw.Text(title, style: pw.TextStyle(fontSize: 48, color: PdfColors.white)),
+                pw.SizedBox(height: 24),
+                pw.Text(subtitle, style: pw.TextStyle(fontSize: 14, color: PdfColors.white)),
+              ],
+            ),
+          ),
+        ),
+      );
     }
   }
   

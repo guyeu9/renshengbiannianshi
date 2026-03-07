@@ -29,7 +29,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.connect(super.executor);
 
   @override
-  int get schemaVersion => 21;
+  int get schemaVersion => 22;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -162,8 +162,70 @@ class AppDatabase extends _$AppDatabase {
           if (from < 21) {
             await _createIndexes();
           }
+
+          if (from < 22) {
+            await _createFTSTables();
+          }
         },
       );
+
+  Future<void> _createFTSTables() async {
+    await customStatement('''
+      CREATE VIRTUAL TABLE IF NOT EXISTS food_records_fts USING fts5(
+        title, content, poi_name, city,
+        content='food_records',
+        content_rowid='rowid',
+        tokenize='unicode61'
+      )
+    ''');
+
+    await customStatement('''
+      CREATE VIRTUAL TABLE IF NOT EXISTS moment_records_fts USING fts5(
+        content, poi_name, city,
+        content='moment_records',
+        content_rowid='rowid',
+        tokenize='unicode61'
+      )
+    ''');
+
+    await customStatement('''
+      CREATE VIRTUAL TABLE IF NOT EXISTS travel_records_fts USING fts5(
+        title, content, destination, poi_name, city,
+        content='travel_records',
+        content_rowid='rowid',
+        tokenize='unicode61'
+      )
+    ''');
+
+    await customStatement('''
+      CREATE VIRTUAL TABLE IF NOT EXISTS goal_records_fts USING fts5(
+        title, note, summary,
+        content='goal_records',
+        content_rowid='rowid',
+        tokenize='unicode61'
+      )
+    ''');
+
+    await _populateFTSData();
+  }
+
+  Future<void> _populateFTSData() async {
+    await customStatement('''
+      INSERT INTO food_records_fts(food_records_fts) VALUES('rebuild')
+    ''');
+
+    await customStatement('''
+      INSERT INTO moment_records_fts(moment_records_fts) VALUES('rebuild')
+    ''');
+
+    await customStatement('''
+      INSERT INTO travel_records_fts(travel_records_fts) VALUES('rebuild')
+    ''');
+
+    await customStatement('''
+      INSERT INTO goal_records_fts(goal_records_fts) VALUES('rebuild')
+    ''');
+  }
 
   Future<void> _createIndexes() async {
     await customStatement('CREATE INDEX IF NOT EXISTS idx_food_records_record_date ON food_records (record_date)');

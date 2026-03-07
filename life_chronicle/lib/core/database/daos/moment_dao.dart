@@ -86,4 +86,21 @@ class MomentDao extends DatabaseAccessor<AppDatabase> with _$MomentDaoMixin {
           ..orderBy([(t) => OrderingTerm(expression: t.recordDate, mode: OrderingMode.desc)]))
         .watch();
   }
+
+  Future<List<MomentRecord>> searchMoments(String query) async {
+    if (query.trim().isEmpty) return [];
+
+    final rows = await customSelect(
+      '''
+      SELECT mr.* FROM moment_records mr
+      JOIN moment_records_fts fts ON mr.rowid = fts.rowid
+      WHERE moment_records_fts MATCH ? AND mr.is_deleted = 0
+      ORDER BY mr.record_date DESC
+      ''',
+      variables: [Variable.withString(query)],
+      readsFrom: {momentRecords},
+    ).get();
+
+    return rows.map((row) => db.momentRecords.map(row.data)).toList();
+  }
 }

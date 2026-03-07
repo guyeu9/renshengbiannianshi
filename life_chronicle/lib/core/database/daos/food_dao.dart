@@ -86,4 +86,21 @@ class FoodDao extends DatabaseAccessor<AppDatabase> with _$FoodDaoMixin {
           ..orderBy([(t) => OrderingTerm(expression: t.recordDate, mode: OrderingMode.desc)]))
         .watch();
   }
+
+  Future<List<FoodRecord>> searchFood(String query) async {
+    if (query.trim().isEmpty) return [];
+
+    final rows = await customSelect(
+      '''
+      SELECT fr.* FROM food_records fr
+      JOIN food_records_fts fts ON fr.rowid = fts.rowid
+      WHERE food_records_fts MATCH ? AND fr.is_deleted = 0
+      ORDER BY fr.record_date DESC
+      ''',
+      variables: [Variable.withString(query)],
+      readsFrom: {foodRecords},
+    ).get();
+
+    return rows.map((row) => db.foodRecords.map(row.data)).toList();
+  }
 }

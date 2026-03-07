@@ -129,6 +129,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
   Widget? _cachedWebViewMap;
   bool _webViewMapCreated = false;
   bool _buildLogged = false;
+  bool _hasLocated = false;
 
   String get _pickedPoiName => _poiNameController.text.trim();
   String get _pickedAddress => _addressController.text.trim();
@@ -171,6 +172,11 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
     amapLog('AmapWebView', 'Creating new WebView map instance');
     _webViewMapCreated = true;
     
+    final shouldAutoLocate = !isPreview && widget.initialLatitude == null && !_hasLocated;
+    if (shouldAutoLocate) {
+      _hasLocated = true;
+    }
+    
     _cachedWebViewMap = AMapWebViewMap(
       webKey: _amapJsKey,
       securityCode: _amapSecurityCode,
@@ -178,7 +184,7 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
       initialLongitude: mapTargetLng,
       initialZoom: 15,
       isPreviewMode: isPreview,
-      autoLocate: !isPreview && widget.initialLatitude == null,
+      autoLocate: shouldAutoLocate,
       markerLatitude: _pickedLatitude,
       markerLongitude: _pickedLongitude,
       showLocationButton: true,
@@ -471,6 +477,9 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
         _pickedLongitude = lng;
         if (formattedAddress.isNotEmpty) {
           _addressController.text = formattedAddress;
+          if (_poiNameController.text.isEmpty || _poiNameController.text == '当前位置') {
+            _poiNameController.text = '当前位置';
+          }
         }
         if (city.isNotEmpty) {
           _cityController.text = city;
@@ -481,6 +490,8 @@ class _AmapLocationPageState extends State<AmapLocationPage> {
           _countryController.text = country;
         }
       });
+      
+      _searchNearbyPois(lat, lng);
     } catch (e) {
       debugPrint('Reverse geocode failed: $e');
     }
