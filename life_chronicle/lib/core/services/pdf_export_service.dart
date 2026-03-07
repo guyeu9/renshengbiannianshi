@@ -22,7 +22,6 @@ class PdfExportService {
   pw.Font? _chineseFontBold;
   bool _fontsLoaded = false;
   
-  // 日志记录器
   final List<Map<String, dynamic>> _logs = [];
   
   PdfExportService(this.db);
@@ -37,7 +36,6 @@ class PdfExportService {
     };
     _logs.add(logEntry);
     
-    // 只输出INFO、WARN、ERROR级别的日志，减少DEBUG冗余
     if (level != 'DEBUG') {
       final logString = '[PDF导出][$level][${DateTime.now()}] $message';
       if (data != null) {
@@ -129,7 +127,6 @@ class PdfExportService {
         }
       }
       
-      // 如果没有找到粗体字体，使用常规字体作为回退
       if (_chineseFontBold == null && _chineseFont != null) {
         _chineseFontBold = _chineseFont;
         _log('INFO', '使用常规字体作为粗体回退');
@@ -331,6 +328,61 @@ class PdfExportService {
       return pw.Page(
         pageFormat: PdfPageFormat.a4,
         build: (context) => pw.Container(
+          decoration: pw.BoxDecoration(
+            gradient: pw.LinearGradient(
+              colors: [_primaryColor, PdfColor.fromInt(0xFF7C3AED)],
+              begin: pw.Alignment.topLeft,
+              end: pw.Alignment.bottomRight,
+            ),
+          ),
+          child: pw.Center(
+            child: pw.Column(
+              mainAxisAlignment: pw.MainAxisAlignment.center,
+              children: [
+                pw.Container(
+                  width: 120,
+                  height: 120,
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.white,
+                    borderRadius: pw.BorderRadius.circular(60),
+                    boxShadow: [
+                      pw.BoxShadow(
+                        color: const PdfColor.fromInt(0x33000000),
+                        blurRadius: 20,
+                        offset: const PdfPoint(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: pw.Center(
+                    child: pw.Text('LC', style: _textStyle(fontSize: 48, color: _primaryColor, bold: true)),
+                  ),
+                ),
+                pw.SizedBox(height: 40),
+                pw.Text(
+                  '人生编年史',
+                  style: _textStyle(fontSize: 42, color: PdfColors.white, bold: true),
+                ),
+                pw.SizedBox(height: 16),
+                pw.Text(
+                  '数据导出报告',
+                  style: _textStyle(fontSize: 24, color: const PdfColor.fromInt(0xE6FFFFFF)),
+                ),
+                pw.SizedBox(height: 60),
+                pw.Text(
+                  '导出日期: ${DateTime.now().toString().split('.')[0]}$dateRangeText',
+                  style: _textStyle(fontSize: 14, color: const PdfColor.fromInt(0xCCFFFFFF)),
+                  textAlign: pw.TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    } catch (e, stack) {
+      _log('ERROR', '封面页创建失败，尝试简化版本', data: {'error': e.toString()}, stackTrace: stack);
+      return pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        build: (context) => pw.Container(
           color: _primaryColor,
           child: pw.Center(
             child: pw.Column(
@@ -357,20 +409,11 @@ class PdfExportService {
                   '数据导出报告',
                   style: pw.TextStyle(fontSize: 24, color: PdfColors.white),
                 ),
-                pw.SizedBox(height: 60),
-                pw.Text(
-                  '导出日期: ${DateTime.now().toString().split('.')[0]}$dateRangeText',
-                  style: pw.TextStyle(fontSize: 14, color: PdfColors.white),
-                  textAlign: pw.TextAlign.center,
-                ),
               ],
             ),
           ),
         ),
       );
-    } catch (e, stack) {
-      _log('ERROR', '封面页创建失败', data: {'error': e.toString()}, stackTrace: stack);
-      rethrow;
     }
   }
   
@@ -400,16 +443,16 @@ class PdfExportService {
           child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Text('目录', style: pw.TextStyle(fontSize: 36, color: _primaryColor)),
+              pw.Text('目录', style: _textStyle(fontSize: 36, color: _primaryColor, bold: true)),
               pw.SizedBox(height: 32),
               ...chapters.map((chapter) => pw.Padding(
                 padding: const pw.EdgeInsets.symmetric(vertical: 12),
                 child: pw.Row(
                   children: [
                     pw.Expanded(
-                      child: pw.Text(chapter['title'] as String, style: pw.TextStyle(fontSize: 16)),
+                      child: pw.Text(chapter['title'] as String, style: _textStyle(fontSize: 16)),
                     ),
-                    pw.Text('第 ${chapter['page']} 页', style: pw.TextStyle(fontSize: 14, color: _mutedColor)),
+                    pw.Text('第 ${chapter['page']} 页', style: _textStyle(fontSize: 14, color: _mutedColor)),
                   ],
                 ),
               )),
@@ -436,6 +479,89 @@ class PdfExportService {
     _log('INFO', '开始创建概览章节');
     
     try {
+      final stats = <Map<String, dynamic>>[];
+      
+      if (includeFood) {
+        var query = db.select(db.foodRecords);
+        if (startDate != null) query = query..where((t) => t.recordDate.isBiggerOrEqualValue(startDate));
+        if (endDate != null) {
+          final endOfDay = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
+          query = query..where((t) => t.recordDate.isSmallerOrEqualValue(endOfDay));
+        }
+        final count = await query.get().then((r) => r.length);
+        stats.add({'title': '美食记录', 'count': count, 'color': _primaryColor});
+      }
+      
+      if (includeMoment) {
+        var query = db.select(db.momentRecords);
+        if (startDate != null) query = query..where((t) => t.recordDate.isBiggerOrEqualValue(startDate));
+        if (endDate != null) {
+          final endOfDay = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
+          query = query..where((t) => t.recordDate.isSmallerOrEqualValue(endOfDay));
+        }
+        final count = await query.get().then((r) => r.length);
+        stats.add({'title': '小确幸', 'count': count, 'color': _secondaryColor});
+      }
+      
+      if (includeFriend) {
+        final count = await (db.select(db.friendRecords)).get().then((r) => r.length);
+        stats.add({'title': '羁绊', 'count': count, 'color': const PdfColor.fromInt(0xFFEC4899)});
+      }
+      
+      if (includeTravel) {
+        var query = db.select(db.travelRecords);
+        if (startDate != null) query = query..where((t) => t.recordDate.isBiggerOrEqualValue(startDate));
+        if (endDate != null) {
+          final endOfDay = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
+          query = query..where((t) => t.recordDate.isSmallerOrEqualValue(endOfDay));
+        }
+        final count = await query.get().then((r) => r.length);
+        stats.add({'title': '旅行', 'count': count, 'color': _accentColor});
+      }
+      
+      if (includeGoal) {
+        final count = await (db.select(db.goalRecords)).get().then((r) => r.length);
+        stats.add({'title': '目标', 'count': count, 'color': const PdfColor.fromInt(0xFF8B5CF6)});
+      }
+      
+      if (includeTimeline) {
+        var query = db.select(db.timelineEvents);
+        if (startDate != null) query = query..where((t) => t.startAt.isBiggerOrEqualValue(startDate));
+        if (endDate != null) {
+          final endOfDay = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
+          query = query..where((t) => t.startAt.isSmallerOrEqualValue(endOfDay));
+        }
+        final count = await query.get().then((r) => r.length);
+        stats.add({'title': '时间线', 'count': count, 'color': const PdfColor.fromInt(0xFF06B6D4)});
+      }
+      
+      _log('INFO', '概览章节数据准备完成');
+      
+      return pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        build: (context) => pw.Padding(
+          padding: const pw.EdgeInsets.all(32),
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text('数据概览', style: _textStyle(fontSize: 32, color: _primaryColor, bold: true)),
+              pw.SizedBox(height: 24),
+              pw.Wrap(
+                spacing: 16,
+                runSpacing: 16,
+                children: stats.map((stat) => _buildStatCard(
+                  stat['title'] as String, 
+                  stat['count'] as int, 
+                  stat['color'] as PdfColor,
+                )).toList(),
+              ),
+            ],
+          ),
+        ),
+      );
+    } catch (e, stack) {
+      _log('ERROR', '概览章节创建失败，尝试简化版本', data: {'error': e.toString()}, stackTrace: stack);
+      
       final stats = <String>[];
       
       if (includeFood) {
@@ -492,8 +618,6 @@ class PdfExportService {
         stats.add('时间线: $count');
       }
       
-      _log('INFO', '概览章节数据准备完成');
-      
       return pw.Page(
         pageFormat: PdfPageFormat.a4,
         build: (context) => pw.Padding(
@@ -511,9 +635,6 @@ class PdfExportService {
           ),
         ),
       );
-    } catch (e, stack) {
-      _log('ERROR', '概览章节创建失败', data: {'error': e.toString()}, stackTrace: stack);
-      rethrow;
     }
   }
   
@@ -541,9 +662,9 @@ class PdfExportService {
         child: pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            pw.Text(title, style: pw.TextStyle(fontSize: 14, color: _mutedColor)),
+            pw.Text(title, style: _textStyle(fontSize: 14, color: _mutedColor)),
             pw.SizedBox(height: 12),
-            pw.Text('$count', style: pw.TextStyle(fontSize: 32, color: color)),
+            pw.Text('$count', style: _textStyle(fontSize: 32, color: color, bold: true)),
           ],
         ),
       );
@@ -575,6 +696,32 @@ class PdfExportService {
       return pw.Page(
         pageFormat: PdfPageFormat.a4,
         build: (context) => pw.Container(
+          decoration: pw.BoxDecoration(
+            gradient: pw.LinearGradient(
+              colors: [color, PdfColor.fromInt((color.toInt() & 0x00FFFFFF) | 0x4B000000)],
+              begin: pw.Alignment.topLeft,
+              end: pw.Alignment.bottomRight,
+            ),
+          ),
+          child: pw.Center(
+            child: pw.Column(
+              mainAxisAlignment: pw.MainAxisAlignment.center,
+              children: [
+                pw.Text(chapter, style: _textStyle(fontSize: 24, color: PdfColors.white)),
+                pw.SizedBox(height: 16),
+                pw.Text(title, style: _textStyle(fontSize: 48, color: PdfColors.white, bold: true)),
+                pw.SizedBox(height: 24),
+                pw.Text(subtitle, style: _textStyle(fontSize: 14, color: const PdfColor.fromInt(0xE6FFFFFF))),
+              ],
+            ),
+          ),
+        ),
+      );
+    } catch (e, stack) {
+      _log('ERROR', '章节封面页创建失败，使用纯色版本', data: {'chapter': chapter, 'error': e.toString()}, stackTrace: stack);
+      return pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        build: (context) => pw.Container(
           color: color,
           child: pw.Center(
             child: pw.Column(
@@ -590,9 +737,6 @@ class PdfExportService {
           ),
         ),
       );
-    } catch (e, stack) {
-      _log('ERROR', '章节封面页创建失败', data: {'chapter': chapter, 'error': e.toString()}, stackTrace: stack);
-      rethrow;
     }
   }
   
@@ -682,15 +826,15 @@ class PdfExportService {
               pw.Row(
                 children: [
                   pw.Expanded(
-                    child: pw.Text(record.title, style: pw.TextStyle(fontSize: 24)),
+                    child: pw.Text(record.title, style: _textStyle(fontSize: 24, bold: true)),
                   ),
                   if (record.isFavorite)
-                    pw.Text('★', style: pw.TextStyle(fontSize: 24, color: const PdfColor.fromInt(0xFFF59E0B))),
+                    pw.Text('★', style: _textStyle(fontSize: 24, color: const PdfColor.fromInt(0xFFF59E0B))),
                 ],
               ),
               pw.SizedBox(height: 8),
               pw.Text('${record.title} | ${record.tags ?? '未知菜系'}', 
-                  style: pw.TextStyle(fontSize: 14, color: _mutedColor)),
+                  style: _textStyle(fontSize: 14, color: _mutedColor)),
               pw.SizedBox(height: 16),
               
               if (imageWidgets.isNotEmpty) ...[
@@ -707,17 +851,17 @@ class PdfExportService {
                 pw.SizedBox(height: 16),
               ],
               
-              pw.Text('评分: ${record.rating}/5', style: pw.TextStyle(fontSize: 14, color: _secondaryColor)),
+              pw.Text('评分: ${record.rating}/5', style: _textStyle(fontSize: 14, color: _secondaryColor)),
               pw.SizedBox(height: 8),
               
               if (record.content != null && record.content!.isNotEmpty) ...[
-                pw.Text('评价:', style: pw.TextStyle(fontSize: 14)),
+                pw.Text('评价:', style: _textStyle(fontSize: 14, bold: true)),
                 pw.SizedBox(height: 4),
-                pw.Text(record.content!, style: pw.TextStyle(fontSize: 12)),
+                pw.Text(record.content!, style: _textStyle(fontSize: 12)),
                 pw.SizedBox(height: 8),
               ],
               
-              pw.Text(record.recordDate.toString().split(' ')[0], style: pw.TextStyle(fontSize: 10, color: _mutedColor)),
+              pw.Text(record.recordDate.toString().split(' ')[0], style: _textStyle(fontSize: 10, color: _mutedColor)),
             ],
           ),
         ),
@@ -814,10 +958,10 @@ class PdfExportService {
               pw.Row(
                 children: [
                   pw.Expanded(
-                    child: pw.Text(record.mood, style: pw.TextStyle(fontSize: 20, color: _secondaryColor)),
+                    child: pw.Text(record.mood, style: _textStyle(fontSize: 20, color: _secondaryColor, bold: true)),
                   ),
                   if (record.isFavorite)
-                    pw.Text('❤', style: pw.TextStyle(fontSize: 20, color: const PdfColor.fromInt(0xFFEC4899))),
+                    pw.Text('❤', style: _textStyle(fontSize: 20, color: const PdfColor.fromInt(0xFFEC4899))),
                 ],
               ),
               pw.SizedBox(height: 16),
@@ -836,10 +980,10 @@ class PdfExportService {
                 pw.SizedBox(height: 16),
               ],
               
-              pw.Text(record.content ?? '', style: pw.TextStyle(fontSize: 14, color: _textColor)),
+              pw.Text(record.content ?? '', style: _textStyle(fontSize: 14, color: _textColor)),
               pw.SizedBox(height: 16),
               
-              pw.Text(record.recordDate.toString().split(' ')[0], style: pw.TextStyle(fontSize: 10, color: _mutedColor)),
+              pw.Text(record.recordDate.toString().split(' ')[0], style: _textStyle(fontSize: 10, color: _mutedColor)),
             ],
           ),
         ),
@@ -914,7 +1058,7 @@ class PdfExportService {
         child: pw.Center(
           child: pw.Text(
             record.name.isNotEmpty ? record.name[0] : '?',
-            style: pw.TextStyle(fontSize: 32, color: PdfColors.white),
+            style: _textStyle(fontSize: 32, color: PdfColors.white, bold: true),
           ),
         ),
       );
@@ -936,10 +1080,10 @@ class PdfExportService {
                     child: pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
-                        pw.Text(record.name, style: pw.TextStyle(fontSize: 28)),
+                        pw.Text(record.name, style: _textStyle(fontSize: 28, bold: true)),
                         pw.SizedBox(height: 4),
                         if (record.groupName != null && record.groupName!.isNotEmpty)
-                          pw.Text(record.groupName!, style: pw.TextStyle(fontSize: 14, color: _mutedColor)),
+                          pw.Text(record.groupName!, style: _textStyle(fontSize: 14, color: _mutedColor)),
                       ],
                     ),
                   ),
@@ -948,17 +1092,17 @@ class PdfExportService {
               pw.SizedBox(height: 24),
               
               if (record.impressionTags != null && record.impressionTags!.isNotEmpty)
-                pw.Text('印象标签: ${record.impressionTags}', style: pw.TextStyle(fontSize: 12, color: _secondaryColor)),
+                pw.Text('印象标签: ${record.impressionTags}', style: _textStyle(fontSize: 12, color: _secondaryColor)),
               pw.SizedBox(height: 8),
               
               if (record.meetDate != null)
-                pw.Text('相识于: ${record.meetDate!.toString().split(' ')[0]}', style: pw.TextStyle(fontSize: 12, color: _mutedColor)),
+                pw.Text('相识于: ${record.meetDate!.toString().split(' ')[0]}', style: _textStyle(fontSize: 12, color: _mutedColor)),
               pw.SizedBox(height: 16),
               
               if (record.impressionTags != null && record.impressionTags!.isNotEmpty) ...[
-                pw.Text('备注:', style: pw.TextStyle(fontSize: 14)),
+                pw.Text('备注:', style: _textStyle(fontSize: 14, bold: true)),
                 pw.SizedBox(height: 4),
-                pw.Text(record.impressionTags!, style: pw.TextStyle(fontSize: 12)),
+                pw.Text(record.impressionTags!, style: _textStyle(fontSize: 12)),
               ],
             ],
           ),
@@ -1053,10 +1197,10 @@ class PdfExportService {
           child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Text(record.destination ?? '未知目的地', style: pw.TextStyle(fontSize: 28, color: _accentColor)),
+              pw.Text(record.destination ?? '未知目的地', style: _textStyle(fontSize: 28, color: _accentColor, bold: true)),
               pw.SizedBox(height: 8),
               if (record.planDate != null)
-                pw.Text('计划日期: ${record.planDate!.toString().split(' ')[0]}', style: pw.TextStyle(fontSize: 12, color: _mutedColor)),
+                pw.Text('计划日期: ${record.planDate!.toString().split(' ')[0]}', style: _textStyle(fontSize: 12, color: _mutedColor)),
               pw.SizedBox(height: 16),
               
               if (imageWidgets.isNotEmpty) ...[
@@ -1074,13 +1218,13 @@ class PdfExportService {
               ],
               
               if (record.content != null && record.content!.isNotEmpty) ...[
-                pw.Text('旅行计划:', style: pw.TextStyle(fontSize: 14)),
+                pw.Text('旅行计划:', style: _textStyle(fontSize: 14, bold: true)),
                 pw.SizedBox(height: 4),
-                pw.Text(record.content!, style: pw.TextStyle(fontSize: 12)),
+                pw.Text(record.content!, style: _textStyle(fontSize: 12)),
                 pw.SizedBox(height: 8),
               ],
               
-              pw.Text('状态: ${record.isWishlist ? "愿望清单" : (record.wishlistDone ? "已完成" : "进行中")}', style: pw.TextStyle(fontSize: 12, color: _secondaryColor)),
+              pw.Text('状态: ${record.isWishlist ? "愿望清单" : (record.wishlistDone ? "已完成" : "进行中")}', style: _textStyle(fontSize: 12, color: _secondaryColor)),
             ],
           ),
         ),
@@ -1132,7 +1276,7 @@ class PdfExportService {
               pw.Row(
                 children: [
                   pw.Expanded(
-                    child: pw.Text(record.title, style: pw.TextStyle(fontSize: 24)),
+                    child: pw.Text(record.title, style: _textStyle(fontSize: 24, bold: true)),
                   ),
                   pw.Container(
                     padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -1144,14 +1288,14 @@ class PdfExportService {
                     ),
                     child: pw.Text(
                       record.isCompleted ? '已完成' : '进行中',
-                      style: pw.TextStyle(fontSize: 12, color: PdfColors.white),
+                      style: _textStyle(fontSize: 12, color: PdfColors.white),
                     ),
                   ),
                 ],
               ),
               pw.SizedBox(height: 16),
               
-              pw.Text('进度: ${record.progress}%', style: pw.TextStyle(fontSize: 16, color: _secondaryColor)),
+              pw.Text('进度: ${record.progress}%', style: _textStyle(fontSize: 16, color: _secondaryColor)),
               pw.SizedBox(height: 8),
               pw.Container(
                 width: double.infinity,
@@ -1176,14 +1320,14 @@ class PdfExportService {
               pw.SizedBox(height: 16),
               
               if (record.note != null && record.note!.isNotEmpty) ...[
-                pw.Text('备注:', style: pw.TextStyle(fontSize: 14)),
+                pw.Text('备注:', style: _textStyle(fontSize: 14, bold: true)),
                 pw.SizedBox(height: 4),
-                pw.Text(record.note!, style: pw.TextStyle(fontSize: 12)),
+                pw.Text(record.note!, style: _textStyle(fontSize: 12)),
                 pw.SizedBox(height: 8),
               ],
               
               if (record.dueDate != null)
-                pw.Text('截止日期: ${record.dueDate!.toString().split(' ')[0]}', style: pw.TextStyle(fontSize: 10, color: _mutedColor)),
+                pw.Text('截止日期: ${record.dueDate!.toString().split(' ')[0]}', style: _textStyle(fontSize: 10, color: _mutedColor)),
             ],
           ),
         ),
@@ -1254,21 +1398,21 @@ class PdfExportService {
                   ),
                   pw.SizedBox(width: 12),
                   pw.Expanded(
-                    child: pw.Text(record.title, style: pw.TextStyle(fontSize: 20)),
+                    child: pw.Text(record.title, style: _textStyle(fontSize: 20, bold: true)),
                   ),
                 ],
               ),
               pw.SizedBox(height: 16),
               
-              pw.Text(record.startAt.toString().split('.')[0], style: pw.TextStyle(fontSize: 12, color: _mutedColor)),
+              pw.Text(record.startAt.toString().split('.')[0], style: _textStyle(fontSize: 12, color: _mutedColor)),
               if (record.endAt != null)
-                pw.Text('至 ${record.endAt!.toString().split('.')[0]}', style: pw.TextStyle(fontSize: 12, color: _mutedColor)),
+                pw.Text('至 ${record.endAt!.toString().split('.')[0]}', style: _textStyle(fontSize: 12, color: _mutedColor)),
               pw.SizedBox(height: 16),
               
               if (record.note != null && record.note!.isNotEmpty) ...[
-                pw.Text('详情:', style: pw.TextStyle(fontSize: 14)),
+                pw.Text('详情:', style: _textStyle(fontSize: 14, bold: true)),
                 pw.SizedBox(height: 4),
-                pw.Text(record.note!, style: pw.TextStyle(fontSize: 12)),
+                pw.Text(record.note!, style: _textStyle(fontSize: 12)),
               ],
             ],
           ),
