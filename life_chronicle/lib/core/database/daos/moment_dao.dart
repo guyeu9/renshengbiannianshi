@@ -12,6 +12,14 @@ class MomentDao extends DatabaseAccessor<AppDatabase> with _$MomentDaoMixin {
       entityType: 'moment_records',
       entityId: entry.id.value,
     );
+    final text = entry.content.present && entry.content.value != null ? entry.content.value! : '';
+    if (text.isNotEmpty && db.vectorIndexManager != null) {
+      await db.vectorIndexManager!.recordInsert(
+        entityType: 'moment',
+        entityId: entry.id.value,
+        text: text,
+      );
+    }
   }
 
   Future<void> updateFavorite(String id, {required bool isFavorite, required DateTime now}) async {
@@ -41,6 +49,12 @@ class MomentDao extends DatabaseAccessor<AppDatabase> with _$MomentDaoMixin {
       entityType: 'moment_records',
       entityId: id,
     );
+    if (db.vectorIndexManager != null) {
+      await db.vectorIndexManager!.recordDelete(
+        entityType: 'moment',
+        entityId: id,
+      );
+    }
   }
 
   Future<void> softDeleteById(String id, {required DateTime now}) async {
@@ -54,6 +68,12 @@ class MomentDao extends DatabaseAccessor<AppDatabase> with _$MomentDaoMixin {
       entityType: 'moment_records',
       entityId: id,
     );
+    if (db.vectorIndexManager != null) {
+      await db.vectorIndexManager!.recordDelete(
+        entityType: 'moment',
+        entityId: id,
+      );
+    }
   }
 
   Future<MomentRecord?> findById(String id) {

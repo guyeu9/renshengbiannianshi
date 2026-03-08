@@ -9,12 +9,18 @@ import '../features/goal/presentation/goal_page.dart';
 import '../features/home_schedule/presentation/home_schedule_page.dart';
 import '../features/moment/presentation/moment_page.dart';
 import '../features/travel/presentation/travel_page.dart';
+import '../core/providers/vector_search_provider.dart';
 
 final appTabIndexProvider = StateProvider<int>((ref) => 0);
 
-class AppShell extends ConsumerWidget {
+class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
 
+  @override
+  ConsumerState<AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends ConsumerState<AppShell> {
   static const _tabs = <Widget>[
     HomeSchedulePage(),
     FoodPage(),
@@ -25,7 +31,15 @@ class AppShell extends ConsumerWidget {
   ];
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      ref.read(vectorIndexManagerInitializerProvider.future);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final index = ref.watch(appTabIndexProvider);
 
     return Scaffold(

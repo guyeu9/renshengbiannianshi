@@ -4,6 +4,13 @@ import 'package:life_chronicle/core/providers/ai_provider.dart';
 import 'package:life_chronicle/core/services/semantic_search_service.dart';
 import 'package:life_chronicle/core/services/vector_index_service.dart';
 
+final vectorIndexManagerInitializerProvider = FutureProvider<void>((ref) async {
+  final db = ref.watch(appDatabaseProvider);
+  await db.initializeVectorIndexManager(
+    () => ref.read(activeEmbeddingServiceProvider),
+  );
+});
+
 final vectorIndexServiceProvider = Provider<VectorIndexService>((ref) {
   final db = ref.watch(appDatabaseProvider);
   return VectorIndexService(

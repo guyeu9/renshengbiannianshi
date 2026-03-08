@@ -12,6 +12,17 @@ class FoodDao extends DatabaseAccessor<AppDatabase> with _$FoodDaoMixin {
       entityType: 'food_records',
       entityId: entry.id.value,
     );
+    final textParts = <String>[];
+    if (entry.title.present) textParts.add(entry.title.value);
+    if (entry.content.present && entry.content.value != null) textParts.add(entry.content.value!);
+    final text = textParts.join(' ');
+    if (text.isNotEmpty && db.vectorIndexManager != null) {
+      await db.vectorIndexManager!.recordInsert(
+        entityType: 'food',
+        entityId: entry.id.value,
+        text: text,
+      );
+    }
   }
 
   Future<void> softDeleteById(String id, {required DateTime now}) async {
@@ -25,6 +36,12 @@ class FoodDao extends DatabaseAccessor<AppDatabase> with _$FoodDaoMixin {
       entityType: 'food_records',
       entityId: id,
     );
+    if (db.vectorIndexManager != null) {
+      await db.vectorIndexManager!.recordDelete(
+        entityType: 'food',
+        entityId: id,
+      );
+    }
   }
 
   Future<void> updateFavorite(String id, {required bool isFavorite, required DateTime now}) async {

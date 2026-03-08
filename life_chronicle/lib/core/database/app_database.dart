@@ -5,6 +5,8 @@ import 'package:uuid/uuid.dart';
 import 'db_connection_io.dart' if (dart.library.html) 'db_connection_web.dart' as dbconn;
 import 'tables.dart';
 import '../services/backup/change_log_recorder.dart';
+import '../services/vector_index_manager.dart';
+import '../services/embedding_service.dart';
 
 part 'app_database.g.dart';
 part 'daos/food_dao.dart';
@@ -28,6 +30,15 @@ part 'daos/embedding_dao.dart';
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(dbconn.openConnection());
   AppDatabase.connect(super.executor);
+
+  VectorIndexManager? _vectorIndexManager;
+  VectorIndexManager? get vectorIndexManager => _vectorIndexManager;
+
+  Future<void> initializeVectorIndexManager(EmbeddingServiceBase? Function() embeddingServiceGetter) async {
+    if (_vectorIndexManager != null) return;
+    _vectorIndexManager = VectorIndexManager(this, embeddingServiceGetter);
+    await _vectorIndexManager!.initialize();
+  }
 
   @override
   int get schemaVersion => 23;
