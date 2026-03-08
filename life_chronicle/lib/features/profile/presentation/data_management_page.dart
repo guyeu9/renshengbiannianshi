@@ -21,6 +21,12 @@ import '../../../core/services/pdf_export_service.dart';
 import 'backup_log_page.dart';
 import 'amap_log_page.dart';
 
+enum ExportFormat {
+  excel,
+  pdf,
+  markdown,
+}
+
 class ExportConfig {
   final bool includeFood;
   final bool includeMoment;
@@ -28,7 +34,7 @@ class ExportConfig {
   final bool includeTravel;
   final bool includeGoal;
   final bool includeTimeline;
-  final bool isPdf;
+  final ExportFormat format;
   final bool includeCover;
   final bool includeToc;
   final bool includeCharts;
@@ -43,7 +49,7 @@ class ExportConfig {
     this.includeTravel = true,
     this.includeGoal = true,
     this.includeTimeline = true,
-    this.isPdf = true,
+    this.format = ExportFormat.pdf,
     this.includeCover = true,
     this.includeToc = true,
     this.includeCharts = true,
@@ -51,6 +57,10 @@ class ExportConfig {
     this.startDate,
     this.endDate,
   });
+  
+  bool get isPdf => format == ExportFormat.pdf;
+  bool get isExcel => format == ExportFormat.excel;
+  bool get isMarkdown => format == ExportFormat.markdown;
 }
 
 class DataManagementPage extends ConsumerStatefulWidget {
@@ -94,7 +104,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
     'goal': true,
     'timeline': true,
   };
-  bool _exportAsPdf = false;
+  ExportFormat _exportFormat = ExportFormat.pdf;
   bool _includeCover = true;
   bool _includeToc = true;
   bool _includeCharts = true;
@@ -585,6 +595,16 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
     final config = await _showExportModuleSelector();
     if (config == null) return;
     
+    // 如果用户选择的不是Excel格式，调用对应的导出方法
+    if (config.format == ExportFormat.pdf) {
+      await _exportToPdfWithConfig(config);
+      return;
+    }
+    if (config.format == ExportFormat.markdown) {
+      await _exportToMarkdownWithConfig(config);
+      return;
+    }
+    
     setState(() => _isExporting = true);
     
     try {
@@ -638,6 +658,10 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
     final config = await _showExportModuleSelector();
     if (config == null) return;
     
+    await _exportToPdfWithConfig(config);
+  }
+  
+  Future<void> _exportToPdfWithConfig(ExportConfig config) async {
     setState(() => _isExporting = true);
     
     try {
@@ -695,6 +719,10 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
     final config = await _showExportModuleSelector();
     if (config == null) return;
     
+    await _exportToMarkdownWithConfig(config);
+  }
+  
+  Future<void> _exportToMarkdownWithConfig(ExportConfig config) async {
     setState(() => _isExporting = true);
     
     try {
@@ -914,27 +942,36 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Radio<bool>(
-                          value: false,
-                          groupValue: _exportAsPdf,
-                          onChanged: (v) => setDialogState(() => _exportAsPdf = v!),
+                        Radio<ExportFormat>(
+                          value: ExportFormat.excel,
+                          groupValue: _exportFormat,
+                          onChanged: (v) => setDialogState(() => _exportFormat = v!),
                         ),
                         const Icon(Icons.table_chart, color: Colors.green, size: 20),
                         const SizedBox(width: 4),
                         const Text('Excel'),
-                        const SizedBox(width: 24),
-                        Radio<bool>(
-                          value: true,
-                          groupValue: _exportAsPdf,
-                          onChanged: (v) => setDialogState(() => _exportAsPdf = v!),
+                        const SizedBox(width: 16),
+                        Radio<ExportFormat>(
+                          value: ExportFormat.pdf,
+                          groupValue: _exportFormat,
+                          onChanged: (v) => setDialogState(() => _exportFormat = v!),
                         ),
                         const Icon(Icons.picture_as_pdf, color: Colors.red, size: 20),
                         const SizedBox(width: 4),
                         const Text('PDF'),
+                        const SizedBox(width: 16),
+                        Radio<ExportFormat>(
+                          value: ExportFormat.markdown,
+                          groupValue: _exportFormat,
+                          onChanged: (v) => setDialogState(() => _exportFormat = v!),
+                        ),
+                        const Icon(Icons.description, color: Colors.blue, size: 20),
+                        const SizedBox(width: 4),
+                        const Text('Markdown'),
                       ],
                     ),
                     
-                    if (_exportAsPdf) ...[
+                    if (_exportFormat == ExportFormat.pdf) ...[
                       const SizedBox(height: 16),
                       const Text('PDF选项', style: TextStyle(fontWeight: FontWeight.w500)),
                       const SizedBox(height: 8),
@@ -961,7 +998,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                     includeTravel: _selectedModules['travel']!,
                     includeGoal: _selectedModules['goal']!,
                     includeTimeline: _selectedModules['timeline']!,
-                    isPdf: _exportAsPdf,
+                    format: _exportFormat,
                     includeCover: _includeCover,
                     includeToc: _includeToc,
                     includeCharts: _includeCharts,
