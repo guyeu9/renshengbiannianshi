@@ -11173,6 +11173,835 @@ class RecordEmbeddingsCompanion extends UpdateCompanion<RecordEmbedding> {
   }
 }
 
+class $ChatSessionsTable extends ChatSessions
+    with TableInfo<$ChatSessionsTable, ChatSession> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ChatSessionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+      'title', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('新对话'));
+  static const VerificationMeta _summaryMeta =
+      const VerificationMeta('summary');
+  @override
+  late final GeneratedColumn<String> summary = GeneratedColumn<String>(
+      'summary', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _lastMessageAtMeta =
+      const VerificationMeta('lastMessageAt');
+  @override
+  late final GeneratedColumn<DateTime> lastMessageAt =
+      GeneratedColumn<DateTime>('last_message_at', aliasedName, true,
+          type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _isArchivedMeta =
+      const VerificationMeta('isArchived');
+  @override
+  late final GeneratedColumn<bool> isArchived = GeneratedColumn<bool>(
+      'is_archived', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_archived" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _isDeletedMeta =
+      const VerificationMeta('isDeleted');
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+      'is_deleted', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_deleted" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        title,
+        summary,
+        createdAt,
+        updatedAt,
+        lastMessageAt,
+        isArchived,
+        isDeleted
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'chat_sessions';
+  @override
+  VerificationContext validateIntegrity(Insertable<ChatSession> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+          _titleMeta, title.isAcceptableOrUnknown(data['title']!, _titleMeta));
+    }
+    if (data.containsKey('summary')) {
+      context.handle(_summaryMeta,
+          summary.isAcceptableOrUnknown(data['summary']!, _summaryMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('last_message_at')) {
+      context.handle(
+          _lastMessageAtMeta,
+          lastMessageAt.isAcceptableOrUnknown(
+              data['last_message_at']!, _lastMessageAtMeta));
+    }
+    if (data.containsKey('is_archived')) {
+      context.handle(
+          _isArchivedMeta,
+          isArchived.isAcceptableOrUnknown(
+              data['is_archived']!, _isArchivedMeta));
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(_isDeletedMeta,
+          isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ChatSession map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ChatSession(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      title: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}title'])!,
+      summary: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}summary']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+      lastMessageAt: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime, data['${effectivePrefix}last_message_at']),
+      isArchived: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_archived'])!,
+      isDeleted: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
+    );
+  }
+
+  @override
+  $ChatSessionsTable createAlias(String alias) {
+    return $ChatSessionsTable(attachedDatabase, alias);
+  }
+}
+
+class ChatSession extends DataClass implements Insertable<ChatSession> {
+  final String id;
+  final String title;
+  final String? summary;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? lastMessageAt;
+  final bool isArchived;
+  final bool isDeleted;
+  const ChatSession(
+      {required this.id,
+      required this.title,
+      this.summary,
+      required this.createdAt,
+      required this.updatedAt,
+      this.lastMessageAt,
+      required this.isArchived,
+      required this.isDeleted});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['title'] = Variable<String>(title);
+    if (!nullToAbsent || summary != null) {
+      map['summary'] = Variable<String>(summary);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || lastMessageAt != null) {
+      map['last_message_at'] = Variable<DateTime>(lastMessageAt);
+    }
+    map['is_archived'] = Variable<bool>(isArchived);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    return map;
+  }
+
+  ChatSessionsCompanion toCompanion(bool nullToAbsent) {
+    return ChatSessionsCompanion(
+      id: Value(id),
+      title: Value(title),
+      summary: summary == null && nullToAbsent
+          ? const Value.absent()
+          : Value(summary),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      lastMessageAt: lastMessageAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastMessageAt),
+      isArchived: Value(isArchived),
+      isDeleted: Value(isDeleted),
+    );
+  }
+
+  factory ChatSession.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ChatSession(
+      id: serializer.fromJson<String>(json['id']),
+      title: serializer.fromJson<String>(json['title']),
+      summary: serializer.fromJson<String?>(json['summary']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      lastMessageAt: serializer.fromJson<DateTime?>(json['lastMessageAt']),
+      isArchived: serializer.fromJson<bool>(json['isArchived']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'title': serializer.toJson<String>(title),
+      'summary': serializer.toJson<String?>(summary),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'lastMessageAt': serializer.toJson<DateTime?>(lastMessageAt),
+      'isArchived': serializer.toJson<bool>(isArchived),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+    };
+  }
+
+  ChatSession copyWith(
+          {String? id,
+          String? title,
+          Value<String?> summary = const Value.absent(),
+          DateTime? createdAt,
+          DateTime? updatedAt,
+          Value<DateTime?> lastMessageAt = const Value.absent(),
+          bool? isArchived,
+          bool? isDeleted}) =>
+      ChatSession(
+        id: id ?? this.id,
+        title: title ?? this.title,
+        summary: summary.present ? summary.value : this.summary,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+        lastMessageAt:
+            lastMessageAt.present ? lastMessageAt.value : this.lastMessageAt,
+        isArchived: isArchived ?? this.isArchived,
+        isDeleted: isDeleted ?? this.isDeleted,
+      );
+  ChatSession copyWithCompanion(ChatSessionsCompanion data) {
+    return ChatSession(
+      id: data.id.present ? data.id.value : this.id,
+      title: data.title.present ? data.title.value : this.title,
+      summary: data.summary.present ? data.summary.value : this.summary,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      lastMessageAt: data.lastMessageAt.present
+          ? data.lastMessageAt.value
+          : this.lastMessageAt,
+      isArchived:
+          data.isArchived.present ? data.isArchived.value : this.isArchived,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ChatSession(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('summary: $summary, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('lastMessageAt: $lastMessageAt, ')
+          ..write('isArchived: $isArchived, ')
+          ..write('isDeleted: $isDeleted')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, title, summary, createdAt, updatedAt,
+      lastMessageAt, isArchived, isDeleted);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ChatSession &&
+          other.id == this.id &&
+          other.title == this.title &&
+          other.summary == this.summary &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.lastMessageAt == this.lastMessageAt &&
+          other.isArchived == this.isArchived &&
+          other.isDeleted == this.isDeleted);
+}
+
+class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
+  final Value<String> id;
+  final Value<String> title;
+  final Value<String?> summary;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> lastMessageAt;
+  final Value<bool> isArchived;
+  final Value<bool> isDeleted;
+  final Value<int> rowid;
+  const ChatSessionsCompanion({
+    this.id = const Value.absent(),
+    this.title = const Value.absent(),
+    this.summary = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.lastMessageAt = const Value.absent(),
+    this.isArchived = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ChatSessionsCompanion.insert({
+    required String id,
+    this.title = const Value.absent(),
+    this.summary = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.lastMessageAt = const Value.absent(),
+    this.isArchived = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        createdAt = Value(createdAt),
+        updatedAt = Value(updatedAt);
+  static Insertable<ChatSession> custom({
+    Expression<String>? id,
+    Expression<String>? title,
+    Expression<String>? summary,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? lastMessageAt,
+    Expression<bool>? isArchived,
+    Expression<bool>? isDeleted,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (title != null) 'title': title,
+      if (summary != null) 'summary': summary,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (lastMessageAt != null) 'last_message_at': lastMessageAt,
+      if (isArchived != null) 'is_archived': isArchived,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ChatSessionsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? title,
+      Value<String?>? summary,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<DateTime?>? lastMessageAt,
+      Value<bool>? isArchived,
+      Value<bool>? isDeleted,
+      Value<int>? rowid}) {
+    return ChatSessionsCompanion(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      summary: summary ?? this.summary,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      lastMessageAt: lastMessageAt ?? this.lastMessageAt,
+      isArchived: isArchived ?? this.isArchived,
+      isDeleted: isDeleted ?? this.isDeleted,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (summary.present) {
+      map['summary'] = Variable<String>(summary.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (lastMessageAt.present) {
+      map['last_message_at'] = Variable<DateTime>(lastMessageAt.value);
+    }
+    if (isArchived.present) {
+      map['is_archived'] = Variable<bool>(isArchived.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ChatSessionsCompanion(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('summary: $summary, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('lastMessageAt: $lastMessageAt, ')
+          ..write('isArchived: $isArchived, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ChatMessagesTable extends ChatMessages
+    with TableInfo<$ChatMessagesTable, ChatMessage> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ChatMessagesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _sessionIdMeta =
+      const VerificationMeta('sessionId');
+  @override
+  late final GeneratedColumn<String> sessionId = GeneratedColumn<String>(
+      'session_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _roleMeta = const VerificationMeta('role');
+  @override
+  late final GeneratedColumn<String> role = GeneratedColumn<String>(
+      'role', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _contentMeta =
+      const VerificationMeta('content');
+  @override
+  late final GeneratedColumn<String> content = GeneratedColumn<String>(
+      'content', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _recommendationsMeta =
+      const VerificationMeta('recommendations');
+  @override
+  late final GeneratedColumn<String> recommendations = GeneratedColumn<String>(
+      'recommendations', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _timestampMeta =
+      const VerificationMeta('timestamp');
+  @override
+  late final GeneratedColumn<DateTime> timestamp = GeneratedColumn<DateTime>(
+      'timestamp', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, sessionId, role, content, recommendations, timestamp, createdAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'chat_messages';
+  @override
+  VerificationContext validateIntegrity(Insertable<ChatMessage> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('session_id')) {
+      context.handle(_sessionIdMeta,
+          sessionId.isAcceptableOrUnknown(data['session_id']!, _sessionIdMeta));
+    } else if (isInserting) {
+      context.missing(_sessionIdMeta);
+    }
+    if (data.containsKey('role')) {
+      context.handle(
+          _roleMeta, role.isAcceptableOrUnknown(data['role']!, _roleMeta));
+    } else if (isInserting) {
+      context.missing(_roleMeta);
+    }
+    if (data.containsKey('content')) {
+      context.handle(_contentMeta,
+          content.isAcceptableOrUnknown(data['content']!, _contentMeta));
+    } else if (isInserting) {
+      context.missing(_contentMeta);
+    }
+    if (data.containsKey('recommendations')) {
+      context.handle(
+          _recommendationsMeta,
+          recommendations.isAcceptableOrUnknown(
+              data['recommendations']!, _recommendationsMeta));
+    }
+    if (data.containsKey('timestamp')) {
+      context.handle(_timestampMeta,
+          timestamp.isAcceptableOrUnknown(data['timestamp']!, _timestampMeta));
+    } else if (isInserting) {
+      context.missing(_timestampMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ChatMessage map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ChatMessage(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      sessionId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}session_id'])!,
+      role: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}role'])!,
+      content: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}content'])!,
+      recommendations: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}recommendations']),
+      timestamp: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}timestamp'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+    );
+  }
+
+  @override
+  $ChatMessagesTable createAlias(String alias) {
+    return $ChatMessagesTable(attachedDatabase, alias);
+  }
+}
+
+class ChatMessage extends DataClass implements Insertable<ChatMessage> {
+  final String id;
+  final String sessionId;
+  final String role;
+  final String content;
+  final String? recommendations;
+  final DateTime timestamp;
+  final DateTime createdAt;
+  const ChatMessage(
+      {required this.id,
+      required this.sessionId,
+      required this.role,
+      required this.content,
+      this.recommendations,
+      required this.timestamp,
+      required this.createdAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['session_id'] = Variable<String>(sessionId);
+    map['role'] = Variable<String>(role);
+    map['content'] = Variable<String>(content);
+    if (!nullToAbsent || recommendations != null) {
+      map['recommendations'] = Variable<String>(recommendations);
+    }
+    map['timestamp'] = Variable<DateTime>(timestamp);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  ChatMessagesCompanion toCompanion(bool nullToAbsent) {
+    return ChatMessagesCompanion(
+      id: Value(id),
+      sessionId: Value(sessionId),
+      role: Value(role),
+      content: Value(content),
+      recommendations: recommendations == null && nullToAbsent
+          ? const Value.absent()
+          : Value(recommendations),
+      timestamp: Value(timestamp),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory ChatMessage.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ChatMessage(
+      id: serializer.fromJson<String>(json['id']),
+      sessionId: serializer.fromJson<String>(json['sessionId']),
+      role: serializer.fromJson<String>(json['role']),
+      content: serializer.fromJson<String>(json['content']),
+      recommendations: serializer.fromJson<String?>(json['recommendations']),
+      timestamp: serializer.fromJson<DateTime>(json['timestamp']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'sessionId': serializer.toJson<String>(sessionId),
+      'role': serializer.toJson<String>(role),
+      'content': serializer.toJson<String>(content),
+      'recommendations': serializer.toJson<String?>(recommendations),
+      'timestamp': serializer.toJson<DateTime>(timestamp),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  ChatMessage copyWith(
+          {String? id,
+          String? sessionId,
+          String? role,
+          String? content,
+          Value<String?> recommendations = const Value.absent(),
+          DateTime? timestamp,
+          DateTime? createdAt}) =>
+      ChatMessage(
+        id: id ?? this.id,
+        sessionId: sessionId ?? this.sessionId,
+        role: role ?? this.role,
+        content: content ?? this.content,
+        recommendations: recommendations.present
+            ? recommendations.value
+            : this.recommendations,
+        timestamp: timestamp ?? this.timestamp,
+        createdAt: createdAt ?? this.createdAt,
+      );
+  ChatMessage copyWithCompanion(ChatMessagesCompanion data) {
+    return ChatMessage(
+      id: data.id.present ? data.id.value : this.id,
+      sessionId: data.sessionId.present ? data.sessionId.value : this.sessionId,
+      role: data.role.present ? data.role.value : this.role,
+      content: data.content.present ? data.content.value : this.content,
+      recommendations: data.recommendations.present
+          ? data.recommendations.value
+          : this.recommendations,
+      timestamp: data.timestamp.present ? data.timestamp.value : this.timestamp,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ChatMessage(')
+          ..write('id: $id, ')
+          ..write('sessionId: $sessionId, ')
+          ..write('role: $role, ')
+          ..write('content: $content, ')
+          ..write('recommendations: $recommendations, ')
+          ..write('timestamp: $timestamp, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id, sessionId, role, content, recommendations, timestamp, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ChatMessage &&
+          other.id == this.id &&
+          other.sessionId == this.sessionId &&
+          other.role == this.role &&
+          other.content == this.content &&
+          other.recommendations == this.recommendations &&
+          other.timestamp == this.timestamp &&
+          other.createdAt == this.createdAt);
+}
+
+class ChatMessagesCompanion extends UpdateCompanion<ChatMessage> {
+  final Value<String> id;
+  final Value<String> sessionId;
+  final Value<String> role;
+  final Value<String> content;
+  final Value<String?> recommendations;
+  final Value<DateTime> timestamp;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const ChatMessagesCompanion({
+    this.id = const Value.absent(),
+    this.sessionId = const Value.absent(),
+    this.role = const Value.absent(),
+    this.content = const Value.absent(),
+    this.recommendations = const Value.absent(),
+    this.timestamp = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ChatMessagesCompanion.insert({
+    required String id,
+    required String sessionId,
+    required String role,
+    required String content,
+    this.recommendations = const Value.absent(),
+    required DateTime timestamp,
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        sessionId = Value(sessionId),
+        role = Value(role),
+        content = Value(content),
+        timestamp = Value(timestamp),
+        createdAt = Value(createdAt);
+  static Insertable<ChatMessage> custom({
+    Expression<String>? id,
+    Expression<String>? sessionId,
+    Expression<String>? role,
+    Expression<String>? content,
+    Expression<String>? recommendations,
+    Expression<DateTime>? timestamp,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (sessionId != null) 'session_id': sessionId,
+      if (role != null) 'role': role,
+      if (content != null) 'content': content,
+      if (recommendations != null) 'recommendations': recommendations,
+      if (timestamp != null) 'timestamp': timestamp,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ChatMessagesCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? sessionId,
+      Value<String>? role,
+      Value<String>? content,
+      Value<String?>? recommendations,
+      Value<DateTime>? timestamp,
+      Value<DateTime>? createdAt,
+      Value<int>? rowid}) {
+    return ChatMessagesCompanion(
+      id: id ?? this.id,
+      sessionId: sessionId ?? this.sessionId,
+      role: role ?? this.role,
+      content: content ?? this.content,
+      recommendations: recommendations ?? this.recommendations,
+      timestamp: timestamp ?? this.timestamp,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (sessionId.present) {
+      map['session_id'] = Variable<String>(sessionId.value);
+    }
+    if (role.present) {
+      map['role'] = Variable<String>(role.value);
+    }
+    if (content.present) {
+      map['content'] = Variable<String>(content.value);
+    }
+    if (recommendations.present) {
+      map['recommendations'] = Variable<String>(recommendations.value);
+    }
+    if (timestamp.present) {
+      map['timestamp'] = Variable<DateTime>(timestamp.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ChatMessagesCompanion(')
+          ..write('id: $id, ')
+          ..write('sessionId: $sessionId, ')
+          ..write('role: $role, ')
+          ..write('content: $content, ')
+          ..write('recommendations: $recommendations, ')
+          ..write('timestamp: $timestamp, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -11197,6 +12026,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $AnnualReviewsTable annualReviews = $AnnualReviewsTable(this);
   late final $RecordEmbeddingsTable recordEmbeddings =
       $RecordEmbeddingsTable(this);
+  late final $ChatSessionsTable chatSessions = $ChatSessionsTable(this);
+  late final $ChatMessagesTable chatMessages = $ChatMessagesTable(this);
   late final FoodDao foodDao = FoodDao(this as AppDatabase);
   late final MomentDao momentDao = MomentDao(this as AppDatabase);
   late final FriendDao friendDao = FriendDao(this as AppDatabase);
@@ -11214,6 +12045,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final EmbeddingDao embeddingDao = EmbeddingDao(this as AppDatabase);
   late final TravelDao travelDao = TravelDao(this as AppDatabase);
   late final GoalDao goalDao = GoalDao(this as AppDatabase);
+  late final ChatDao chatDao = ChatDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -11237,7 +12069,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         goalReviews,
         backupLogs,
         annualReviews,
-        recordEmbeddings
+        recordEmbeddings,
+        chatSessions,
+        chatMessages
       ];
 }
 
@@ -16392,6 +17226,430 @@ typedef $$RecordEmbeddingsTableProcessedTableManager = ProcessedTableManager<
     ),
     RecordEmbedding,
     PrefetchHooks Function()>;
+typedef $$ChatSessionsTableCreateCompanionBuilder = ChatSessionsCompanion
+    Function({
+  required String id,
+  Value<String> title,
+  Value<String?> summary,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+  Value<DateTime?> lastMessageAt,
+  Value<bool> isArchived,
+  Value<bool> isDeleted,
+  Value<int> rowid,
+});
+typedef $$ChatSessionsTableUpdateCompanionBuilder = ChatSessionsCompanion
+    Function({
+  Value<String> id,
+  Value<String> title,
+  Value<String?> summary,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> lastMessageAt,
+  Value<bool> isArchived,
+  Value<bool> isDeleted,
+  Value<int> rowid,
+});
+
+class $$ChatSessionsTableFilterComposer
+    extends Composer<_$AppDatabase, $ChatSessionsTable> {
+  $$ChatSessionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get title => $composableBuilder(
+      column: $table.title, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get summary => $composableBuilder(
+      column: $table.summary, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get lastMessageAt => $composableBuilder(
+      column: $table.lastMessageAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isArchived => $composableBuilder(
+      column: $table.isArchived, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnFilters(column));
+}
+
+class $$ChatSessionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ChatSessionsTable> {
+  $$ChatSessionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get title => $composableBuilder(
+      column: $table.title, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get summary => $composableBuilder(
+      column: $table.summary, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get lastMessageAt => $composableBuilder(
+      column: $table.lastMessageAt,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isArchived => $composableBuilder(
+      column: $table.isArchived, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnOrderings(column));
+}
+
+class $$ChatSessionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ChatSessionsTable> {
+  $$ChatSessionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get summary =>
+      $composableBuilder(column: $table.summary, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastMessageAt => $composableBuilder(
+      column: $table.lastMessageAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isArchived => $composableBuilder(
+      column: $table.isArchived, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+}
+
+class $$ChatSessionsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $ChatSessionsTable,
+    ChatSession,
+    $$ChatSessionsTableFilterComposer,
+    $$ChatSessionsTableOrderingComposer,
+    $$ChatSessionsTableAnnotationComposer,
+    $$ChatSessionsTableCreateCompanionBuilder,
+    $$ChatSessionsTableUpdateCompanionBuilder,
+    (
+      ChatSession,
+      BaseReferences<_$AppDatabase, $ChatSessionsTable, ChatSession>
+    ),
+    ChatSession,
+    PrefetchHooks Function()> {
+  $$ChatSessionsTableTableManager(_$AppDatabase db, $ChatSessionsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ChatSessionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ChatSessionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ChatSessionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> title = const Value.absent(),
+            Value<String?> summary = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<DateTime?> lastMessageAt = const Value.absent(),
+            Value<bool> isArchived = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ChatSessionsCompanion(
+            id: id,
+            title: title,
+            summary: summary,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            lastMessageAt: lastMessageAt,
+            isArchived: isArchived,
+            isDeleted: isDeleted,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            Value<String> title = const Value.absent(),
+            Value<String?> summary = const Value.absent(),
+            required DateTime createdAt,
+            required DateTime updatedAt,
+            Value<DateTime?> lastMessageAt = const Value.absent(),
+            Value<bool> isArchived = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ChatSessionsCompanion.insert(
+            id: id,
+            title: title,
+            summary: summary,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            lastMessageAt: lastMessageAt,
+            isArchived: isArchived,
+            isDeleted: isDeleted,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$ChatSessionsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $ChatSessionsTable,
+    ChatSession,
+    $$ChatSessionsTableFilterComposer,
+    $$ChatSessionsTableOrderingComposer,
+    $$ChatSessionsTableAnnotationComposer,
+    $$ChatSessionsTableCreateCompanionBuilder,
+    $$ChatSessionsTableUpdateCompanionBuilder,
+    (
+      ChatSession,
+      BaseReferences<_$AppDatabase, $ChatSessionsTable, ChatSession>
+    ),
+    ChatSession,
+    PrefetchHooks Function()>;
+typedef $$ChatMessagesTableCreateCompanionBuilder = ChatMessagesCompanion
+    Function({
+  required String id,
+  required String sessionId,
+  required String role,
+  required String content,
+  Value<String?> recommendations,
+  required DateTime timestamp,
+  required DateTime createdAt,
+  Value<int> rowid,
+});
+typedef $$ChatMessagesTableUpdateCompanionBuilder = ChatMessagesCompanion
+    Function({
+  Value<String> id,
+  Value<String> sessionId,
+  Value<String> role,
+  Value<String> content,
+  Value<String?> recommendations,
+  Value<DateTime> timestamp,
+  Value<DateTime> createdAt,
+  Value<int> rowid,
+});
+
+class $$ChatMessagesTableFilterComposer
+    extends Composer<_$AppDatabase, $ChatMessagesTable> {
+  $$ChatMessagesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get sessionId => $composableBuilder(
+      column: $table.sessionId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get role => $composableBuilder(
+      column: $table.role, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get content => $composableBuilder(
+      column: $table.content, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get recommendations => $composableBuilder(
+      column: $table.recommendations,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get timestamp => $composableBuilder(
+      column: $table.timestamp, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$ChatMessagesTableOrderingComposer
+    extends Composer<_$AppDatabase, $ChatMessagesTable> {
+  $$ChatMessagesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get sessionId => $composableBuilder(
+      column: $table.sessionId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get role => $composableBuilder(
+      column: $table.role, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get content => $composableBuilder(
+      column: $table.content, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get recommendations => $composableBuilder(
+      column: $table.recommendations,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get timestamp => $composableBuilder(
+      column: $table.timestamp, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$ChatMessagesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ChatMessagesTable> {
+  $$ChatMessagesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get sessionId =>
+      $composableBuilder(column: $table.sessionId, builder: (column) => column);
+
+  GeneratedColumn<String> get role =>
+      $composableBuilder(column: $table.role, builder: (column) => column);
+
+  GeneratedColumn<String> get content =>
+      $composableBuilder(column: $table.content, builder: (column) => column);
+
+  GeneratedColumn<String> get recommendations => $composableBuilder(
+      column: $table.recommendations, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get timestamp =>
+      $composableBuilder(column: $table.timestamp, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$ChatMessagesTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $ChatMessagesTable,
+    ChatMessage,
+    $$ChatMessagesTableFilterComposer,
+    $$ChatMessagesTableOrderingComposer,
+    $$ChatMessagesTableAnnotationComposer,
+    $$ChatMessagesTableCreateCompanionBuilder,
+    $$ChatMessagesTableUpdateCompanionBuilder,
+    (
+      ChatMessage,
+      BaseReferences<_$AppDatabase, $ChatMessagesTable, ChatMessage>
+    ),
+    ChatMessage,
+    PrefetchHooks Function()> {
+  $$ChatMessagesTableTableManager(_$AppDatabase db, $ChatMessagesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ChatMessagesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ChatMessagesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ChatMessagesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> sessionId = const Value.absent(),
+            Value<String> role = const Value.absent(),
+            Value<String> content = const Value.absent(),
+            Value<String?> recommendations = const Value.absent(),
+            Value<DateTime> timestamp = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ChatMessagesCompanion(
+            id: id,
+            sessionId: sessionId,
+            role: role,
+            content: content,
+            recommendations: recommendations,
+            timestamp: timestamp,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String sessionId,
+            required String role,
+            required String content,
+            Value<String?> recommendations = const Value.absent(),
+            required DateTime timestamp,
+            required DateTime createdAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ChatMessagesCompanion.insert(
+            id: id,
+            sessionId: sessionId,
+            role: role,
+            content: content,
+            recommendations: recommendations,
+            timestamp: timestamp,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$ChatMessagesTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $ChatMessagesTable,
+    ChatMessage,
+    $$ChatMessagesTableFilterComposer,
+    $$ChatMessagesTableOrderingComposer,
+    $$ChatMessagesTableAnnotationComposer,
+    $$ChatMessagesTableCreateCompanionBuilder,
+    $$ChatMessagesTableUpdateCompanionBuilder,
+    (
+      ChatMessage,
+      BaseReferences<_$AppDatabase, $ChatMessagesTable, ChatMessage>
+    ),
+    ChatMessage,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -16434,6 +17692,10 @@ class $AppDatabaseManager {
       $$AnnualReviewsTableTableManager(_db, _db.annualReviews);
   $$RecordEmbeddingsTableTableManager get recordEmbeddings =>
       $$RecordEmbeddingsTableTableManager(_db, _db.recordEmbeddings);
+  $$ChatSessionsTableTableManager get chatSessions =>
+      $$ChatSessionsTableTableManager(_db, _db.chatSessions);
+  $$ChatMessagesTableTableManager get chatMessages =>
+      $$ChatMessagesTableTableManager(_db, _db.chatMessages);
 }
 
 mixin _$FoodDaoMixin on DatabaseAccessor<AppDatabase> {
@@ -16625,4 +17887,19 @@ class GoalDaoManager {
   GoalDaoManager(this._db);
   $$GoalRecordsTableTableManager get goalRecords =>
       $$GoalRecordsTableTableManager(_db.attachedDatabase, _db.goalRecords);
+}
+
+mixin _$ChatDaoMixin on DatabaseAccessor<AppDatabase> {
+  $ChatSessionsTable get chatSessions => attachedDatabase.chatSessions;
+  $ChatMessagesTable get chatMessages => attachedDatabase.chatMessages;
+  ChatDaoManager get managers => ChatDaoManager(this);
+}
+
+class ChatDaoManager {
+  final _$ChatDaoMixin _db;
+  ChatDaoManager(this._db);
+  $$ChatSessionsTableTableManager get chatSessions =>
+      $$ChatSessionsTableTableManager(_db.attachedDatabase, _db.chatSessions);
+  $$ChatMessagesTableTableManager get chatMessages =>
+      $$ChatMessagesTableTableManager(_db.attachedDatabase, _db.chatMessages);
 }

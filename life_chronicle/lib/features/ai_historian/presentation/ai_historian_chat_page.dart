@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../app/app_theme.dart';
 import '../../../core/database/database_providers.dart';
@@ -80,19 +81,22 @@ class AiHistorianChatPage extends ConsumerStatefulWidget {
 }
 
 class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
-  final List<ChatMessageModel> _messages = [];
   final TextEditingController _inputController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _isLoading = false;
   String? _errorMessage;
   int _totalRecords = 0;
   Map<String, int> _recordStats = {};
+  String? _currentSessionId;
+  final List<ChatMessageModel> _messages = [];
+  bool _showSessionDrawer = false;
+  bool _isInitialized = false;
 
   @override
   void initState() {
     super.initState();
     _loadRecordStats();
-    _addWelcomeMessage();
+    _initializeSession();
   }
 
   @override
@@ -100,6 +104,126 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
     _inputController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _initializeSession() async {
+    final db = ref.read(appDatabaseProvider);
+    final sessions = await (db.select(db.chatSessions)
+          ..where((t) => t.isDeleted.equals(false))
+          ..where((t) => t.isArchived.equals(false))
+          ..orderBy([(t) => OrderingTerm(expression: t.lastMessageAt, mode: OrderingMode.desc)]))
+        .get();
+
+    if (sessions.isEmpty) {
+      await _createNewSession();
+    } else {
+      _currentSessionId = sessions.first.id;
+      await _loadSessionMessages(_currentSessionId!);
+    }
+
+    setState(() {
+      _isInitialized = true;
+    });
+  }
+
+  Future<void> _createNewSession() async {
+    final db = ref.read(appDatabaseProvider);
+    const uuid = Uuid();
+    final now = DateTime.now();
+    final sessionId = uuid.v4();
+
+    await db.chatDao.upsertSession(ChatSessionsCompanion(
+      id: Value(sessionId),
+      title: const Value('新对话'),
+      createdAt: Value(now),
+      updatedAt: Value(now),
+      lastMessageAt: Value(now),
+    ));
+
+    setState(() {
+      _currentSessionId = sessionId;
+      _messages.clear();
+    });
+
+    _addWelcomeMessage();
+  }
+
+  Future<void> _loadSessionMessages(String sessionId) async {
+    final db = ref.read(appDatabaseProvider);
+    final messages = await db.chatDao.getMessagesBySessionId(sessionId);
+
+    setState(() {
+      _messages.clear();
+      for (final msg in messages) {
+        final recommendations = <RecommendationCard>[];
+        if (msg.recommendations != null && msg.recommendations!.isNotEmpty) {
+          try {
+            final json = jsonDecode(msg.recommendations!) as List;
+            recommendations.addAll(
+              json.map((e) => RecommendationCard.fromJson(e as Map<String, dynamic>)),
+            );
+          } catch (e) {
+            debugPrint('Failed to parse recommendations: $e');
+          }
+        }
+        _messages.add(ChatMessageModel(
+          id: msg.id,
+          role: msg.role == 'user' ? MessageRole.user : MessageRole.assistant,
+          content: msg.content,
+          timestamp: msg.timestamp,
+          recommendations: recommendations,
+        ));
+      }
+    });
+
+    if (_messages.isEmpty) {
+      _addWelcomeMessage();
+    }
+  }
+
+  Future<void> _switchSession(String sessionId) async {
+    _currentSessionId = sessionId;
+    await _loadSessionMessages(sessionId);
+    setState(() {
+      _showSessionDrawer = false;
+    });
+    _scrollToBottom();
+  }
+
+  Future<void> _saveMessage(ChatMessageModel message) async {
+    if (_currentSessionId == null) return;
+
+    final db = ref.read(appDatabaseProvider);
+    final recommendationsJson = message.recommendations.isNotEmpty
+        ? jsonEncode(message.recommendations.map((r) => {
+              'type': r.type,
+              'id': r.id,
+              'title': r.title,
+              'summary': r.summary,
+              'imageUrl': r.imageUrl,
+            }).toList())
+        : null;
+
+    await db.chatDao.upsertMessage(ChatMessagesCompanion(
+      id: Value(message.id),
+      sessionId: Value(_currentSessionId!),
+      role: Value(message.role == MessageRole.user ? 'user' : 'assistant'),
+      content: Value(message.content),
+      recommendations: Value(recommendationsJson),
+      timestamp: Value(message.timestamp),
+      createdAt: Value(DateTime.now()),
+    ));
+
+    await db.chatDao.updateSessionLastMessageAt(_currentSessionId!, now: DateTime.now());
+  }
+
+  Future<void> _deleteSession(String sessionId) async {
+    final db = ref.read(appDatabaseProvider);
+    await db.chatDao.softDeleteSession(sessionId, now: DateTime.now());
+
+    if (_currentSessionId == sessionId) {
+      await _initializeSession();
+    }
   }
 
   Future<void> _loadRecordStats() async {
@@ -125,12 +249,15 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
 
   void _addWelcomeMessage() {
     final now = DateTime.now();
-    _messages.add(ChatMessageModel(
+    final welcomeMessage = ChatMessageModel(
       id: 'welcome_${now.millisecondsSinceEpoch}',
       role: MessageRole.assistant,
       content: '你好！我是你的 AI 史官。我已经阅读了你的人生档案，包含 $_totalRecords 条记录。今天你想回顾哪段记忆？',
       timestamp: now,
-    ));
+    );
+    setState(() {
+      _messages.add(welcomeMessage);
+    });
   }
 
   String _buildSystemPrompt() {
@@ -196,7 +323,7 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
 
   Future<void> _sendMessage() async {
     final text = _inputController.text.trim();
-    if (text.isEmpty || _isLoading) return;
+    if (text.isEmpty || _isLoading || _currentSessionId == null) return;
 
     _inputController.clear();
     setState(() {
@@ -215,6 +342,7 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
       _isLoading = true;
     });
     _scrollToBottom();
+    await _saveMessage(userMessage);
 
     final chatService = ref.read(activeChatServiceProvider);
     if (chatService == null) {
@@ -239,7 +367,8 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
 
     try {
       final history = _messages
-          .where((m) => m.id != aiMessageId && m.id != 'welcome_${_messages.first.timestamp.millisecondsSinceEpoch}')
+          .where((m) => m.id != aiMessageId)
+          .where((m) => !m.id.startsWith('welcome_'))
           .map((m) => ChatMessage(
                 role: m.role == MessageRole.user ? 'user' : 'assistant',
                 content: m.content,
@@ -265,23 +394,27 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
       if (index != -1) {
         final recommendations = _parseRecommendations(fullContent);
         final cleanContent = _removeRecommendationsJson(fullContent);
+        final finalMessage = _messages[index].copyWith(
+          content: cleanContent,
+          isStreaming: false,
+          recommendations: recommendations,
+        );
         setState(() {
-          _messages[index] = _messages[index].copyWith(
-            content: cleanContent,
-            isStreaming: false,
-            recommendations: recommendations,
-          );
+          _messages[index] = finalMessage;
         });
+        await _saveMessage(finalMessage);
       }
     } catch (e) {
       final index = _messages.indexWhere((m) => m.id == aiMessageId);
       if (index != -1) {
+        final finalMessage = _messages[index].copyWith(
+          content: '抱歉，我遇到了一些问题：$e',
+          isStreaming: false,
+        );
         setState(() {
-          _messages[index] = _messages[index].copyWith(
-            content: '抱歉，我遇到了一些问题：$e',
-            isStreaming: false,
-          );
+          _messages[index] = finalMessage;
         });
+        await _saveMessage(finalMessage);
       }
     } finally {
       setState(() {
@@ -308,8 +441,12 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
             child: const Text('取消'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
+              if (_currentSessionId != null) {
+                final db = ref.read(appDatabaseProvider);
+                await db.chatDao.deleteMessagesBySessionId(_currentSessionId!);
+              }
               setState(() {
                 _messages.clear();
                 _addWelcomeMessage();
@@ -349,6 +486,7 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
   @override
   Widget build(BuildContext context) {
     final hasAiService = ref.watch(hasActiveChatProvider);
+    final db = ref.watch(appDatabaseProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8F8),
@@ -360,6 +498,7 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
                 _AiChatTopBar(
                   onClear: _clearConversation,
                   onAnalytics: () => Navigator.of(context).pushNamed('/chronicle'),
+                  onToggleSessions: () => setState(() => _showSessionDrawer = !_showSessionDrawer),
                   hasAiService: hasAiService,
                 ),
                 if (_errorMessage != null)
@@ -389,40 +528,52 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
                     ),
                   ),
                 Expanded(
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 220),
-                    itemCount: _messages.length,
-                    itemBuilder: (context, index) {
-                      final message = _messages[index];
-                      if (index == 0) {
-                        return Column(
-                          children: [
-                            _TimestampChip(timestamp: message.timestamp),
-                            const SizedBox(height: 18),
-                            _MessageBubble(
-                              message: message,
-                              onCardTap: _handleCardTap,
-                            ),
-                          ],
-                        );
-                      }
-                      final prevMessage = _messages[index - 1];
-                      final showTimestamp = message.timestamp.difference(prevMessage.timestamp).inMinutes > 5;
-                      return Column(
-                        children: [
-                          if (showTimestamp) ...[
-                            const SizedBox(height: 12),
-                            _TimestampChip(timestamp: message.timestamp),
-                          ],
-                          const SizedBox(height: 18),
-                          _MessageBubble(
-                            message: message,
-                            onCardTap: _handleCardTap,
-                          ),
-                        ],
-                      );
-                    },
+                  child: Stack(
+                    children: [
+                      ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 220),
+                        itemCount: _messages.length,
+                        itemBuilder: (context, index) {
+                          final message = _messages[index];
+                          if (index == 0) {
+                            return Column(
+                              children: [
+                                _TimestampChip(timestamp: message.timestamp),
+                                const SizedBox(height: 18),
+                                _MessageBubble(
+                                  message: message,
+                                  onCardTap: _handleCardTap,
+                                ),
+                              ],
+                            );
+                          }
+                          final prevMessage = _messages[index - 1];
+                          final showTimestamp = message.timestamp.difference(prevMessage.timestamp).inMinutes > 5;
+                          return Column(
+                            children: [
+                              if (showTimestamp) ...[
+                                const SizedBox(height: 12),
+                                _TimestampChip(timestamp: message.timestamp),
+                              ],
+                              const SizedBox(height: 18),
+                              _MessageBubble(
+                                message: message,
+                                onCardTap: _handleCardTap,
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                      if (_showSessionDrawer)
+                        _SessionDrawer(
+                          currentSessionId: _currentSessionId,
+                          onSessionTap: _switchSession,
+                          onNewSession: _createNewSession,
+                          onDeleteSession: _deleteSession,
+                          onClose: () => setState(() => _showSessionDrawer = false),
+                        ),
+                    ],
                   ),
                 ),
               ],
@@ -433,7 +584,7 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
             isLoading: _isLoading,
             onSend: _sendMessage,
             onQuickMessage: _sendQuickMessage,
-            enabled: hasAiService,
+            enabled: hasAiService && _isInitialized,
           ),
         ],
       ),
@@ -441,15 +592,198 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
   }
 }
 
+class _SessionDrawer extends ConsumerWidget {
+  const _SessionDrawer({
+    required this.currentSessionId,
+    required this.onSessionTap,
+    required this.onNewSession,
+    required this.onDeleteSession,
+    required this.onClose,
+  });
+
+  final String? currentSessionId;
+  final void Function(String) onSessionTap;
+  final VoidCallback onNewSession;
+  final void Function(String) onDeleteSession;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final db = ref.watch(appDatabaseProvider);
+
+    return GestureDetector(
+      onTap: onClose,
+      child: Container(
+        color: Colors.black.withValues(alpha: 0.30),
+        child: GestureDetector(
+          onTap: () {},
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Container(
+              width: 280,
+              height: double.infinity,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(color: Colors.black12, blurRadius: 10),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.history, color: AppTheme.primary),
+                        const SizedBox(width: 8),
+                        const Text(
+                          '对话历史',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: StreamBuilder<List<ChatSession>>(
+                      stream: db.chatDao.watchAllActiveSessions(),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) {
+                          return const Center(child: CircularProgressIndicator());
+                        }
+                        final sessions = snapshot.data!;
+                        if (sessions.isEmpty) {
+                          return Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey.shade400),
+                                const SizedBox(height: 16),
+                                Text('暂无对话', style: TextStyle(color: Colors.grey.shade500)),
+                              ],
+                            ),
+                          );
+                        }
+                        return ListView.separated(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          itemCount: sessions.length,
+                          separatorBuilder: (context, index) => Divider(height: 1, color: Colors.grey.shade100),
+                          itemBuilder: (context, index) {
+                            final session = sessions[index];
+                            final isCurrent = session.id == currentSessionId;
+                            return ListTile(
+                              leading: Icon(
+                                isCurrent ? Icons.chat_bubble : Icons.chat_bubble_outline,
+                                color: isCurrent ? AppTheme.primary : Colors.grey.shade500,
+                              ),
+                              title: Text(
+                                session.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                                  color: isCurrent ? AppTheme.primary : const Color(0xFF334155),
+                                ),
+                              ),
+                              subtitle: session.lastMessageAt != null
+                                  ? Text(
+                                      _formatDate(session.lastMessageAt!),
+                                      style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                                    )
+                                  : null,
+                              trailing: IconButton(
+                                icon: const Icon(Icons.delete_outline, size: 20),
+                                color: Colors.grey.shade400,
+                                onPressed: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      title: const Text('删除对话'),
+                                      content: const Text('确定要删除这个对话吗？'),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(context),
+                                          child: const Text('取消'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () {
+                                            Navigator.pop(context);
+                                            onDeleteSession(session.id);
+                                          },
+                                          child: const Text('确定', style: TextStyle(color: Colors.red)),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                              onTap: () => onSessionTap(session.id),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      border: Border(top: BorderSide(color: Colors.grey.shade200)),
+                    ),
+                    child: ElevatedButton.icon(
+                      onPressed: onNewSession,
+                      icon: const Icon(Icons.add, color: Colors.white),
+                      label: const Text('新对话', style: TextStyle(color: Colors.white)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        minimumSize: const Size(double.infinity, 48),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
+    
+    if (difference.inDays == 0) {
+      return DateFormat('HH:mm').format(date);
+    } else if (difference.inDays == 1) {
+      return '昨天';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays} 天前';
+    } else {
+      return DateFormat('MM-dd').format(date);
+    }
+  }
+}
+
 class _AiChatTopBar extends StatelessWidget {
   const _AiChatTopBar({
     required this.onClear,
     required this.onAnalytics,
+    required this.onToggleSessions,
     required this.hasAiService,
   });
 
   final VoidCallback onClear;
   final VoidCallback onAnalytics;
+  final VoidCallback onToggleSessions;
   final bool hasAiService;
 
   @override
@@ -469,11 +803,11 @@ class _AiChatTopBar extends StatelessWidget {
           child: Row(
             children: [
               InkWell(
-                onTap: () => Navigator.of(context).maybePop(),
+                onTap: onToggleSessions,
                 borderRadius: BorderRadius.circular(999),
                 child: const Padding(
                   padding: EdgeInsets.all(8),
-                  child: Icon(Icons.arrow_back_ios_new, color: Color(0xFF475569), size: 20),
+                  child: Icon(Icons.menu, color: Color(0xFF475569), size: 20),
                 ),
               ),
               const SizedBox(width: 8),

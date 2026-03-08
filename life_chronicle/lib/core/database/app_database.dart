@@ -24,10 +24,11 @@ part 'daos/annual_review_dao.dart';
 part 'daos/embedding_dao.dart';
 part 'daos/travel_dao.dart';
 part 'daos/goal_dao.dart';
+part 'daos/chat_dao.dart';
 
 @DriftDatabase(
-  tables: [FoodRecords, MomentRecords, FriendRecords, TravelRecords, Trips, GoalRecords, TimelineEvents, EntityLinks, LinkLogs, UserProfiles, AiProviders, ChangeLogs, SyncState, ChecklistItems, GoalPostponements, GoalReviews, BackupLogs, AnnualReviews, RecordEmbeddings],
-  daos: [FoodDao, MomentDao, FriendDao, LinkDao, AiProviderDao, ChangeLogDao, SyncStateDao, ChecklistDao, GoalPostponementDao, GoalReviewDao, BackupLogDao, AnnualReviewDao, EmbeddingDao, TravelDao, GoalDao],
+  tables: [FoodRecords, MomentRecords, FriendRecords, TravelRecords, Trips, GoalRecords, TimelineEvents, EntityLinks, LinkLogs, UserProfiles, AiProviders, ChangeLogs, SyncState, ChecklistItems, GoalPostponements, GoalReviews, BackupLogs, AnnualReviews, RecordEmbeddings, ChatSessions, ChatMessages],
+  daos: [FoodDao, MomentDao, FriendDao, LinkDao, AiProviderDao, ChangeLogDao, SyncStateDao, ChecklistDao, GoalPostponementDao, GoalReviewDao, BackupLogDao, AnnualReviewDao, EmbeddingDao, TravelDao, GoalDao, ChatDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(dbconn.openConnection());
@@ -43,7 +44,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 23;
+  int get schemaVersion => 24;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -203,6 +204,11 @@ class AppDatabase extends _$AppDatabase {
 
           if (from < 23) {
             await _createEmbeddingsTable();
+          }
+
+          if (from < 24) {
+            await ensureTable(chatSessions);
+            await ensureTable(chatMessages);
           }
         },
       );

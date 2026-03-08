@@ -390,3 +390,42 @@ class RecordEmbeddings extends Table {
         {entityType, entityId},
       ];
 }
+
+class ChatSessions extends Table {
+  TextColumn get id => text()();
+  TextColumn get title => text().withDefault(const Constant('新对话'))();
+  TextColumn get summary => text().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  DateTimeColumn get lastMessageAt => dateTime().nullable()();
+  BoolColumn get isArchived => boolean().withDefault(const Constant(false))();
+  BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+
+  List<Set<Column>> get keys => [
+        {createdAt},
+        {updatedAt},
+        {isDeleted},
+        {isArchived},
+      ];
+}
+
+class ChatMessages extends Table {
+  TextColumn get id => text()();
+  TextColumn get sessionId => text()();
+  TextColumn get role => text()();
+  TextColumn get content => text()();
+  TextColumn get recommendations => text().nullable()();
+  DateTimeColumn get timestamp => dateTime()();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+
+  List<Set<Column>> get keys => [
+        {sessionId},
+        {timestamp},
+      ];
+}
