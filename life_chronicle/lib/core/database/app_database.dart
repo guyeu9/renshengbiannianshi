@@ -22,10 +22,12 @@ part 'daos/goal_review_dao.dart';
 part 'daos/backup_log_dao.dart';
 part 'daos/annual_review_dao.dart';
 part 'daos/embedding_dao.dart';
+part 'daos/travel_dao.dart';
+part 'daos/goal_dao.dart';
 
 @DriftDatabase(
   tables: [FoodRecords, MomentRecords, FriendRecords, TravelRecords, Trips, GoalRecords, TimelineEvents, EntityLinks, LinkLogs, UserProfiles, AiProviders, ChangeLogs, SyncState, ChecklistItems, GoalPostponements, GoalReviews, BackupLogs, AnnualReviews, RecordEmbeddings],
-  daos: [FoodDao, MomentDao, FriendDao, LinkDao, AiProviderDao, ChangeLogDao, SyncStateDao, ChecklistDao, GoalPostponementDao, GoalReviewDao, BackupLogDao, AnnualReviewDao, EmbeddingDao],
+  daos: [FoodDao, MomentDao, FriendDao, LinkDao, AiProviderDao, ChangeLogDao, SyncStateDao, ChecklistDao, GoalPostponementDao, GoalReviewDao, BackupLogDao, AnnualReviewDao, EmbeddingDao, TravelDao, GoalDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(dbconn.openConnection());
@@ -347,42 +349,21 @@ class AppDatabase extends _$AppDatabase {
         .watch();
   }
 
-  Stream<List<TravelRecord>> watchAllActiveTravelRecords() {
-    return (select(travelRecords)
-          ..where((t) => t.isDeleted.equals(false))
-          ..orderBy([(t) => OrderingTerm(expression: t.recordDate, mode: OrderingMode.desc)]))
-        .watch();
-  }
+  @Deprecated('Use travelDao.watchAllActive() instead')
+  Stream<List<TravelRecord>> watchAllActiveTravelRecords() => travelDao.watchAllActive();
 
-  Stream<TravelRecord?> watchTravelById(String id) {
-    return (select(travelRecords)..where((t) => t.id.equals(id))).watchSingleOrNull();
-  }
+  @Deprecated('Use travelDao.watchById(id) instead')
+  Stream<TravelRecord?> watchTravelById(String id) => travelDao.watchById(id);
 
-  Stream<List<TravelRecord>> watchTravelTrips() {
-    return (select(travelRecords)
-          ..where((t) => t.isDeleted.equals(false))
-          ..where((t) => t.isJournal.equals(false))
-          ..orderBy([(t) => OrderingTerm(expression: t.recordDate, mode: OrderingMode.desc)]))
-        .watch();
-  }
+  @Deprecated('Use travelDao.watchTrips() instead')
+  Stream<List<TravelRecord>> watchTravelTrips() => travelDao.watchTrips();
 
-  Stream<List<TravelRecord>> watchTravelJournals(String tripId) {
-    return (select(travelRecords)
-          ..where((t) => t.isDeleted.equals(false))
-          ..where((t) => t.isJournal.equals(true))
-          ..where((t) => t.tripId.equals(tripId))
-          ..orderBy([(t) => OrderingTerm(expression: t.recordDate, mode: OrderingMode.desc)]))
-        .watch();
-  }
+  @Deprecated('Use travelDao.watchJournals(tripId) instead')
+  Stream<List<TravelRecord>> watchTravelJournals(String tripId) => travelDao.watchJournals(tripId);
 
-  Stream<List<TravelRecord>> watchTravelRecordsByRange(DateTime start, DateTime endExclusive) {
-    return (select(travelRecords)
-          ..where((t) => t.isDeleted.equals(false))
-          ..where((t) => t.recordDate.isBiggerOrEqualValue(start))
-          ..where((t) => t.recordDate.isSmallerThanValue(endExclusive))
-          ..orderBy([(t) => OrderingTerm(expression: t.recordDate, mode: OrderingMode.desc)]))
-        .watch();
-  }
+  @Deprecated('Use travelDao.watchByRecordDateRange(start, endExclusive) instead')
+  Stream<List<TravelRecord>> watchTravelRecordsByRange(DateTime start, DateTime endExclusive) =>
+      travelDao.watchByRecordDateRange(start, endExclusive);
 
   Stream<List<TimelineEvent>> watchEventsForMonth(DateTime month) {
     final start = DateTime(month.year, month.month, 1);
@@ -403,21 +384,11 @@ class AppDatabase extends _$AppDatabase {
         .watch();
   }
 
-  Stream<List<GoalRecord>> watchAllActiveGoalRecords() {
-    return (select(goalRecords)
-          ..where((t) => t.isDeleted.equals(false))
-          ..orderBy([(t) => OrderingTerm(expression: t.recordDate, mode: OrderingMode.desc)]))
-        .watch();
-  }
+  @Deprecated('Use goalDao.watchAllActive() instead')
+  Stream<List<GoalRecord>> watchAllActiveGoalRecords() => goalDao.watchAllActive();
 
-  Stream<List<GoalRecord>> watchUncompletedYearGoals() {
-    return (select(goalRecords)
-          ..where((t) => t.isDeleted.equals(false))
-          ..where((t) => t.level.equals('year'))
-          ..where((t) => t.isCompleted.equals(false))
-          ..orderBy([(t) => OrderingTerm(expression: t.recordDate, mode: OrderingMode.desc)]))
-        .watch();
-  }
+  @Deprecated('Use goalDao.watchUncompletedYearGoals() instead')
+  Stream<List<GoalRecord>> watchUncompletedYearGoals() => goalDao.watchUncompletedYearGoals();
 
   Stream<List<TimelineEvent>> watchEncountersForFriend(String friendId) {
     final query = select(timelineEvents).join([
@@ -436,14 +407,9 @@ class AppDatabase extends _$AppDatabase {
     return query.map((row) => row.readTable(timelineEvents)).watch();
   }
 
-  Future<void> updateGoalFavorite(String id, {required bool isFavorite, required DateTime now}) async {
-    await (update(goalRecords)..where((t) => t.id.equals(id))).write(
-      GoalRecordsCompanion(
-        isFavorite: Value(isFavorite),
-        updatedAt: Value(now),
-      ),
-    );
-  }
+  @Deprecated('Use goalDao.updateFavorite(id, isFavorite: isFavorite, now: now) instead')
+  Future<void> updateGoalFavorite(String id, {required bool isFavorite, required DateTime now}) =>
+      goalDao.updateFavorite(id, isFavorite: isFavorite, now: now);
 
   Future<void> updateEncounterFavorite(String id, {required bool isFavorite, required DateTime now}) async {
     await (update(timelineEvents)..where((t) => t.id.equals(id))).write(

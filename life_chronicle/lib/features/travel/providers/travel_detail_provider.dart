@@ -103,13 +103,9 @@ class TravelDetailState {
 final travelDetailProvider = StreamProvider.family.autoDispose<TravelDetailState, ({String travelId, String tripId})>((ref, params) {
   final db = ref.watch(appDatabaseProvider);
 
-  final recordStream = (db.select(db.travelRecords)
-        ..where((t) => t.id.equals(params.travelId))
-        ..where((t) => t.isDeleted.equals(false))
-        ..limit(1))
-      .watchSingleOrNull();
+  final recordStream = db.travelDao.watchById(params.travelId);
 
-  final tripStream = (db.select(db.trips)..where((t) => t.id.equals(params.tripId))).watchSingleOrNull();
+  final tripStream = db.travelDao.watchTripById(params.tripId);
 
   final allRecordsStream = (db.select(db.travelRecords)
         ..where((t) => t.isDeleted.equals(false))
@@ -261,8 +257,8 @@ final journalDetailProvider = StreamProvider.family.autoDispose<JournalDetailSta
   final linksStream = db.select(db.entityLinks).watch();
   final friendsStream = db.friendDao.watchAllActive();
   final foodsStream = db.foodDao.watchAllActive();
-  final goalsStream = (db.select(db.goalRecords)..where((t) => t.isDeleted.equals(false))).watch();
-  final allTravelsStream = (db.select(db.travelRecords)..where((t) => t.isDeleted.equals(false))).watch();
+  final goalsStream = db.goalDao.watchAllActive();
+  final allTravelsStream = db.travelDao.watchAllActive();
 
   return _combineJournalStreams(
     recordStream: recordStream,
@@ -298,7 +294,7 @@ Stream<JournalDetailState?> _combineJournalStreams({
 
       Trip? trip;
       if (record.tripId.isNotEmpty) {
-        trip = await (db.select(db.trips)..where((t) => t.id.equals(record.tripId))).getSingleOrNull();
+        trip = await db.travelDao.findTripById(record.tripId);
       }
 
       final linkedFriendIds = <String>{};
@@ -367,7 +363,7 @@ class TravelTimelineState {
 final travelTimelineProvider = StreamProvider.family.autoDispose<TravelTimelineState, ({String searchQuery, Set<String> filterFriendIds})>((ref, params) {
   final db = ref.watch(appDatabaseProvider);
 
-  final recordsStream = db.watchAllActiveTravelRecords();
+  final recordsStream = db.travelDao.watchAllActive();
   final linksStream = db.select(db.entityLinks).watch();
   final friendsStream = db.friendDao.watchAllActive();
   final foodsStream = db.foodDao.watchAllActive();

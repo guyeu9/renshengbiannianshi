@@ -125,6 +125,10 @@ jobs:
           echo "report_file=$(ls 检测报告_*.html 2>/dev/null | head -1 || echo '检测报告-latest.html')" >> $GITHUB_OUTPUT
         working-directory: life_chronicle
         if: always()
+      - name: Add Test Report to Job Summary
+        run: |
+          cat life_chronicle/检测报告_summary.md >> $GITHUB_STEP_SUMMARY
+        if: always()
       - name: Upload Friendly Test Report
         uses: actions/upload-artifact@v4
         if: always()

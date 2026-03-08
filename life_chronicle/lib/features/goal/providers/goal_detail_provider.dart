@@ -25,11 +25,7 @@ class GoalDetailState {
 final goalDetailProvider = StreamProvider.family.autoDispose<GoalDetailState?, String>((ref, goalId) {
   final db = ref.watch(appDatabaseProvider);
 
-  final goalStream = (db.select(db.goalRecords)
-        ..where((t) => t.isDeleted.equals(false))
-        ..where((t) => t.id.equals(goalId))
-        ..limit(1))
-      .watchSingleOrNull();
+  final goalStream = db.goalDao.watchById(goalId);
 
   final reviewsStream = (db.select(db.goalReviews)
         ..where((t) => t.goalId.equals(goalId))
@@ -41,16 +37,11 @@ final goalDetailProvider = StreamProvider.family.autoDispose<GoalDetailState?, S
         ..orderBy([(t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc)]))
       .watch();
 
-  final quarterGoalsStream = (db.select(db.goalRecords)
-        ..where((t) => t.isDeleted.equals(false))
-        ..where((t) => t.parentId.equals(goalId))
-        ..where((t) => t.level.equals('quarter')))
-      .watch();
+  final quarterGoalsStream = db.goalDao.watchByParentId(goalId).map(
+    (goals) => goals.where((g) => g.level == 'quarter').toList(),
+  );
 
-  final dailyTasksStream = (db.select(db.goalRecords)
-        ..where((t) => t.isDeleted.equals(false))
-        ..where((t) => t.level.equals('daily')))
-      .watch();
+  final dailyTasksStream = db.goalDao.watchByLevel('daily');
 
   return Rx.combineLatest5(
     goalStream,

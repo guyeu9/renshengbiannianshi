@@ -11212,6 +11212,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final AnnualReviewDao annualReviewDao =
       AnnualReviewDao(this as AppDatabase);
   late final EmbeddingDao embeddingDao = EmbeddingDao(this as AppDatabase);
+  late final TravelDao travelDao = TravelDao(this as AppDatabase);
+  late final GoalDao goalDao = GoalDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -16596,4 +16598,31 @@ class EmbeddingDaoManager {
   $$RecordEmbeddingsTableTableManager get recordEmbeddings =>
       $$RecordEmbeddingsTableTableManager(
           _db.attachedDatabase, _db.recordEmbeddings);
+}
+
+mixin _$TravelDaoMixin on DatabaseAccessor<AppDatabase> {
+  $TravelRecordsTable get travelRecords => attachedDatabase.travelRecords;
+  $TripsTable get trips => attachedDatabase.trips;
+  TravelDaoManager get managers => TravelDaoManager(this);
+}
+
+class TravelDaoManager {
+  final _$TravelDaoMixin _db;
+  TravelDaoManager(this._db);
+  $$TravelRecordsTableTableManager get travelRecords =>
+      $$TravelRecordsTableTableManager(_db.attachedDatabase, _db.travelRecords);
+  $$TripsTableTableManager get trips =>
+      $$TripsTableTableManager(_db.attachedDatabase, _db.trips);
+}
+
+mixin _$GoalDaoMixin on DatabaseAccessor<AppDatabase> {
+  $GoalRecordsTable get goalRecords => attachedDatabase.goalRecords;
+  GoalDaoManager get managers => GoalDaoManager(this);
+}
+
+class GoalDaoManager {
+  final _$GoalDaoMixin _db;
+  GoalDaoManager(this._db);
+  $$GoalRecordsTableTableManager get goalRecords =>
+      $$GoalRecordsTableTableManager(_db.attachedDatabase, _db.goalRecords);
 }

@@ -95,6 +95,24 @@ void main() {
   File(fileName).writeAsStringSync(html);
   File('检测报告-latest.html').writeAsStringSync(html);
 
+  final markdown = generateMarkdownSummary(
+    tests: tests,
+    totalTests: totalTests,
+    passedTests: passedTests,
+    failedTests: failedTests,
+    skippedTests: skippedTests,
+    failedTestList: failedTestList,
+    skippedTestList: skippedTestList,
+    reportTitle: reportTitle,
+    statusIcon: statusIcon,
+    statusBadgeText: statusBadgeText,
+    passRate: passRate,
+    moduleInfo: moduleInfo,
+    timestamp: timestamp,
+    hasProblems: hasProblems,
+  );
+  File('检测报告_summary.md').writeAsStringSync(markdown);
+
   stdout.writeln('========================================');
   stdout.writeln('检测报告已生成');
   stdout.writeln('========================================');
@@ -136,7 +154,132 @@ void generateEmptyReport() {
   File(fileName).writeAsStringSync(html);
   File('检测报告-latest.html').writeAsStringSync(html);
   
+  final markdown = generateMarkdownSummary(
+    tests: [],
+    totalTests: 0,
+    passedTests: 0,
+    failedTests: 0,
+    skippedTests: 0,
+    failedTestList: [],
+    skippedTestList: [],
+    reportTitle: '⚠️ 检测报告 - 无数据',
+    statusIcon: '⚠️',
+    statusBadgeText: '无检测结果',
+    passRate: '0',
+    moduleInfo: {},
+    timestamp: timestamp,
+    hasProblems: false,
+  );
+  File('检测报告_summary.md').writeAsStringSync(markdown);
+  
   stdout.writeln('检测报告已生成: $fileName');
+}
+
+String generateMarkdownSummary({
+  required List<Map<String, dynamic>> tests,
+  required int totalTests,
+  required int passedTests,
+  required int failedTests,
+  required int skippedTests,
+  required List<Map<String, dynamic>> failedTestList,
+  required List<Map<String, dynamic>> skippedTestList,
+  required String reportTitle,
+  required String statusIcon,
+  required String statusBadgeText,
+  required String passRate,
+  required Map<String, int> moduleInfo,
+  required String timestamp,
+  required bool hasProblems,
+}) {
+  final buffer = StringBuffer();
+  
+  buffer.writeln('# $statusIcon $reportTitle');
+  buffer.writeln('');
+  buffer.writeln('> 生成时间: ${timestamp.replaceAll('_', ' ')}');
+  buffer.writeln('');
+  
+  buffer.writeln('## 📊 检测结果概览');
+  buffer.writeln('');
+  buffer.writeln('| 指标 | 数量 |');
+  buffer.writeln('|------|------|');
+  buffer.writeln('| 总检测数 | **$totalTests** |');
+  buffer.writeln('| ✅ 通过 | **$passedTests** |');
+  buffer.writeln('| ❌ 有问题 | **$failedTests** |');
+  buffer.writeln('| ⏭️ 跳过 | **$skippedTests** |');
+  buffer.writeln('| 📊 通过率 | **$passRate%** |');
+  buffer.writeln('');
+  
+  if (totalTests > 0) {
+    buffer.writeln('### 通过率进度');
+    buffer.writeln('');
+    buffer.writeln('```');
+    final passedBar = '█' * (passedTests * 20 ~/ totalTests);
+    final failedBar = '░' * (failedTests * 20 ~/ totalTests);
+    final skippedBar = '▒' * (skippedTests * 20 ~/ totalTests);
+    buffer.writeln('$passedBar$failedBar$skippedBar $passRate%');
+    buffer.writeln('```');
+    buffer.writeln('');
+    buffer.writeln('- 🟢 通过: $passedTests');
+    buffer.writeln('- 🔴 有问题: $failedTests');
+    buffer.writeln('- 🟡 跳过: $skippedTests');
+    buffer.writeln('');
+  }
+  
+  if (moduleInfo.isNotEmpty) {
+    buffer.writeln('## 📦 检测覆盖模块');
+    buffer.writeln('');
+    for (final entry in moduleInfo.entries) {
+      buffer.writeln('- **${entry.key}**: ${entry.value} 个检测');
+    }
+    buffer.writeln('');
+  }
+  
+  if (failedTestList.isNotEmpty) {
+    buffer.writeln('## ❌ 有问题的检测');
+    buffer.writeln('');
+    buffer.writeln('> 🔴 请重点关注以下有问题的检测项');
+    buffer.writeln('');
+    for (final test in failedTestList) {
+      final name = test['name'] as String? ?? '未知检测';
+      final path = test['path'] as String? ?? '';
+      final module = getModuleName(path);
+      final error = test['error'] as String? ?? '';
+      final friendlyError = makeErrorFriendly(error);
+      
+      buffer.writeln('### ❌ $name');
+      buffer.writeln('');
+      buffer.writeln('- **模块**: $module');
+      buffer.writeln('- **问题**: ${friendlyError['message']}');
+      if ((friendlyError['explanation'] ?? '').isNotEmpty) {
+        buffer.writeln('- **💡 小提示**: ${friendlyError['explanation']}');
+      }
+      buffer.writeln('');
+    }
+  }
+  
+  if (skippedTestList.isNotEmpty) {
+    buffer.writeln('## ⏭️ 跳过的检测');
+    buffer.writeln('');
+    for (final test in skippedTestList) {
+      final name = test['name'] as String? ?? '未知检测';
+      final skipReason = test['skipReason'] as String? ?? '未指定跳过原因';
+      buffer.writeln('- ⏭️ **$name**: $skipReason');
+    }
+    buffer.writeln('');
+  }
+  
+  if (passedTests > 0 && failedTests == 0) {
+    buffer.writeln('## ✅ 全部通过！');
+    buffer.writeln('');
+    buffer.writeln('> 🎉 恭喜！所有检测都通过了！');
+    buffer.writeln('');
+  }
+  
+  buffer.writeln('---');
+  buffer.writeln('');
+  buffer.writeln('*人生编年史 - 检测报告*');
+  
+  return buffer.toString();
 }
 
 String generateFriendlyReport({
