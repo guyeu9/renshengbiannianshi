@@ -72,6 +72,9 @@ class AppDatabase extends _$AppDatabase {
                 updatedAt: Value(now),
               ),
             );
+          } else {
+            // 老用户：确保默认 embedding 服务存在
+            await _ensureDefaultEmbeddingProvider();
           }
         },
         onUpgrade: (m, from, to) async {
@@ -210,9 +213,6 @@ class AppDatabase extends _$AppDatabase {
             await ensureTable(chatSessions);
             await ensureTable(chatMessages);
           }
-
-          // 确保模力方舟内置配置存在（针对老用户升级）
-          await _ensureDefaultEmbeddingProvider();
 
           // 修复历史数据：将逗号分隔的images字段转换为JSON数组格式
           if (await columnExists('travel_records', 'images')) {

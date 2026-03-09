@@ -74,25 +74,22 @@ class PdfExportService {
         return;
       }
       
-      // 第二步：尝试从系统字体路径加载
+      // 第二步：尝试从系统字体路径加载（优先 TTF/OTF，最后尝试 TTC）
       await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 步骤2 - assets加载失败，尝试从系统字体加载', LogLevel.info);
       
-      final systemFontPaths = [
+      // 优先尝试 TTF/OTF 格式
+      final ttfFontPaths = [
         '/system/fonts/NotoSansSC-Regular.otf',
         '/system/fonts/NotoSansCJKsc-Regular.otf',
         '/system/fonts/SourceHanSansSC-Regular.otf',
         '/system/fonts/DroidSansFallbackFull.ttf',
         '/system/fonts/DroidSansFallback.ttf',
         '/system/fonts/Roboto-Regular.ttf',
-        '/system/fonts/sans-serif.ttf',
-        '/system/fonts/Roboto-Light.ttf',
-        '/system/fonts/Roboto-Medium.ttf',
         '/data/fonts/NotoSansSC-Regular.otf',
         '/data/fonts/DroidSansFallback.ttf',
-        '/data/local/tmp/fonts/NotoSansSC-Regular.otf',
       ];
       
-      final boldFontPaths = [
+      final ttfBoldFontPaths = [
         '/system/fonts/NotoSansSC-Bold.otf',
         '/system/fonts/SourceHanSansSC-Bold.otf',
         '/system/fonts/Roboto-Bold.ttf',
@@ -100,69 +97,85 @@ class PdfExportService {
         '/data/fonts/NotoSansSC-Bold.otf',
       ];
       
-      bool isTtcFile(String path) {
-        return path.toLowerCase().endsWith('.ttc');
-      }
+      // TTC 格式字体路径（最后尝试）
+      final ttcFontPaths = [
+        '/system/fonts/NotoSansCJK-Regular.ttc',
+        '/system/fonts/NotoSerifCJK-Regular.ttc',
+      ];
       
-      await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 尝试加载常规字体，共${systemFontPaths.length}个候选', LogLevel.info);
+      // 加载 TTF/OTF 格式字体
+      await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 尝试加载TTF/OTF格式字体，共${ttfFontPaths.length}个候选', LogLevel.info);
       
-      for (int i = 0; i < systemFontPaths.length; i++) {
-        final fontPath = systemFontPaths[i];
+      for (int i = 0; i < ttfFontPaths.length; i++) {
+        final fontPath = ttfFontPaths[i];
         try {
-          if (isTtcFile(fontPath)) {
-            await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [$i] 跳过TTC格式字体(不支持): $fontPath', LogLevel.debug);
-            continue;
-          }
-          
-          await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [$i/${systemFontPaths.length}] 检查字体文件: $fontPath', LogLevel.debug);
           final file = File(fontPath);
           final exists = await file.exists();
-          await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [$i] 字体文件存在性检查: exists=$exists', LogLevel.debug);
           
           if (exists) {
-            await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [$i] 找到字体文件，开始读取: $fontPath', LogLevel.info);
+            await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 找到TTF/OTF字体: $fontPath', LogLevel.info);
             final fontData = await file.readAsBytes();
-            await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [$i] 字体数据读取完成: size=${fontData.length}', LogLevel.debug);
-            
-            await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [$i] 开始创建Font对象', LogLevel.debug);
             _chineseFont = pw.Font.ttf(ByteData.sublistView(Uint8List.fromList(fontData)));
-            await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [$i] 常规字体加载成功: $fontPath', LogLevel.info);
+            await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: TTF/OTF字体加载成功: $fontPath', LogLevel.info);
             break;
           }
         } catch (e) {
-          await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [$i] 加载字体失败: $fontPath, error=${e.toString()}', LogLevel.warn);
+          await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 加载TTF/OTF字体失败: $fontPath, error=${e.toString()}', LogLevel.warn);
           continue;
         }
       }
       
-      await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 尝试加载粗体字体，共${boldFontPaths.length}个候选', LogLevel.info);
+      // 加载粗体 TTF/OTF 格式字体
+      await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 尝试加载粗体TTF/OTF格式字体，共${ttfBoldFontPaths.length}个候选', LogLevel.info);
       
-      for (int i = 0; i < boldFontPaths.length; i++) {
-        final fontPath = boldFontPaths[i];
+      for (int i = 0; i < ttfBoldFontPaths.length; i++) {
+        final fontPath = ttfBoldFontPaths[i];
         try {
-          if (isTtcFile(fontPath)) {
-            await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [bold-$i] 跳过TTC格式字体(不支持): $fontPath', LogLevel.debug);
-            continue;
-          }
-          
-          await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [bold-$i/${boldFontPaths.length}] 检查粗体字体文件: $fontPath', LogLevel.debug);
           final file = File(fontPath);
           final exists = await file.exists();
-          await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [bold-$i] 粗体字体文件存在性检查: exists=$exists', LogLevel.debug);
           
           if (exists) {
-            await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [bold-$i] 找到粗体字体文件，开始读取: $fontPath', LogLevel.info);
+            await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 找到粗体TTF/OTF字体: $fontPath', LogLevel.info);
             final fontData = await file.readAsBytes();
-            await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [bold-$i] 粗体字体数据读取完成: size=${fontData.length}', LogLevel.debug);
-            
-            await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [bold-$i] 开始创建粗体Font对象', LogLevel.debug);
             _chineseFontBold = pw.Font.ttf(ByteData.sublistView(Uint8List.fromList(fontData)));
-            await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [bold-$i] 粗体字体加载成功: $fontPath', LogLevel.info);
+            await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 粗体TTF/OTF字体加载成功: $fontPath', LogLevel.info);
             break;
           }
         } catch (e) {
-          await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [bold-$i] 加载粗体字体失败: $fontPath, error=${e.toString()}', LogLevel.warn);
+          await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 加载粗体TTF/OTF字体失败: $fontPath, error=${e.toString()}', LogLevel.warn);
           continue;
+        }
+      }
+      
+      // 如果 TTF/OTF 都没找到，尝试 TTC 格式（需要特殊处理）
+      if (_chineseFont == null) {
+        await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: TTF/OTF未找到，尝试TTC格式字体', LogLevel.info);
+        
+        for (final ttcPath in ttcFontPaths) {
+          try {
+            final file = File(ttcPath);
+            final exists = await file.exists();
+            
+            if (exists) {
+              await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 找到TTC字体: $ttcPath', LogLevel.info);
+              final fontData = await file.readAsBytes();
+              
+              // TTC 文件需要提取单个字体
+              // TTC 格式：前12字节是头部，包含字体数量
+              // 简单处理：直接尝试加载，pdf库可能会解析失败
+              try {
+                _chineseFont = pw.Font.ttf(ByteData.sublistView(Uint8List.fromList(fontData)));
+                await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: TTC字体加载成功: $ttcPath', LogLevel.info);
+                break;
+              } catch (ttcError) {
+                await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: TTC字体解析失败(库不支持TTC格式): $ttcPath, error=${ttcError.toString()}', LogLevel.warn);
+                continue;
+              }
+            }
+          } catch (e) {
+            await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 加载TTC字体失败: $ttcPath, error=${e.toString()}', LogLevel.warn);
+            continue;
+          }
         }
       }
       
@@ -171,7 +184,7 @@ class PdfExportService {
         _chineseFontBold = _chineseFont;
       }
       
-      // 第三步：如果仍然没有加载到字体，记录警告
+      // 记录最终结果
       if (_chineseFont == null) {
         await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 警告 - 未找到任何中文字体，PDF中的中文可能显示为空白', LogLevel.warn);
       }
