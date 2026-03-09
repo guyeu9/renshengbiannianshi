@@ -15,6 +15,7 @@ import '../../../core/database/database_providers.dart';
 import '../../../core/utils/icon_utils.dart';
 import '../../ai_historian/presentation/ai_historian_chat_page.dart';
 import '../../bond/presentation/bond_page.dart';
+import '../../bond/presentation/encounter_pages.dart';
 import '../../food/presentation/food_page.dart';
 import '../../goal/presentation/goal_page.dart';
 import '../../moment/presentation/moment_page.dart';

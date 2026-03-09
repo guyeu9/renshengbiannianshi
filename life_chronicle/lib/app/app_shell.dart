@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../features/bond/presentation/bond_page.dart';
+import '../features/bond/presentation/encounter_pages.dart';
 import '../features/food/presentation/food_page.dart';
 import '../features/goal/presentation/goal_page.dart';
 import '../features/home_schedule/presentation/home_schedule_page.dart';

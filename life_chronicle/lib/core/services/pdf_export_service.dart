@@ -27,11 +27,11 @@ class PdfExportService {
   
   Future<void> _loadFonts() async {
     if (_fontsLoaded) {
-      await FileLogger.instance.logWithLevel('PDF导出', '字体已加载，跳过重复加载', LogLevel.info);
+      await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 字体已加载，跳过重复加载', LogLevel.info);
       return;
     }
     
-    await FileLogger.instance.logWithLevel('PDF导出', '开始加载字体...', LogLevel.info);
+    await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 开始加载字体...', LogLevel.info);
     
     try {
       final systemFontPaths = [
@@ -51,64 +51,69 @@ class PdfExportService {
         '/system/fonts/SourceHanSansSC-Bold.otf',
       ];
       
-      await FileLogger.instance.logWithLevel('PDF导出', '尝试加载常规字体', LogLevel.info);
+      await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 尝试加载常规字体，共${systemFontPaths.length}个候选', LogLevel.info);
       
-      for (final fontPath in systemFontPaths) {
+      for (int i = 0; i < systemFontPaths.length; i++) {
+        final fontPath = systemFontPaths[i];
         try {
-          await FileLogger.instance.logWithLevel('PDF导出', '检查字体文件: $fontPath', LogLevel.debug);
+          await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [$i/${systemFontPaths.length}] 检查字体文件: $fontPath', LogLevel.debug);
           final file = File(fontPath);
           final exists = await file.exists();
-          await FileLogger.instance.logWithLevel('PDF导出', '字体文件存在性检查: $fontPath, exists=$exists', LogLevel.debug);
+          await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [$i] 字体文件存在性检查: exists=$exists', LogLevel.debug);
           
           if (exists) {
-            await FileLogger.instance.logWithLevel('PDF导出', '找到字体文件，开始读取: $fontPath', LogLevel.info);
+            await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [$i] 找到字体文件，开始读取: $fontPath', LogLevel.info);
             final fontData = await file.readAsBytes();
-            await FileLogger.instance.logWithLevel('PDF导出', '字体数据读取完成: $fontPath, size=${fontData.length}', LogLevel.debug);
+            await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [$i] 字体数据读取完成: size=${fontData.length}', LogLevel.debug);
             
+            await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [$i] 开始创建Font对象', LogLevel.debug);
             _chineseFont = pw.Font.ttf(ByteData.sublistView(Uint8List.fromList(fontData)));
-            await FileLogger.instance.logWithLevel('PDF导出', '常规字体加载成功: $fontPath', LogLevel.info);
+            await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [$i] 常规字体加载成功: $fontPath', LogLevel.info);
             break;
           }
         } catch (e, stack) {
-          await FileLogger.instance.logWithLevel('PDF导出', '加载字体失败: $fontPath, error=${e.toString()}', LogLevel.warn);
+          await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [$i] 加载字体失败: $fontPath, error=${e.toString()}', LogLevel.warn);
           continue;
         }
       }
       
-      await FileLogger.instance.logWithLevel('PDF导出', '尝试加载粗体字体', LogLevel.info);
+      await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 尝试加载粗体字体，共${boldFontPaths.length}个候选', LogLevel.info);
       
-      for (final fontPath in boldFontPaths) {
+      for (int i = 0; i < boldFontPaths.length; i++) {
+        final fontPath = boldFontPaths[i];
         try {
-          await FileLogger.instance.logWithLevel('PDF导出', '检查粗体字体文件: $fontPath', LogLevel.debug);
+          await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [bold-$i/${boldFontPaths.length}] 检查粗体字体文件: $fontPath', LogLevel.debug);
           final file = File(fontPath);
           final exists = await file.exists();
-          await FileLogger.instance.logWithLevel('PDF导出', '粗体字体文件存在性检查: $fontPath, exists=$exists', LogLevel.debug);
+          await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [bold-$i] 粗体字体文件存在性检查: exists=$exists', LogLevel.debug);
           
           if (exists) {
-            await FileLogger.instance.logWithLevel('PDF导出', '找到粗体字体文件，开始读取: $fontPath', LogLevel.info);
+            await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [bold-$i] 找到粗体字体文件，开始读取: $fontPath', LogLevel.info);
             final fontData = await file.readAsBytes();
-            await FileLogger.instance.logWithLevel('PDF导出', '粗体字体数据读取完成: $fontPath, size=${fontData.length}', LogLevel.debug);
+            await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [bold-$i] 粗体字体数据读取完成: size=${fontData.length}', LogLevel.debug);
             
+            await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [bold-$i] 开始创建粗体Font对象', LogLevel.debug);
             _chineseFontBold = pw.Font.ttf(ByteData.sublistView(Uint8List.fromList(fontData)));
-            await FileLogger.instance.logWithLevel('PDF导出', '粗体字体加载成功: $fontPath', LogLevel.info);
+            await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [bold-$i] 粗体字体加载成功: $fontPath', LogLevel.info);
             break;
           }
         } catch (e, stack) {
-          await FileLogger.instance.logWithLevel('PDF导出', '加载粗体字体失败: $fontPath, error=${e.toString()}', LogLevel.warn);
+          await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [bold-$i] 加载粗体字体失败: $fontPath, error=${e.toString()}', LogLevel.warn);
           continue;
         }
       }
       
       if (_chineseFontBold == null && _chineseFont != null) {
+        await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 粗体字体未找到，使用常规字体作为回退', LogLevel.info);
         _chineseFontBold = _chineseFont;
-        await FileLogger.instance.logWithLevel('PDF导出', '使用常规字体作为粗体回退', LogLevel.info);
       }
       
-      await FileLogger.instance.logWithLevel('PDF导出', '字体加载完成: regularFontLoaded=${_chineseFont != null}, boldFontLoaded=${_chineseFontBold != null}', LogLevel.info);
+      await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 字体加载完成 - regularFontLoaded=${_chineseFont != null}, boldFontLoaded=${_chineseFontBold != null}', LogLevel.info);
       
       _fontsLoaded = true;
     } catch (e, stack) {
-      await FileLogger.instance.logWithLevel('PDF导出', '字体加载过程发生异常，继续使用默认字体: ${e.toString()}', LogLevel.error);
+      await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 字体加载过程发生异常: ${e.toString()}', LogLevel.error);
+      await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 异常堆栈: ${stack.toString()}', LogLevel.error);
       _chineseFont = null;
       _chineseFontBold = null;
       _fontsLoaded = true;
@@ -136,6 +141,7 @@ class PdfExportService {
         color: color,
       );
     } catch (e, stack) {
+      FileLogger.instance.logWithLevel('PDF导出', '_textStyle发生异常: bold=$bold, fontSize=$fontSize, error=${e.toString()}', LogLevel.error);
       return pw.TextStyle(
         fontSize: fontSize,
         color: color,
@@ -157,25 +163,29 @@ class PdfExportService {
     DateTime? startDate,
     DateTime? endDate,
   }) async {
-    await FileLogger.instance.logWithLevel('PDF导出', '开始PDF导出: includeFood=$includeFood, includeMoment=$includeMoment, includeFriend=$includeFriend, includeTravel=$includeTravel, includeGoal=$includeGoal, includeTimeline=$includeTimeline', LogLevel.info);
+    await FileLogger.instance.logWithLevel('PDF导出', '========== PDF导出开始 ==========', LogLevel.info);
+    await FileLogger.instance.logWithLevel('PDF导出', '参数: includeFood=$includeFood, includeMoment=$includeMoment, includeFriend=$includeFriend, includeTravel=$includeTravel, includeGoal=$includeGoal, includeTimeline=$includeTimeline', LogLevel.info);
     
     try {
+      await FileLogger.instance.logWithLevel('PDF导出', '步骤1: 开始加载字体', LogLevel.info);
       await _loadFonts();
+      await FileLogger.instance.logWithLevel('PDF导出', '步骤1完成: 字体加载结束', LogLevel.info);
     } catch (e, stack) {
-      await FileLogger.instance.logWithLevel('PDF导出', '字体加载失败，但继续导出: ${e.toString()}', LogLevel.error);
+      await FileLogger.instance.logWithLevel('PDF导出', '步骤1异常: 字体加载失败，但继续导出: ${e.toString()}', LogLevel.error);
     }
     
     final pdf = pw.Document();
+    await FileLogger.instance.logWithLevel('PDF导出', '步骤2: PDF文档对象已创建', LogLevel.info);
     
     try {
       if (includeCover) {
-        await FileLogger.instance.logWithLevel('PDF导出', '创建封面页...', LogLevel.info);
+        await FileLogger.instance.logWithLevel('PDF导出', '步骤3: 开始创建封面页', LogLevel.info);
         pdf.addPage(await _createCoverPage(startDate: startDate, endDate: endDate));
-        await FileLogger.instance.logWithLevel('PDF导出', '封面页创建完成', LogLevel.info);
+        await FileLogger.instance.logWithLevel('PDF导出', '步骤3完成: 封面页创建完成', LogLevel.info);
       }
       
       if (includeToc) {
-        await FileLogger.instance.logWithLevel('PDF导出', '创建目录页...', LogLevel.info);
+        await FileLogger.instance.logWithLevel('PDF导出', '步骤4: 开始创建目录页', LogLevel.info);
         pdf.addPage(await _createTableOfContents(
           includeFood: includeFood,
           includeMoment: includeMoment,
@@ -184,10 +194,10 @@ class PdfExportService {
           includeGoal: includeGoal,
           includeTimeline: includeTimeline,
         ));
-        await FileLogger.instance.logWithLevel('PDF导出', '目录页创建完成', LogLevel.info);
+        await FileLogger.instance.logWithLevel('PDF导出', '步骤4完成: 目录页创建完成', LogLevel.info);
       }
       
-      await FileLogger.instance.logWithLevel('PDF导出', '创建概览章节...', LogLevel.info);
+      await FileLogger.instance.logWithLevel('PDF导出', '步骤5: 开始创建概览章节', LogLevel.info);
       pdf.addPage(await _createOverviewChapter(
         includeFood: includeFood,
         includeMoment: includeMoment,
@@ -198,41 +208,43 @@ class PdfExportService {
         startDate: startDate,
         endDate: endDate,
       ));
-      await FileLogger.instance.logWithLevel('PDF导出', '概览章节创建完成', LogLevel.info);
+      await FileLogger.instance.logWithLevel('PDF导出', '步骤5完成: 概览章节创建完成', LogLevel.info);
       
       if (includeFood) {
-        await FileLogger.instance.logWithLevel('PDF导出', '添加美食章节...', LogLevel.info);
+        await FileLogger.instance.logWithLevel('PDF导出', '步骤6: 开始添加美食章节', LogLevel.info);
         await _addFoodChapter(pdf, includePhotos: includePhotos, startDate: startDate, endDate: endDate);
-        await FileLogger.instance.logWithLevel('PDF导出', '美食章节添加完成', LogLevel.info);
+        await FileLogger.instance.logWithLevel('PDF导出', '步骤6完成: 美食章节添加完成', LogLevel.info);
       }
       if (includeMoment) {
-        await FileLogger.instance.logWithLevel('PDF导出', '添加小确幸章节...', LogLevel.info);
+        await FileLogger.instance.logWithLevel('PDF导出', '步骤7: 开始添加小确幸章节', LogLevel.info);
         await _addMomentChapter(pdf, includePhotos: includePhotos, startDate: startDate, endDate: endDate);
-        await FileLogger.instance.logWithLevel('PDF导出', '小确幸章节添加完成', LogLevel.info);
+        await FileLogger.instance.logWithLevel('PDF导出', '步骤7完成: 小确幸章节添加完成', LogLevel.info);
       }
       if (includeFriend) {
-        await FileLogger.instance.logWithLevel('PDF导出', '添加羁绊章节...', LogLevel.info);
+        await FileLogger.instance.logWithLevel('PDF导出', '步骤8: 开始添加羁绊章节', LogLevel.info);
         await _addFriendChapter(pdf, includePhotos: includePhotos);
-        await FileLogger.instance.logWithLevel('PDF导出', '羁绊章节添加完成', LogLevel.info);
+        await FileLogger.instance.logWithLevel('PDF导出', '步骤8完成: 羁绊章节添加完成', LogLevel.info);
       }
       if (includeTravel) {
-        await FileLogger.instance.logWithLevel('PDF导出', '添加旅行章节...', LogLevel.info);
+        await FileLogger.instance.logWithLevel('PDF导出', '步骤9: 开始添加旅行章节', LogLevel.info);
         await _addTravelChapter(pdf, includePhotos: includePhotos, startDate: startDate, endDate: endDate);
-        await FileLogger.instance.logWithLevel('PDF导出', '旅行章节添加完成', LogLevel.info);
+        await FileLogger.instance.logWithLevel('PDF导出', '步骤9完成: 旅行章节添加完成', LogLevel.info);
       }
       if (includeGoal) {
-        await FileLogger.instance.logWithLevel('PDF导出', '添加目标章节...', LogLevel.info);
+        await FileLogger.instance.logWithLevel('PDF导出', '步骤10: 开始添加目标章节', LogLevel.info);
         await _addGoalChapter(pdf);
-        await FileLogger.instance.logWithLevel('PDF导出', '目标章节添加完成', LogLevel.info);
+        await FileLogger.instance.logWithLevel('PDF导出', '步骤10完成: 目标章节添加完成', LogLevel.info);
       }
       if (includeTimeline) {
-        await FileLogger.instance.logWithLevel('PDF导出', '添加时间线章节...', LogLevel.info);
+        await FileLogger.instance.logWithLevel('PDF导出', '步骤11: 开始添加时间线章节', LogLevel.info);
         await _addTimelineChapter(pdf, startDate: startDate, endDate: endDate);
-        await FileLogger.instance.logWithLevel('PDF导出', '时间线章节添加完成', LogLevel.info);
+        await FileLogger.instance.logWithLevel('PDF导出', '步骤11完成: 时间线章节添加完成', LogLevel.info);
       }
       
-      await FileLogger.instance.logWithLevel('PDF导出', '保存PDF文件...', LogLevel.info);
+      await FileLogger.instance.logWithLevel('PDF导出', '步骤12: 准备保存PDF文件', LogLevel.info);
       final tempDir = await getTemporaryDirectory();
+      await FileLogger.instance.logWithLevel('PDF导出', '临时目录: ${tempDir.path}', LogLevel.debug);
+      
       final now = DateTime.now();
       final timestamp = '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
       final fileName = '人生编年史导出_$timestamp.pdf';
@@ -240,20 +252,26 @@ class PdfExportService {
       
       await FileLogger.instance.logWithLevel('PDF导出', '准备写入文件: $filePath', LogLevel.debug);
       final file = File(filePath);
+      
+      await FileLogger.instance.logWithLevel('PDF导出', '开始生成PDF字节...', LogLevel.info);
       final pdfBytes = await pdf.save();
       await FileLogger.instance.logWithLevel('PDF导出', 'PDF字节生成完成: size=${pdfBytes.length}', LogLevel.debug);
+      
+      await FileLogger.instance.logWithLevel('PDF导出', '开始写入磁盘...', LogLevel.info);
       await file.writeAsBytes(pdfBytes);
       
-      await FileLogger.instance.logWithLevel('PDF导出', 'PDF导出成功: $filePath', LogLevel.info);
+      await FileLogger.instance.logWithLevel('PDF导出', '========== PDF导出成功: $filePath ==========', LogLevel.info);
       return filePath;
     } catch (e, stack) {
-      await FileLogger.instance.logWithLevel('PDF导出', 'PDF导出失败: ${e.toString()}', LogLevel.error);
+      await FileLogger.instance.logWithLevel('PDF导出', '========== PDF导出失败 ==========', LogLevel.error);
+      await FileLogger.instance.logWithLevel('PDF导出', '错误信息: ${e.toString()}', LogLevel.error);
+      await FileLogger.instance.logWithLevel('PDF导出', '堆栈跟踪: ${stack.toString()}', LogLevel.error);
       rethrow;
     }
   }
   
   Future<pw.Page> _createCoverPage({DateTime? startDate, DateTime? endDate}) async {
-    await FileLogger.instance.logWithLevel('PDF导出', '开始创建封面页', LogLevel.info);
+    await FileLogger.instance.logWithLevel('PDF导出', '_createCoverPage: 开始创建封面页', LogLevel.info);
     
     String dateRangeText = '';
     if (startDate != null || endDate != null) {
@@ -265,8 +283,10 @@ class PdfExportService {
           : '不限';
       dateRangeText = '\n时间范围: $startStr 至 $endStr';
     }
+    await FileLogger.instance.logWithLevel('PDF导出', '_createCoverPage: dateRangeText=$dateRangeText', LogLevel.debug);
     
     try {
+      await FileLogger.instance.logWithLevel('PDF导出', '_createCoverPage: 准备返回Page对象', LogLevel.debug);
       return pw.Page(
         pageFormat: PdfPageFormat.a4,
         build: (context) => pw.Container(

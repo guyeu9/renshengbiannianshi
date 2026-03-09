@@ -24,11 +24,12 @@ import '../../../app/app_theme.dart';
 import '../../food/presentation/food_page.dart';
 import '../../travel/presentation/travel_page.dart';
 import '../../moment/presentation/moment_page.dart';
-import '../../bond/presentation/bond_page.dart' hide EncounterDetailPage;
+import '../../bond/presentation/bond_page.dart';
 import '../../bond/presentation/encounter_pages.dart';
 import '../../goal/presentation/goal_page.dart';
 import 'ai_model_management_page.dart';
 import 'data_management_page.dart';
+import 'system_log_page.dart';
 
 class ChronicleRecord {
   const ChronicleRecord({
@@ -6416,7 +6417,111 @@ class HelpFeedbackPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const _PlaceholderPage(title: '帮助与反馈');
+    return Scaffold(
+      backgroundColor: const Color(0xFFF2F4F6),
+      appBar: AppBar(
+        backgroundColor: Colors.white.withValues(alpha: 0.9),
+        title: const Text('帮助与反馈', style: TextStyle(fontWeight: FontWeight.w800)),
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _buildMenuItem(
+              context,
+              icon: Icons.bug_report_outlined,
+              title: '系统日志',
+              subtitle: '查看应用运行日志和错误信息',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SystemLogPage()),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _buildMenuItem(
+              context,
+              icon: Icons.help_outline,
+              title: '使用帮助',
+              subtitle: '了解如何使用应用功能',
+              onTap: () {},
+            ),
+            const SizedBox(height: 12),
+            _buildMenuItem(
+              context,
+              icon: Icons.feedback_outlined,
+              title: '意见反馈',
+              subtitle: '提交您的建议和问题',
+              onTap: () {},
+            ),
+            const SizedBox(height: 12),
+            _buildMenuItem(
+              context,
+              icon: Icons.info_outline,
+              title: '关于我们',
+              subtitle: '版本信息和联系方式',
+              onTap: () {},
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMenuItem(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4F46E5).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: const Color(0xFF4F46E5)),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: Colors.grey[400]),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
