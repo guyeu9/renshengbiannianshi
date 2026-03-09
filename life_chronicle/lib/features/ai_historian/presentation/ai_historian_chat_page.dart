@@ -13,6 +13,8 @@ import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/providers/ai_provider.dart';
 import '../../../core/services/ai_service.dart' as ai_service;
+import '../services/context_builder.dart';
+import '../services/record_retriever.dart';
 
 enum MessageRole { user, assistant }
 
@@ -263,31 +265,18 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
   }
 
   String _buildSystemPrompt() {
-    final buffer = StringBuffer();
-    buffer.writeln('你是人生编年史APP的AI史官，一个温暖、有洞察力的数字档案管理员。');
-    buffer.writeln('你能够访问用户的人生记录数据，帮助用户回顾和探索他们的过去。');
-    buffer.writeln('');
-    buffer.writeln('## 用户数据统计');
-    buffer.writeln('- 美食记录：${_recordStats['food'] ?? 0} 条');
-    buffer.writeln('- 小确幸记录：${_recordStats['moment'] ?? 0} 条');
-    buffer.writeln('- 旅行记录：${_recordStats['travel'] ?? 0} 条');
-    buffer.writeln('- 目标记录：${_recordStats['goal'] ?? 0} 条');
-    buffer.writeln('- 相遇记录：${_recordStats['encounter'] ?? 0} 条');
-    buffer.writeln('- 总计：$_totalRecords 条记录');
-    buffer.writeln('');
-    buffer.writeln('## 回复原则');
-    buffer.writeln('1. 语气温暖、有温度，像写给未来自己的一封信');
-    buffer.writeln('2. 如果用户询问具体记录，尽量提供准确的时间和地点信息');
-    buffer.writeln('3. 可以主动关联相关记忆，帮助用户发现隐藏的联系');
-    buffer.writeln('4. 如果找不到相关记录，诚实告知并建议其他探索方向');
-    buffer.writeln('5. 回复简洁明了，避免过长');
-    buffer.writeln('');
-    buffer.writeln('## 推荐卡片格式');
-    buffer.writeln('如果你想在回复中推荐相关记录，请在回复末尾使用以下JSON格式：');
-    buffer.writeln('```json');
-    buffer.writeln('{"recommendations": [{"type": "food|moment|travel|goal|encounter", "id": "记录ID", "title": "标题", "summary": "简短描述"}]}');
-    buffer.writeln('```');
-    return buffer.toString();
+    return 'AI史官系统提示词（已通过ContextBuilder动态构建）';
+  }
+
+  Future<String> _buildSystemPromptWithContext(String userQuery, {List<RecordContext>? preloadedRecords}) async {
+    final db = ref.read(appDatabaseProvider);
+    final contextBuilder = ContextBuilder(db);
+    return contextBuilder.buildSystemPrompt(
+      userQuery: userQuery,
+      recordStats: _recordStats,
+      totalRecords: _totalRecords,
+      preloadedRecords: preloadedRecords,
+    );
   }
 
   List<RecommendationCard> _parseRecommendations(String content) {
@@ -368,6 +357,15 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
     _scrollToBottom();
 
     try {
+      final db = ref.read(appDatabaseProvider);
+      final contextBuilder = ContextBuilder(db);
+      
+      final systemPrompt = await contextBuilder.buildSystemPrompt(
+        userQuery: text,
+        recordStats: _recordStats,
+        totalRecords: _totalRecords,
+      );
+
       final history = _messages
           .where((m) => m.id != aiMessageId)
           .where((m) => !m.id.startsWith('welcome_'))
@@ -378,7 +376,7 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
           .toList();
 
       final fullContent = await chatService.chatStream(
-        systemPrompt: _buildSystemPrompt(),
+        systemPrompt: systemPrompt,
         messages: history,
         onChunk: (chunk) {
           final index = _messages.indexWhere((m) => m.id == aiMessageId);
@@ -429,6 +427,119 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
   void _sendQuickMessage(String message) {
     _inputController.text = message;
     _sendMessage();
+  }
+
+  Future<void> _sendQuickMessageWithContext(String actionType, String displayMessage) async {
+    if (_isLoading || _currentSessionId == null) return;
+    
+    setState(() {
+      _errorMessage = null;
+    });
+
+    final userMessage = ChatMessageModel(
+      id: 'user_${DateTime.now().millisecondsSinceEpoch}',
+      role: MessageRole.user,
+      content: displayMessage,
+      timestamp: DateTime.now(),
+    );
+
+    setState(() {
+      _messages.add(userMessage);
+      _isLoading = true;
+    });
+    _scrollToBottom();
+    await _saveMessage(userMessage);
+
+    final chatService = ref.read(activeChatServiceProvider);
+    if (chatService == null) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = '请先在"个人中心 > AI 模型管理"中配置 AI 服务';
+      });
+      return;
+    }
+
+    final aiMessageId = 'ai_${DateTime.now().millisecondsSinceEpoch}';
+    setState(() {
+      _messages.add(ChatMessageModel(
+        id: aiMessageId,
+        role: MessageRole.assistant,
+        content: '',
+        timestamp: DateTime.now(),
+        isStreaming: true,
+      ));
+    });
+    _scrollToBottom();
+
+    try {
+      final db = ref.read(appDatabaseProvider);
+      final contextBuilder = ContextBuilder(db);
+      
+      final preloadedRecords = await contextBuilder.retrieveForQuickAction(actionType);
+      
+      final systemPrompt = await contextBuilder.buildSystemPrompt(
+        userQuery: displayMessage,
+        recordStats: _recordStats,
+        totalRecords: _totalRecords,
+        preloadedRecords: preloadedRecords,
+      );
+
+      final history = _messages
+          .where((m) => m.id != aiMessageId)
+          .where((m) => !m.id.startsWith('welcome_'))
+          .map((m) => ai_service.ChatMessage(
+                role: m.role == MessageRole.user ? 'user' : 'assistant',
+                content: m.content,
+              ))
+          .toList();
+
+      final fullContent = await chatService.chatStream(
+        systemPrompt: systemPrompt,
+        messages: history,
+        onChunk: (chunk) {
+          final index = _messages.indexWhere((m) => m.id == aiMessageId);
+          if (index != -1) {
+            setState(() {
+              _messages[index] = _messages[index].copyWith(
+                content: _messages[index].content + chunk,
+              );
+            });
+          }
+        },
+      );
+
+      final index = _messages.indexWhere((m) => m.id == aiMessageId);
+      if (index != -1) {
+        final recommendations = _parseRecommendations(fullContent);
+        final cleanContent = _removeRecommendationsJson(fullContent);
+        final finalMessage = _messages[index].copyWith(
+          content: cleanContent,
+          isStreaming: false,
+          recommendations: recommendations,
+        );
+        setState(() {
+          _messages[index] = finalMessage;
+        });
+        await _saveMessage(finalMessage);
+      }
+    } catch (e) {
+      final index = _messages.indexWhere((m) => m.id == aiMessageId);
+      if (index != -1) {
+        final finalMessage = _messages[index].copyWith(
+          content: '抱歉，我遇到了一些问题：$e',
+          isStreaming: false,
+        );
+        setState(() {
+          _messages[index] = finalMessage;
+        });
+        await _saveMessage(finalMessage);
+      }
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+      _scrollToBottom();
+    }
   }
 
   void _clearConversation() {
@@ -947,21 +1058,21 @@ class _AiChatInputBar extends StatelessWidget {
                         icon: Icons.mood,
                         iconColor: const Color(0xFFA855F7),
                         label: '总结上月心情',
-                        onTap: enabled ? () => onQuickMessage('请帮我总结一下上个月的心情变化') : null,
+                        onTap: enabled ? () => _sendQuickMessageWithContext('mood_summary', '请帮我总结一下上个月的心情变化') : null,
                       ),
                       const SizedBox(width: 8),
                       _SuggestionChip(
                         icon: Icons.pie_chart,
                         iconColor: const Color(0xFF60A5FA),
                         label: '分析年度目标进度',
-                        onTap: enabled ? () => onQuickMessage('请分析一下我今年的目标完成进度') : null,
+                        onTap: enabled ? () => _sendQuickMessageWithContext('goal_progress', '请分析一下我今年的目标完成进度') : null,
                       ),
                       const SizedBox(width: 8),
                       _SuggestionChip(
                         icon: Icons.history,
                         iconColor: const Color(0xFFFB923C),
                         label: '那年今日',
-                        onTap: enabled ? () => onQuickMessage('那年今天我做了什么？') : null,
+                        onTap: enabled ? () => _sendQuickMessageWithContext('on_this_day', '那年今天我做了什么？') : null,
                       ),
                     ],
                   ),
