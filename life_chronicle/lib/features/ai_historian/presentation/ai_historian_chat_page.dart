@@ -488,7 +488,6 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
   @override
   Widget build(BuildContext context) {
     final hasAiService = ref.watch(hasActiveChatProvider);
-    final db = ref.watch(appDatabaseProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8F8),

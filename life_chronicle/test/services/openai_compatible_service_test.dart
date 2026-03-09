@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:mocktail/mocktail.dart';
-import 'package:life_chronicle/core/database/app_database.dart';
+import 'package:life_chronicle/core/database/app_database.dart' hide ChatMessage;
 import 'package:life_chronicle/core/services/ai_service.dart';
 import 'package:life_chronicle/core/services/providers/openai_compatible_service.dart';
 
