@@ -1,11 +1,25 @@
 import 'package:life_chronicle/core/database/app_database.dart';
+import 'package:life_chronicle/core/services/vector_index_service.dart';
 import 'record_retriever.dart';
 
-class ContextBuilder {
-  final AppDatabase _db;
-  final RecordRetriever _retriever;
+class _CacheEntry<T> {
+  final T value;
+  final DateTime timestamp;
+  
+  const _CacheEntry(this.value, this.timestamp);
+  
+  bool get isExpired => DateTime.now().difference(timestamp).inMinutes > 5;
+}
 
-  ContextBuilder(this._db) : _retriever = RecordRetriever(_db);
+class ContextBuilder {
+  final RecordRetriever _retriever;
+  final VectorIndexService? Function()? _vectorServiceGetter;
+  
+  static final Map<String, _CacheEntry<List<RecordContext>>> _cache = {};
+  
+  ContextBuilder(AppDatabase db, {VectorIndexService? Function()? vectorServiceGetter})
+      : _retriever = RecordRetriever(db),
+        _vectorServiceGetter = vectorServiceGetter;
 
   Future<String> buildSystemPrompt({
     required String userQuery,
@@ -66,28 +80,87 @@ class ContextBuilder {
   }
 
   Future<List<RecordContext>> _retrieveRecordsForQuery(String query) async {
+    final cacheKey = 'query:${query.hashCode}';
+    final cached = _cache[cacheKey];
+    if (cached != null && !cached.isExpired) {
+      return cached.value;
+    }
+    
     final queryType = _classifyQuery(query);
     
-    String? module;
-    DateTime? startDate;
-    DateTime? endDate;
+    List<RecordContext> records;
     
-    if (queryType == QueryType.summary) {
-      module = _extractModule(query);
-    } else if (queryType == QueryType.timeRange) {
-      final timeRange = _extractTimeRange(query);
-      startDate = timeRange['start'];
-      endDate = timeRange['end'];
+    if (queryType == QueryType.query) {
+      records = await _semanticSearchWithFallback(query);
+    } else {
+      String? module;
+      DateTime? startDate;
+      DateTime? endDate;
+      
+      if (queryType == QueryType.summary) {
+        module = _extractModule(query);
+      } else if (queryType == QueryType.timeRange) {
+        final timeRange = _extractTimeRange(query);
+        if (timeRange != null) {
+          startDate = timeRange['start'];
+          endDate = timeRange['end'];
+        }
+      }
+      
+      records = await _retriever.retrieveRecords(
+        queryType: queryType,
+        userQuery: query,
+        module: module,
+        startDate: startDate,
+        endDate: endDate,
+        limit: 20,
+      );
+    }
+    
+    _cache[cacheKey] = _CacheEntry(records, DateTime.now());
+    
+    return records;
+  }
+
+  Future<List<RecordContext>> _semanticSearchWithFallback(String query) async {
+    final vectorService = _vectorServiceGetter?.call();
+    
+    if (vectorService != null) {
+      try {
+        final semanticResults = await vectorService.searchByText(
+          query: query,
+          limit: 10,
+          minSimilarity: 0.3,
+        );
+        
+        if (semanticResults.isNotEmpty) {
+          final records = <RecordContext>[];
+          for (final result in semanticResults) {
+            final record = await _fetchRecordFromSemanticResult(result);
+            if (record != null) {
+              records.add(record);
+            }
+          }
+          
+          if (records.isNotEmpty) {
+            return records;
+          }
+        }
+      } catch (e) {
+        // 语义搜索失败，回退到关键词搜索
+      }
     }
     
     return _retriever.retrieveRecords(
-      queryType: queryType,
+      queryType: QueryType.query,
       userQuery: query,
-      module: module,
-      startDate: startDate,
-      endDate: endDate,
       limit: 20,
     );
+  }
+
+  Future<RecordContext?> _fetchRecordFromSemanticResult(SimilarityMatch result) async {
+    final record = await _retriever.fetchRecordById(result.entityType, result.entityId);
+    return record;
   }
 
   QueryType _classifyQuery(String query) {
@@ -202,13 +275,21 @@ class ContextBuilder {
   }
 
   Future<List<RecordContext>> retrieveForQuickAction(String actionType) async {
+    final cacheKey = 'quick:$actionType';
+    final cached = _cache[cacheKey];
+    if (cached != null && !cached.isExpired) {
+      return cached.value;
+    }
+    
+    List<RecordContext> records;
+    
     switch (actionType) {
       case 'mood_summary':
         final now = DateTime.now();
         final lastMonth = DateTime(now.year, now.month - 1);
         final start = DateTime(lastMonth.year, lastMonth.month, 1);
         final end = DateTime(now.year, now.month, 1);
-        return _retriever.retrieveRecords(
+        records = await _retriever.retrieveRecords(
           queryType: QueryType.timeRange,
           userQuery: '',
           module: 'moment',
@@ -216,12 +297,13 @@ class ContextBuilder {
           endDate: end,
           limit: 50,
         );
+        break;
         
       case 'goal_progress':
         final now = DateTime.now();
         final start = DateTime(now.year, 1, 1);
         final end = DateTime(now.year + 1, 1, 1);
-        return _retriever.retrieveRecords(
+        records = await _retriever.retrieveRecords(
           queryType: QueryType.timeRange,
           userQuery: '',
           module: 'goal',
@@ -229,16 +311,29 @@ class ContextBuilder {
           endDate: end,
           limit: 50,
         );
+        break;
         
       case 'on_this_day':
-        return _retriever.retrieveRecords(
+        records = await _retriever.retrieveRecords(
           queryType: QueryType.onThisDay,
           userQuery: '',
           limit: 30,
         );
+        break;
         
       default:
-        return [];
+        records = [];
     }
+    
+    _cache[cacheKey] = _CacheEntry(records, DateTime.now());
+    return records;
+  }
+  
+  static void clearCache() {
+    _cache.clear();
+  }
+  
+  static void clearExpiredCache() {
+    _cache.removeWhere((key, entry) => entry.isExpired);
   }
 }

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'app_shell.dart';
 import 'app_theme.dart';
 import '../core/widgets/unfocus_on_tap.dart';
 import '../core/errors/error_boundary.dart';
+import '../core/router/app_router.dart';
 
 class BottomSheetFocusObserver extends RouteObserver<ModalRoute<void>> {
   @override
@@ -26,14 +27,16 @@ class BottomSheetFocusObserver extends RouteObserver<ModalRoute<void>> {
 
 final bottomSheetFocusObserver = BottomSheetFocusObserver();
 
-class LifeChronicleApp extends StatelessWidget {
+class LifeChronicleApp extends ConsumerWidget {
   const LifeChronicleApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(goRouterProvider);
+    
     return ErrorBoundary(
       child: UnfocusOnTap(
-        child: MaterialApp(
+        child: MaterialApp.router(
           title: '人生编年史',
           theme: AppTheme.light(),
           localizationsDelegates: const [
@@ -45,8 +48,7 @@ class LifeChronicleApp extends StatelessWidget {
             Locale('zh', 'CN'),
             Locale('en', 'US'),
           ],
-          navigatorObservers: [bottomSheetFocusObserver],
-          home: const AppShell(),
+          routerConfig: router,
         ),
       ),
     );

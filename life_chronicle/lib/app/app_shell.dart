@@ -2,35 +2,21 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-import '../features/bond/presentation/bond_page.dart';
-import '../features/bond/presentation/encounter_pages.dart';
-import '../features/food/presentation/food_page.dart';
-import '../features/goal/presentation/goal_page.dart';
-import '../features/home_schedule/presentation/home_schedule_page.dart';
-import '../features/moment/presentation/moment_page.dart';
-import '../features/travel/presentation/travel_page.dart';
 import '../core/providers/vector_search_provider.dart';
-
-final appTabIndexProvider = StateProvider<int>((ref) => 0);
+import '../core/router/app_router.dart';
 
 class AppShell extends ConsumerStatefulWidget {
-  const AppShell({super.key});
+  final Widget child;
+  
+  const AppShell({super.key, required this.child});
 
   @override
   ConsumerState<AppShell> createState() => _AppShellState();
 }
 
 class _AppShellState extends ConsumerState<AppShell> {
-  static const _tabs = <Widget>[
-    HomeSchedulePage(),
-    FoodPage(),
-    MomentPage(),
-    TravelPage(),
-    GoalPage(),
-    BondPage(),
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -39,16 +25,35 @@ class _AppShellState extends ConsumerState<AppShell> {
     });
   }
 
+  int _getTabIndexFromLocation(String location) {
+    if (location.startsWith(AppRoutes.food)) return 1;
+    if (location.startsWith(AppRoutes.moment)) return 2;
+    if (location.startsWith(AppRoutes.travel)) return 3;
+    if (location.startsWith(AppRoutes.goal)) return 4;
+    if (location.startsWith(AppRoutes.bond)) return 5;
+    return 0;
+  }
+
+  void _onTabTapped(int index) {
+    final routes = [
+      AppRoutes.home,
+      AppRoutes.food,
+      AppRoutes.moment,
+      AppRoutes.travel,
+      AppRoutes.goal,
+      AppRoutes.bond,
+    ];
+    context.go(routes[index]);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final index = ref.watch(appTabIndexProvider);
+    final location = GoRouterState.of(context).matchedLocation;
+    final index = _getTabIndexFromLocation(location);
 
     return Scaffold(
       extendBody: true,
-      body: IndexedStack(
-        index: index,
-        children: _tabs,
-      ),
+      body: widget.child,
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: FloatingActionButton(
         heroTag: 'app_shell_quick_create',
@@ -72,7 +77,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                 padding: const EdgeInsets.only(bottom: 8),
                 child: BottomNavigationBar(
                   currentIndex: index,
-                  onTap: (next) => ref.read(appTabIndexProvider.notifier).state = next,
+                  onTap: _onTabTapped,
                   items: const [
                     BottomNavigationBarItem(
                       icon: Icon(Icons.calendar_today),
@@ -149,53 +154,52 @@ void _showQuickCreateSheet(BuildContext context, WidgetRef ref) {
                         width: itemWidth,
                         label: '美食',
                         icon: Icons.restaurant,
-                        color: Color(0xFFF97316),
+                        color: const Color(0xFFF97316),
                         onTap: () {
                           Navigator.of(sheetContext).pop();
-                          Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FoodCreatePage()));
+                          context.go('${AppRoutes.food}/create');
                         },
                       ),
                       _QuickCreateEntry(
                         width: itemWidth,
                         label: '小确幸',
                         icon: Icons.auto_awesome,
-                        color: Color(0xFFFBBF24),
+                        color: const Color(0xFFFBBF24),
                         onTap: () {
                           Navigator.of(sheetContext).pop();
-                          Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MomentCreatePage()));
+                          context.go('${AppRoutes.moment}/create');
                         },
                       ),
                       _QuickCreateEntry(
                         width: itemWidth,
                         label: '旅行',
                         icon: Icons.airplanemode_active,
-                        color: Color(0xFF3B82F6),
+                        color: const Color(0xFF3B82F6),
                         onTap: () {
                           Navigator.of(sheetContext).pop();
-                          Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TravelCreatePage()));
+                          context.go('${AppRoutes.travel}/create');
                         },
                       ),
                       _QuickCreateEntry(
                         width: itemWidth,
                         label: '目标',
                         icon: Icons.outlined_flag,
-                        color: Color(0xFFA855F7),
+                        color: const Color(0xFFA855F7),
                         onTap: () {
                           Navigator.of(sheetContext).pop();
-                          Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GoalCreatePage()));
+                          context.go('${AppRoutes.goal}/create');
                         },
                       ),
                       _QuickCreateEntry(
                         width: itemWidth,
                         label: '添加朋友',
                         icon: Icons.person_add,
-                        color: Color(0xFFEC4899),
+                        color: const Color(0xFFEC4899),
                         onTap: () {
                           Navigator.of(sheetContext).pop();
-                          ref.read(appTabIndexProvider.notifier).state = 5;
-                          final navigator = Navigator.of(context);
+                          context.go(AppRoutes.bond);
                           Future.microtask(() {
-                            navigator.push(MaterialPageRoute(builder: (_) => const FriendCreatePage()));
+                            context.go('${AppRoutes.bond}/friend/create');
                           });
                         },
                       ),
@@ -203,10 +207,10 @@ void _showQuickCreateSheet(BuildContext context, WidgetRef ref) {
                         width: itemWidth,
                         label: '相遇',
                         icon: Icons.emoji_people,
-                        color: Color(0xFF14B8A6),
+                        color: const Color(0xFF14B8A6),
                         onTap: () {
                           Navigator.of(sheetContext).pop();
-                          Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EncounterCreatePage()));
+                          context.go('${AppRoutes.bond}/encounter/create');
                         },
                       ),
                     ],

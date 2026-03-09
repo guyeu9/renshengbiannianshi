@@ -14,7 +14,6 @@ import '../../../core/database/database_providers.dart';
 import '../../../core/providers/ai_provider.dart';
 import '../../../core/services/ai_service.dart' as ai_service;
 import '../services/context_builder.dart';
-import '../services/record_retriever.dart';
 
 enum MessageRole { user, assistant }
 
@@ -219,6 +218,46 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
     ));
 
     await db.chatDao.updateSessionLastMessageAt(_currentSessionId!, now: DateTime.now());
+    
+    if (message.role == MessageRole.user) {
+      await _updateSessionTitle(message.content);
+    }
+  }
+
+  Future<void> _updateSessionTitle(String firstUserMessage) async {
+    if (_currentSessionId == null) return;
+    
+    final db = ref.read(appDatabaseProvider);
+    final session = await db.chatDao.findSessionById(_currentSessionId!);
+    
+    if (session != null && session.title == '新对话') {
+      final title = _generateSessionTitle(firstUserMessage);
+      
+      await db.chatDao.updateSessionTitle(_currentSessionId!, title, now: DateTime.now());
+    }
+  }
+
+  String _generateSessionTitle(String userMessage) {
+    String title = userMessage.trim();
+    
+    if (title.length > 20) {
+      final sentences = title.split(RegExp(r'[。！？\n]'));
+      if (sentences.isNotEmpty && sentences.first.length <= 20) {
+        title = sentences.first;
+      } else {
+        title = '${title.substring(0, 20)}...';
+      }
+    }
+    
+    title = title.replaceAll(RegExp(r'```[\s\S]*?```'), '');
+    title = title.replaceAll(RegExp(r'[#*`\[\]{}]'), '');
+    title = title.trim();
+    
+    if (title.isEmpty) {
+      title = '新对话';
+    }
+    
+    return title;
   }
 
   Future<void> _deleteSession(String sessionId) async {
@@ -262,21 +301,6 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
     setState(() {
       _messages.add(welcomeMessage);
     });
-  }
-
-  String _buildSystemPrompt() {
-    return 'AI史官系统提示词（已通过ContextBuilder动态构建）';
-  }
-
-  Future<String> _buildSystemPromptWithContext(String userQuery, {List<RecordContext>? preloadedRecords}) async {
-    final db = ref.read(appDatabaseProvider);
-    final contextBuilder = ContextBuilder(db);
-    return contextBuilder.buildSystemPrompt(
-      userQuery: userQuery,
-      recordStats: _recordStats,
-      totalRecords: _totalRecords,
-      preloadedRecords: preloadedRecords,
-    );
   }
 
   List<RecommendationCard> _parseRecommendations(String content) {
@@ -696,6 +720,7 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
             isLoading: _isLoading,
             onSend: _sendMessage,
             onQuickMessage: _sendQuickMessage,
+            onQuickMessageWithContext: _sendQuickMessageWithContext,
             enabled: hasAiService && _isInitialized,
           ),
         ],
@@ -988,6 +1013,7 @@ class _AiChatInputBar extends StatelessWidget {
     required this.isLoading,
     required this.onSend,
     required this.onQuickMessage,
+    required this.onQuickMessageWithContext,
     required this.enabled,
   });
 
@@ -995,6 +1021,7 @@ class _AiChatInputBar extends StatelessWidget {
   final bool isLoading;
   final VoidCallback onSend;
   final void Function(String) onQuickMessage;
+  final void Function(String actionType, String displayMessage) onQuickMessageWithContext;
   final bool enabled;
 
   @override
@@ -1058,21 +1085,21 @@ class _AiChatInputBar extends StatelessWidget {
                         icon: Icons.mood,
                         iconColor: const Color(0xFFA855F7),
                         label: '总结上月心情',
-                        onTap: enabled ? () => _sendQuickMessageWithContext('mood_summary', '请帮我总结一下上个月的心情变化') : null,
+                        onTap: enabled ? () => onQuickMessageWithContext('mood_summary', '请帮我总结一下上个月的心情变化') : null,
                       ),
                       const SizedBox(width: 8),
                       _SuggestionChip(
                         icon: Icons.pie_chart,
                         iconColor: const Color(0xFF60A5FA),
                         label: '分析年度目标进度',
-                        onTap: enabled ? () => _sendQuickMessageWithContext('goal_progress', '请分析一下我今年的目标完成进度') : null,
+                        onTap: enabled ? () => onQuickMessageWithContext('goal_progress', '请分析一下我今年的目标完成进度') : null,
                       ),
                       const SizedBox(width: 8),
                       _SuggestionChip(
                         icon: Icons.history,
                         iconColor: const Color(0xFFFB923C),
                         label: '那年今日',
-                        onTap: enabled ? () => _sendQuickMessageWithContext('on_this_day', '那年今天我做了什么？') : null,
+                        onTap: enabled ? () => onQuickMessageWithContext('on_this_day', '那年今天我做了什么？') : null,
                       ),
                     ],
                   ),

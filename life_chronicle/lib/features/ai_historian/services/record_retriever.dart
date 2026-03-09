@@ -257,7 +257,7 @@ class RecordRetriever {
     return encounters.map((e) => RecordContext(
       type: '相遇',
       id: e.id,
-      title: e.title ?? '',
+      title: e.title,
       content: e.note ?? '',
       date: e.recordDate,
       extra: {},
@@ -353,7 +353,7 @@ class RecordRetriever {
     return encounters.map((e) => RecordContext(
       type: '相遇',
       id: e.id,
-      title: e.title ?? '',
+      title: e.title,
       content: e.note ?? '',
       date: e.recordDate,
       extra: {},
@@ -489,10 +489,87 @@ class RecordRetriever {
     return encounters.map((e) => RecordContext(
       type: '相遇',
       id: e.id,
-      title: e.title ?? '',
+      title: e.title,
       content: e.note ?? '',
       date: e.recordDate,
       extra: {},
     )).toList();
+  }
+
+  Future<RecordContext?> fetchRecordById(String type, String id) async {
+    switch (type) {
+      case 'food':
+      case '美食':
+        final food = await _db.foodDao.findById(id);
+        if (food == null) return null;
+        return RecordContext(
+          type: '美食',
+          id: food.id,
+          title: food.title,
+          content: food.content ?? '',
+          date: food.recordDate,
+          extra: {'rating': food.rating, 'city': food.city, 'poiName': food.poiName},
+        );
+        
+      case 'moment':
+      case '小确幸':
+        final moment = await _db.momentDao.findById(id);
+        if (moment == null) return null;
+        return RecordContext(
+          type: '小确幸',
+          id: moment.id,
+          title: '',
+          content: moment.content ?? '',
+          date: moment.recordDate,
+          extra: {'mood': moment.mood, 'city': moment.city},
+        );
+        
+      case 'travel':
+      case '旅行':
+        final travel = await _db.watchTravelById(id).first;
+        if (travel == null) return null;
+        return RecordContext(
+          type: '旅行',
+          id: travel.id,
+          title: travel.title ?? '',
+          content: travel.content ?? '',
+          date: travel.recordDate,
+          extra: {'destination': travel.destination, 'city': travel.city},
+        );
+        
+      case 'goal':
+      case '目标':
+        final goals = await _db.watchAllActiveGoalRecords().first;
+        final goal = goals.where((g) => g.id == id).firstOrNull;
+        if (goal == null) return null;
+        return RecordContext(
+          type: '目标',
+          id: goal.id,
+          title: goal.title,
+          content: goal.note ?? '',
+          date: goal.recordDate,
+          extra: {'level': goal.level, 'isCompleted': goal.isCompleted},
+        );
+        
+      case 'encounter':
+      case '相遇':
+        final events = await (_db.select(_db.timelineEvents)
+              ..where((t) => t.eventType.equals('encounter'))
+              ..where((t) => t.isDeleted.equals(false)))
+            .get();
+        final encounter = events.where((e) => e.id == id).firstOrNull;
+        if (encounter == null) return null;
+        return RecordContext(
+          type: '相遇',
+          id: encounter.id,
+          title: encounter.title,
+          content: encounter.note ?? '',
+          date: encounter.recordDate,
+          extra: {},
+        );
+        
+      default:
+        return null;
+    }
   }
 }
