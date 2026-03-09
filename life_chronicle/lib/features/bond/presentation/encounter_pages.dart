@@ -1308,59 +1308,53 @@ class _EncounterDetailPageState extends ConsumerState<EncounterDetailPage> {
           ),
           bottomNavigationBar: SafeArea(
             top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(999),
-                child: BackdropFilter(
-                  filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.85),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.6)),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 18, offset: const Offset(0, 6))],
-                    ),
-                    child: Row(
-                      children: [
-                        _BottomAction(
-                          icon: Icons.edit,
-                          label: '编辑',
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(builder: (_) => EncounterCreatePage(initialEvent: event)),
-                            );
-                          },
-                        ),
-                        _BottomDivider(),
-                        _BottomAction(
-                          icon: event.isFavorite ? Icons.favorite : Icons.favorite_border,
-                          label: '收藏',
-                          active: event.isFavorite,
-                          onTap: () async {
-                            final messenger = ScaffoldMessenger.of(context);
-                            await db.updateEncounterFavorite(event.id, isFavorite: !event.isFavorite, now: DateTime.now());
-                            if (mounted) {
-                              messenger.showSnackBar(
-                                SnackBar(
-                                  content: Text(event.isFavorite ? '已取消收藏' : '已添加到收藏'),
-                                  duration: const Duration(seconds: 1),
-                                ),
-                              );
-                            }
-                          },
-                        ),
-                        _BottomDivider(),
-                        _BottomAction(
-                          icon: Icons.share,
-                          label: '分享',
-                          onTap: () => _shareLongImage(context),
-                        ),
-                      ],
-                    ),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, -2),
                   ),
-                ),
+                ],
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _BottomAction(
+                    icon: Icons.edit,
+                    label: '编辑',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => EncounterCreatePage(initialEvent: event)),
+                      );
+                    },
+                  ),
+                  _BottomAction(
+                    icon: event.isFavorite ? Icons.favorite : Icons.favorite_border,
+                    label: '收藏',
+                    active: event.isFavorite,
+                    onTap: () async {
+                      final messenger = ScaffoldMessenger.of(context);
+                      await db.updateEncounterFavorite(event.id, isFavorite: !event.isFavorite, now: DateTime.now());
+                      if (mounted) {
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text(event.isFavorite ? '已取消收藏' : '已添加到收藏'),
+                            duration: const Duration(seconds: 1),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                  _BottomAction(
+                    icon: Icons.share,
+                    label: '分享',
+                    onTap: () => _shareLongImage(context),
+                  ),
+                ],
               ),
             ),
           ),
@@ -1393,41 +1387,46 @@ class _BottomAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = active ? const Color(0xFFF43F5E) : const Color(0xFF6B7280);
+    final enabled = onTap != null;
+    final primaryColor = active ? const Color(0xFFF43F5E) : const Color(0xFF2BCDEE);
+    final bgColor = const Color(0xFFEEFCFC);
+    final borderColor = primaryColor.withValues(alpha: 0.35);
+    
     return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: onTap == null
-          ? null
-          : () {
+      borderRadius: BorderRadius.circular(999),
+      onTap: enabled
+          ? () {
               FocusManager.instance.primaryFocus?.unfocus();
               onTap!();
-            },
-      child: SizedBox(
-        width: 56,
+            }
+          : null,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: borderColor, width: 1.5),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 20, color: onTap == null ? const Color(0xFFCBD5E1) : color),
-            const SizedBox(height: 2),
+            Icon(
+              icon,
+              color: enabled ? primaryColor : const Color(0xFFCBD5E1),
+              size: 22,
+            ),
+            const SizedBox(height: 4),
             Text(
               label,
-              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: onTap == null ? const Color(0xFFCBD5E1) : color),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: enabled ? primaryColor : const Color(0xFFCBD5E1),
+              ),
             ),
           ],
         ),
       ),
-    );
-  }
-}
-
-class _BottomDivider extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 1,
-      height: 24,
-      margin: const EdgeInsets.symmetric(horizontal: 10),
-      color: const Color(0xFFE5E7EB),
     );
   }
 }

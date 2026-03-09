@@ -1403,27 +1403,41 @@ class _BottomMenuButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final enabled = onTap != null;
+    final primaryColor = iconColor ?? const Color(0xFF2BCDEE);
+    final bgColor = const Color(0xFFEEFCFC);
+    final borderColor = primaryColor.withValues(alpha: 0.35);
+    
     return InkWell(
-      onTap: onTap == null
-          ? null
-          : () {
+      onTap: enabled
+          ? () {
               FocusManager.instance.primaryFocus?.unfocus();
               onTap!();
-            },
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            }
+          : null,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: borderColor, width: 1.5),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: iconColor ?? const Color(0xFF6B7280), size: 24),
+            Icon(
+              icon,
+              color: enabled ? primaryColor : const Color(0xFFCBD5E1),
+              size: 22,
+            ),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
                 fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: iconColor ?? const Color(0xFF6B7280),
+                fontWeight: FontWeight.w700,
+                color: enabled ? primaryColor : const Color(0xFFCBD5E1),
               ),
             ),
           ],

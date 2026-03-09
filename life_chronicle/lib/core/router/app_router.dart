@@ -62,6 +62,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'create',
                 name: 'foodCreate',
+                parentNavigatorKey: _rootNavigatorKey,
                 builder: (context, state) {
                   final extra = state.extra as Map<String, dynamic>?;
                   return FoodCreatePage(
@@ -79,6 +80,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: ':id',
                 name: 'foodDetail',
+                parentNavigatorKey: _rootNavigatorKey,
                 builder: (context, state) {
                   final id = state.pathParameters['id']!;
                   return FoodDetailPage(recordId: id);
@@ -94,6 +96,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'create',
                 name: 'momentCreate',
+                parentNavigatorKey: _rootNavigatorKey,
                 builder: (context, state) {
                   final extra = state.extra as Map<String, dynamic>?;
                   return MomentCreatePage(
@@ -104,6 +107,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: ':id',
                 name: 'momentDetail',
+                parentNavigatorKey: _rootNavigatorKey,
                 builder: (context, state) {
                   final id = state.pathParameters['id']!;
                   return MomentDetailPage(recordId: id);
@@ -119,6 +123,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'create',
                 name: 'travelCreate',
+                parentNavigatorKey: _rootNavigatorKey,
                 builder: (context, state) {
                   final extra = state.extra as Map<String, dynamic>?;
                   return TravelCreatePage(
@@ -130,6 +135,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: ':id',
                 name: 'travelDetail',
+                parentNavigatorKey: _rootNavigatorKey,
                 builder: (context, state) {
                   final extra = state.extra as Map<String, dynamic>?;
                   return TravelDetailPage(
@@ -147,6 +153,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'create',
                 name: 'goalCreate',
+                parentNavigatorKey: _rootNavigatorKey,
                 builder: (context, state) {
                   final extra = state.extra as Map<String, dynamic>?;
                   return GoalCreatePage(goal: extra?['goal']);
@@ -155,6 +162,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: ':id',
                 name: 'goalDetail',
+                parentNavigatorKey: _rootNavigatorKey,
                 builder: (context, state) {
                   final extra = state.extra as Map<String, dynamic>?;
                   return GoalDetailPage(record: extra?['record']);
@@ -170,6 +178,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'encounter/create',
                 name: 'encounterCreate',
+                parentNavigatorKey: _rootNavigatorKey,
                 builder: (context, state) {
                   final extra = state.extra as Map<String, dynamic>?;
                   return EncounterCreatePage(
@@ -180,6 +189,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'encounter/:id',
                 name: 'encounterDetail',
+                parentNavigatorKey: _rootNavigatorKey,
                 builder: (context, state) {
                   final id = state.pathParameters['id']!;
                   return EncounterDetailPage(encounterId: id);
@@ -195,6 +205,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'ai-models',
                 name: 'aiModelManagement',
+                parentNavigatorKey: _rootNavigatorKey,
                 builder: (context, state) => const AiModelManagementPage(),
               ),
             ],
@@ -204,7 +215,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.aiHistorian,
         name: 'aiHistorian',
-        parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const AiHistorianChatPage(),
       ),
     ],
