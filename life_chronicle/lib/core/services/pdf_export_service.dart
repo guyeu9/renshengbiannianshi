@@ -71,7 +71,7 @@ class PdfExportService {
             await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [$i] 常规字体加载成功: $fontPath', LogLevel.info);
             break;
           }
-        } catch (e, stack) {
+        } catch (e) {
           await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [$i] 加载字体失败: $fontPath, error=${e.toString()}', LogLevel.warn);
           continue;
         }
@@ -97,7 +97,7 @@ class PdfExportService {
             await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [bold-$i] 粗体字体加载成功: $fontPath', LogLevel.info);
             break;
           }
-        } catch (e, stack) {
+        } catch (e) {
           await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [bold-$i] 加载粗体字体失败: $fontPath, error=${e.toString()}', LogLevel.warn);
           continue;
         }
@@ -140,7 +140,7 @@ class PdfExportService {
         fontSize: fontSize,
         color: color,
       );
-    } catch (e, stack) {
+    } catch (e) {
       FileLogger.instance.logWithLevel('PDF导出', '_textStyle发生异常: bold=$bold, fontSize=$fontSize, error=${e.toString()}', LogLevel.error);
       return pw.TextStyle(
         fontSize: fontSize,
@@ -170,7 +170,7 @@ class PdfExportService {
       await FileLogger.instance.logWithLevel('PDF导出', '步骤1: 开始加载字体', LogLevel.info);
       await _loadFonts();
       await FileLogger.instance.logWithLevel('PDF导出', '步骤1完成: 字体加载结束', LogLevel.info);
-    } catch (e, stack) {
+    } catch (e) {
       await FileLogger.instance.logWithLevel('PDF导出', '步骤1异常: 字体加载失败，但继续导出: ${e.toString()}', LogLevel.error);
     }
     
@@ -340,7 +340,7 @@ class PdfExportService {
           ),
         ),
       );
-    } catch (e, stack) {
+    } catch (e) {
       await FileLogger.instance.logWithLevel('PDF导出', '封面页创建失败，尝试简化版本: ${e.toString()}', LogLevel.error);
       return pw.Page(
         pageFormat: PdfPageFormat.a4,
@@ -422,7 +422,7 @@ class PdfExportService {
           ),
         ),
       );
-    } catch (e, stack) {
+    } catch (e) {
       await FileLogger.instance.logWithLevel('PDF导出', '目录页创建失败: ${e.toString()}', LogLevel.error);
       rethrow;
     }
@@ -521,7 +521,7 @@ class PdfExportService {
           ),
         ),
       );
-    } catch (e, stack) {
+    } catch (e) {
       await FileLogger.instance.logWithLevel('PDF导出', '概览章节创建失败，尝试简化版本: ${e.toString()}', LogLevel.error);
       
       final stats = <String>[];
@@ -628,7 +628,7 @@ class PdfExportService {
           ],
         ),
       );
-    } catch (e, stack) {
+    } catch (e) {
       return pw.Container(
         width: 140,
         padding: const pw.EdgeInsets.all(20),
@@ -676,7 +676,7 @@ class PdfExportService {
           ),
         ),
       );
-    } catch (e, stack) {
+    } catch (e) {
       await FileLogger.instance.logWithLevel('PDF导出', '章节封面页创建失败，使用纯色版本: chapter=$chapter, error=${e.toString()}', LogLevel.error);
       return pw.Page(
         pageFormat: PdfPageFormat.a4,
@@ -745,7 +745,7 @@ class PdfExportService {
       }
       
       await FileLogger.instance.logWithLevel('PDF导出', '美食章节添加完成: recordCount=${records.length}', LogLevel.info);
-    } catch (e, stack) {
+    } catch (e) {
       await FileLogger.instance.logWithLevel('PDF导出', '美食章节添加失败: ${e.toString()}', LogLevel.error);
       rethrow;
     }
@@ -834,7 +834,7 @@ class PdfExportService {
           ),
         ),
       );
-    } catch (e, stack) {
+    } catch (e) {
       await FileLogger.instance.logWithLevel('PDF导出', '美食详情页创建失败: id=${record.id}, error=${e.toString()}', LogLevel.error);
       rethrow;
     }
@@ -886,7 +886,7 @@ class PdfExportService {
       }
       
       await FileLogger.instance.logWithLevel('PDF导出', '小确幸章节添加完成: recordCount=${records.length}', LogLevel.info);
-    } catch (e, stack) {
+    } catch (e) {
       await FileLogger.instance.logWithLevel('PDF导出', '小确幸章节添加失败: ${e.toString()}', LogLevel.error);
       rethrow;
     }
@@ -965,7 +965,7 @@ class PdfExportService {
           ),
         ),
       );
-    } catch (e, stack) {
+    } catch (e) {
       await FileLogger.instance.logWithLevel('PDF导出', '小确幸详情页创建失败: id=${record.id}, error=${e.toString()}', LogLevel.error);
       rethrow;
     }
@@ -992,7 +992,7 @@ class PdfExportService {
       }
       
       await FileLogger.instance.logWithLevel('PDF导出', '羁绊章节添加完成: recordCount=${records.length}', LogLevel.info);
-    } catch (e, stack) {
+    } catch (e) {
       await FileLogger.instance.logWithLevel('PDF导出', '羁绊章节添加失败: ${e.toString()}', LogLevel.error);
       rethrow;
     }
@@ -1085,7 +1085,7 @@ class PdfExportService {
           ),
         ),
       );
-    } catch (e, stack) {
+    } catch (e) {
       await FileLogger.instance.logWithLevel('PDF导出', '羁绊详情页创建失败: id=${record.id}, error=${e.toString()}', LogLevel.error);
       rethrow;
     }
@@ -1137,7 +1137,7 @@ class PdfExportService {
       }
       
       await FileLogger.instance.logWithLevel('PDF导出', '旅行章节添加完成: recordCount=${records.length}', LogLevel.info);
-    } catch (e, stack) {
+    } catch (e) {
       await FileLogger.instance.logWithLevel('PDF导出', '旅行章节添加失败: ${e.toString()}', LogLevel.error);
       rethrow;
     }
@@ -1215,7 +1215,7 @@ class PdfExportService {
           ),
         ),
       );
-    } catch (e, stack) {
+    } catch (e) {
       await FileLogger.instance.logWithLevel('PDF导出', '旅行详情页创建失败: id=${record.id}, error=${e.toString()}', LogLevel.error);
       rethrow;
     }
@@ -1242,7 +1242,7 @@ class PdfExportService {
       }
       
       await FileLogger.instance.logWithLevel('PDF导出', '目标章节添加完成: recordCount=${records.length}', LogLevel.info);
-    } catch (e, stack) {
+    } catch (e) {
       await FileLogger.instance.logWithLevel('PDF导出', '目标章节添加失败: ${e.toString()}', LogLevel.error);
       rethrow;
     }
@@ -1318,7 +1318,7 @@ class PdfExportService {
           ),
         ),
       );
-    } catch (e, stack) {
+    } catch (e) {
       await FileLogger.instance.logWithLevel('PDF导出', '目标详情页创建失败: id=${record.id}, error=${e.toString()}', LogLevel.error);
       rethrow;
     }
@@ -1355,8 +1355,8 @@ class PdfExportService {
       }
       
       await FileLogger.instance.logWithLevel('PDF导出', '时间线章节添加完成: recordCount=${records.length}', LogLevel.info);
-    } catch (e, stack) {
-      await FileLogger.instance.logWithLevel('PDF导出', '时间线章节添加失败: ${e.toString()}', LogLevel.error);
+    } catch (e) {
+      await FileLogger.instance.logWithLevel('PDF导出', '瞬间章节添加失败: ${e.toString()}', LogLevel.error);
       rethrow;
     }
   }
@@ -1404,7 +1404,7 @@ class PdfExportService {
           ),
         ),
       );
-    } catch (e, stack) {
+    } catch (e) {
       await FileLogger.instance.logWithLevel('PDF导出', '时间线详情页创建失败: id=${record.id}, error=${e.toString()}', LogLevel.error);
       rethrow;
     }
@@ -1416,8 +1416,8 @@ class PdfExportService {
     try {
       await Share.shareXFiles([XFile(filePath)], subject: '人生编年史PDF导出');
       await FileLogger.instance.logWithLevel('PDF导出', 'PDF分享完成', LogLevel.info);
-    } catch (e, stack) {
-      await FileLogger.instance.logWithLevel('PDF导出', 'PDF分享失败: ${e.toString()}', LogLevel.error);
+    } catch (e) {
+      await FileLogger.instance.logWithLevel('PDF导出', '生成PDF封面图片失败，使用默认封面: ${e.toString()}', LogLevel.error);
       rethrow;
     }
   }
