@@ -58,6 +58,7 @@ class AppDatabase extends _$AppDatabase {
             final now = DateTime.now();
             const uuid = Uuid();
             
+            // 新用户：插入默认 embedding 服务
             await into(aiProviders).insert(
               AiProvidersCompanion(
                 id: Value(uuid.v4()),
@@ -72,9 +73,26 @@ class AppDatabase extends _$AppDatabase {
                 updatedAt: Value(now),
               ),
             );
+            
+            // 新用户：插入默认 chat 服务
+            await into(aiProviders).insert(
+              AiProvidersCompanion(
+                id: Value(uuid.v4()),
+                name: const Value('默认'),
+                apiType: const Value('openai'),
+                serviceType: const Value('chat'),
+                baseUrl: const Value('https://api.zscc.in'),
+                apiKey: const Value('sk-tTHwWh4n0iWjlTRuxraXrJKx5PAjHFEdM3MhL0N2oB1Xp5oj'),
+                modelName: const Value('gemini-3-flash'),
+                isActive: const Value(true),
+                createdAt: Value(now),
+                updatedAt: Value(now),
+              ),
+            );
           } else {
-            // 老用户：确保默认 embedding 服务存在
+            // 老用户：确保默认服务存在
             await _ensureDefaultEmbeddingProvider();
+            await _ensureDefaultChatProvider();
           }
         },
         onUpgrade: (m, from, to) async {
@@ -382,6 +400,31 @@ class AppDatabase extends _$AppDatabase {
           baseUrl: const Value('https://ai.gitee.com/v1'),
           apiKey: const Value('AAMX6RZWNFGZ9H1CERSNPTQOQSIHSR5TBTNI8Y8G'),
           modelName: const Value('Qwen3-Embedding-8B'),
+          isActive: const Value(true),
+          createdAt: Value(now),
+          updatedAt: Value(now),
+        ),
+      );
+    }
+  }
+
+  Future<void> _ensureDefaultChatProvider() async {
+    final existingDefault = await (select(aiProviders)
+          ..where((t) => t.name.equals('默认') & t.serviceType.equals('chat')))
+        .get();
+
+    if (existingDefault.isEmpty) {
+      final now = DateTime.now();
+      const uuid = Uuid();
+      await into(aiProviders).insert(
+        AiProvidersCompanion(
+          id: Value(uuid.v4()),
+          name: const Value('默认'),
+          apiType: const Value('openai'),
+          serviceType: const Value('chat'),
+          baseUrl: const Value('https://api.zscc.in'),
+          apiKey: const Value('sk-tTHwWh4n0iWjlTRuxraXrJKx5PAjHFEdM3MhL0N2oB1Xp5oj'),
+          modelName: const Value('gemini-3-flash'),
           isActive: const Value(true),
           createdAt: Value(now),
           updatedAt: Value(now),
