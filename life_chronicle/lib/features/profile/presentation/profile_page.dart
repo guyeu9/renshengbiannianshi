@@ -11,7 +11,6 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:drift/drift.dart' hide Column;
 import 'package:path/path.dart' as p;
@@ -7719,9 +7718,9 @@ class HelpFeedbackPage extends StatelessWidget {
         if (versionInfo != null) {
           final hasUpdate = await updateService.isUpdateAvailable(versionInfo);
           
-          if (hasUpdate) {
+          if (hasUpdate && context.mounted) {
             _showUpdateAvailableDialog(context, versionInfo);
-          } else {
+          } else if (context.mounted) {
             _showNoUpdateDialog(context);
           }
         } else {
