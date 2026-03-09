@@ -2,15 +2,17 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
 
+import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../app/app_theme.dart';
+import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/providers/ai_provider.dart';
-import '../../../core/services/ai_service.dart';
+import '../../../core/services/ai_service.dart' as ai_service;
 
 enum MessageRole { user, assistant }
 
@@ -369,7 +371,7 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
       final history = _messages
           .where((m) => m.id != aiMessageId)
           .where((m) => !m.id.startsWith('welcome_'))
-          .map((m) => ChatMessage(
+          .map((m) => ai_service.ChatMessage(
                 role: m.role == MessageRole.user ? 'user' : 'assistant',
                 content: m.content,
               ))
