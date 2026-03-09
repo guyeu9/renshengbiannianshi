@@ -6,6 +6,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -14,6 +15,7 @@ import 'package:uuid/uuid.dart';
 import '../../../core/config/module_management_config.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
+import '../../../core/router/app_router.dart';
 import '../../../core/utils/media_storage.dart';
 import '../../../core/utils/tag_color_utils.dart';
 import '../../../core/widgets/amap_location_page.dart';
@@ -768,7 +770,7 @@ class _FoodRecordCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => FoodDetailPage(recordId: record.id))),
+        onTap: () => context.go('${AppRoutes.food}/${record.id}'),
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
@@ -1114,8 +1116,8 @@ class _FoodWishlistRecordCard extends ConsumerWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(22),
         onTap: () async {
-          final converted = await Navigator.of(context).push<bool>(
-            MaterialPageRoute(builder: (_) => FoodDetailPage(recordId: record.id)),
+          final converted = await context.push<bool>(
+            '${AppRoutes.food}/${record.id}',
           );
           if (converted == true) onSwitchToRecords();
         },
@@ -1331,9 +1333,7 @@ class FoodDetailPage extends ConsumerWidget {
             showContent: true,
           ),
           onEdit: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => FoodCreatePage(initialRecord: record)),
-            );
+            context.go('${AppRoutes.food}/create', extra: {'initialRecord': record});
           },
           onToggleFavorite: () async {
             await db.foodDao.updateFavorite(
@@ -1362,29 +1362,24 @@ class FoodDetailPage extends ConsumerWidget {
             Navigator.of(context).pop();
           },
           onCheckInAgain: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => FoodCreatePage(
-                  prefillTitle: record.title,
-                  prefillPoiName: (record.poiName ?? '').trim().isEmpty ? record.title : record.poiName,
-                  prefillPoiAddress: (record.poiAddress ?? record.city ?? '').trim(),
-                  prefillPricePerPerson: record.pricePerPerson,
-                ),
-              ),
-            );
+            context.go('${AppRoutes.food}/create', extra: {
+              'prefillTitle': record.title,
+              'prefillPoiName': (record.poiName ?? '').trim().isEmpty ? record.title : record.poiName,
+              'prefillPoiAddress': (record.poiAddress ?? record.city ?? '').trim(),
+              'prefillPricePerPerson': record.pricePerPerson,
+            });
           },
           onMarkAsTasted: !isWishlist
               ? null
               : () async {
-                  final converted = await Navigator.of(context).push<bool>(
-                    MaterialPageRoute(
-                      builder: (_) => FoodCreatePage(
-                        initialRecord: record,
-                        overrideIsWishlist: false,
-                        overrideWishlistDone: true,
-                        popWithResultOnPublish: true,
-                      ),
-                    ),
+                  final converted = await context.push<bool>(
+                    '${AppRoutes.food}/create',
+                    extra: {
+                      'initialRecord': record,
+                      'overrideIsWishlist': false,
+                      'overrideWishlistDone': true,
+                      'popWithResultOnPublish': true,
+                    },
                   );
                   if (!context.mounted) return;
                   if (converted == true) Navigator.of(context).pop(true);

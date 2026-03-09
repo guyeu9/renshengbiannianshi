@@ -14,9 +14,12 @@ import 'package:share_plus/share_plus.dart';
 import 'package:drift/drift.dart' hide Column;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
+import '../../../core/providers/ai_provider.dart';
+import '../../../core/services/ai_service.dart' as ai_service;
 import '../../../core/utils/media_storage.dart';
 import '../../../core/utils/icon_utils.dart';
 import '../../../core/config/module_management_config.dart';
@@ -305,7 +308,7 @@ String _safeFileName(String input) {
   return replaced.isEmpty ? 'chronicle' : replaced;
 }
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
 
   static const _background = Color(0xFFF2F4F6);
@@ -318,8 +321,89 @@ class ProfilePage extends StatelessWidget {
   static const _iconBlue = Color(0xFF42A5F5);
   static const _iconPurple = Color(0xFFAB47BC);
 
+  Future<void> _shareProfile(BuildContext context, WidgetRef ref) async {
+    try {
+      final profile = await ref.read(appDatabaseProvider).userProfiles.getSingleOrNull();
+      final name = profile?.displayName ?? '林晓梦';
+
+      final text = '''
+【人生编年史 - 个人中心】
+
+用户名：$name
+已记录人生：${await _calculateRecordDays(ref)}天
+
+记录统计：
+- 美食记录：待统计
+- 旅行记录：待统计
+- 小确幸记录：待统计
+- 羁绊记录：待统计
+- 目标记录：待统计
+
+我频繁的记录着，我热烈的分享着
+你要知道诗人的一生也可能非常普通
+
+来自【人生编年史】App
+''';
+
+      await Share.share(text, subject: '人生编年史 - 个人中心');
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('分享失败：$e')),
+      );
+    }
+  }
+
+  void _showNotificationSettings(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (ctx) => const ReminderSettingsPage(),
+      ),
+    );
+  }
+
+  Future<int> _calculateRecordDays(WidgetRef ref) async {
+    final db = ref.read(appDatabaseProvider);
+    final profile = await (db.select(db.userProfiles)..where((t) => t.id.equals('me'))).getSingleOrNull();
+
+    if (profile?.createdAt != null) {
+      return DateTime.now().difference(profile!.createdAt).inDays;
+    }
+
+    final allDates = <DateTime>[];
+
+    final foods = await db.foodDao.watchAllActive().first;
+    for (final f in foods) {
+      allDates.add(f.recordDate);
+    }
+
+    final moments = await db.momentDao.watchAllActive().first;
+    for (final m in moments) {
+      allDates.add(m.recordDate);
+    }
+
+    final travels = await (db.select(db.travelRecords)..where((t) => t.isDeleted.equals(false))).get();
+    for (final t in travels) {
+      allDates.add(t.recordDate);
+    }
+
+    final events = await (db.select(db.timelineEvents)..where((t) => t.isDeleted.equals(false))).get();
+    for (final e in events) {
+      allDates.add(e.recordDate);
+    }
+
+    final friends = await db.friendDao.watchAllActive().first;
+    for (final f in friends) {
+      allDates.add(f.updatedAt);
+    }
+
+    if (allDates.isEmpty) return 0;
+
+    allDates.sort();
+    return DateTime.now().difference(allDates.first).inDays;
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: _background,
       body: SafeArea(
@@ -506,9 +590,15 @@ class ProfilePage extends StatelessWidget {
               right: 16,
               child: Row(
                 children: [
-                  _FrostedCircleButton(icon: Icons.share, onTap: () {}),
+                  _FrostedCircleButton(
+                    icon: Icons.share,
+                    onTap: () => _shareProfile(context, ref),
+                  ),
                   const SizedBox(width: 12),
-                  _FrostedCircleButton(icon: Icons.notifications, onTap: () {}),
+                  _FrostedCircleButton(
+                    icon: Icons.notifications,
+                    onTap: () => _showNotificationSettings(context),
+                  ),
                 ],
               ),
             ),
@@ -519,14 +609,14 @@ class ProfilePage extends StatelessWidget {
   }
 }
 
-class _Header extends StatefulWidget {
+class _Header extends ConsumerStatefulWidget {
   const _Header();
 
   @override
-  State<_Header> createState() => _HeaderState();
+  ConsumerState<_Header> createState() => _HeaderState();
 }
 
-class _HeaderState extends State<_Header> {
+class _HeaderState extends ConsumerState<_Header> {
   static const _defaultAvatarUrl =
       'https://lh3.googleusercontent.com/aida-public/AB6AXuBbKe_aCd46pUms7LLAFzD6OXtQ8lCfAXJOsCrBecRIq0Rsb6hG4jY_titPPL6OX4UEolhRaXIm5q1CN8mgX1sDnDEpjIu6VsAPEPXD_TgVO70SfpWy3Ip2I0CsCyMuTYopG68o1H3zfeCTGnhMwcli29GRkYeNRSh_bne4ffgw7Lym8TRcy9xvfIRJ7re4r_AZ6HYWFXuNljbmovvrN8K3yGjv8iiZ5MCKo2rG0vQcYlScRiJTep-ftfRgTq7kF_pycqvsKRxWyfNh';
 
@@ -595,6 +685,16 @@ class _HeaderState extends State<_Header> {
 
   Future<String?> _persistAvatar(String path) async {
     return persistImagePath(path, folder: 'profile', prefix: 'avatar');
+  }
+
+  static String _formatNumber(int n) {
+    if (n >= 1000) {
+      return '${(n / 1000).toStringAsFixed(1)}k';
+    }
+    return n.toString().replaceAllMapped(
+      RegExp(r'\B(?=(\d{3})+(?!\d))'),
+      (m) => ',',
+    );
   }
 
   void _openAvatarPreview() {
@@ -747,31 +847,41 @@ class _HeaderState extends State<_Header> {
             },
           ),
           const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFDCFCE7),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: const Color(0xFFDCFCE7)),
-              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 2))],
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.history_edu, size: 16, color: Color(0xFF15803D)),
-                SizedBox(width: 8),
-                Text.rich(
-                  TextSpan(
-                    style: TextStyle(fontSize: 12, color: Color(0xFF166534), fontWeight: FontWeight.w800),
-                    children: [
-                      TextSpan(text: '已记录人生 '),
-                      TextSpan(text: '1,240', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
-                      TextSpan(text: ' 天'),
-                    ],
-                  ),
+          Consumer(
+            builder: (context, ref, _) {
+              final daysAsync = ref.watch(userRecordDaysProvider);
+              final days = daysAsync.when(
+                data: (d) => d,
+                loading: () => 0,
+                error: (_, __) => 0,
+              );
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDCFCE7),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: const Color(0xFFDCFCE7)),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 2))],
                 ),
-              ],
-            ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.history_edu, size: 16, color: Color(0xFF15803D)),
+                    const SizedBox(width: 8),
+                    Text.rich(
+                      TextSpan(
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF166534), fontWeight: FontWeight.w800),
+                        children: [
+                          const TextSpan(text: '已记录人生 '),
+                          TextSpan(text: _formatNumber(days), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                          const TextSpan(text: ' 天'),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
           const SizedBox(height: 16),
           const Text(
@@ -1263,6 +1373,8 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
   DateTimeRange? _customRange;
   bool _loadingSummary = true;
   bool _generating = false;
+  bool _sendingChat = false;
+  final List<Map<String, String>> _chatMessages = [];
   List<ChronicleModuleSummary> _summaries = const [];
   Map<String, bool> _moduleSelection = {};
 
@@ -1331,6 +1443,68 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
       _rangeIndex = 2;
     });
     _refreshSummary();
+  }
+
+  Future<void> _sendChatMessage() async {
+    final input = _chatInputController.text.trim();
+    if (input.isEmpty) return;
+
+    final chatService = ref.read(activeChatServiceProvider);
+    if (chatService == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请先在"AI模型管理"中配置对话服务')),
+      );
+      return;
+    }
+
+    setState(() {
+      _sendingChat = true;
+      _chatMessages.add({'role': 'user', 'content': input});
+      _chatInputController.clear();
+    });
+
+    try {
+      final range = _currentRange();
+      final selectedModules = _selectedModules();
+      final moduleInfo = _summaries
+          .where((s) => selectedModules.contains(s.key))
+          .map((s) => '${s.title}(${s.count}条记录)')
+          .join('、');
+
+      final systemPrompt = '''你是人生编年史助手，帮助用户整理和总结人生记忆。
+当前编年史配置：
+- 时间范围：${_formatDate(range.start)} - ${_formatDate(range.end)}
+- 选中模块：$moduleInfo
+
+请根据用户的输入，帮助他们：
+1. 挖掘记忆中的亮点和主题
+2. 提炼人生感悟和成长轨迹
+3. 为编年史生成有意义的总结
+
+回复要简洁有温度，不超过200字。''';
+
+      final messages = _chatMessages.map((m) => ai_service.ChatMessage(role: m['role']!, content: m['content']!)).toList();
+
+      final response = await chatService.chat(
+        systemPrompt: systemPrompt,
+        messages: messages,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _chatMessages.add({'role': 'assistant', 'content': response});
+        _aiSummaryController.text = response;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('AI对话失败：$e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _sendingChat = false);
+      }
+    }
   }
 
   Future<void> _refreshSummary() async {
@@ -2700,15 +2874,23 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
                                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
                                 ),
                                 style: TextStyle(fontSize: 14, color: textMain),
+                                onSubmitted: _sendingChat ? null : (_) => _sendChatMessage(),
                               ),
                             ),
                             const SizedBox(width: 8),
-                            IconButton(
-                              icon: Icon(Icons.send, color: primary),
-                              onPressed: () {},
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                            ),
+                            if (_sendingChat)
+                              const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary),
+                              )
+                            else
+                              IconButton(
+                                icon: Icon(Icons.send, color: primary),
+                                onPressed: _sendChatMessage,
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                              ),
                           ],
                         ),
                       ),
@@ -6401,21 +6583,999 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
   }
 }
 
-class YearReportPage extends StatelessWidget {
+class YearReportPage extends ConsumerStatefulWidget {
   const YearReportPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const _PlaceholderPage(title: '年度报告');
-  }
+  ConsumerState<YearReportPage> createState() => _YearReportPageState();
 }
 
-class ReminderSettingsPage extends StatelessWidget {
-  const ReminderSettingsPage({super.key});
+class _YearReportPageState extends ConsumerState<YearReportPage> {
+  int _selectedYear = DateTime.now().year - 1;
+  bool _loading = false;
+  bool _generating = false;
+  double _progress = 0;
+  String _progressText = '';
+
+  YearStatistics? _statistics;
+  Map<String, String> _moduleReports = {};
+  AnnualReportContent? _finalReport;
+
+  List<int> get _availableYears {
+    final current = DateTime.now().year;
+    return List.generate(5, (i) => current - 1 - i);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStatistics();
+  }
+
+  Future<void> _loadStatistics() async {
+    setState(() {
+      _loading = true;
+      _statistics = null;
+      _moduleReports = {};
+      _finalReport = null;
+    });
+
+    try {
+      final db = ref.read(appDatabaseProvider);
+      final stats = await _computeStatistics(db, _selectedYear);
+      if (!mounted) return;
+      setState(() {
+        _statistics = stats;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('加载统计数据失败：$e')),
+      );
+    }
+  }
+
+  Future<YearStatistics> _computeStatistics(AppDatabase db, int year) async {
+    final yearStart = DateTime(year, 1, 1);
+    final yearEnd = DateTime(year, 12, 31, 23, 59, 59);
+
+    final foods = await (db.select(db.foodRecords)
+          ..where((t) => t.recordDate.isBiggerOrEqualValue(yearStart))
+          ..where((t) => t.recordDate.isSmallerOrEqualValue(yearEnd))
+          ..where((t) => t.isDeleted.equals(false))
+          ..where((t) => t.isWishlist.equals(false)))
+        .get();
+
+    final moments = await (db.select(db.momentRecords)
+          ..where((t) => t.recordDate.isBiggerOrEqualValue(yearStart))
+          ..where((t) => t.recordDate.isSmallerOrEqualValue(yearEnd))
+          ..where((t) => t.isDeleted.equals(false)))
+        .get();
+
+    final travels = await (db.select(db.travelRecords)
+          ..where((t) => t.recordDate.isBiggerOrEqualValue(yearStart))
+          ..where((t) => t.recordDate.isSmallerOrEqualValue(yearEnd))
+          ..where((t) => t.isDeleted.equals(false))
+          ..where((t) => t.isWishlist.equals(false)))
+        .get();
+
+    final goals = await (db.select(db.goalRecords)
+          ..where((t) => t.recordDate.isBiggerOrEqualValue(yearStart))
+          ..where((t) => t.recordDate.isSmallerOrEqualValue(yearEnd))
+          ..where((t) => t.isDeleted.equals(false)))
+        .get();
+
+    final encounters = await (db.select(db.timelineEvents)
+          ..where((t) => t.recordDate.isBiggerOrEqualValue(yearStart))
+          ..where((t) => t.recordDate.isSmallerOrEqualValue(yearEnd))
+          ..where((t) => t.isDeleted.equals(false))
+          ..where((t) => t.eventType.equals('encounter')))
+        .get();
+
+    final friends = await db.friendDao.watchAllActive().first;
+
+    final cityFoodCount = <String, int>{};
+    final cityFoodRating = <String, List<double>>{};
+    for (final f in foods) {
+      final city = f.poiName ?? f.city ?? '未知';
+      cityFoodCount[city] = (cityFoodCount[city] ?? 0) + 1;
+      if (f.rating != null) {
+        cityFoodRating.putIfAbsent(city, () => []).add(f.rating!);
+      }
+    }
+
+    final topFoodCities = cityFoodCount.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    final destinationCount = <String, int>{};
+    for (final t in travels) {
+      final dest = t.destination ?? t.poiName ?? '未知';
+      destinationCount[dest] = (destinationCount[dest] ?? 0) + 1;
+    }
+    final topDestinations = destinationCount.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    final moodCount = <String, int>{};
+    for (final m in moments) {
+      if (m.mood != null && m.mood!.isNotEmpty) {
+        moodCount[m.mood!] = (moodCount[m.mood!] ?? 0) + 1;
+      }
+    }
+    final topMoods = moodCount.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    final completedGoals = goals.where((g) => g.isCompleted).length;
+    final totalGoals = goals.length;
+
+    final topRatedFoods = foods.where((f) => f.rating != null).toList()
+      ..sort((a, b) => (b.rating ?? 0).compareTo(a.rating ?? 0));
+
+    return YearStatistics(
+      year: year,
+      totalRecords: foods.length + moments.length + travels.length + goals.length + encounters.length,
+      foodCount: foods.length,
+      momentCount: moments.length,
+      travelCount: travels.length,
+      goalCount: goals.length,
+      encounterCount: encounters.length,
+      friendCount: friends.length,
+      topFoodCities: topFoodCities.take(5).map((e) => MapEntry(e.key, e.value)).toList(),
+      avgFoodRating: cityFoodRating.isEmpty
+          ? 0
+          : cityFoodRating.values.expand((l) => l).reduce((a, b) => a + b) /
+              cityFoodRating.values.expand((l) => l).length,
+      topDestinations: topDestinations.take(5).map((e) => MapEntry(e.key, e.value)).toList(),
+      topMoods: topMoods.take(5).map((e) => MapEntry(e.key, e.value)).toList(),
+      goalCompletionRate: totalGoals > 0 ? completedGoals / totalGoals : 0,
+      completedGoals: completedGoals,
+      totalGoals: totalGoals,
+      topRatedFoods: topRatedFoods.take(3).toList(),
+      topTravels: travels.take(3).toList(),
+      topMoments: moments.take(3).toList(),
+    );
+  }
+
+  Future<void> _generateReport() async {
+    final chatService = ref.read(activeChatServiceProvider);
+    if (chatService == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请先在"AI模型管理"中配置对话服务')),
+      );
+      return;
+    }
+
+    if (_statistics == null) return;
+
+    setState(() {
+      _generating = true;
+      _progress = 0;
+      _progressText = '正在生成美食篇章...';
+    });
+
+    try {
+      final stats = _statistics!;
+
+      setState(() {
+        _progress = 0.1;
+      });
+
+      final foodPrompt = _buildFoodPrompt(stats);
+      final foodReport = await chatService.chat(
+        systemPrompt: '你是人生编年史APP的年度报告撰写者，擅长用温暖有温度的文字总结美食记忆。',
+        messages: [ai_service.ChatMessage(role: 'user', content: foodPrompt)],
+      );
+      _moduleReports['food'] = foodReport;
+
+      if (!mounted) return;
+      setState(() {
+        _progress = 0.25;
+        _progressText = '正在生成情绪篇章...';
+      });
+
+      final moodPrompt = _buildMoodPrompt(stats);
+      final moodReport = await chatService.chat(
+        systemPrompt: '你是人生编年史APP的年度报告撰写者，擅长分析情绪变化和人生感悟。',
+        messages: [ai_service.ChatMessage(role: 'user', content: moodPrompt)],
+      );
+      _moduleReports['mood'] = moodReport;
+
+      if (!mounted) return;
+      setState(() {
+        _progress = 0.4;
+        _progressText = '正在生成旅行篇章...';
+      });
+
+      final travelPrompt = _buildTravelPrompt(stats);
+      final travelReport = await chatService.chat(
+        systemPrompt: '你是人生编年史APP的年度报告撰写者，擅长记录旅行足迹和探索精神。',
+        messages: [ai_service.ChatMessage(role: 'user', content: travelPrompt)],
+      );
+      _moduleReports['travel'] = travelReport;
+
+      if (!mounted) return;
+      setState(() {
+        _progress = 0.55;
+        _progressText = '正在生成目标篇章...';
+      });
+
+      final goalPrompt = _buildGoalPrompt(stats);
+      final goalReport = await chatService.chat(
+        systemPrompt: '你是人生编年史APP的年度报告撰写者，擅长总结成长与成就。',
+        messages: [ai_service.ChatMessage(role: 'user', content: goalPrompt)],
+      );
+      _moduleReports['goal'] = goalReport;
+
+      if (!mounted) return;
+      setState(() {
+        _progress = 0.7;
+        _progressText = '正在生成羁绊篇章...';
+      });
+
+      final bondPrompt = _buildBondPrompt(stats);
+      final bondReport = await chatService.chat(
+        systemPrompt: '你是人生编年史APP的年度报告撰写者，擅长描述人际关系和情感羁绊。',
+        messages: [ai_service.ChatMessage(role: 'user', content: bondPrompt)],
+      );
+      _moduleReports['bond'] = bondReport;
+
+      if (!mounted) return;
+      setState(() {
+        _progress = 0.85;
+        _progressText = '正在汇总生成总报告...';
+      });
+
+      final summaryPrompt = _buildSummaryPrompt(stats, _moduleReports);
+      final summaryReport = await chatService.chat(
+        systemPrompt: '你是人生编年史APP的年度报告撰写者，请生成一份完整的年度报告总结。',
+        messages: [ai_service.ChatMessage(role: 'user', content: summaryPrompt)],
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _progress = 1;
+        _progressText = '生成完成';
+        _finalReport = AnnualReportContent(
+          opening: '$_selectedYear年，你用记录书写了独一无二的人生篇章。',
+          foodChapter: _moduleReports['food'] ?? '',
+          emotionChapter: _moduleReports['mood'] ?? '',
+          travelChapter: _moduleReports['travel'] ?? '',
+          goalChapter: _moduleReports['goal'] ?? '',
+          friendshipChapter: _moduleReports['bond'] ?? '',
+          closing: summaryReport,
+          keywords: ['成长', '探索', '温暖'],
+        );
+        _generating = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _generating = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('生成报告失败：$e')),
+      );
+    }
+  }
+
+  String _buildFoodPrompt(YearStatistics stats) {
+    return '''
+请为${stats.year}年的美食记录写一段总结（200字以内）。
+
+统计数据：
+- 全年美食记录：${stats.foodCount}条
+- 平均评分：${stats.avgFoodRating.toStringAsFixed(1)}分
+- 最常去的城市/餐厅：${stats.topFoodCities.map((e) => '${e.key}(${e.value}次)').join('、')}
+- 最高评分美食：${stats.topRatedFoods.map((f) => '${f.title}(${f.rating}分)').join('、')}
+
+请用温暖有温度的语言总结这一年的味觉旅程。
+''';
+  }
+
+  String _buildMoodPrompt(YearStatistics stats) {
+    return '''
+请为${stats.year}年的情绪记录写一段总结（200字以内）。
+
+统计数据：
+- 全年小确幸记录：${stats.momentCount}条
+- 最常见情绪：${stats.topMoods.map((e) => '${e.key}(${e.value}次)').join('、')}
+
+请用温暖有温度的语言总结这一年的情绪变化。
+''';
+  }
+
+  String _buildTravelPrompt(YearStatistics stats) {
+    return '''
+请为${stats.year}年的旅行记录写一段总结（200字以内）。
+
+统计数据：
+- 全年旅行记录：${stats.travelCount}条
+- 最常去的目的地：${stats.topDestinations.map((e) => '${e.key}(${e.value}次)').join('、')}
+
+请用温暖有温度的语言总结这一年的探索足迹。
+''';
+  }
+
+  String _buildGoalPrompt(YearStatistics stats) {
+    return '''
+请为${stats.year}年的目标完成情况写一段总结（200字以内）。
+
+统计数据：
+- 全年目标数：${stats.totalGoals}个
+- 已完成：${stats.completedGoals}个
+- 完成率：${(stats.goalCompletionRate * 100).toStringAsFixed(0)}%
+
+请用温暖有温度的语言总结这一年的成长与成就。
+''';
+  }
+
+  String _buildBondPrompt(YearStatistics stats) {
+    return '''
+请为${stats.year}年的羁绊记录写一段总结（200字以内）。
+
+统计数据：
+- 全年相遇记录：${stats.encounterCount}次
+- 记录的好友数：${stats.friendCount}位
+
+请用温暖有温度的语言总结这一年的人际关系。
+''';
+  }
+
+  String _buildSummaryPrompt(YearStatistics stats, Map<String, String> modules) {
+    return '''
+请为${stats.year}年的年度报告写一段结语（300字以内）。
+
+全年总记录数：${stats.totalRecords}条
+- 美食：${stats.foodCount}条
+- 小确幸：${stats.momentCount}条
+- 旅行：${stats.travelCount}条
+- 目标：${stats.goalCount}条
+- 相遇：${stats.encounterCount}次
+
+美食篇章摘要：${modules['food'] ?? ''}
+情绪篇章摘要：${modules['mood'] ?? ''}
+旅行篇章摘要：${modules['travel'] ?? ''}
+目标篇章摘要：${modules['goal'] ?? ''}
+羁绊篇章摘要：${modules['bond'] ?? ''}
+
+请写一段温暖的年度结语，像写给未来自己的一封信。
+''';
+  }
+
+  Future<void> _exportPdf() async {
+    if (_finalReport == null || _statistics == null) return;
+
+    setState(() => _loading = true);
+
+    try {
+      final pdf = pw.Document();
+      final stats = _statistics!;
+      final report = _finalReport!;
+
+      pdf.addPage(
+        pw.Page(
+          build: (ctx) => pw.Container(
+            decoration: const pw.BoxDecoration(
+              gradient: pw.LinearGradient(
+                colors: [PdfColors.blue900, PdfColors.blue600],
+                begin: pw.Alignment.topLeft,
+                end: pw.Alignment.bottomRight,
+              ),
+            ),
+            child: pw.Center(
+              child: pw.Column(
+                mainAxisAlignment: pw.MainAxisAlignment.center,
+                children: [
+                  pw.Text(
+                    '${stats.year} 年度报告',
+                    style: pw.TextStyle(fontSize: 36, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+                  ),
+                  pw.SizedBox(height: 20),
+                  pw.Text(
+                    '人生编年史',
+                    style: pw.TextStyle(fontSize: 18, color: PdfColors.grey),
+                  ),
+                  pw.SizedBox(height: 40),
+                  pw.Text(
+                    '共记录 ${stats.totalRecords} 条人生记忆',
+                    style: const pw.TextStyle(fontSize: 14, color: PdfColors.white),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      pdf.addPage(
+        pw.Page(
+          build: (ctx) => pw.Padding(
+            padding: const pw.EdgeInsets.all(24),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text('年度总览', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+                pw.SizedBox(height: 20),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildStatBox('美食', stats.foodCount.toString(), PdfColors.orange),
+                    _buildStatBox('小确幸', stats.momentCount.toString(), PdfColors.amber),
+                    _buildStatBox('旅行', stats.travelCount.toString(), PdfColors.blue),
+                  ],
+                ),
+                pw.SizedBox(height: 16),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildStatBox('目标', stats.goalCount.toString(), PdfColors.purple),
+                    _buildStatBox('相遇', stats.encounterCount.toString(), PdfColors.pink),
+                    _buildStatBox('好友', stats.friendCount.toString(), PdfColors.red),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      if (report.foodChapter.isNotEmpty) {
+        pdf.addPage(_buildChapterPage('美食篇章', report.foodChapter, PdfColors.orange));
+      }
+      if (report.emotionChapter.isNotEmpty) {
+        pdf.addPage(_buildChapterPage('情绪篇章', report.emotionChapter, PdfColors.amber));
+      }
+      if (report.travelChapter.isNotEmpty) {
+        pdf.addPage(_buildChapterPage('旅行篇章', report.travelChapter, PdfColors.blue));
+      }
+      if (report.goalChapter.isNotEmpty) {
+        pdf.addPage(_buildChapterPage('目标篇章', report.goalChapter, PdfColors.purple));
+      }
+      if (report.friendshipChapter.isNotEmpty) {
+        pdf.addPage(_buildChapterPage('羁绊篇章', report.friendshipChapter, PdfColors.pink));
+      }
+
+      pdf.addPage(
+        pw.Page(
+          build: (ctx) => pw.Container(
+            decoration: const pw.BoxDecoration(
+              gradient: pw.LinearGradient(
+                colors: [PdfColors.indigo900, PdfColors.indigo600],
+                begin: pw.Alignment.topLeft,
+                end: pw.Alignment.bottomRight,
+              ),
+            ),
+            child: pw.Padding(
+              padding: const pw.EdgeInsets.all(24),
+              child: pw.Column(
+                mainAxisAlignment: pw.MainAxisAlignment.center,
+                children: [
+                  pw.Text(
+                    '年度结语',
+                    style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+                  ),
+                  pw.SizedBox(height: 24),
+                  pw.Text(
+                    report.closing,
+                    style: const pw.TextStyle(fontSize: 14, color: PdfColors.white, lineSpacing: 8),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                  pw.SizedBox(height: 40),
+                  pw.Text(
+                    '感谢这一年的记录与陪伴',
+                    style: pw.TextStyle(fontSize: 18, color: PdfColors.grey),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final dir = await getApplicationDocumentsDirectory();
+      final exportDir = Directory(p.join(dir.path, 'exports'));
+      if (!await exportDir.exists()) {
+        await exportDir.create(recursive: true);
+      }
+      final file = File(p.join(exportDir.path, 'annual_report_${stats.year}.pdf'));
+      await file.writeAsBytes(await pdf.save());
+
+      if (!mounted) return;
+      setState(() => _loading = false);
+
+      await Share.shareXFiles([XFile(file.path)], text: '${stats.year}年度报告');
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('导出PDF失败：$e')),
+      );
+    }
+  }
+
+  pw.Widget _buildStatBox(String label, String value, PdfColor color) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(12),
+      decoration: pw.BoxDecoration(
+        color: PdfColor.fromInt(color.toInt() | 0x33000000),
+        borderRadius: pw.BorderRadius.circular(8),
+      ),
+      child: pw.Column(
+        children: [
+          pw.Text(value, style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: color)),
+          pw.SizedBox(height: 4),
+          pw.Text(label, style: pw.TextStyle(fontSize: 12, color: color)),
+        ],
+      ),
+    );
+  }
+
+  pw.Page _buildChapterPage(String title, String content, PdfColor color) {
+    return pw.Page(
+      build: (ctx) => pw.Padding(
+        padding: const pw.EdgeInsets.all(24),
+        child: pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Container(
+              padding: const pw.EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: pw.BoxDecoration(
+                color: PdfColor.fromInt(color.toInt() | 0x33000000),
+                borderRadius: pw.BorderRadius.circular(8),
+              ),
+              child: pw.Text(title, style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: color)),
+            ),
+            pw.SizedBox(height: 24),
+            pw.Expanded(
+              child: pw.Text(
+                content,
+                style: const pw.TextStyle(fontSize: 14, lineSpacing: 6),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return const _PlaceholderPage(title: '提醒设置');
+    final primary = AppTheme.primary;
+    final surface = AppTheme.surface;
+    final textMain = AppTheme.textMain;
+    final textMuted = AppTheme.textMuted;
+
+    return Scaffold(
+      backgroundColor: surface,
+      appBar: AppBar(
+        title: Text('年度报告', style: TextStyle(color: textMain, fontWeight: FontWeight.w700)),
+        backgroundColor: surface,
+        elevation: 0,
+        iconTheme: IconThemeData(color: textMain),
+      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        value: _selectedYear,
+                        isExpanded: true,
+                        items: _availableYears.map((y) => DropdownMenuItem(value: y, child: Text('$y 年'))).toList(),
+                        onChanged: (v) {
+                          if (v != null && v != _selectedYear) {
+                            setState(() => _selectedYear = v);
+                            _loadStatistics();
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  if (_statistics != null) ...[
+                    _buildStatsCard(_statistics!),
+                    const SizedBox(height: 24),
+                    if (_generating) ...[
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            children: [
+                              LinearProgressIndicator(value: _progress, color: primary),
+                              const SizedBox(height: 12),
+                              Text(_progressText, style: TextStyle(color: textMuted)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ] else if (_finalReport != null) ...[
+                      _buildReportPreview(_finalReport!),
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _generateReport,
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('重新生成'),
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.grey.shade200, foregroundColor: textMain),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _exportPdf,
+                              icon: const Icon(Icons.picture_as_pdf),
+                              label: const Text('导出PDF'),
+                              style: ElevatedButton.styleFrom(backgroundColor: primary, foregroundColor: Colors.white),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ] else
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _generateReport,
+                          icon: const Icon(Icons.auto_awesome),
+                          label: const Text('生成年度报告'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                        ),
+                      ),
+                  ],
+                ],
+              ),
+            ),
+    );
+  }
+
+  Widget _buildStatsCard(YearStatistics stats) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('年度总览', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.textMain)),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                _buildStatItem('美食', stats.foodCount, const Color(0xFFFFA726)),
+                _buildStatItem('小确幸', stats.momentCount, const Color(0xFFFFCA28)),
+                _buildStatItem('旅行', stats.travelCount, const Color(0xFF42A5F5)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                _buildStatItem('目标', stats.goalCount, const Color(0xFFAB47BC)),
+                _buildStatItem('相遇', stats.encounterCount, const Color(0xFFEC407A)),
+                _buildStatItem('好友', stats.friendCount, const Color(0xFFEF5350)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text('共记录 ${stats.totalRecords} 条人生记忆', style: TextStyle(color: AppTheme.textMuted)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatItem(String label, int count, Color color) {
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+        child: Column(
+          children: [
+            Text(count.toString(), style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: color)),
+            const SizedBox(height: 4),
+            Text(label, style: TextStyle(fontSize: 12, color: color)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReportPreview(AnnualReportContent report) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('报告预览', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.textMain)),
+            const SizedBox(height: 16),
+            if (report.foodChapter.isNotEmpty) _buildChapterPreview('美食篇章', report.foodChapter, const Color(0xFFFFA726)),
+            if (report.emotionChapter.isNotEmpty) _buildChapterPreview('情绪篇章', report.emotionChapter, const Color(0xFFFFCA28)),
+            if (report.travelChapter.isNotEmpty) _buildChapterPreview('旅行篇章', report.travelChapter, const Color(0xFF42A5F5)),
+            if (report.goalChapter.isNotEmpty) _buildChapterPreview('目标篇章', report.goalChapter, const Color(0xFFAB47BC)),
+            if (report.friendshipChapter.isNotEmpty) _buildChapterPreview('羁绊篇章', report.friendshipChapter, const Color(0xFFEC407A)),
+            const Divider(height: 32),
+            Text(report.closing, style: TextStyle(color: AppTheme.textMuted, height: 1.6)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChapterPreview(String title, String content, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+            child: Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: color)),
+          ),
+          const SizedBox(height: 8),
+          Text(content, style: TextStyle(color: AppTheme.textMain, height: 1.5), maxLines: 3, overflow: TextOverflow.ellipsis),
+        ],
+      ),
+    );
+  }
+}
+
+class YearStatistics {
+  const YearStatistics({
+    required this.year,
+    required this.totalRecords,
+    required this.foodCount,
+    required this.momentCount,
+    required this.travelCount,
+    required this.goalCount,
+    required this.encounterCount,
+    required this.friendCount,
+    required this.topFoodCities,
+    required this.avgFoodRating,
+    required this.topDestinations,
+    required this.topMoods,
+    required this.goalCompletionRate,
+    required this.completedGoals,
+    required this.totalGoals,
+    required this.topRatedFoods,
+    required this.topTravels,
+    required this.topMoments,
+  });
+
+  final int year;
+  final int totalRecords;
+  final int foodCount;
+  final int momentCount;
+  final int travelCount;
+  final int goalCount;
+  final int encounterCount;
+  final int friendCount;
+  final List<MapEntry<String, int>> topFoodCities;
+  final double avgFoodRating;
+  final List<MapEntry<String, int>> topDestinations;
+  final List<MapEntry<String, int>> topMoods;
+  final double goalCompletionRate;
+  final int completedGoals;
+  final int totalGoals;
+  final List<FoodRecord> topRatedFoods;
+  final List<TravelRecord> topTravels;
+  final List<MomentRecord> topMoments;
+}
+
+class AnnualReportContent {
+  const AnnualReportContent({
+    required this.opening,
+    required this.foodChapter,
+    required this.emotionChapter,
+    required this.travelChapter,
+    required this.goalChapter,
+    required this.friendshipChapter,
+    required this.closing,
+    required this.keywords,
+  });
+
+  final String opening;
+  final String foodChapter;
+  final String emotionChapter;
+  final String travelChapter;
+  final String goalChapter;
+  final String friendshipChapter;
+  final String closing;
+  final List<String> keywords;
+}
+
+class ReminderSettingsPage extends ConsumerStatefulWidget {
+  const ReminderSettingsPage({super.key});
+
+  @override
+  ConsumerState<ReminderSettingsPage> createState() => _ReminderSettingsPageState();
+}
+
+class _ReminderSettingsPageState extends ConsumerState<ReminderSettingsPage> {
+  List<FriendRecord> _friends = [];
+  Map<String, bool> _reminderEnabled = {};
+  Map<String, int> _reminderDays = {};
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFriends();
+  }
+
+  Future<void> _loadFriends() async {
+    final db = ref.read(appDatabaseProvider);
+    final friends = await db.friendDao.watchAllActive().first;
+    
+    final prefs = await SharedPreferences.getInstance();
+    
+    final Map<String, bool> enabled = {};
+    final Map<String, int> days = {};
+    
+    for (final f in friends) {
+      final key = 'reminder_${f.id}';
+      enabled[f.id] = prefs.getBool(key) ?? false;
+      days[f.id] = prefs.getInt('${key}_days') ?? 7;
+    }
+    
+    if (!mounted) return;
+    setState(() {
+      _friends = friends;
+      _reminderEnabled = enabled;
+      _reminderDays = days;
+      _loading = false;
+    });
+  }
+
+  Future<void> _toggleReminder(String friendId, bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('reminder_$friendId', enabled);
+    setState(() {
+      _reminderEnabled[friendId] = enabled;
+    });
+  }
+
+  Future<void> _setReminderDays(String friendId, int days) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('reminder_${friendId}_days', days);
+    setState(() {
+      _reminderDays[friendId] = days;
+    });
+  }
+
+  Future<void> _scheduleReminder(FriendRecord friend, int days) async {
+    // TODO: 集成 flutter_local_notifications 实现本地通知
+    // 这里只是保存设置，实际通知需要在后台服务中处理
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('已设置${friend.name}的联络提醒，每$days天提醒一次')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = AppTheme.primary;
+    final surface = AppTheme.surface;
+    final textMain = AppTheme.textMain;
+    final textMuted = AppTheme.textMuted;
+
+    return Scaffold(
+      backgroundColor: surface,
+      appBar: AppBar(
+        title: Text('提醒设置', style: TextStyle(color: textMain, fontWeight: FontWeight.w700)),
+        backgroundColor: surface,
+        elevation: 0,
+        iconTheme: IconThemeData(color: textMain),
+      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _friends.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.people_outline, size: 64, color: textMuted),
+                      const SizedBox(height: 16),
+                      Text('暂无好友记录', style: TextStyle(color: textMuted)),
+                      const SizedBox(height: 8),
+                      Text('添加好友后可设置联络提醒', style: TextStyle(color: textMuted, fontSize: 12)),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _friends.length,
+                  itemBuilder: (ctx, i) {
+                    final friend = _friends[i];
+                    final enabled = _reminderEnabled[friend.id] ?? false;
+                    final days = _reminderDays[friend.id] ?? 7;
+
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 24,
+                                  backgroundColor: primary.withValues(alpha: 0.1),
+                                  child: Text(
+                                    friend.name.isNotEmpty ? friend.name[0] : '?',
+                                    style: TextStyle(color: primary, fontWeight: FontWeight.w700),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(friend.name, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: textMain)),
+                                      if (friend.contactFrequency != null && friend.contactFrequency!.isNotEmpty)
+                                        Text('期望频率：${friend.contactFrequency}', style: TextStyle(fontSize: 12, color: textMuted)),
+                                    ],
+                                  ),
+                                ),
+                                Switch(
+                                  value: enabled,
+                                  onChanged: (v) => _toggleReminder(friend.id, v),
+                                  activeColor: primary,
+                                ),
+                              ],
+                            ),
+                            if (enabled) ...[
+                              const SizedBox(height: 12),
+                              const Divider(),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Text('提醒周期', style: TextStyle(color: textMuted)),
+                                  const SizedBox(width: 12),
+                                  DropdownButton<int>(
+                                    value: days,
+                                    items: const [
+                                      DropdownMenuItem(value: 3, child: Text('每3天')),
+                                      DropdownMenuItem(value: 7, child: Text('每7天')),
+                                      DropdownMenuItem(value: 14, child: Text('每14天')),
+                                      DropdownMenuItem(value: 30, child: Text('每30天')),
+                                      DropdownMenuItem(value: 60, child: Text('每60天')),
+                                    ],
+                                    onChanged: (v) {
+                                      if (v != null) {
+                                        _setReminderDays(friend.id, v);
+                                        _scheduleReminder(friend, v);
+                                      }
+                                    },
+                                    underline: const SizedBox(),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                '距离上次联络已过 X 天，该联系一下啦！',
+                                style: TextStyle(fontSize: 12, color: textMuted, fontStyle: FontStyle.italic),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+    );
   }
 }
 

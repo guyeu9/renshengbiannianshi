@@ -5,13 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/app_shell.dart';
 import '../../features/home_schedule/presentation/home_schedule_page.dart';
 import '../../features/food/presentation/food_page.dart';
-import '../../features/food/presentation/food_create_page.dart';
 import '../../features/moment/presentation/moment_page.dart';
-import '../../features/moment/presentation/moment_create_page.dart';
 import '../../features/travel/presentation/travel_page.dart';
-import '../../features/travel/presentation/travel_create_page.dart';
 import '../../features/goal/presentation/goal_page.dart';
-import '../../features/goal/presentation/goal_create_page.dart';
 import '../../features/bond/presentation/bond_page.dart';
 import '../../features/bond/presentation/encounter_pages.dart';
 import '../../features/profile/presentation/profile_page.dart';
@@ -70,6 +66,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                   final extra = state.extra as Map<String, dynamic>?;
                   return FoodCreatePage(
                     initialRecord: extra?['initialRecord'],
+                    prefillTitle: extra?['prefillTitle'],
+                    prefillPoiName: extra?['prefillPoiName'],
+                    prefillPoiAddress: extra?['prefillPoiAddress'],
+                    prefillPricePerPerson: extra?['prefillPricePerPerson'],
+                    overrideIsWishlist: extra?['overrideIsWishlist'],
+                    overrideWishlistDone: extra?['overrideWishlistDone'],
+                    popWithResultOnPublish: extra?['popWithResultOnPublish'] ?? false,
                   );
                 },
               ),
@@ -120,6 +123,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                   final extra = state.extra as Map<String, dynamic>?;
                   return TravelCreatePage(
                     initialRecord: extra?['initialRecord'],
+                    initialTrip: extra?['initialTrip'],
                   );
                 },
               ),
@@ -127,7 +131,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 path: ':id',
                 name: 'travelDetail',
                 builder: (context, state) {
-                  final id = state.pathParameters['id']!;
                   final extra = state.extra as Map<String, dynamic>?;
                   return TravelDetailPage(
                     item: extra?['item'],
@@ -144,13 +147,15 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'create',
                 name: 'goalCreate',
-                builder: (context, state) => const GoalCreatePage(),
+                builder: (context, state) {
+                  final extra = state.extra as Map<String, dynamic>?;
+                  return GoalCreatePage(goal: extra?['goal']);
+                },
               ),
               GoRoute(
                 path: ':id',
                 name: 'goalDetail',
                 builder: (context, state) {
-                  final id = state.pathParameters['id']!;
                   final extra = state.extra as Map<String, dynamic>?;
                   return GoalDetailPage(record: extra?['record']);
                 },
@@ -177,11 +182,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 name: 'encounterDetail',
                 builder: (context, state) {
                   final id = state.pathParameters['id']!;
-                  final extra = state.extra as Map<String, dynamic>?;
-                  return EncounterDetailPage(
-                    eventId: id,
-                    encounter: extra?['encounter'],
-                  );
+                  return EncounterDetailPage(encounterId: id);
                 },
               ),
             ],
@@ -194,12 +195,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'ai-models',
                 name: 'aiModelManagement',
-                builder: (context, state) {
-                  final extra = state.extra as Map<String, dynamic>?;
-                  return AiModelManagementPage(
-                    serviceType: extra?['serviceType'] ?? 'chat',
-                  );
-                },
+                builder: (context, state) => const AiModelManagementPage(),
               ),
             ],
           ),
@@ -248,10 +244,7 @@ extension GoRouterExtension on BuildContext {
     extra: {'record': record},
   );
   
-  void goToEncounterDetail(String id, {dynamic encounter}) => go(
-    '${AppRoutes.bond}/encounter/$id',
-    extra: {'encounter': encounter},
-  );
+  void goToEncounterDetail(String id) => go('${AppRoutes.bond}/encounter/$id');
   
   void goToAiHistorian() => go(AppRoutes.aiHistorian);
 }

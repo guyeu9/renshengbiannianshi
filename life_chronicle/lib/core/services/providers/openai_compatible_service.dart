@@ -11,12 +11,21 @@ class OpenAiCompatibleService extends AiServiceBase {
       : _client = client ?? http.Client();
   
   final http.Client _client;
+
+  String _normalizeBaseUrl() {
+    var base = provider.baseUrl.trim();
+    if (base.endsWith('/')) {
+      base = base.substring(0, base.length - 1);
+    }
+    if (base.endsWith('/v1')) {
+      base = base.substring(0, base.length - 3);
+    }
+    return base;
+  }
   
   @override
   String getChatEndpoint() {
-    final base = provider.baseUrl.endsWith('/')
-        ? provider.baseUrl.substring(0, provider.baseUrl.length - 1)
-        : provider.baseUrl;
+    final base = _normalizeBaseUrl();
     return '$base/v1/chat/completions';
   }
   
@@ -119,9 +128,7 @@ class OpenAiCompatibleService extends AiServiceBase {
   
   @override
   Future<List<String>> fetchModels() async {
-    final base = provider.baseUrl.endsWith('/')
-        ? provider.baseUrl.substring(0, provider.baseUrl.length - 1)
-        : provider.baseUrl;
+    final base = _normalizeBaseUrl();
     final response = await _client.get(
       Uri.parse('$base/v1/models'),
       headers: getHeaders(),
@@ -150,12 +157,21 @@ class OpenAiCompatibleEmbeddingService extends EmbeddingServiceBase {
     'jina-embeddings-v4',
     'bge-m3',
   ];
+
+  String _normalizeBaseUrl() {
+    var base = provider.baseUrl.trim();
+    if (base.endsWith('/')) {
+      base = base.substring(0, base.length - 1);
+    }
+    if (base.endsWith('/v1')) {
+      base = base.substring(0, base.length - 3);
+    }
+    return base;
+  }
   
   @override
   String getEmbeddingEndpoint() {
-    final base = provider.baseUrl.endsWith('/')
-        ? provider.baseUrl.substring(0, provider.baseUrl.length - 1)
-        : provider.baseUrl;
+    final base = _normalizeBaseUrl();
     return '$base/v1/embeddings';
   }
   

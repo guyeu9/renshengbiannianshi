@@ -142,7 +142,7 @@ void _showQuickCreateSheet(BuildContext context, WidgetRef ref) {
               const Text('添加新记录', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
               const SizedBox(height: 18),
               LayoutBuilder(
-                builder: (context, constraints) {
+                builder: (layoutContext, constraints) {
                   const spacing = 18.0;
                   final itemWidth = (constraints.maxWidth - spacing * 2) / 3;
                   return Wrap(
@@ -198,9 +198,6 @@ void _showQuickCreateSheet(BuildContext context, WidgetRef ref) {
                         onTap: () {
                           Navigator.of(sheetContext).pop();
                           context.go(AppRoutes.bond);
-                          Future.microtask(() {
-                            context.go('${AppRoutes.bond}/friend/create');
-                          });
                         },
                       ),
                       _QuickCreateEntry(
