@@ -7694,7 +7694,116 @@ class HelpFeedbackPage extends StatelessWidget {
       backgroundColor: Colors.transparent,
       builder: (context) => _HelpContentSheet(
         title: '关于我们',
-        content: _buildAboutContent(),
+        content: _buildAboutContent(context),
+      ),
+    );
+  }
+
+  Future<void> _checkForUpdate(BuildContext context) async {
+    final updateService = AppUpdateService();
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      final versionInfo = await updateService.checkForUpdate();
+      
+      if (context.mounted) {
+        Navigator.of(context).pop();
+        
+        if (versionInfo != null) {
+          final hasUpdate = await updateService.isUpdateAvailable(versionInfo);
+          
+          if (hasUpdate) {
+            _showUpdateAvailableDialog(context, versionInfo);
+          } else {
+            _showNoUpdateDialog(context);
+          }
+        } else {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('检查更新失败，请稍后重试')),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('检查更新失败：$e')),
+        );
+      }
+    }
+  }
+
+  void _showUpdateAvailableDialog(BuildContext context, VersionInfo versionInfo) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('发现新版本'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('最新版本：${versionInfo.latestVersion}'),
+            const SizedBox(height: 12),
+            const Text('更新内容：', style: TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            for (final item in versionInfo.changelog)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text('• $item'),
+              ),
+            if (versionInfo.forceUpdate)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text(
+                  '此版本为强制更新',
+                  style: TextStyle(
+                    color: Colors.red[700],
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        actions: [
+          if (!versionInfo.forceUpdate)
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('稍后再说'),
+            ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(dialogContext).pop();
+              final updateService = AppUpdateService();
+              await updateService.launchDownloadUrl(versionInfo);
+            },
+            child: const Text('立即更新'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showNoUpdateDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('已是最新版本'),
+        content: const Text('您当前使用的已是最新版本，无需更新。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('好的'),
+          ),
+        ],
       ),
     );
   }
