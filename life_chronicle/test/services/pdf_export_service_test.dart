@@ -27,7 +27,7 @@ void main() {
       pdfExportService = PdfExportService(db, mockPathProvider);
     });
 
-    tearDown() async {
+    tearDown(() async {
       await db.close();
       if (await tempDir.exists()) {
         await tempDir.delete(recursive: true);
