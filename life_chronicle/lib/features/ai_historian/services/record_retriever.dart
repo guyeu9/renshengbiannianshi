@@ -146,7 +146,7 @@ class RecordContext {
         target += ' Q$quarter';
       }
       if (month != null) {
-        target += ' ${month}月';
+        target += ' $month月';
       }
       buffer.writeln('目标时间：$target');
     }

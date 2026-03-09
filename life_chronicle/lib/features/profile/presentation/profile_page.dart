@@ -7597,47 +7597,82 @@ class HelpFeedbackPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F4F6),
+      backgroundColor: const Color(0xFFF6F8F8),
       appBar: AppBar(
-        backgroundColor: Colors.white.withValues(alpha: 0.9),
-        title: const Text('帮助与反馈', style: TextStyle(fontWeight: FontWeight.w800)),
+        backgroundColor: Colors.white.withValues(alpha: 0.95),
+        elevation: 0,
+        centerTitle: true,
+        title: const Text('帮助与反馈', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: Color(0xFF1F2937))),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: Color(0xFF374151)),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            _buildMenuItem(
-              context,
-              icon: Icons.bug_report_outlined,
-              title: '系统日志',
-              subtitle: '查看应用运行日志和错误信息',
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SystemLogPage()),
+            _buildSectionTitle('技术支持'),
+            const SizedBox(height: 10),
+            _HelpListGroup(
+              items: [
+                _HelpListItem(
+                  icon: Icons.help_outline,
+                  iconColor: Colors.black,
+                  title: '使用帮助',
+                  onTap: () => _showHelpDialog(context),
+                ),
+                _HelpListItem(
+                  icon: Icons.bug_report_outlined,
+                  iconColor: Colors.black,
+                  title: '系统日志',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const SystemLogPage()),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            _buildSectionTitle('关于'),
+            const SizedBox(height: 10),
+            _HelpListGroup(
+              items: [
+                _HelpListItem(
+                  icon: Icons.info_outline,
+                  iconColor: Colors.black,
+                  title: '关于我们',
+                  onTap: () => _showAboutDialog(context),
+                ),
+                _HelpListItem(
+                  icon: Icons.description_outlined,
+                  iconColor: Colors.black,
+                  title: '用户协议',
+                  onTap: () => _showUserAgreement(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 32),
+            Center(
+              child: Column(
+                children: [
+                  Text(
+                    '人生编年史',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[500],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '版本 1.0.0',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[400],
+                    ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 12),
-            _buildMenuItem(
-              context,
-              icon: Icons.help_outline,
-              title: '使用帮助',
-              subtitle: '了解如何使用应用功能',
-              onTap: () {},
-            ),
-            const SizedBox(height: 12),
-            _buildMenuItem(
-              context,
-              icon: Icons.feedback_outlined,
-              title: '意见反馈',
-              subtitle: '提交您的建议和问题',
-              onTap: () {},
-            ),
-            const SizedBox(height: 12),
-            _buildMenuItem(
-              context,
-              icon: Icons.info_outline,
-              title: '关于我们',
-              subtitle: '版本信息和联系方式',
-              onTap: () {},
             ),
           ],
         ),
@@ -7645,60 +7680,327 @@ class HelpFeedbackPage extends StatelessWidget {
     );
   }
 
-  Widget _buildMenuItem(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return Card(
-      elevation: 0,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4F46E5).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: const Color(0xFF4F46E5)),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right, color: Colors.grey[400]),
-            ],
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF6B7280),
+        ),
+      ),
+    );
+  }
+
+  void _showHelpDialog(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _HelpContentSheet(
+        title: '使用帮助',
+        content: _buildHelpContent(),
+      ),
+    );
+  }
+
+  void _showAboutDialog(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _HelpContentSheet(
+        title: '关于我们',
+        content: _buildAboutContent(),
+      ),
+    );
+  }
+
+  void _showUserAgreement(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _HelpContentSheet(
+        title: '用户协议',
+        content: _buildAgreementContent(),
+      ),
+    );
+  }
+
+  Widget _buildHelpContent() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildHelpItem('1. 如何添加记录？', '点击底部导航栏的"+"按钮，选择要添加的记录类型（美食、旅行、小确幸等），填写相关信息后保存即可。'),
+        _buildHelpItem('2. 如何使用AI史官？', '在各模块页面顶部点击"AI史官"按钮，AI会根据您的记录数据为您提供智能分析和建议。'),
+        _buildHelpItem('3. 如何备份数据？', '进入个人中心 -> 数据管理，点击"立即备份"按钮即可将数据备份到本地或云端。'),
+        _buildHelpItem('4. 如何设置提醒？', '进入个人中心 -> 提醒设置，可以设置每日记录提醒、目标截止提醒等。'),
+        _buildHelpItem('5. 如何分享记录？', '在记录详情页点击分享按钮，可以将记录导出为图片或文本格式分享给好友。'),
+      ],
+    );
+  }
+
+  Widget _buildHelpItem(String title, String content) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1F2937),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            content,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Color(0xFF6B7280),
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAboutContent() {
+    return Column(
+      children: [
+        Container(
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            color: const Color(0xFF2BCDEE).withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: const Icon(
+            Icons.auto_stories,
+            size: 40,
+            color: Color(0xFF2BCDEE),
           ),
         ),
+        const SizedBox(height: 16),
+        const Text(
+          '人生编年史',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF1F2937),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '记录生活点滴，珍藏美好回忆',
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[500],
+          ),
+        ),
+        const SizedBox(height: 24),
+        const Divider(),
+        const SizedBox(height: 16),
+        _buildInfoRow('版本', '0.1.0'),
+        _buildInfoRow('开发者', '人生编年史团队'),
+        _buildInfoRow('联系邮箱', 'support@chronicle.life'),
+        _buildInfoRow('官方网站', 'www.chronicle.life'),
+      ],
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[500],
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF1F2937),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAgreementContent() {
+    return const Text(
+      '欢迎使用人生编年史！\n\n'
+      '1. 服务条款\n'
+      '本应用为用户提供生活记录、数据管理等服务。用户使用本应用即表示同意本协议的所有条款。\n\n'
+      '2. 用户责任\n'
+      '用户应当遵守法律法规，不得利用本应用从事违法违规活动。\n\n'
+      '3. 知识产权\n'
+      '本应用的界面设计、代码、图标等均为开发团队所有，未经授权不得复制或修改。\n\n'
+      '4. 免责声明\n'
+      '用户自行承担使用本应用的风险，开发团队不对因使用本应用造成的任何损失承担责任。\n\n'
+      '5. 协议修改\n'
+      '开发团队有权随时修改本协议，修改后的协议将在应用内公布。',
+      style: TextStyle(
+        fontSize: 14,
+        color: Color(0xFF6B7280),
+        height: 1.6,
+      ),
+    );
+  }
+
+}
+
+class _HelpListItem {
+  const _HelpListItem({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final VoidCallback onTap;
+}
+
+class _HelpListGroup extends StatelessWidget {
+  const _HelpListGroup({required this.items});
+
+  final List<_HelpListItem> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFF3F4F6)),
+      ),
+      child: Column(
+        children: [
+          for (var i = 0; i < items.length; i++) ...[
+            _HelpListRow(item: items[i]),
+            if (i != items.length - 1)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Divider(height: 1, color: Color(0xFFF3F4F6)),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _HelpListRow extends StatelessWidget {
+  const _HelpListRow({required this.item});
+
+  final _HelpListItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () {
+        FocusManager.instance.primaryFocus?.unfocus();
+        item.onTap();
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Icon(item.icon, color: item.iconColor, size: 22),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                item.title,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF374151),
+                ),
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFFD1D5DB)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HelpContentSheet extends StatelessWidget {
+  const _HelpContentSheet({
+    required this.title,
+    required this.content,
+  });
+
+  final String title;
+  final Widget content;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            margin: const EdgeInsets.only(top: 12),
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1F2937),
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 20, color: Color(0xFF9CA3AF)),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: content,
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
       ),
     );
   }

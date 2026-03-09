@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:drift/drift.dart' hide Column;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -16,7 +17,6 @@ import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/providers/ai_provider.dart';
 import '../../../core/services/ai_service.dart' as ai_service;
-import '../../../core/utils/image_utils.dart';
 import '../services/context_builder.dart';
 
 enum MessageRole { user, assistant }
