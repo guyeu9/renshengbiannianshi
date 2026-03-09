@@ -13,6 +13,7 @@ import '../../../core/config/module_management_config.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/providers/uuid_provider.dart';
+import '../../../core/utils/image_save_util.dart';
 import '../../../core/utils/media_storage.dart';
 import '../../../core/utils/tag_color_utils.dart';
 import '../../../core/widgets/ai_parse_button.dart';
@@ -1241,26 +1242,30 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
     if (images.isEmpty) return const SizedBox.shrink();
 
     if (images.length == 1) {
-      return GestureDetector(
-        onTap: () => ImagePreview.show(context, imageUrl: images[0]),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: AspectRatio(
-            aspectRatio: 16 / 9,
-            child: AppImage(source: images[0], fit: BoxFit.cover),
-          ),
-        ),
+      return SmartImage(
+        source: images[0],
+        borderRadius: 16,
+        images: images,
+        initialIndex: 0,
       );
     }
 
     if (images.length == 2) {
       return Row(
-        children: images.map((img) {
+        children: images.asMap().entries.map((entry) {
+          final idx = entry.key;
+          final img = entry.value;
           return Expanded(
             child: Padding(
-              padding: EdgeInsets.only(right: images.indexOf(img) == 0 ? 8 : 0),
+              padding: EdgeInsets.only(right: idx == 0 ? 8 : 0),
               child: GestureDetector(
-                onTap: () => ImagePreview.showGallery(context, images: images, initialIndex: images.indexOf(img)),
+                onTap: () => ImagePreview.showGallery(context, images: images, initialIndex: idx),
+                onLongPress: () => ImageSaveUtil.showImageOptions(
+                  context,
+                  img,
+                  isNetwork: false,
+                  onView: () => ImagePreview.showGallery(context, images: images, initialIndex: idx),
+                ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: AspectRatio(
@@ -1282,6 +1287,12 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
             flex: 2,
             child: GestureDetector(
               onTap: () => ImagePreview.showGallery(context, images: images, initialIndex: 0),
+              onLongPress: () => ImageSaveUtil.showImageOptions(
+                context,
+                images[0],
+                isNetwork: false,
+                onView: () => ImagePreview.showGallery(context, images: images, initialIndex: 0),
+              ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(16),
                 child: AspectRatio(
@@ -1298,6 +1309,12 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
               children: [
                 GestureDetector(
                   onTap: () => ImagePreview.showGallery(context, images: images, initialIndex: 1),
+                  onLongPress: () => ImageSaveUtil.showImageOptions(
+                    context,
+                    images[1],
+                    isNetwork: false,
+                    onView: () => ImagePreview.showGallery(context, images: images, initialIndex: 1),
+                  ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(16),
                     child: AspectRatio(
@@ -1309,6 +1326,12 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
                 const SizedBox(height: 8),
                 GestureDetector(
                   onTap: () => ImagePreview.showGallery(context, images: images, initialIndex: 2),
+                  onLongPress: () => ImageSaveUtil.showImageOptions(
+                    context,
+                    images[2],
+                    isNetwork: false,
+                    onView: () => ImagePreview.showGallery(context, images: images, initialIndex: 2),
+                  ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(16),
                     child: AspectRatio(
@@ -1338,6 +1361,12 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
       itemBuilder: (context, index) {
         return GestureDetector(
           onTap: () => ImagePreview.showGallery(context, images: images, initialIndex: index),
+          onLongPress: () => ImageSaveUtil.showImageOptions(
+            context,
+            images[index],
+            isNetwork: false,
+            onView: () => ImagePreview.showGallery(context, images: images, initialIndex: index),
+          ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: AppImage(source: images[index], fit: BoxFit.cover),
@@ -2085,6 +2114,8 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
                           return _PhotoTile(
                             url: _imageUrls[index],
                             onRemove: () => _removeImageAt(index),
+                            images: _imageUrls,
+                            initialIndex: index,
                           );
                         },
                       ),
@@ -2273,19 +2304,53 @@ class _CreateTopBar extends StatelessWidget {
 }
 
 class _PhotoTile extends StatelessWidget {
-  const _PhotoTile({required this.url, required this.onRemove});
+  const _PhotoTile({required this.url, required this.onRemove, this.images, this.initialIndex = 0});
 
   final String url;
   final VoidCallback onRemove;
+  final List<String>? images;
+  final int initialIndex;
 
   @override
   Widget build(BuildContext context) {
+    final isNetwork = url.startsWith('http://') || url.startsWith('https://');
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: Stack(
         fit: StackFit.expand,
         children: [
-          AppImage(source: url, fit: BoxFit.cover),
+          GestureDetector(
+            onTap: () {
+              if (images != null && images!.isNotEmpty) {
+                ImagePreview.showGallery(
+                  context,
+                  images: images!,
+                  initialIndex: initialIndex,
+                );
+              } else {
+                ImagePreview.show(context, imageUrl: url);
+              }
+            },
+            onLongPress: () {
+              ImageSaveUtil.showImageOptions(
+                context,
+                url,
+                isNetwork: isNetwork,
+                onView: () {
+                  if (images != null && images!.isNotEmpty) {
+                    ImagePreview.showGallery(
+                      context,
+                      images: images!,
+                      initialIndex: initialIndex,
+                    );
+                  } else {
+                    ImagePreview.show(context, imageUrl: url);
+                  }
+                },
+              );
+            },
+            child: AppImage(source: url, fit: BoxFit.cover),
+          ),
           Positioned(
             right: 6,
             top: 6,

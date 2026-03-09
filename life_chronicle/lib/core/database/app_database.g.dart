@@ -17923,6 +17923,8 @@ class EmbeddingDaoManager {
 mixin _$TravelDaoMixin on DatabaseAccessor<AppDatabase> {
   $TravelRecordsTable get travelRecords => attachedDatabase.travelRecords;
   $TripsTable get trips => attachedDatabase.trips;
+  $EntityLinksTable get entityLinks => attachedDatabase.entityLinks;
+  $LinkLogsTable get linkLogs => attachedDatabase.linkLogs;
   TravelDaoManager get managers => TravelDaoManager(this);
 }
 
@@ -17933,6 +17935,10 @@ class TravelDaoManager {
       $$TravelRecordsTableTableManager(_db.attachedDatabase, _db.travelRecords);
   $$TripsTableTableManager get trips =>
       $$TripsTableTableManager(_db.attachedDatabase, _db.trips);
+  $$EntityLinksTableTableManager get entityLinks =>
+      $$EntityLinksTableTableManager(_db.attachedDatabase, _db.entityLinks);
+  $$LinkLogsTableTableManager get linkLogs =>
+      $$LinkLogsTableTableManager(_db.attachedDatabase, _db.linkLogs);
 }
 
 mixin _$GoalDaoMixin on DatabaseAccessor<AppDatabase> {

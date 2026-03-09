@@ -13,6 +13,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/providers/uuid_provider.dart';
+import '../../../core/utils/image_save_util.dart';
 import '../../../core/utils/media_storage.dart';
 import '../../../core/widgets/amap_location_page.dart';
 import '../../../core/widgets/app_image.dart';
@@ -306,33 +307,64 @@ class _FieldCard extends StatelessWidget {
 }
 
 class _PhotoTile extends StatelessWidget {
-  const _PhotoTile({required this.url, required this.onRemove});
+  const _PhotoTile({
+    required this.url,
+    required this.onRemove,
+    this.images,
+    this.initialIndex = 0,
+  });
 
   final String url;
   final VoidCallback onRemove;
+  final List<String>? images;
+  final int initialIndex;
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          AppImage(source: url, fit: BoxFit.cover),
-          Positioned(
-            right: 6,
-            top: 6,
-            child: InkWell(
-              onTap: onRemove,
-              borderRadius: BorderRadius.circular(999),
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.5), shape: BoxShape.circle),
-                child: const Icon(Icons.close, size: 14, color: Colors.white),
+    return GestureDetector(
+      onTap: () {
+        if (images != null && images!.isNotEmpty) {
+          ImagePreview.showGallery(context, images: images!, initialIndex: initialIndex);
+        } else {
+          ImagePreview.show(context, imageUrl: url);
+        }
+      },
+      onLongPress: () {
+        ImageSaveUtil.showImageOptions(
+          context,
+          url,
+          isNetwork: false,
+          onView: () {
+            if (images != null && images!.isNotEmpty) {
+              ImagePreview.showGallery(context, images: images!, initialIndex: initialIndex);
+            } else {
+              ImagePreview.show(context, imageUrl: url);
+            }
+          },
+          onDelete: onRemove,
+        );
+      },
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            AppImage(source: url, fit: BoxFit.cover),
+            Positioned(
+              right: 6,
+              top: 6,
+              child: InkWell(
+                onTap: onRemove,
+                borderRadius: BorderRadius.circular(999),
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.5), shape: BoxShape.circle),
+                  child: const Icon(Icons.close, size: 14, color: Colors.white),
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -920,7 +952,12 @@ class _EncounterCreatePageState extends ConsumerState<EncounterCreatePage> {
                             if (index == _imageUrls.length) {
                               return _PhotoAddTile(onTap: _addPlaceholderImage);
                             }
-                            return _PhotoTile(url: _imageUrls[index], onRemove: () => _removeImageAt(index));
+                            return _PhotoTile(
+                              url: _imageUrls[index],
+                              onRemove: () => _removeImageAt(index),
+                              images: _imageUrls,
+                              initialIndex: index,
+                            );
                           },
                         ),
                       ],
@@ -1504,6 +1541,16 @@ class _ImageGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (images.isEmpty) return const SizedBox.shrink();
+
+    if (images.length == 1) {
+      return SmartImage(
+        source: images[0],
+        borderRadius: 12,
+        images: images,
+        initialIndex: 0,
+      );
+    }
+
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -1514,9 +1561,18 @@ class _ImageGrid extends StatelessWidget {
       ),
       itemCount: images.length,
       itemBuilder: (context, index) {
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: AppImage(source: images[index], fit: BoxFit.cover),
+        return GestureDetector(
+          onTap: () => ImagePreview.showGallery(context, images: images, initialIndex: index),
+          onLongPress: () => ImageSaveUtil.showImageOptions(
+            context,
+            images[index],
+            isNetwork: false,
+            onView: () => ImagePreview.showGallery(context, images: images, initialIndex: index),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: AppImage(source: images[index], fit: BoxFit.cover),
+          ),
         );
       },
     );

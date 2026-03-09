@@ -1,10 +1,11 @@
 part of '../app_database.dart';
 
-@DriftAccessor(tables: [TravelRecords, Trips])
+@DriftAccessor(tables: [TravelRecords, Trips, EntityLinks, LinkLogs])
 class TravelDao extends DatabaseAccessor<AppDatabase> with _$TravelDaoMixin {
   TravelDao(super.db);
 
   late final ChangeLogRecorder _changeLogRecorder = ChangeLogRecorder(db);
+  late final Uuid _uuid = const Uuid();
 
   Future<void> upsert(TravelRecordsCompanion entry) async {
     await into(db.travelRecords).insertOnConflictUpdate(entry);
@@ -155,5 +156,76 @@ class TravelDao extends DatabaseAccessor<AppDatabase> with _$TravelDaoMixin {
 
   Future<void> upsertTrip(TripsCompanion entry) async {
     await into(db.trips).insertOnConflictUpdate(entry);
+  }
+
+  Future<void> softDeleteTripById(String tripId, {required DateTime now}) async {
+    final travelRecords = await (select(db.travelRecords)
+          ..where((t) => t.tripId.equals(tripId))
+          ..where((t) => t.isDeleted.equals(false)))
+        .get();
+
+    await (update(db.travelRecords)
+          ..where((t) => t.tripId.equals(tripId)))
+        .write(
+          TravelRecordsCompanion(
+            isDeleted: const Value(true),
+            updatedAt: Value(now),
+          ),
+        );
+
+    for (final record in travelRecords) {
+      final links = await (select(db.entityLinks)
+            ..where((t) => t.sourceType.equals('travel') & t.sourceId.equals(record.id))
+            ..where((t) => t.targetType.equals('travel') & t.targetId.equals(record.id)))
+          .get();
+
+      for (final link in links) {
+        await into(db.linkLogs).insert(
+          LinkLogsCompanion.insert(
+            id: _uuid.v4(),
+            sourceType: link.sourceType,
+            sourceId: link.sourceId,
+            targetType: link.targetType,
+            targetId: link.targetId,
+            action: 'delete',
+            linkType: Value(link.linkType),
+            createdAt: now,
+          ),
+        );
+      }
+
+      await (delete(db.entityLinks)
+            ..where((t) => t.sourceType.equals('travel') & t.sourceId.equals(record.id))
+            ..where((t) => t.targetType.equals('travel') & t.targetId.equals(record.id)))
+          .go();
+    }
+
+    for (final record in travelRecords) {
+      await _changeLogRecorder.recordDelete(
+        entityType: 'travel_records',
+        entityId: record.id,
+      );
+      if (db.vectorIndexManager != null) {
+        await db.vectorIndexManager!.recordDelete(
+          entityType: 'travel',
+          entityId: record.id,
+        );
+      }
+    }
+  }
+
+  Stream<List<TravelRecord>> watchTripsOnly() {
+    return (select(db.travelRecords)
+          ..where((t) => t.isDeleted.equals(false))
+          ..where((t) => t.isJournal.equals(false))
+          ..orderBy([(t) => OrderingTerm(expression: t.recordDate, mode: OrderingMode.desc)]))
+        .watch();
+  }
+
+  Future<List<TravelRecord>> getAllTripsOnly() {
+    return (select(db.travelRecords)
+          ..where((t) => t.isDeleted.equals(false))
+          ..where((t) => t.isJournal.equals(false)))
+        .get();
   }
 }

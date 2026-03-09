@@ -21,6 +21,7 @@ import '../../../core/utils/tag_color_utils.dart';
 import '../../../core/widgets/amap_location_page.dart';
 import '../../../core/widgets/app_image.dart';
 import '../../../core/widgets/ai_parse_button.dart';
+import '../../../core/utils/image_save_util.dart';
 
 class FoodPage extends StatefulWidget {
   const FoodPage({super.key});
@@ -2167,15 +2168,11 @@ class _ImageGrid extends StatelessWidget {
   }
 
   Widget _buildSingleImage(BuildContext context, String imageUrl) {
-    return GestureDetector(
-      onTap: () => _openPreview(context, 0),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: AspectRatio(
-          aspectRatio: 16 / 9,
-          child: AppImage(source: imageUrl, fit: BoxFit.cover),
-        ),
-      ),
+    return SmartImage(
+      source: imageUrl,
+      borderRadius: 20,
+      images: images,
+      initialIndex: 0,
     );
   }
 
@@ -2185,6 +2182,12 @@ class _ImageGrid extends StatelessWidget {
         Expanded(
           child: GestureDetector(
             onTap: () => _openPreview(context, 0),
+            onLongPress: () => ImageSaveUtil.showImageOptions(
+              context,
+              images[0],
+              isNetwork: false,
+              onView: () => _openPreview(context, 0),
+            ),
             child: ClipRRect(
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(20),
@@ -2201,6 +2204,12 @@ class _ImageGrid extends StatelessWidget {
         Expanded(
           child: GestureDetector(
             onTap: () => _openPreview(context, 1),
+            onLongPress: () => ImageSaveUtil.showImageOptions(
+              context,
+              images[1],
+              isNetwork: false,
+              onView: () => _openPreview(context, 1),
+            ),
             child: ClipRRect(
               borderRadius: const BorderRadius.only(
                 topRight: Radius.circular(20),
@@ -2222,6 +2231,12 @@ class _ImageGrid extends StatelessWidget {
       children: [
         GestureDetector(
           onTap: () => _openPreview(context, 0),
+          onLongPress: () => ImageSaveUtil.showImageOptions(
+            context,
+            images[0],
+            isNetwork: false,
+            onView: () => _openPreview(context, 0),
+          ),
           child: ClipRRect(
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(20),
@@ -2239,6 +2254,12 @@ class _ImageGrid extends StatelessWidget {
             Expanded(
               child: GestureDetector(
                 onTap: () => _openPreview(context, 1),
+                onLongPress: () => ImageSaveUtil.showImageOptions(
+                  context,
+                  images[1],
+                  isNetwork: false,
+                  onView: () => _openPreview(context, 1),
+                ),
                 child: ClipRRect(
                   borderRadius: const BorderRadius.only(
                     bottomLeft: Radius.circular(20),
@@ -2254,6 +2275,12 @@ class _ImageGrid extends StatelessWidget {
             Expanded(
               child: GestureDetector(
                 onTap: () => _openPreview(context, 2),
+                onLongPress: () => ImageSaveUtil.showImageOptions(
+                  context,
+                  images[2],
+                  isNetwork: false,
+                  onView: () => _openPreview(context, 2),
+                ),
                 child: ClipRRect(
                   borderRadius: const BorderRadius.only(
                     bottomRight: Radius.circular(20),
@@ -2284,6 +2311,12 @@ class _ImageGrid extends StatelessWidget {
           for (var i = 0; i < 4; i++)
             GestureDetector(
               onTap: () => _openPreview(context, i),
+              onLongPress: () => ImageSaveUtil.showImageOptions(
+                context,
+                images[i],
+                isNetwork: false,
+                onView: () => _openPreview(context, i),
+              ),
               child: ClipRRect(
                 borderRadius: i == 0
                     ? const BorderRadius.only(topLeft: Radius.circular(16))
@@ -2306,6 +2339,12 @@ class _ImageGrid extends StatelessWidget {
       children: [
         GestureDetector(
           onTap: () => _openPreview(context, 0),
+          onLongPress: () => ImageSaveUtil.showImageOptions(
+            context,
+            images[0],
+            isNetwork: false,
+            onView: () => _openPreview(context, 0),
+          ),
           child: ClipRRect(
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(20),
@@ -2323,6 +2362,12 @@ class _ImageGrid extends StatelessWidget {
             Expanded(
               child: GestureDetector(
                 onTap: () => _openPreview(context, 1),
+                onLongPress: () => ImageSaveUtil.showImageOptions(
+                  context,
+                  images[1],
+                  isNetwork: false,
+                  onView: () => _openPreview(context, 1),
+                ),
                 child: AspectRatio(
                   aspectRatio: 1,
                   child: ClipRRect(
@@ -2338,6 +2383,12 @@ class _ImageGrid extends StatelessWidget {
             Expanded(
               child: GestureDetector(
                 onTap: () => _openPreview(context, 2),
+                onLongPress: () => ImageSaveUtil.showImageOptions(
+                  context,
+                  images[2],
+                  isNetwork: false,
+                  onView: () => _openPreview(context, 2),
+                ),
                 child: AspectRatio(
                   aspectRatio: 1,
                   child: AppImage(source: images[2], fit: BoxFit.cover),
@@ -2348,6 +2399,12 @@ class _ImageGrid extends StatelessWidget {
             Expanded(
               child: GestureDetector(
                 onTap: () => _openPreview(context, 3),
+                onLongPress: () => ImageSaveUtil.showImageOptions(
+                  context,
+                  images[3],
+                  isNetwork: false,
+                  onView: () => _openPreview(context, 3),
+                ),
                 child: AspectRatio(
                   aspectRatio: 1,
                   child: AppImage(source: images[3], fit: BoxFit.cover),
@@ -2358,6 +2415,12 @@ class _ImageGrid extends StatelessWidget {
             Expanded(
               child: GestureDetector(
                 onTap: () => _openPreview(context, 4),
+                onLongPress: () => ImageSaveUtil.showImageOptions(
+                  context,
+                  images[4],
+                  isNetwork: false,
+                  onView: () => _openPreview(context, 4),
+                ),
                 child: ClipRRect(
                   borderRadius: const BorderRadius.only(
                     bottomRight: Radius.circular(20),
@@ -2722,11 +2785,37 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
         }
 
         final imageUrl = _imageUrls[index - 1];
+        final isNetwork = imageUrl.startsWith('http://') || imageUrl.startsWith('https://');
         return ClipRRect(
           borderRadius: BorderRadius.circular(16),
           child: Stack(
             children: [
-              Positioned.fill(child: AppImage(source: imageUrl, fit: BoxFit.cover)),
+              Positioned.fill(
+                child: GestureDetector(
+                  onTap: () {
+                    ImagePreview.showGallery(
+                      context,
+                      images: _imageUrls,
+                      initialIndex: index - 1,
+                    );
+                  },
+                  onLongPress: () {
+                    ImageSaveUtil.showImageOptions(
+                      context,
+                      imageUrl,
+                      isNetwork: isNetwork,
+                      onView: () {
+                        ImagePreview.showGallery(
+                          context,
+                          images: _imageUrls,
+                          initialIndex: index - 1,
+                        );
+                      },
+                    );
+                  },
+                  child: AppImage(source: imageUrl, fit: BoxFit.cover),
+                ),
+              ),
               Positioned(
                 top: 6,
                 right: 6,

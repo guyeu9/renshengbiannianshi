@@ -1,9 +1,13 @@
+import 'dart:async';
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
+
+import '../utils/image_save_util.dart';
 
 class AppImage extends StatelessWidget {
   const AppImage({
@@ -246,29 +250,59 @@ class _ImagePreviewDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isNetwork = imageUrl.startsWith('http://') || imageUrl.startsWith('https://');
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: EdgeInsets.zero,
       child: Stack(
         alignment: Alignment.center,
         children: [
-          InteractiveViewer(
-            minScale: 0.5,
-            maxScale: 4.0,
-            child: Center(
-              child: AppImage(
-                source: imageUrl,
-                fit: BoxFit.contain,
-                heroTag: heroTag,
+          GestureDetector(
+            onLongPress: () {
+              ImageSaveUtil.showImageOptions(
+                context,
+                imageUrl,
+                isNetwork: isNetwork,
+              );
+            },
+            child: InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: Center(
+                child: AppImage(
+                  source: imageUrl,
+                  fit: BoxFit.contain,
+                  heroTag: heroTag,
+                ),
               ),
             ),
           ),
           Positioned(
             top: 40,
             right: 20,
-            child: IconButton(
-              icon: const Icon(Icons.close, color: Colors.white, size: 30),
-              onPressed: () => Navigator.of(context).pop(),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.save, color: Colors.white, size: 26),
+                  onPressed: () async {
+                    bool success;
+                    if (isNetwork) {
+                      success = await ImageSaveUtil.saveNetworkImageToGallery(imageUrl);
+                    } else {
+                      success = await ImageSaveUtil.saveImageToGallery(imageUrl);
+                    }
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(success ? '保存成功' : '保存失败')),
+                      );
+                    }
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
             ),
           ),
         ],
@@ -311,6 +345,8 @@ class _ImageGalleryDialogState extends State<_ImageGalleryDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final currentImage = widget.images[_currentIndex];
+    final isNetwork = currentImage.startsWith('http://') || currentImage.startsWith('https://');
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: EdgeInsets.zero,
@@ -327,14 +363,25 @@ class _ImageGalleryDialogState extends State<_ImageGalleryDialog> {
               final heroTag = widget.heroTags != null && index < widget.heroTags!.length
                   ? widget.heroTags![index]
                   : null;
-              return InteractiveViewer(
-                minScale: 0.5,
-                maxScale: 4.0,
-                child: Center(
-                  child: AppImage(
-                    source: widget.images[index],
-                    fit: BoxFit.contain,
-                    heroTag: heroTag,
+              final image = widget.images[index];
+              final isNetworkImage = image.startsWith('http://') || image.startsWith('https://');
+              return GestureDetector(
+                onLongPress: () {
+                  ImageSaveUtil.showImageOptions(
+                    context,
+                    image,
+                    isNetwork: isNetworkImage,
+                  );
+                },
+                child: InteractiveViewer(
+                  minScale: 0.5,
+                  maxScale: 4.0,
+                  child: Center(
+                    child: AppImage(
+                      source: image,
+                      fit: BoxFit.contain,
+                      heroTag: heroTag,
+                    ),
                   ),
                 ),
               );
@@ -362,9 +409,29 @@ class _ImageGalleryDialogState extends State<_ImageGalleryDialog> {
           Positioned(
             top: 40,
             right: 20,
-            child: IconButton(
-              icon: const Icon(Icons.close, color: Colors.white, size: 30),
-              onPressed: () => Navigator.of(context).pop(),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.save, color: Colors.white, size: 26),
+                  onPressed: () async {
+                    bool success;
+                    if (isNetwork) {
+                      success = await ImageSaveUtil.saveNetworkImageToGallery(currentImage);
+                    } else {
+                      success = await ImageSaveUtil.saveImageToGallery(currentImage);
+                    }
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(success ? '保存成功' : '保存失败')),
+                      );
+                    }
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
             ),
           ),
         ],
@@ -476,6 +543,7 @@ class ExpandableImageWithPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isNetwork = source.startsWith('http://') || source.startsWith('https://');
     return GestureDetector(
       onTap: () {
         if (images != null && images!.isNotEmpty) {
@@ -493,7 +561,26 @@ class ExpandableImageWithPreview extends StatelessWidget {
         }
       },
       onLongPress: () {
-        _showExpandOptions(context);
+        ImageSaveUtil.showImageOptions(
+          context,
+          source,
+          isNetwork: isNetwork,
+          onView: () {
+            if (images != null && images!.isNotEmpty) {
+              ImagePreview.showGallery(
+                context,
+                images: images!,
+                initialIndex: initialIndex,
+              );
+            } else {
+              ImagePreview.show(
+                context,
+                imageUrl: source,
+                heroTag: heroTag,
+              );
+            }
+          },
+        );
       },
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
@@ -508,67 +595,164 @@ class ExpandableImageWithPreview extends StatelessWidget {
       ),
     );
   }
-
-  void _showExpandOptions(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      builder: (ctx) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.zoom_in),
-                title: const Text('查看完整图片'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  if (images != null && images!.isNotEmpty) {
-                    ImagePreview.showGallery(
-                      context,
-                      images: images!,
-                      initialIndex: initialIndex,
-                    );
-                  } else {
-                    ImagePreview.show(
-                      context,
-                      imageUrl: source,
-                      heroTag: heroTag,
-                    );
-                  }
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.fullscreen),
-                title: const Text('全屏预览'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  if (images != null && images!.isNotEmpty) {
-                    ImagePreview.showGallery(
-                      context,
-                      images: images!,
-                      initialIndex: initialIndex,
-                    );
-                  } else {
-                    ImagePreview.show(
-                      context,
-                      imageUrl: source,
-                      heroTag: heroTag,
-                    );
-                  }
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 }
 
 enum ImageLoadingStrategy {
   normal,
   progressive,
   lowQualityFirst,
+}
+
+enum SmartImageDisplayMode {
+  cover,
+  contain,
+  auto,
+}
+
+class SmartImage extends StatefulWidget {
+  const SmartImage({
+    super.key,
+    required this.source,
+    this.mode = SmartImageDisplayMode.auto,
+    this.borderRadius = 16,
+    this.heroTag,
+    this.maxHeight = 400,
+    this.images,
+    this.initialIndex = 0,
+  });
+
+  final String source;
+  final SmartImageDisplayMode mode;
+  final double borderRadius;
+  final String? heroTag;
+  final double maxHeight;
+  final List<String>? images;
+  final int initialIndex;
+
+  @override
+  State<SmartImage> createState() => _SmartImageState();
+}
+
+class _SmartImageState extends State<SmartImage> {
+  ui.Image? _imageInfo;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadImageInfo();
+  }
+
+  Future<void> _loadImageInfo() async {
+    try {
+      final isNetwork = widget.source.startsWith('http://') || widget.source.startsWith('https://');
+      ImageProvider provider;
+      
+      if (isNetwork) {
+        provider = NetworkImage(widget.source);
+      } else if (widget.source.startsWith('assets/')) {
+        provider = AssetImage(widget.source);
+      } else {
+        provider = FileImage(File(widget.source));
+      }
+
+      final completer = Completer<ui.Image>();
+      provider.resolve(const ImageConfiguration()).addListener(
+        ImageStreamListener((info, _) {
+          if (!completer.isCompleted) {
+            completer.complete(info.image);
+          }
+        }),
+      );
+      
+      final img = await completer.future;
+      if (mounted) {
+        setState(() {
+          _imageInfo = img;
+        });
+      }
+    } catch (e) {
+      // Ignore errors
+    }
+  }
+
+  double _getAspectRatio() {
+    if (_imageInfo == null) return 16 / 9;
+    
+    final ratio = _imageInfo!.width / _imageInfo!.height;
+    
+    if (widget.mode == SmartImageDisplayMode.auto) {
+      if (ratio < 0.75) {
+        return 3 / 4;
+      } else if (ratio > 1.5) {
+        return 16 / 9;
+      } else {
+        return 1;
+      }
+    }
+    return ratio;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isNetwork = widget.source.startsWith('http://') || widget.source.startsWith('https://');
+    final aspectRatio = _getAspectRatio();
+    
+    return GestureDetector(
+      onTap: () {
+        if (widget.images != null && widget.images!.isNotEmpty) {
+          ImagePreview.showGallery(
+            context,
+            images: widget.images!,
+            initialIndex: widget.initialIndex,
+          );
+        } else {
+          ImagePreview.show(
+            context,
+            imageUrl: widget.source,
+            heroTag: widget.heroTag,
+          );
+        }
+      },
+      onLongPress: () {
+        ImageSaveUtil.showImageOptions(
+          context,
+          widget.source,
+          isNetwork: isNetwork,
+          onView: () {
+            if (widget.images != null && widget.images!.isNotEmpty) {
+              ImagePreview.showGallery(
+                context,
+                images: widget.images!,
+                initialIndex: widget.initialIndex,
+              );
+            } else {
+              ImagePreview.show(
+                context,
+                imageUrl: widget.source,
+                heroTag: widget.heroTag,
+              );
+            }
+          },
+        );
+      },
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(widget.borderRadius),
+        child: AspectRatio(
+          aspectRatio: aspectRatio,
+          child: Container(
+            constraints: BoxConstraints(maxHeight: widget.maxHeight),
+            child: AppImage(
+              source: widget.source,
+              fit: widget.mode == SmartImageDisplayMode.contain 
+                  ? BoxFit.contain 
+                  : BoxFit.cover,
+              heroTag: widget.heroTag,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class SmartImageLoader {

@@ -333,7 +333,7 @@ Stream<JournalDetailState?> _combineJournalStreams({
       final linkedFriends = friends.where((f) => linkedFriendIds.contains(f.id)).toList(growable: false);
       final linkedFoods = foods.where((f) => linkedFoodIds.contains(f.id)).toList(growable: false);
       final linkedGoals = goals.where((g) => linkedGoalIds.contains(g.id)).toList(growable: false);
-      final linkedTravels = allTravels.where((t) => linkedTravelIds.contains(t.id) && t.id != recordId).toList(growable: false);
+      final linkedTravels = allTravels.where((t) => linkedTravelIds.contains(t.id) && t.id != recordId && !t.isJournal).toList(growable: false);
 
       return JournalDetailState(
         record: record,

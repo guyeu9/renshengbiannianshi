@@ -31,6 +31,19 @@ class LinkDao extends DatabaseAccessor<AppDatabase> with _$LinkDaoMixin {
     String linkType = 'manual',
     required DateTime now,
   }) async {
+    if (targetType == 'travel') {
+      final isValid = await isTravelRecord(targetId);
+      if (!isValid) {
+        return;
+      }
+    }
+    if (sourceType == 'travel') {
+      final isValid = await isTravelRecord(sourceId);
+      if (!isValid) {
+        return;
+      }
+    }
+
     final linkId = _uuid.v4();
     final logId = _uuid.v4();
 
@@ -330,6 +343,77 @@ class LinkDao extends DatabaseAccessor<AppDatabase> with _$LinkDaoMixin {
     }
     if (targetType == 'goal') {
       await syncGoalProgress(goalId: targetId, now: now);
+    }
+  }
+
+  Future<bool> isTravelRecord(String travelId) async {
+    final record = await (select(db.travelRecords)
+          ..where((t) => t.id.equals(travelId))
+          ..limit(1))
+        .getSingleOrNull();
+
+    if (record == null) return false;
+
+    return !record.isJournal;
+  }
+
+  Future<void> cleanupJournalLinks() async {
+    final now = DateTime.now();
+
+    final journals = await (select(db.travelRecords)
+          ..where((t) => t.isJournal.equals(true))
+          ..where((t) => t.isDeleted.equals(false)))
+        .get();
+
+    final journalIds = journals.map((j) => j.id).toList();
+
+    if (journalIds.isEmpty) return;
+
+    final existingLinks = await (select(db.entityLinks)
+          ..where((t) => t.sourceType.equals('travel') & t.sourceId.isIn(journalIds))
+          ..where((t) => t.targetType.equals('travel') & t.targetId.isIn(journalIds)))
+        .get();
+
+    final linkIds = existingLinks.map((l) => l.id).toList();
+
+    await transaction(() async {
+      await (delete(db.entityLinks)
+            ..where((t) => t.sourceType.equals('travel') & t.sourceId.isIn(journalIds))
+            ..where((t) => t.targetType.equals('travel') & t.targetId.isIn(journalIds)))
+          .go();
+
+      for (final link in existingLinks) {
+        final logId = _uuid.v4();
+        await into(db.linkLogs).insert(
+          LinkLogsCompanion.insert(
+            id: logId,
+            sourceType: link.sourceType,
+            sourceId: link.sourceId,
+            targetType: link.targetType,
+            targetId: link.targetId,
+            action: 'delete',
+            linkType: Value(link.linkType),
+            createdAt: now,
+          ),
+        );
+      }
+    });
+
+    for (final linkId in linkIds) {
+      await _changeLogRecorder.recordDelete(
+        entityType: 'entity_links',
+        entityId: linkId,
+      );
+    }
+
+    for (final link in existingLinks) {
+      await _syncGoalsAfterLinkChange(
+        sourceType: link.sourceType,
+        sourceId: link.sourceId,
+        targetType: link.targetType,
+        targetId: link.targetId,
+        now: now,
+      );
     }
   }
 }

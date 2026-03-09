@@ -4658,7 +4658,7 @@ class _UniversalLinkHomePageState extends ConsumerState<_UniversalLinkHomePage> 
                                 builder: (context, momentSnapshot) {
                                   final moments = momentSnapshot.data ?? const <MomentRecord>[];
                                   return StreamBuilder<List<TravelRecord>>(
-                                    stream: db.watchAllActiveTravelRecords(),
+                                    stream: db.travelDao.watchTripsOnly(),
                                     builder: (context, travelSnapshot) {
                                       final travels = travelSnapshot.data ?? const <TravelRecord>[];
                                       return StreamBuilder<List<TimelineEvent>>(
@@ -4760,7 +4760,7 @@ class _UniversalLinkHomePageState extends ConsumerState<_UniversalLinkHomePage> 
                                 builder: (context, momentSnapshot) {
                                   final moments = momentSnapshot.data ?? const <MomentRecord>[];
                                   return StreamBuilder<List<TravelRecord>>(
-                                    stream: db.watchAllActiveTravelRecords(),
+                                    stream: db.travelDao.watchTripsOnly(),
                                     builder: (context, travelSnapshot) {
                                       final travels = travelSnapshot.data ?? const <TravelRecord>[];
                                       return StreamBuilder<List<TimelineEvent>>(

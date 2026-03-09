@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:life_chronicle/core/database/app_database.dart';
 
@@ -10,6 +11,36 @@ enum QueryType {
   general,
 }
 
+class EntityLinkInfo {
+  final String targetType;
+  final String targetId;
+  final String? targetTitle;
+  final String linkType;
+
+  const EntityLinkInfo({
+    required this.targetType,
+    required this.targetId,
+    this.targetTitle,
+    this.linkType = 'manual',
+  });
+
+  String toDisplayString() {
+    final typeNames = {
+      'food': '美食',
+      'moment': '小确幸',
+      'travel': '旅行',
+      'goal': '目标',
+      'encounter': '相遇',
+      'friend': '朋友',
+    };
+    final typeName = typeNames[targetType] ?? targetType;
+    if (targetTitle != null && targetTitle!.isNotEmpty) {
+      return '$typeName·$targetTitle';
+    }
+    return typeName;
+  }
+}
+
 class RecordContext {
   final String type;
   final String id;
@@ -17,6 +48,11 @@ class RecordContext {
   final String content;
   final DateTime date;
   final Map<String, dynamic> extra;
+  
+  final List<String>? images;
+  final List<String>? tags;
+  final bool isFavorite;
+  final List<EntityLinkInfo>? links;
 
   const RecordContext({
     required this.type,
@@ -25,49 +61,117 @@ class RecordContext {
     required this.content,
     required this.date,
     this.extra = const {},
+    this.images,
+    this.tags,
+    this.isFavorite = false,
+    this.links,
   });
 
   String toPromptString() {
     final buffer = StringBuffer();
-    buffer.write('- [$type] ');
-    if (title.isNotEmpty) {
-      buffer.write(title);
-    }
-    if (content.isNotEmpty) {
-      buffer.write(': $content');
-    }
-    buffer.write(' (${_formatDate(date)})');
     
-    if (extra.isNotEmpty) {
-      final extraParts = <String>[];
-      if (extra['rating'] != null) {
-        extraParts.add('评分${extra['rating']}');
-      }
-      if (extra['city'] != null && extra['city'].toString().isNotEmpty) {
-        extraParts.add(extra['city'].toString());
-      }
-      if (extra['mood'] != null && extra['mood'].toString().isNotEmpty) {
-        extraParts.add('心情: ${extra['mood']}');
-      }
-      if (extra['destination'] != null && extra['destination'].toString().isNotEmpty) {
-        extraParts.add(extra['destination'].toString());
-      }
-      if (extra['level'] != null) {
-        extraParts.add('级别: ${extra['level']}');
-      }
-      if (extra['isCompleted'] != null) {
-        extraParts.add(extra['isCompleted'] ? '已完成' : '进行中');
-      }
-      if (extraParts.isNotEmpty) {
-        buffer.write(' [${extraParts.join(', ')}]');
-      }
+    final favoriteMark = isFavorite ? ' ⭐' : '';
+    buffer.writeln('【$type$favoriteMark】');
+    buffer.writeln('ID: $id');
+    
+    if (title.isNotEmpty) {
+      buffer.writeln('标题：$title');
     }
+    
+    if (content.isNotEmpty) {
+      buffer.writeln('内容：$content');
+    }
+    
+    if (extra['rating'] != null) {
+      final rating = extra['rating'] as num;
+      final stars = '⭐' * rating.round();
+      buffer.writeln('评分：$stars (${rating.toStringAsFixed(1)}/5)');
+    }
+    
+    if (extra['pricePerPerson'] != null) {
+      buffer.writeln('人均：¥${(extra['pricePerPerson'] as num).toStringAsFixed(0)}');
+    }
+    
+    if (extra['mood'] != null && extra['mood'].toString().isNotEmpty) {
+      buffer.writeln('心情：${extra['mood']}');
+    }
+    
+    if (tags != null && tags!.isNotEmpty) {
+      buffer.writeln('标签：${tags!.map((t) => '#$t').join(' ')}');
+    }
+    
+    final locationParts = <String>[];
+    if (extra['poiName'] != null && extra['poiName'].toString().isNotEmpty) {
+      locationParts.add(extra['poiName'].toString());
+    }
+    if (extra['poiAddress'] != null && extra['poiAddress'].toString().isNotEmpty) {
+      locationParts.add(extra['poiAddress'].toString());
+    }
+    if (extra['city'] != null && extra['city'].toString().isNotEmpty) {
+      locationParts.add(extra['city'].toString());
+    }
+    if (extra['country'] != null && extra['country'].toString().isNotEmpty) {
+      locationParts.add(extra['country'].toString());
+    }
+    if (locationParts.isNotEmpty) {
+      buffer.writeln('地点：${locationParts.join(' ')}');
+    }
+    
+    if (extra['destination'] != null && extra['destination'].toString().isNotEmpty) {
+      buffer.writeln('目的地：${extra['destination']}');
+    }
+    
+    if (extra['level'] != null) {
+      buffer.writeln('级别：${extra['level']}');
+    }
+    
+    if (extra['progress'] != null) {
+      buffer.writeln('进度：${(extra['progress'] as num).toStringAsFixed(0)}%');
+    }
+    
+    if (extra['isCompleted'] != null) {
+      buffer.writeln('状态：${extra['isCompleted'] == true ? '已完成' : '进行中'}');
+    }
+    
+    if (extra['dueDate'] != null) {
+      buffer.writeln('截止日期：${_formatDate(extra['dueDate'] as DateTime)}');
+    }
+    
+    if (extra['targetYear'] != null) {
+      final year = extra['targetYear'];
+      final quarter = extra['targetQuarter'];
+      final month = extra['targetMonth'];
+      String target = '$year年';
+      if (quarter != null) {
+        target += ' Q$quarter';
+      }
+      if (month != null) {
+        target += ' ${month}月';
+      }
+      buffer.writeln('目标时间：$target');
+    }
+    
+    if (images != null && images!.isNotEmpty) {
+      buffer.writeln('图片：共${images!.length}张');
+    }
+    
+    if (links != null && links!.isNotEmpty) {
+      final linkStrs = links!.map((l) => l.toDisplayString()).join('、');
+      buffer.writeln('关联：$linkStrs');
+    }
+    
+    buffer.writeln('日期：${_formatDateTime(date)}');
+    buffer.writeln('---');
     
     return buffer.toString();
   }
 
   String _formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  String _formatDateTime(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 }
 
@@ -83,22 +187,23 @@ class RecordRetriever {
     DateTime? startDate,
     DateTime? endDate,
     int limit = 20,
+    bool fullData = false,
   }) async {
     switch (queryType) {
       case QueryType.summary:
-        return _retrieveAllForModule(module ?? 'all');
+        return _retrieveAllForModule(module ?? 'all', fullData ? null : limit);
       case QueryType.timeRange:
-        return _retrieveByTimeRange(startDate, endDate, limit);
+        return _retrieveByTimeRange(startDate, endDate, fullData ? null : limit);
       case QueryType.onThisDay:
         return _retrieveOnThisDay();
       case QueryType.query:
       case QueryType.statistics:
       case QueryType.general:
-        return _retrieveByKeywords(userQuery, limit);
+        return _retrieveByKeywords(userQuery, fullData ? null : limit);
     }
   }
 
-  Future<List<RecordContext>> _retrieveAllForModule(String module) async {
+  Future<List<RecordContext>> _retrieveAllForModule(String module, int? limit) async {
     final records = <RecordContext>[];
     
     if (module == 'all' || module == 'food') {
@@ -117,28 +222,45 @@ class RecordRetriever {
       records.addAll(await _loadAllEncounterRecords());
     }
     
-    records.sort((a, b) => b.date.compareTo(a.date));
+    records.sort((a, b) {
+      final favoriteCompare = (b.isFavorite ? 1 : 0) - (a.isFavorite ? 1 : 0);
+      if (favoriteCompare != 0) return favoriteCompare;
+      return b.date.compareTo(a.date);
+    });
+    
+    if (limit != null && records.length > limit) {
+      return records.take(limit).toList();
+    }
     return records;
   }
 
   Future<List<RecordContext>> _retrieveByTimeRange(
     DateTime? startDate,
     DateTime? endDate,
-    int limit,
+    int? limit,
   ) async {
     final records = <RecordContext>[];
     
     final start = startDate ?? DateTime.now().subtract(const Duration(days: 30));
     final end = endDate ?? DateTime.now();
+    final perTypeLimit = limit != null ? (limit ~/ 5 + 5) : null;
 
-    records.addAll(await _loadFoodByTimeRange(start, end, limit));
-    records.addAll(await _loadMomentByTimeRange(start, end, limit));
-    records.addAll(await _loadTravelByTimeRange(start, end, limit));
-    records.addAll(await _loadGoalByTimeRange(start, end, limit));
-    records.addAll(await _loadEncounterByTimeRange(start, end, limit));
+    records.addAll(await _loadFoodByTimeRange(start, end, perTypeLimit));
+    records.addAll(await _loadMomentByTimeRange(start, end, perTypeLimit));
+    records.addAll(await _loadTravelByTimeRange(start, end, perTypeLimit));
+    records.addAll(await _loadGoalByTimeRange(start, end, perTypeLimit));
+    records.addAll(await _loadEncounterByTimeRange(start, end, perTypeLimit));
 
-    records.sort((a, b) => b.date.compareTo(a.date));
-    return records.take(limit).toList();
+    records.sort((a, b) {
+      final favoriteCompare = (b.isFavorite ? 1 : 0) - (a.isFavorite ? 1 : 0);
+      if (favoriteCompare != 0) return favoriteCompare;
+      return b.date.compareTo(a.date);
+    });
+    
+    if (limit != null && records.length > limit) {
+      return records.take(limit).toList();
+    }
+    return records;
   }
 
   Future<List<RecordContext>> _retrieveOnThisDay() async {
@@ -156,22 +278,39 @@ class RecordRetriever {
       records.addAll(await _loadEncounterByTimeRange(targetDate, nextDay, 5));
     }
 
-    records.sort((a, b) => b.date.compareTo(a.date));
+    
+    records.sort((a, b) {
+      if (a.isFavorite != b.isFavorite) {
+        return a.isFavorite ? -1 : 1;
+      }
+      return b.date.compareTo(a.date);
+    });
+    
     return records;
   }
 
-  Future<List<RecordContext>> _retrieveByKeywords(String query, int limit) async {
+  Future<List<RecordContext>> _retrieveByKeywords(String query, int? limit) async {
     final records = <RecordContext>[];
     final keywords = _extractKeywords(query);
+    final perTypeLimit = limit != null ? (limit ~/ 5 + 5) : null;
 
-    records.addAll(await _searchFoodRecords(keywords, limit));
-    records.addAll(await _searchMomentRecords(keywords, limit));
-    records.addAll(await _searchTravelRecords(keywords, limit));
-    records.addAll(await _searchGoalRecords(keywords, limit));
-    records.addAll(await _searchEncounterRecords(keywords, limit));
+    records.addAll(await _searchFoodRecords(keywords, perTypeLimit));
+    records.addAll(await _searchMomentRecords(keywords, perTypeLimit));
+    records.addAll(await _searchTravelRecords(keywords, perTypeLimit));
+    records.addAll(await _searchGoalRecords(keywords, perTypeLimit));
+    records.addAll(await _searchEncounterRecords(keywords, perTypeLimit));
 
-    records.sort((a, b) => b.date.compareTo(a.date));
-    return records.take(limit).toList();
+    records.sort((a, b) {
+      if (a.isFavorite != b.isFavorite) {
+        return a.isFavorite ? -1 : 1;
+      }
+      return b.date.compareTo(a.date);
+    });
+    
+    if (limit != null && records.length > limit) {
+      return records.take(limit).toList();
+    }
+    return records;
   }
 
   List<String> _extractKeywords(String query) {
@@ -183,317 +322,655 @@ class RecordRetriever {
         .toList();
   }
 
-  Future<List<RecordContext>> _loadAllFoodRecords() async {
-    final foods = await (_db.select(_db.foodRecords)
-          ..where((t) => t.isDeleted.equals(false))
-          ..orderBy([(t) => OrderingTerm.desc(t.recordDate)]))
-        .get();
-    
-    return foods.map((f) => RecordContext(
-      type: '美食',
-      id: f.id,
-      title: f.title,
-      content: f.content ?? '',
-      date: f.recordDate,
-      extra: {'rating': f.rating, 'city': f.city, 'poiName': f.poiName},
-    )).toList();
+  List<String> _parseTags(String? tagsJson) {
+    if (tagsJson == null || tagsJson.isEmpty) return [];
+    try {
+      final decoded = jsonDecode(tagsJson);
+      if (decoded is List) {
+        return decoded.map((e) => e.toString()).toList();
+      }
+      if (decoded is String) {
+        return decoded.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+      }
+    } catch (_) {
+      return tagsJson.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    }
+    return [];
   }
 
-  Future<List<RecordContext>> _loadAllMomentRecords() async {
-    final moments = await (_db.select(_db.momentRecords)
-          ..where((t) => t.isDeleted.equals(false))
-          ..orderBy([(t) => OrderingTerm.desc(t.recordDate)]))
-        .get();
-    
-    return moments.map((m) => RecordContext(
-      type: '小确幸',
-      id: m.id,
-      title: '',
-      content: m.content ?? '',
-      date: m.recordDate,
-      extra: {'mood': m.mood, 'city': m.city},
-    )).toList();
+  List<String> _parseImages(String? imagesJson) {
+    if (imagesJson == null || imagesJson.isEmpty) return [];
+    try {
+      final decoded = jsonDecode(imagesJson);
+      if (decoded is List) {
+        return decoded.map((e) => e.toString()).toList();
+      }
+    } catch (_) {}
+    return [];
   }
 
-  Future<List<RecordContext>> _loadAllTravelRecords() async {
-    final travels = await (_db.select(_db.travelRecords)
-          ..where((t) => t.isDeleted.equals(false))
-          ..orderBy([(t) => OrderingTerm.desc(t.recordDate)]))
+  Future<List<EntityLinkInfo>> _loadLinks(String entityType, String entityId) async {
+    final links = await (_db.select(_db.entityLinks)
+          ..where((t) => t.sourceType.equals(entityType))
+          ..where((t) => t.sourceId.equals(entityId)))
         .get();
     
-    return travels.map((t) => RecordContext(
-      type: '旅行',
-      id: t.id,
-      title: t.title ?? '',
-      content: t.content ?? '',
-      date: t.recordDate,
-      extra: {'destination': t.destination, 'city': t.city},
-    )).toList();
+    final result = <EntityLinkInfo>[];
+    for (final link in links) {
+      String? targetTitle;
+      if (link.targetType == 'friend') {
+        final friend = await (_db.select(_db.friendRecords)
+              ..where((t) => t.id.equals(link.targetId)))
+            .getSingleOrNull();
+        targetTitle = friend?.name;
+      }
+      result.add(EntityLinkInfo(
+        targetType: link.targetType,
+        targetId: link.targetId,
+        targetTitle: targetTitle,
+        linkType: link.linkType,
+      ));
+    }
+    return result;
   }
 
-  Future<List<RecordContext>> _loadAllGoalRecords() async {
-    final goals = await (_db.select(_db.goalRecords)
-          ..where((t) => t.isDeleted.equals(false))
-          ..orderBy([(t) => OrderingTerm.desc(t.recordDate)]))
-        .get();
+  Future<List<RecordContext>> _loadAllFoodRecords([int? limit]) async {
+    var query = _db.select(_db.foodRecords)
+      ..where((t) => t.isDeleted.equals(false))
+      ..orderBy([(t) => OrderingTerm.desc(t.recordDate)]);
     
-    return goals.map((g) => RecordContext(
-      type: '目标',
-      id: g.id,
-      title: g.title,
-      content: g.note ?? '',
-      date: g.recordDate,
-      extra: {'level': g.level, 'isCompleted': g.isCompleted},
-    )).toList();
-  }
-
-  Future<List<RecordContext>> _loadAllEncounterRecords() async {
-    final encounters = await (_db.select(_db.timelineEvents)
-          ..where((t) => t.eventType.equals('encounter'))
-          ..where((t) => t.isDeleted.equals(false))
-          ..orderBy([(t) => OrderingTerm.desc(t.recordDate)]))
-        .get();
+    if (limit != null) {
+      query = query..limit(limit);
+    }
     
-    return encounters.map((e) => RecordContext(
-      type: '相遇',
-      id: e.id,
-      title: e.title,
-      content: e.note ?? '',
-      date: e.recordDate,
-      extra: {},
-    )).toList();
-  }
-
-  Future<List<RecordContext>> _loadFoodByTimeRange(DateTime start, DateTime end, int limit) async {
-    final foods = await (_db.select(_db.foodRecords)
-          ..where((t) => t.isDeleted.equals(false))
-          ..where((t) => t.recordDate.isBiggerOrEqualValue(start))
-          ..where((t) => t.recordDate.isSmallerThanValue(end))
-          ..orderBy([(t) => OrderingTerm.desc(t.recordDate)])
-          ..limit(limit))
-        .get();
+    final foods = await query.get();
     
-    return foods.map((f) => RecordContext(
-      type: '美食',
-      id: f.id,
-      title: f.title,
-      content: f.content ?? '',
-      date: f.recordDate,
-      extra: {'rating': f.rating, 'city': f.city},
-    )).toList();
+    return Future.wait(foods.map((f) async {
+      final links = await _loadLinks('food', f.id);
+      return RecordContext(
+        type: '美食',
+        id: f.id,
+        title: f.title,
+        content: f.content ?? '',
+        date: f.recordDate,
+        images: _parseImages(f.images),
+        tags: _parseTags(f.tags),
+        isFavorite: f.isFavorite,
+        links: links.isNotEmpty ? links : null,
+        extra: {
+          'rating': f.rating,
+          'pricePerPerson': f.pricePerPerson,
+          'mood': f.mood,
+          'poiName': f.poiName,
+          'poiAddress': f.poiAddress,
+          'city': f.city,
+          'country': f.country,
+          'link': f.link,
+          'isWishlist': f.isWishlist,
+          'wishlistDone': f.wishlistDone,
+        },
+      );
+    }));
   }
 
-  Future<List<RecordContext>> _loadMomentByTimeRange(DateTime start, DateTime end, int limit) async {
-    final moments = await (_db.select(_db.momentRecords)
-          ..where((t) => t.isDeleted.equals(false))
-          ..where((t) => t.recordDate.isBiggerOrEqualValue(start))
-          ..where((t) => t.recordDate.isSmallerThanValue(end))
-          ..orderBy([(t) => OrderingTerm.desc(t.recordDate)])
-          ..limit(limit))
-        .get();
+  Future<List<RecordContext>> _loadAllMomentRecords([int? limit]) async {
+    var query = _db.select(_db.momentRecords)
+      ..where((t) => t.isDeleted.equals(false))
+      ..orderBy([(t) => OrderingTerm.desc(t.recordDate)]);
     
-    return moments.map((m) => RecordContext(
-      type: '小确幸',
-      id: m.id,
-      title: '',
-      content: m.content ?? '',
-      date: m.recordDate,
-      extra: {'mood': m.mood},
-    )).toList();
-  }
-
-  Future<List<RecordContext>> _loadTravelByTimeRange(DateTime start, DateTime end, int limit) async {
-    final travels = await (_db.select(_db.travelRecords)
-          ..where((t) => t.isDeleted.equals(false))
-          ..where((t) => t.recordDate.isBiggerOrEqualValue(start))
-          ..where((t) => t.recordDate.isSmallerThanValue(end))
-          ..orderBy([(t) => OrderingTerm.desc(t.recordDate)])
-          ..limit(limit))
-        .get();
+    if (limit != null) {
+      query = query..limit(limit);
+    }
     
-    return travels.map((t) => RecordContext(
-      type: '旅行',
-      id: t.id,
-      title: t.title ?? '',
-      content: t.content ?? '',
-      date: t.recordDate,
-      extra: {'destination': t.destination},
-    )).toList();
-  }
-
-  Future<List<RecordContext>> _loadGoalByTimeRange(DateTime start, DateTime end, int limit) async {
-    final goals = await (_db.select(_db.goalRecords)
-          ..where((t) => t.isDeleted.equals(false))
-          ..where((t) => t.recordDate.isBiggerOrEqualValue(start))
-          ..where((t) => t.recordDate.isSmallerThanValue(end))
-          ..orderBy([(t) => OrderingTerm.desc(t.recordDate)])
-          ..limit(limit))
-        .get();
+    final moments = await query.get();
     
-    return goals.map((g) => RecordContext(
-      type: '目标',
-      id: g.id,
-      title: g.title,
-      content: g.note ?? '',
-      date: g.recordDate,
-      extra: {'level': g.level, 'isCompleted': g.isCompleted},
-    )).toList();
+    return Future.wait(moments.map((m) async {
+      final links = await _loadLinks('moment', m.id);
+      return RecordContext(
+        type: '小确幸',
+        id: m.id,
+        title: '',
+        content: m.content ?? '',
+        date: m.recordDate,
+        images: _parseImages(m.images),
+        tags: _parseTags(m.tags),
+        isFavorite: m.isFavorite,
+        links: links.isNotEmpty ? links : null,
+        extra: {
+          'mood': m.mood,
+          'moodColor': m.moodColor,
+          'poiName': m.poiName,
+          'poiAddress': m.poiAddress,
+          'city': m.city,
+        },
+      );
+    }));
   }
 
-  Future<List<RecordContext>> _loadEncounterByTimeRange(DateTime start, DateTime end, int limit) async {
-    final encounters = await (_db.select(_db.timelineEvents)
-          ..where((t) => t.eventType.equals('encounter'))
-          ..where((t) => t.isDeleted.equals(false))
-          ..where((t) => t.recordDate.isBiggerOrEqualValue(start))
-          ..where((t) => t.recordDate.isSmallerThanValue(end))
-          ..orderBy([(t) => OrderingTerm.desc(t.recordDate)])
-          ..limit(limit))
-        .get();
+  Future<List<RecordContext>> _loadAllTravelRecords([int? limit]) async {
+    var query = _db.select(_db.travelRecords)
+      ..where((t) => t.isDeleted.equals(false))
+      ..orderBy([(t) => OrderingTerm.desc(t.recordDate)]);
     
-    return encounters.map((e) => RecordContext(
-      type: '相遇',
-      id: e.id,
-      title: e.title,
-      content: e.note ?? '',
-      date: e.recordDate,
-      extra: {},
-    )).toList();
+    if (limit != null) {
+      query = query..limit(limit);
+    }
+    
+    final travels = await query.get();
+    
+    return Future.wait(travels.map((t) async {
+      final links = await _loadLinks('travel', t.id);
+      return RecordContext(
+        type: '旅行',
+        id: t.id,
+        title: t.title ?? '',
+        content: t.content ?? '',
+        date: t.recordDate,
+        images: _parseImages(t.images),
+        tags: _parseTags(t.tags),
+        isFavorite: t.isFavorite,
+        links: links.isNotEmpty ? links : null,
+        extra: {
+          'tripId': t.tripId,
+          'destination': t.destination,
+          'poiName': t.poiName,
+          'poiAddress': t.poiAddress,
+          'city': t.city,
+          'country': t.country,
+          'mood': t.mood,
+          'expenseTransport': t.expenseTransport,
+          'expenseHotel': t.expenseHotel,
+          'expenseFood': t.expenseFood,
+          'expenseTicket': t.expenseTicket,
+          'flightLink': t.flightLink,
+          'hotelLink': t.hotelLink,
+          'isWishlist': t.isWishlist,
+          'wishlistDone': t.wishlistDone,
+          'isJournal': t.isJournal,
+          'planDate': t.planDate,
+        },
+      );
+    }));
   }
 
-  Future<List<RecordContext>> _searchFoodRecords(List<String> keywords, int limit) async {
+  Future<List<RecordContext>> _loadAllGoalRecords([int? limit]) async {
+    var query = _db.select(_db.goalRecords)
+      ..where((t) => t.isDeleted.equals(false))
+      ..orderBy([(t) => OrderingTerm.desc(t.recordDate)]);
+    
+    if (limit != null) {
+      query = query..limit(limit);
+    }
+    
+    final goals = await query.get();
+    
+    return Future.wait(goals.map((g) async {
+      final links = await _loadLinks('goal', g.id);
+      return RecordContext(
+        type: '目标',
+        id: g.id,
+        title: g.title,
+        content: g.note ?? '',
+        date: g.recordDate,
+        tags: _parseTags(g.tags),
+        isFavorite: g.isFavorite,
+        links: links.isNotEmpty ? links : null,
+        extra: {
+          'parentId': g.parentId,
+          'level': g.level,
+          'summary': g.summary,
+          'category': g.category,
+          'progress': g.progress,
+          'isCompleted': g.isCompleted,
+          'isPostponed': g.isPostponed,
+          'remindFrequency': g.remindFrequency,
+          'targetYear': g.targetYear,
+          'targetQuarter': g.targetQuarter,
+          'targetMonth': g.targetMonth,
+          'dueDate': g.dueDate,
+          'completedAt': g.completedAt,
+        },
+      );
+    }));
+  }
+
+  Future<List<RecordContext>> _loadAllEncounterRecords([int? limit]) async {
+    var query = _db.select(_db.timelineEvents)
+      ..where((t) => t.eventType.equals('encounter'))
+      ..where((t) => t.isDeleted.equals(false))
+      ..orderBy([(t) => OrderingTerm.desc(t.recordDate)]);
+    
+    if (limit != null) {
+      query = query..limit(limit);
+    }
+    
+    final encounters = await query.get();
+    
+    return Future.wait(encounters.map((e) async {
+      final links = await _loadLinks('encounter', e.id);
+      return RecordContext(
+        type: '相遇',
+        id: e.id,
+        title: e.title,
+        content: e.note ?? '',
+        date: e.recordDate,
+        tags: _parseTags(e.tags),
+        isFavorite: e.isFavorite,
+        links: links.isNotEmpty ? links : null,
+        extra: {
+          'startAt': e.startAt,
+          'endAt': e.endAt,
+          'poiName': e.poiName,
+          'poiAddress': e.poiAddress,
+        },
+      );
+    }));
+  }
+
+  Future<List<RecordContext>> _loadFoodByTimeRange(DateTime start, DateTime end, int? limit) async {
+    var query = _db.select(_db.foodRecords)
+      ..where((t) => t.isDeleted.equals(false))
+      ..where((t) => t.recordDate.isBiggerOrEqualValue(start))
+      ..where((t) => t.recordDate.isSmallerThanValue(end))
+      ..orderBy([(t) => OrderingTerm.desc(t.recordDate)]);
+    
+    if (limit != null) {
+      query = query..limit(limit);
+    }
+    
+    final foods = await query.get();
+    
+    return Future.wait(foods.map((f) async {
+      final links = await _loadLinks('food', f.id);
+      return RecordContext(
+        type: '美食',
+        id: f.id,
+        title: f.title,
+        content: f.content ?? '',
+        date: f.recordDate,
+        images: _parseImages(f.images),
+        tags: _parseTags(f.tags),
+        isFavorite: f.isFavorite,
+        links: links.isNotEmpty ? links : null,
+        extra: {
+          'rating': f.rating,
+          'pricePerPerson': f.pricePerPerson,
+          'mood': f.mood,
+          'poiName': f.poiName,
+          'poiAddress': f.poiAddress,
+          'city': f.city,
+          'country': f.country,
+        },
+      );
+    }));
+  }
+
+  Future<List<RecordContext>> _loadMomentByTimeRange(DateTime start, DateTime end, int? limit) async {
+    var query = _db.select(_db.momentRecords)
+      ..where((t) => t.isDeleted.equals(false))
+      ..where((t) => t.recordDate.isBiggerOrEqualValue(start))
+      ..where((t) => t.recordDate.isSmallerThanValue(end))
+      ..orderBy([(t) => OrderingTerm.desc(t.recordDate)]);
+    
+    if (limit != null) {
+      query = query..limit(limit);
+    }
+    
+    final moments = await query.get();
+    
+    return Future.wait(moments.map((m) async {
+      final links = await _loadLinks('moment', m.id);
+      return RecordContext(
+        type: '小确幸',
+        id: m.id,
+        title: '',
+        content: m.content ?? '',
+        date: m.recordDate,
+        images: _parseImages(m.images),
+        tags: _parseTags(m.tags),
+        isFavorite: m.isFavorite,
+        links: links.isNotEmpty ? links : null,
+        extra: {
+          'mood': m.mood,
+          'moodColor': m.moodColor,
+          'poiName': m.poiName,
+          'poiAddress': m.poiAddress,
+          'city': m.city,
+        },
+      );
+    }));
+  }
+
+  Future<List<RecordContext>> _loadTravelByTimeRange(DateTime start, DateTime end, int? limit) async {
+    var query = _db.select(_db.travelRecords)
+      ..where((t) => t.isDeleted.equals(false))
+      ..where((t) => t.recordDate.isBiggerOrEqualValue(start))
+      ..where((t) => t.recordDate.isSmallerThanValue(end))
+      ..orderBy([(t) => OrderingTerm.desc(t.recordDate)]);
+    
+    if (limit != null) {
+      query = query..limit(limit);
+    }
+    
+    final travels = await query.get();
+    
+    return Future.wait(travels.map((t) async {
+      final links = await _loadLinks('travel', t.id);
+      return RecordContext(
+        type: '旅行',
+        id: t.id,
+        title: t.title ?? '',
+        content: t.content ?? '',
+        date: t.recordDate,
+        images: _parseImages(t.images),
+        tags: _parseTags(t.tags),
+        isFavorite: t.isFavorite,
+        links: links.isNotEmpty ? links : null,
+        extra: {
+          'tripId': t.tripId,
+          'destination': t.destination,
+          'poiName': t.poiName,
+          'city': t.city,
+          'country': t.country,
+          'mood': t.mood,
+        },
+      );
+    }));
+  }
+
+  Future<List<RecordContext>> _loadGoalByTimeRange(DateTime start, DateTime end, int? limit) async {
+    var query = _db.select(_db.goalRecords)
+      ..where((t) => t.isDeleted.equals(false))
+      ..where((t) => t.recordDate.isBiggerOrEqualValue(start))
+      ..where((t) => t.recordDate.isSmallerThanValue(end))
+      ..orderBy([(t) => OrderingTerm.desc(t.recordDate)]);
+    
+    if (limit != null) {
+      query = query..limit(limit);
+    }
+    
+    final goals = await query.get();
+    
+    return Future.wait(goals.map((g) async {
+      final links = await _loadLinks('goal', g.id);
+      return RecordContext(
+        type: '目标',
+        id: g.id,
+        title: g.title,
+        content: g.note ?? '',
+        date: g.recordDate,
+        tags: _parseTags(g.tags),
+        isFavorite: g.isFavorite,
+        links: links.isNotEmpty ? links : null,
+        extra: {
+          'parentId': g.parentId,
+          'level': g.level,
+          'summary': g.summary,
+          'category': g.category,
+          'progress': g.progress,
+          'isCompleted': g.isCompleted,
+          'dueDate': g.dueDate,
+        },
+      );
+    }));
+  }
+
+  Future<List<RecordContext>> _loadEncounterByTimeRange(DateTime start, DateTime end, int? limit) async {
+    var query = _db.select(_db.timelineEvents)
+      ..where((t) => t.eventType.equals('encounter'))
+      ..where((t) => t.isDeleted.equals(false))
+      ..where((t) => t.recordDate.isBiggerOrEqualValue(start))
+      ..where((t) => t.recordDate.isSmallerThanValue(end))
+      ..orderBy([(t) => OrderingTerm.desc(t.recordDate)]);
+    
+    if (limit != null) {
+      query = query..limit(limit);
+    }
+    
+    final encounters = await query.get();
+    
+    return Future.wait(encounters.map((e) async {
+      final links = await _loadLinks('encounter', e.id);
+      return RecordContext(
+        type: '相遇',
+        id: e.id,
+        title: e.title,
+        content: e.note ?? '',
+        date: e.recordDate,
+        tags: _parseTags(e.tags),
+        isFavorite: e.isFavorite,
+        links: links.isNotEmpty ? links : null,
+        extra: {
+          'startAt': e.startAt,
+          'endAt': e.endAt,
+          'poiName': e.poiName,
+          'poiAddress': e.poiAddress,
+        },
+      );
+    }));
+  }
+
+  Future<List<RecordContext>> _searchFoodRecords(List<String> keywords, int? limit) async {
     if (keywords.isEmpty) return [];
     
-    final query = _db.select(_db.foodRecords)
+    var query = _db.select(_db.foodRecords)
       ..where((t) => t.isDeleted.equals(false))
-      ..orderBy([(t) => OrderingTerm.desc(t.recordDate)])
-      ..limit(limit);
+      ..orderBy([(t) => OrderingTerm.desc(t.recordDate)]);
+    
+    if (limit != null) {
+      query = query..limit(limit);
+    }
     
     query.where((t) {
       var expr = t.title.like('%${keywords.first}%');
       for (final kw in keywords.skip(1)) {
-        expr = expr | t.title.like('%$kw%') | t.content.like('%$kw%') | t.city.like('%$kw%');
+        expr = expr | t.title.like('%$kw%') | t.content.like('%$kw%') | t.city.like('%$kw%') | t.tags.like('%$kw%');
       }
       return expr;
     });
     
     final foods = await query.get();
-    return foods.map((f) => RecordContext(
-      type: '美食',
-      id: f.id,
-      title: f.title,
-      content: f.content ?? '',
-      date: f.recordDate,
-      extra: {'rating': f.rating, 'city': f.city},
-    )).toList();
+    
+    return Future.wait(foods.map((f) async {
+      final links = await _loadLinks('food', f.id);
+      return RecordContext(
+        type: '美食',
+        id: f.id,
+        title: f.title,
+        content: f.content ?? '',
+        date: f.recordDate,
+        images: _parseImages(f.images),
+        tags: _parseTags(f.tags),
+        isFavorite: f.isFavorite,
+        links: links.isNotEmpty ? links : null,
+        extra: {
+          'rating': f.rating,
+          'pricePerPerson': f.pricePerPerson,
+          'mood': f.mood,
+          'poiName': f.poiName,
+          'poiAddress': f.poiAddress,
+          'city': f.city,
+          'country': f.country,
+        },
+      );
+    }));
   }
 
-  Future<List<RecordContext>> _searchMomentRecords(List<String> keywords, int limit) async {
+  Future<List<RecordContext>> _searchMomentRecords(List<String> keywords, int? limit) async {
     if (keywords.isEmpty) return [];
     
-    final query = _db.select(_db.momentRecords)
+    var query = _db.select(_db.momentRecords)
       ..where((t) => t.isDeleted.equals(false))
-      ..orderBy([(t) => OrderingTerm.desc(t.recordDate)])
-      ..limit(limit);
+      ..orderBy([(t) => OrderingTerm.desc(t.recordDate)]);
+    
+    if (limit != null) {
+      query = query..limit(limit);
+    }
     
     query.where((t) {
       var expr = t.content.like('%${keywords.first}%');
       for (final kw in keywords.skip(1)) {
-        expr = expr | t.content.like('%$kw%');
+        expr = expr | t.content.like('%$kw%') | t.tags.like('%$kw%');
       }
       return expr;
     });
     
     final moments = await query.get();
-    return moments.map((m) => RecordContext(
-      type: '小确幸',
-      id: m.id,
-      title: '',
-      content: m.content ?? '',
-      date: m.recordDate,
-      extra: {'mood': m.mood},
-    )).toList();
+    
+    return Future.wait(moments.map((m) async {
+      final links = await _loadLinks('moment', m.id);
+      return RecordContext(
+        type: '小确幸',
+        id: m.id,
+        title: '',
+        content: m.content ?? '',
+        date: m.recordDate,
+        images: _parseImages(m.images),
+        tags: _parseTags(m.tags),
+        isFavorite: m.isFavorite,
+        links: links.isNotEmpty ? links : null,
+        extra: {
+          'mood': m.mood,
+          'moodColor': m.moodColor,
+          'poiName': m.poiName,
+          'poiAddress': m.poiAddress,
+          'city': m.city,
+        },
+      );
+    }));
   }
 
-  Future<List<RecordContext>> _searchTravelRecords(List<String> keywords, int limit) async {
+  Future<List<RecordContext>> _searchTravelRecords(List<String> keywords, int? limit) async {
     if (keywords.isEmpty) return [];
     
-    final query = _db.select(_db.travelRecords)
+    var query = _db.select(_db.travelRecords)
       ..where((t) => t.isDeleted.equals(false))
-      ..orderBy([(t) => OrderingTerm.desc(t.recordDate)])
-      ..limit(limit);
+      ..orderBy([(t) => OrderingTerm.desc(t.recordDate)]);
+    
+    if (limit != null) {
+      query = query..limit(limit);
+    }
     
     query.where((t) {
       var expr = t.title.like('%${keywords.first}%') | t.destination.like('%${keywords.first}%');
       for (final kw in keywords.skip(1)) {
-        expr = expr | t.title.like('%$kw%') | t.destination.like('%$kw%') | t.content.like('%$kw%');
+        expr = expr | t.title.like('%$kw%') | t.destination.like('%$kw%') | t.content.like('%$kw%') | t.tags.like('%$kw%');
       }
       return expr;
     });
     
     final travels = await query.get();
-    return travels.map((t) => RecordContext(
-      type: '旅行',
-      id: t.id,
-      title: t.title ?? '',
-      content: t.content ?? '',
-      date: t.recordDate,
-      extra: {'destination': t.destination},
-    )).toList();
+    
+    return Future.wait(travels.map((t) async {
+      final links = await _loadLinks('travel', t.id);
+      return RecordContext(
+        type: '旅行',
+        id: t.id,
+        title: t.title ?? '',
+        content: t.content ?? '',
+        date: t.recordDate,
+        images: _parseImages(t.images),
+        tags: _parseTags(t.tags),
+        isFavorite: t.isFavorite,
+        links: links.isNotEmpty ? links : null,
+        extra: {
+          'tripId': t.tripId,
+          'destination': t.destination,
+          'poiName': t.poiName,
+          'city': t.city,
+          'country': t.country,
+          'mood': t.mood,
+        },
+      );
+    }));
   }
 
-  Future<List<RecordContext>> _searchGoalRecords(List<String> keywords, int limit) async {
+  Future<List<RecordContext>> _searchGoalRecords(List<String> keywords, int? limit) async {
     if (keywords.isEmpty) return [];
     
-    final query = _db.select(_db.goalRecords)
+    var query = _db.select(_db.goalRecords)
       ..where((t) => t.isDeleted.equals(false))
-      ..orderBy([(t) => OrderingTerm.desc(t.recordDate)])
-      ..limit(limit);
+      ..orderBy([(t) => OrderingTerm.desc(t.recordDate)]);
+    
+    if (limit != null) {
+      query = query..limit(limit);
+    }
     
     query.where((t) {
       var expr = t.title.like('%${keywords.first}%');
       for (final kw in keywords.skip(1)) {
-        expr = expr | t.title.like('%$kw%') | t.note.like('%$kw%');
+        expr = expr | t.title.like('%$kw%') | t.note.like('%$kw%') | t.tags.like('%$kw%');
       }
       return expr;
     });
     
     final goals = await query.get();
-    return goals.map((g) => RecordContext(
-      type: '目标',
-      id: g.id,
-      title: g.title,
-      content: g.note ?? '',
-      date: g.recordDate,
-      extra: {'level': g.level, 'isCompleted': g.isCompleted},
-    )).toList();
+    
+    return Future.wait(goals.map((g) async {
+      final links = await _loadLinks('goal', g.id);
+      return RecordContext(
+        type: '目标',
+        id: g.id,
+        title: g.title,
+        content: g.note ?? '',
+        date: g.recordDate,
+        tags: _parseTags(g.tags),
+        isFavorite: g.isFavorite,
+        links: links.isNotEmpty ? links : null,
+        extra: {
+          'parentId': g.parentId,
+          'level': g.level,
+          'summary': g.summary,
+          'category': g.category,
+          'progress': g.progress,
+          'isCompleted': g.isCompleted,
+          'dueDate': g.dueDate,
+        },
+      );
+    }));
   }
 
-  Future<List<RecordContext>> _searchEncounterRecords(List<String> keywords, int limit) async {
+  Future<List<RecordContext>> _searchEncounterRecords(List<String> keywords, int? limit) async {
     if (keywords.isEmpty) return [];
     
-    final query = _db.select(_db.timelineEvents)
+    var query = _db.select(_db.timelineEvents)
       ..where((t) => t.eventType.equals('encounter'))
       ..where((t) => t.isDeleted.equals(false))
-      ..orderBy([(t) => OrderingTerm.desc(t.recordDate)])
-      ..limit(limit);
+      ..orderBy([(t) => OrderingTerm.desc(t.recordDate)]);
+    
+    if (limit != null) {
+      query = query..limit(limit);
+    }
     
     query.where((t) {
       var expr = t.title.like('%${keywords.first}%') | t.note.like('%${keywords.first}%');
       for (final kw in keywords.skip(1)) {
-        expr = expr | t.title.like('%$kw%') | t.note.like('%$kw%');
+        expr = expr | t.title.like('%$kw%') | t.note.like('%$kw%') | t.tags.like('%$kw%');
       }
       return expr;
     });
     
     final encounters = await query.get();
-    return encounters.map((e) => RecordContext(
-      type: '相遇',
-      id: e.id,
-      title: e.title,
-      content: e.note ?? '',
-      date: e.recordDate,
-      extra: {},
-    )).toList();
+    
+    return Future.wait(encounters.map((e) async {
+      final links = await _loadLinks('encounter', e.id);
+      return RecordContext(
+        type: '相遇',
+        id: e.id,
+        title: e.title,
+        content: e.note ?? '',
+        date: e.recordDate,
+        tags: _parseTags(e.tags),
+        isFavorite: e.isFavorite,
+        links: links.isNotEmpty ? links : null,
+        extra: {
+          'startAt': e.startAt,
+          'endAt': e.endAt,
+          'poiName': e.poiName,
+          'poiAddress': e.poiAddress,
+        },
+      );
+    }));
   }
 
   Future<RecordContext?> fetchRecordById(String type, String id) async {
@@ -502,39 +979,75 @@ class RecordRetriever {
       case '美食':
         final food = await _db.foodDao.findById(id);
         if (food == null) return null;
+        final links = await _loadLinks('food', food.id);
         return RecordContext(
           type: '美食',
           id: food.id,
           title: food.title,
           content: food.content ?? '',
           date: food.recordDate,
-          extra: {'rating': food.rating, 'city': food.city, 'poiName': food.poiName},
+          images: _parseImages(food.images),
+          tags: _parseTags(food.tags),
+          isFavorite: food.isFavorite,
+          links: links.isNotEmpty ? links : null,
+          extra: {
+            'rating': food.rating,
+            'pricePerPerson': food.pricePerPerson,
+            'mood': food.mood,
+            'poiName': food.poiName,
+            'poiAddress': food.poiAddress,
+            'city': food.city,
+            'country': food.country,
+          },
         );
         
       case 'moment':
       case '小确幸':
         final moment = await _db.momentDao.findById(id);
         if (moment == null) return null;
+        final links = await _loadLinks('moment', moment.id);
         return RecordContext(
           type: '小确幸',
           id: moment.id,
           title: '',
           content: moment.content ?? '',
           date: moment.recordDate,
-          extra: {'mood': moment.mood, 'city': moment.city},
+          images: _parseImages(moment.images),
+          tags: _parseTags(moment.tags),
+          isFavorite: moment.isFavorite,
+          links: links.isNotEmpty ? links : null,
+          extra: {
+            'mood': moment.mood,
+            'moodColor': moment.moodColor,
+            'poiName': moment.poiName,
+            'poiAddress': moment.poiAddress,
+            'city': moment.city,
+          },
         );
         
       case 'travel':
       case '旅行':
         final travel = await _db.watchTravelById(id).first;
         if (travel == null) return null;
+        final links = await _loadLinks('travel', travel.id);
         return RecordContext(
           type: '旅行',
           id: travel.id,
           title: travel.title ?? '',
           content: travel.content ?? '',
           date: travel.recordDate,
-          extra: {'destination': travel.destination, 'city': travel.city},
+          images: _parseImages(travel.images),
+          tags: _parseTags(travel.tags),
+          isFavorite: travel.isFavorite,
+          links: links.isNotEmpty ? links : null,
+          extra: {
+            'tripId': travel.tripId,
+            'destination': travel.destination,
+            'poiName': travel.poiName,
+            'city': travel.city,
+            'country': travel.country,
+            'mood': travel.mood,
+          },
         );
         
       case 'goal':
@@ -542,13 +1055,25 @@ class RecordRetriever {
         final goals = await _db.watchAllActiveGoalRecords().first;
         final goal = goals.where((g) => g.id == id).firstOrNull;
         if (goal == null) return null;
+        final links = await _loadLinks('goal', goal.id);
         return RecordContext(
           type: '目标',
           id: goal.id,
           title: goal.title,
           content: goal.note ?? '',
           date: goal.recordDate,
-          extra: {'level': goal.level, 'isCompleted': goal.isCompleted},
+          tags: _parseTags(goal.tags),
+          isFavorite: goal.isFavorite,
+          links: links.isNotEmpty ? links : null,
+          extra: {
+            'parentId': goal.parentId,
+            'level': goal.level,
+            'summary': goal.summary,
+            'category': goal.category,
+            'progress': goal.progress,
+            'isCompleted': goal.isCompleted,
+            'dueDate': goal.dueDate,
+          },
         );
         
       case 'encounter':
@@ -559,13 +1084,22 @@ class RecordRetriever {
             .get();
         final encounter = events.where((e) => e.id == id).firstOrNull;
         if (encounter == null) return null;
+        final links = await _loadLinks('encounter', encounter.id);
         return RecordContext(
           type: '相遇',
           id: encounter.id,
           title: encounter.title,
           content: encounter.note ?? '',
           date: encounter.recordDate,
-          extra: {},
+          tags: _parseTags(encounter.tags),
+          isFavorite: encounter.isFavorite,
+          links: links.isNotEmpty ? links : null,
+          extra: {
+            'startAt': encounter.startAt,
+            'endAt': encounter.endAt,
+            'poiName': encounter.poiName,
+            'poiAddress': encounter.poiAddress,
+          },
         );
         
       default:

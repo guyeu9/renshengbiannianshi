@@ -39,8 +39,8 @@ class PdfExportService {
       await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 步骤1 - 尝试从应用内assets加载字体', LogLevel.info);
       
       final assetFontPaths = [
-        'assets/fonts/NotoSansSC-Regular.otf',
-        'assets/fonts/NotoSansSC-Bold.otf',
+        'assets/fonts/NotoSansSC-Regular.ttf',
+        'assets/fonts/NotoSansSC-Bold.ttf',
         'assets/fonts/DroidSansFallback.ttf',
       ];
       

@@ -20,6 +20,7 @@ import '../../../core/utils/media_storage.dart';
 import '../../../core/widgets/ai_parse_button.dart';
 import '../../../core/widgets/amap_location_page.dart';
 import '../../../core/widgets/custom_bottom_sheet.dart';
+import '../../../core/utils/image_save_util.dart';
 import '../../../core/widgets/app_image.dart';
 import '../providers/travel_detail_provider.dart';
 import '../../bond/presentation/bond_page.dart' show FriendProfilePage;
@@ -1124,12 +1125,7 @@ class TravelDetailPage extends ConsumerWidget {
                                     ),
                                   );
                                   if (confirmed == true) {
-                                    await (db.update(db.travelRecords)..where((t) => t.tripId.equals(tripId))).write(
-                                      TravelRecordsCompanion(
-                                        isDeleted: Value(true),
-                                        updatedAt: Value(DateTime.now()),
-                                      ),
-                                    );
+                                    await db.travelDao.softDeleteTripById(tripId, now: DateTime.now());
                                     if (context.mounted) {
                                       Navigator.of(context).pop();
                                     }
@@ -3237,6 +3233,8 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
                     ..._imageUrls.asMap().entries.map((entry) => _PhotoGridItem(
                       imageUrl: entry.value,
                       onDelete: () => _removeImage(entry.key),
+                      images: _imageUrls,
+                      initialIndex: entry.key,
                     )),
                     _PhotoAddGridItem(onTap: _pickImages),
                   ],
@@ -4476,35 +4474,66 @@ class _DashedRRectPainter extends CustomPainter {
 }
 
 class _PhotoGridItem extends StatelessWidget {
-  const _PhotoGridItem({required this.imageUrl, required this.onDelete});
+  const _PhotoGridItem({
+    required this.imageUrl,
+    required this.onDelete,
+    this.images,
+    this.initialIndex = 0,
+  });
 
   final String imageUrl;
   final VoidCallback onDelete;
+  final List<String>? images;
+  final int initialIndex;
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          _buildLocalImage(imageUrl, fit: BoxFit.cover),
-          Align(
-            alignment: Alignment.topRight,
-            child: Padding(
-              padding: const EdgeInsets.all(6),
-              child: GestureDetector(
-                onTap: onDelete,
-                child: Container(
-                  width: 20,
-                  height: 20,
-                  decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.50), shape: BoxShape.circle),
-                  child: const Icon(Icons.close, size: 14, color: Colors.white),
+    return GestureDetector(
+      onTap: () {
+        if (images != null && images!.isNotEmpty) {
+          ImagePreview.showGallery(context, images: images!, initialIndex: initialIndex);
+        } else {
+          ImagePreview.show(context, imageUrl: imageUrl);
+        }
+      },
+      onLongPress: () {
+        ImageSaveUtil.showImageOptions(
+          context,
+          imageUrl,
+          isNetwork: false,
+          onView: () {
+            if (images != null && images!.isNotEmpty) {
+              ImagePreview.showGallery(context, images: images!, initialIndex: initialIndex);
+            } else {
+              ImagePreview.show(context, imageUrl: imageUrl);
+            }
+          },
+          onDelete: onDelete,
+        );
+      },
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            _buildLocalImage(imageUrl, fit: BoxFit.cover),
+            Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: const EdgeInsets.all(6),
+                child: GestureDetector(
+                  onTap: onDelete,
+                  child: Container(
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.50), shape: BoxShape.circle),
+                    child: const Icon(Icons.close, size: 14, color: Colors.white),
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -6080,15 +6109,11 @@ class _JournalDetailPageState extends ConsumerState<JournalDetailPage>
     if (images.isEmpty) return const SizedBox.shrink();
 
     if (images.length == 1) {
-      return GestureDetector(
-        onTap: () => _showImageDialog(context, images[0]),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: AspectRatio(
-            aspectRatio: 16 / 9,
-            child: _buildLocalImage(images[0], fit: BoxFit.cover),
-          ),
-        ),
+      return SmartImage(
+        source: images[0],
+        borderRadius: 16,
+        images: images,
+        initialIndex: 0,
       );
     }
 
@@ -6101,7 +6126,13 @@ class _JournalDetailPageState extends ConsumerState<JournalDetailPage>
             child: Padding(
               padding: EdgeInsets.only(right: idx == 0 ? 8 : 0),
               child: GestureDetector(
-                onTap: () => _showImageDialog(context, img),
+                onTap: () => ImagePreview.showGallery(context, images: images, initialIndex: idx),
+                onLongPress: () => ImageSaveUtil.showImageOptions(
+                  context,
+                  img,
+                  isNetwork: false,
+                  onView: () => ImagePreview.showGallery(context, images: images, initialIndex: idx),
+                ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: AspectRatio(
@@ -6138,7 +6169,13 @@ class _JournalDetailPageState extends ConsumerState<JournalDetailPage>
           itemBuilder: (context, index) {
             return RepaintBoundary(
               child: GestureDetector(
-                onTap: () => _showImageDialog(context, images[index]),
+                onTap: () => ImagePreview.showGallery(context, images: images, initialIndex: index),
+                onLongPress: () => ImageSaveUtil.showImageOptions(
+                  context,
+                  images[index],
+                  isNetwork: false,
+                  onView: () => ImagePreview.showGallery(context, images: images, initialIndex: index),
+                ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
                   child: _buildLocalImage(images[index], fit: BoxFit.cover),
@@ -6148,39 +6185,6 @@ class _JournalDetailPageState extends ConsumerState<JournalDetailPage>
           },
         ),
       ),
-    );
-  }
-
-  void _showImageDialog(BuildContext context, String imageUrl) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.all(16),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: _buildLocalImage(imageUrl, fit: BoxFit.contain),
-              ),
-              Positioned(
-                top: 0,
-                right: 0,
-                child: IconButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  icon: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.5), shape: BoxShape.circle),
-                    child: const Icon(Icons.close, color: Colors.white, size: 20),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 

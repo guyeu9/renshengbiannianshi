@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../app/app_theme.dart';
@@ -13,6 +16,7 @@ import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/providers/ai_provider.dart';
 import '../../../core/services/ai_service.dart' as ai_service;
+import '../../../core/utils/image_utils.dart';
 import '../services/context_builder.dart';
 
 enum MessageRole { user, assistant }
@@ -23,6 +27,10 @@ class RecommendationCard {
   final String title;
   final String? summary;
   final String? imageUrl;
+  final double? rating;
+  final List<String>? tags;
+  final String? date;
+  final bool? isFavorite;
 
   RecommendationCard({
     required this.type,
@@ -30,6 +38,10 @@ class RecommendationCard {
     required this.title,
     this.summary,
     this.imageUrl,
+    this.rating,
+    this.tags,
+    this.date,
+    this.isFavorite,
   });
 
   factory RecommendationCard.fromJson(Map<String, dynamic> json) {
@@ -39,6 +51,10 @@ class RecommendationCard {
       title: json['title'] ?? '',
       summary: json['summary'],
       imageUrl: json['imageUrl'],
+      rating: json['rating']?.toDouble(),
+      tags: (json['tags'] as List?)?.map((e) => e.toString()).toList(),
+      date: json['date'],
+      isFavorite: json['isFavorite'],
     );
   }
 }
@@ -94,12 +110,46 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
   final List<ChatMessageModel> _messages = [];
   bool _showSessionDrawer = false;
   bool _isInitialized = false;
+  bool _fullData = false;
+  String? _userAvatarPath;
+  static const _defaultAvatarUrl = 'https://lh3.googleusercontent.com/aida-public/AB6AXuBbKe_aCd46pUms7LLAFzD6OXtQ8lCfAXJOsCrBecRIq0Rsb6hG4jY_titPPL6OX4UEolhRaXIm5q1CN8mgX1sDnDEpjIu6VsAPEPXD_TgVO70SfpWy3Ip2I0CsCyMuTYopG68o1H3zfeCTGnhMwcli29GRkYeNRSh_bne4ffgw7Lym8TRcy9xvfIRJ7re4r_AZ6HYWFXuNljbmovvrN8K3yGjv8iiZ5MCKo2rG0vQcYlScRiJTep-ftfRgTq7kF_pycqvsKRxWyfNh';
 
   @override
   void initState() {
     super.initState();
     _loadRecordStats();
     _initializeSession();
+    _loadUserAvatar();
+  }
+
+  Future<void> _loadUserAvatar() async {
+    if (kIsWeb) return;
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final file = File(p.join(dir.path, 'profile', 'avatar.json'));
+      if (await file.exists()) {
+        final raw = await file.readAsString();
+        final decoded = jsonDecode(raw);
+        if (decoded is Map && decoded['path'] is String) {
+          if (mounted) {
+            setState(() {
+              _userAvatarPath = decoded['path'];
+            });
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  ImageProvider _avatarProvider() {
+    final path = _userAvatarPath?.trim() ?? '';
+    if (path.isEmpty) {
+      return NetworkImage(_defaultAvatarUrl);
+    }
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return NetworkImage(path);
+    }
+    return FileImage(File(path));
   }
 
   @override
@@ -388,6 +438,7 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
         userQuery: text,
         recordStats: _recordStats,
         totalRecords: _totalRecords,
+        fullData: _fullData,
       );
 
       final history = _messages
@@ -499,13 +550,14 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
       final db = ref.read(appDatabaseProvider);
       final contextBuilder = ContextBuilder(db);
       
-      final preloadedRecords = await contextBuilder.retrieveForQuickAction(actionType);
+      final preloadedRecords = await contextBuilder.retrieveForQuickAction(actionType, fullData: _fullData);
       
       final systemPrompt = await contextBuilder.buildSystemPrompt(
         userQuery: displayMessage,
         recordStats: _recordStats,
         totalRecords: _totalRecords,
         preloadedRecords: preloadedRecords,
+        fullData: _fullData,
       );
 
       final history = _messages
@@ -636,6 +688,8 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
                   onAnalytics: () => Navigator.of(context).pushNamed('/chronicle'),
                   onToggleSessions: () => setState(() => _showSessionDrawer = !_showSessionDrawer),
                   hasAiService: hasAiService,
+                  fullData: _fullData,
+                  onToggleFullData: () => setState(() => _fullData = !_fullData),
                 ),
                 if (_errorMessage != null)
                   Container(
@@ -680,6 +734,7 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
                                 _MessageBubble(
                                   message: message,
                                   onCardTap: _handleCardTap,
+                                  avatarProvider: _avatarProvider(),
                                 ),
                               ],
                             );
@@ -696,6 +751,7 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
                               _MessageBubble(
                                 message: message,
                                 onCardTap: _handleCardTap,
+                                avatarProvider: _avatarProvider(),
                               ),
                             ],
                           );
@@ -916,12 +972,16 @@ class _AiChatTopBar extends StatelessWidget {
     required this.onAnalytics,
     required this.onToggleSessions,
     required this.hasAiService,
+    required this.fullData,
+    required this.onToggleFullData,
   });
 
   final VoidCallback onClear;
   final VoidCallback onAnalytics;
   final VoidCallback onToggleSessions;
   final bool hasAiService;
+  final bool fullData;
+  final VoidCallback onToggleFullData;
 
   @override
   Widget build(BuildContext context) {
@@ -975,7 +1035,7 @@ class _AiChatTopBar extends StatelessWidget {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          hasAiService ? '在线 · 全量数据已挂载' : '离线 · 请配置AI服务',
+                          hasAiService ? '在线' : '离线 · 请配置AI服务',
                           style: const TextStyle(
                             fontSize: 12,
                             color: Color(0xFF64748B),
@@ -987,6 +1047,40 @@ class _AiChatTopBar extends StatelessWidget {
                   ],
                 ),
               ),
+              InkWell(
+                onTap: onToggleFullData,
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: fullData ? AppTheme.primary.withValues(alpha: 0.15) : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: fullData ? AppTheme.primary : Colors.grey.shade300,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        fullData ? Icons.dataset : Icons.dataset_outlined,
+                        size: 16,
+                        color: fullData ? AppTheme.primary : Colors.grey.shade600,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '全量数据',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: fullData ? AppTheme.primary : Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
               IconButton(
                 onPressed: onAnalytics,
                 icon: const Icon(Icons.analytics, color: Color(0xFF475569)),
@@ -1274,24 +1368,27 @@ class _MessageBubble extends StatelessWidget {
   const _MessageBubble({
     required this.message,
     this.onCardTap,
+    this.avatarProvider,
   });
 
   final ChatMessageModel message;
   final void Function(RecommendationCard)? onCardTap;
+  final ImageProvider? avatarProvider;
 
   @override
   Widget build(BuildContext context) {
     if (message.role == MessageRole.user) {
-      return _UserMessageBubble(message: message);
+      return _UserMessageBubble(message: message, avatarProvider: avatarProvider);
     }
     return _AiMessageBubble(message: message, onCardTap: onCardTap);
   }
 }
 
 class _UserMessageBubble extends StatelessWidget {
-  const _UserMessageBubble({required this.message});
+  const _UserMessageBubble({required this.message, this.avatarProvider});
 
   final ChatMessageModel message;
+  final ImageProvider? avatarProvider;
 
   @override
   Widget build(BuildContext context) {
@@ -1329,10 +1426,19 @@ class _UserMessageBubble extends StatelessWidget {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: AppTheme.primary.withValues(alpha: 0.1),
             shape: BoxShape.circle,
+            border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2), width: 2),
           ),
-          child: const Icon(Icons.person, color: AppTheme.primary, size: 20),
+          child: ClipOval(
+            child: Image(
+              image: avatarProvider ?? const NetworkImage('https://lh3.googleusercontent.com/aida-public/AB6AXuBbKe_aCd46pUms7LLAFzD6OXtQ8lCfAXJOsCrBecRIq0Rsb6hG4jY_titPPL6OX4UEolhRaXIm5q1CN8mgX1sDnDEpjIu6VsAPEPXD_TgVO70SfpWy3Ip2I0CsCyMuTYopG68o1H3zfeCTGnhMwcli29GRkYeNRSh_bne4ffgw7Lym8TRcy9xvfIRJ7re4r_AZ6HYWFXuNljbmovvrN8K3yGjv8iiZ5MCKo2rG0vQcYlScRiJTep-ftfRgTq7kF_pycqvsKRxWyfNh'),
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                color: AppTheme.primary.withValues(alpha: 0.1),
+                child: const Icon(Icons.person, color: AppTheme.primary, size: 20),
+              ),
+            ),
+          ),
         ),
       ],
     );
