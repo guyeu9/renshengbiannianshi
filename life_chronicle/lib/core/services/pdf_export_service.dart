@@ -8,6 +8,7 @@ import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../database/app_database.dart';
+import 'file_logger.dart';
 
 class PdfExportService {
   final AppDatabase db;
@@ -22,44 +23,15 @@ class PdfExportService {
   pw.Font? _chineseFontBold;
   bool _fontsLoaded = false;
   
-  final List<Map<String, dynamic>> _logs = [];
-  
   PdfExportService(this.db);
-  
-  void _log(String level, String message, {Map<String, dynamic>? data, StackTrace? stackTrace}) {
-    final logEntry = {
-      'timestamp': DateTime.now().toIso8601String(),
-      'level': level,
-      'message': message,
-      'data': data,
-      'stackTrace': stackTrace?.toString(),
-    };
-    _logs.add(logEntry);
-    
-    if (level != 'DEBUG') {
-      final logString = '[PDF导出][$level][${DateTime.now()}] $message';
-      if (data != null) {
-        debugPrint('$logString | 数据: $data');
-      } else {
-        debugPrint(logString);
-      }
-      if (stackTrace != null && level == 'ERROR') {
-        debugPrint('堆栈: $stackTrace');
-      }
-    }
-  }
-  
-  List<Map<String, dynamic>> getLogs() => List.unmodifiable(_logs);
-  
-  void clearLogs() => _logs.clear();
   
   Future<void> _loadFonts() async {
     if (_fontsLoaded) {
-      _log('INFO', '字体已加载，跳过重复加载');
+      await FileLogger.instance.logWithLevel('PDF导出', '字体已加载，跳过重复加载', LogLevel.info);
       return;
     }
     
-    _log('INFO', '开始加载字体...');
+    await FileLogger.instance.logWithLevel('PDF导出', '开始加载字体...', LogLevel.info);
     
     try {
       final systemFontPaths = [
@@ -79,67 +51,64 @@ class PdfExportService {
         '/system/fonts/SourceHanSansSC-Bold.otf',
       ];
       
-      _log('INFO', '尝试加载常规字体', data: {'paths': systemFontPaths});
+      await FileLogger.instance.logWithLevel('PDF导出', '尝试加载常规字体', LogLevel.info);
       
       for (final fontPath in systemFontPaths) {
         try {
-          _log('DEBUG', '检查字体文件', data: {'path': fontPath});
+          await FileLogger.instance.logWithLevel('PDF导出', '检查字体文件: $fontPath', LogLevel.debug);
           final file = File(fontPath);
           final exists = await file.exists();
-          _log('DEBUG', '字体文件存在性检查', data: {'path': fontPath, 'exists': exists});
+          await FileLogger.instance.logWithLevel('PDF导出', '字体文件存在性检查: $fontPath, exists=$exists', LogLevel.debug);
           
           if (exists) {
-            _log('INFO', '找到字体文件，开始读取', data: {'path': fontPath});
+            await FileLogger.instance.logWithLevel('PDF导出', '找到字体文件，开始读取: $fontPath', LogLevel.info);
             final fontData = await file.readAsBytes();
-            _log('DEBUG', '字体数据读取完成', data: {'path': fontPath, 'size': fontData.length});
+            await FileLogger.instance.logWithLevel('PDF导出', '字体数据读取完成: $fontPath, size=${fontData.length}', LogLevel.debug);
             
             _chineseFont = pw.Font.ttf(ByteData.sublistView(Uint8List.fromList(fontData)));
-            _log('INFO', '常规字体加载成功', data: {'path': fontPath});
+            await FileLogger.instance.logWithLevel('PDF导出', '常规字体加载成功: $fontPath', LogLevel.info);
             break;
           }
         } catch (e, stack) {
-          _log('WARNING', '加载字体失败', data: {'path': fontPath, 'error': e.toString()}, stackTrace: stack);
+          await FileLogger.instance.logWithLevel('PDF导出', '加载字体失败: $fontPath, error=${e.toString()}', LogLevel.warn);
           continue;
         }
       }
       
-      _log('INFO', '尝试加载粗体字体', data: {'paths': boldFontPaths});
+      await FileLogger.instance.logWithLevel('PDF导出', '尝试加载粗体字体', LogLevel.info);
       
       for (final fontPath in boldFontPaths) {
         try {
-          _log('DEBUG', '检查粗体字体文件', data: {'path': fontPath});
+          await FileLogger.instance.logWithLevel('PDF导出', '检查粗体字体文件: $fontPath', LogLevel.debug);
           final file = File(fontPath);
           final exists = await file.exists();
-          _log('DEBUG', '粗体字体文件存在性检查', data: {'path': fontPath, 'exists': exists});
+          await FileLogger.instance.logWithLevel('PDF导出', '粗体字体文件存在性检查: $fontPath, exists=$exists', LogLevel.debug);
           
           if (exists) {
-            _log('INFO', '找到粗体字体文件，开始读取', data: {'path': fontPath});
+            await FileLogger.instance.logWithLevel('PDF导出', '找到粗体字体文件，开始读取: $fontPath', LogLevel.info);
             final fontData = await file.readAsBytes();
-            _log('DEBUG', '粗体字体数据读取完成', data: {'path': fontPath, 'size': fontData.length});
+            await FileLogger.instance.logWithLevel('PDF导出', '粗体字体数据读取完成: $fontPath, size=${fontData.length}', LogLevel.debug);
             
             _chineseFontBold = pw.Font.ttf(ByteData.sublistView(Uint8List.fromList(fontData)));
-            _log('INFO', '粗体字体加载成功', data: {'path': fontPath});
+            await FileLogger.instance.logWithLevel('PDF导出', '粗体字体加载成功: $fontPath', LogLevel.info);
             break;
           }
         } catch (e, stack) {
-          _log('WARNING', '加载粗体字体失败', data: {'path': fontPath, 'error': e.toString()}, stackTrace: stack);
+          await FileLogger.instance.logWithLevel('PDF导出', '加载粗体字体失败: $fontPath, error=${e.toString()}', LogLevel.warn);
           continue;
         }
       }
       
       if (_chineseFontBold == null && _chineseFont != null) {
         _chineseFontBold = _chineseFont;
-        _log('INFO', '使用常规字体作为粗体回退');
+        await FileLogger.instance.logWithLevel('PDF导出', '使用常规字体作为粗体回退', LogLevel.info);
       }
       
-      _log('INFO', '字体加载完成', data: {
-        'regularFontLoaded': _chineseFont != null,
-        'boldFontLoaded': _chineseFontBold != null,
-      });
+      await FileLogger.instance.logWithLevel('PDF导出', '字体加载完成: regularFontLoaded=${_chineseFont != null}, boldFontLoaded=${_chineseFontBold != null}', LogLevel.info);
       
       _fontsLoaded = true;
     } catch (e, stack) {
-      _log('ERROR', '字体加载过程发生异常，继续使用默认字体', data: {'error': e.toString()}, stackTrace: stack);
+      await FileLogger.instance.logWithLevel('PDF导出', '字体加载过程发生异常，继续使用默认字体: ${e.toString()}', LogLevel.error);
       _chineseFont = null;
       _chineseFontBold = null;
       _fontsLoaded = true;
@@ -154,14 +123,6 @@ class PdfExportService {
     try {
       final font = bold ? (_chineseFontBold ?? _chineseFont) : _chineseFont;
       
-      _log('DEBUG', '创建TextStyle', data: {
-        'fontSize': fontSize,
-        'bold': bold,
-        'hasFont': font != null,
-        'hasRegularFont': _chineseFont != null,
-        'hasBoldFont': _chineseFontBold != null,
-      });
-      
       if (font != null) {
         return pw.TextStyle(
           fontSize: fontSize,
@@ -170,13 +131,11 @@ class PdfExportService {
         );
       }
       
-      _log('WARNING', '使用默认字体（无中文字体）', data: {'fontSize': fontSize, 'bold': bold});
       return pw.TextStyle(
         fontSize: fontSize,
         color: color,
       );
     } catch (e, stack) {
-      _log('ERROR', 'TextStyle创建失败，使用最安全的默认样式', data: {'error': e.toString()}, stackTrace: stack);
       return pw.TextStyle(
         fontSize: fontSize,
         color: color,
@@ -198,38 +157,25 @@ class PdfExportService {
     DateTime? startDate,
     DateTime? endDate,
   }) async {
-    _log('INFO', '开始PDF导出', data: {
-      'includeFood': includeFood,
-      'includeMoment': includeMoment,
-      'includeFriend': includeFriend,
-      'includeTravel': includeTravel,
-      'includeGoal': includeGoal,
-      'includeTimeline': includeTimeline,
-      'includeCover': includeCover,
-      'includeToc': includeToc,
-      'includeCharts': includeCharts,
-      'includePhotos': includePhotos,
-      'startDate': startDate?.toIso8601String(),
-      'endDate': endDate?.toIso8601String(),
-    });
+    await FileLogger.instance.logWithLevel('PDF导出', '开始PDF导出: includeFood=$includeFood, includeMoment=$includeMoment, includeFriend=$includeFriend, includeTravel=$includeTravel, includeGoal=$includeGoal, includeTimeline=$includeTimeline', LogLevel.info);
     
     try {
       await _loadFonts();
     } catch (e, stack) {
-      _log('ERROR', '字体加载失败，但继续导出', data: {'error': e.toString()}, stackTrace: stack);
+      await FileLogger.instance.logWithLevel('PDF导出', '字体加载失败，但继续导出: ${e.toString()}', LogLevel.error);
     }
     
     final pdf = pw.Document();
     
     try {
       if (includeCover) {
-        _log('INFO', '创建封面页...');
+        await FileLogger.instance.logWithLevel('PDF导出', '创建封面页...', LogLevel.info);
         pdf.addPage(await _createCoverPage(startDate: startDate, endDate: endDate));
-        _log('INFO', '封面页创建完成');
+        await FileLogger.instance.logWithLevel('PDF导出', '封面页创建完成', LogLevel.info);
       }
       
       if (includeToc) {
-        _log('INFO', '创建目录页...');
+        await FileLogger.instance.logWithLevel('PDF导出', '创建目录页...', LogLevel.info);
         pdf.addPage(await _createTableOfContents(
           includeFood: includeFood,
           includeMoment: includeMoment,
@@ -238,10 +184,10 @@ class PdfExportService {
           includeGoal: includeGoal,
           includeTimeline: includeTimeline,
         ));
-        _log('INFO', '目录页创建完成');
+        await FileLogger.instance.logWithLevel('PDF导出', '目录页创建完成', LogLevel.info);
       }
       
-      _log('INFO', '创建概览章节...');
+      await FileLogger.instance.logWithLevel('PDF导出', '创建概览章节...', LogLevel.info);
       pdf.addPage(await _createOverviewChapter(
         includeFood: includeFood,
         includeMoment: includeMoment,
@@ -252,66 +198,62 @@ class PdfExportService {
         startDate: startDate,
         endDate: endDate,
       ));
-      _log('INFO', '概览章节创建完成');
+      await FileLogger.instance.logWithLevel('PDF导出', '概览章节创建完成', LogLevel.info);
       
       if (includeFood) {
-        _log('INFO', '添加美食章节...');
+        await FileLogger.instance.logWithLevel('PDF导出', '添加美食章节...', LogLevel.info);
         await _addFoodChapter(pdf, includePhotos: includePhotos, startDate: startDate, endDate: endDate);
-        _log('INFO', '美食章节添加完成');
+        await FileLogger.instance.logWithLevel('PDF导出', '美食章节添加完成', LogLevel.info);
       }
       if (includeMoment) {
-        _log('INFO', '添加小确幸章节...');
+        await FileLogger.instance.logWithLevel('PDF导出', '添加小确幸章节...', LogLevel.info);
         await _addMomentChapter(pdf, includePhotos: includePhotos, startDate: startDate, endDate: endDate);
-        _log('INFO', '小确幸章节添加完成');
+        await FileLogger.instance.logWithLevel('PDF导出', '小确幸章节添加完成', LogLevel.info);
       }
       if (includeFriend) {
-        _log('INFO', '添加羁绊章节...');
+        await FileLogger.instance.logWithLevel('PDF导出', '添加羁绊章节...', LogLevel.info);
         await _addFriendChapter(pdf, includePhotos: includePhotos);
-        _log('INFO', '羁绊章节添加完成');
+        await FileLogger.instance.logWithLevel('PDF导出', '羁绊章节添加完成', LogLevel.info);
       }
       if (includeTravel) {
-        _log('INFO', '添加旅行章节...');
+        await FileLogger.instance.logWithLevel('PDF导出', '添加旅行章节...', LogLevel.info);
         await _addTravelChapter(pdf, includePhotos: includePhotos, startDate: startDate, endDate: endDate);
-        _log('INFO', '旅行章节添加完成');
+        await FileLogger.instance.logWithLevel('PDF导出', '旅行章节添加完成', LogLevel.info);
       }
       if (includeGoal) {
-        _log('INFO', '添加目标章节...');
+        await FileLogger.instance.logWithLevel('PDF导出', '添加目标章节...', LogLevel.info);
         await _addGoalChapter(pdf);
-        _log('INFO', '目标章节添加完成');
+        await FileLogger.instance.logWithLevel('PDF导出', '目标章节添加完成', LogLevel.info);
       }
       if (includeTimeline) {
-        _log('INFO', '添加时间线章节...');
+        await FileLogger.instance.logWithLevel('PDF导出', '添加时间线章节...', LogLevel.info);
         await _addTimelineChapter(pdf, startDate: startDate, endDate: endDate);
-        _log('INFO', '时间线章节添加完成');
+        await FileLogger.instance.logWithLevel('PDF导出', '时间线章节添加完成', LogLevel.info);
       }
       
-      _log('INFO', '保存PDF文件...');
+      await FileLogger.instance.logWithLevel('PDF导出', '保存PDF文件...', LogLevel.info);
       final tempDir = await getTemporaryDirectory();
       final now = DateTime.now();
       final timestamp = '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
       final fileName = '人生编年史导出_$timestamp.pdf';
       final filePath = path.join(tempDir.path, fileName);
       
-      _log('DEBUG', '准备写入文件', data: {'filePath': filePath});
+      await FileLogger.instance.logWithLevel('PDF导出', '准备写入文件: $filePath', LogLevel.debug);
       final file = File(filePath);
       final pdfBytes = await pdf.save();
-      _log('DEBUG', 'PDF字节生成完成', data: {'size': pdfBytes.length});
+      await FileLogger.instance.logWithLevel('PDF导出', 'PDF字节生成完成: size=${pdfBytes.length}', LogLevel.debug);
       await file.writeAsBytes(pdfBytes);
       
-      _log('INFO', 'PDF导出成功', data: {'filePath': filePath, 'logsCount': _logs.length});
+      await FileLogger.instance.logWithLevel('PDF导出', 'PDF导出成功: $filePath', LogLevel.info);
       return filePath;
     } catch (e, stack) {
-      _log('ERROR', 'PDF导出失败', data: {
-        'error': e.toString(),
-        'errorType': e.runtimeType.toString(),
-        'logsCount': _logs.length,
-      }, stackTrace: stack);
-      throw Exception('PDF导出失败: $e\n\n详细日志:\n${_logs.map((l) => '[${l['level']}] ${l['message']}').join('\n')}');
+      await FileLogger.instance.logWithLevel('PDF导出', 'PDF导出失败: ${e.toString()}', LogLevel.error);
+      rethrow;
     }
   }
   
   Future<pw.Page> _createCoverPage({DateTime? startDate, DateTime? endDate}) async {
-    _log('INFO', '开始创建封面页');
+    await FileLogger.instance.logWithLevel('PDF导出', '开始创建封面页', LogLevel.info);
     
     String dateRangeText = '';
     if (startDate != null || endDate != null) {
@@ -379,7 +321,7 @@ class PdfExportService {
         ),
       );
     } catch (e, stack) {
-      _log('ERROR', '封面页创建失败，尝试简化版本', data: {'error': e.toString()}, stackTrace: stack);
+      await FileLogger.instance.logWithLevel('PDF导出', '封面页创建失败，尝试简化版本: ${e.toString()}', LogLevel.error);
       return pw.Page(
         pageFormat: PdfPageFormat.a4,
         build: (context) => pw.Container(
@@ -425,7 +367,7 @@ class PdfExportService {
     required bool includeGoal,
     required bool includeTimeline,
   }) async {
-    _log('INFO', '开始创建目录页');
+    await FileLogger.instance.logWithLevel('PDF导出', '开始创建目录页', LogLevel.info);
     
     final chapters = <Map<String, dynamic>>[];
     if (includeFood) chapters.add({'title': '第一章：美食记录', 'page': 3});
@@ -461,7 +403,7 @@ class PdfExportService {
         ),
       );
     } catch (e, stack) {
-      _log('ERROR', '目录页创建失败', data: {'error': e.toString()}, stackTrace: stack);
+      await FileLogger.instance.logWithLevel('PDF导出', '目录页创建失败: ${e.toString()}', LogLevel.error);
       rethrow;
     }
   }
@@ -476,7 +418,7 @@ class PdfExportService {
     DateTime? startDate,
     DateTime? endDate,
   }) async {
-    _log('INFO', '开始创建概览章节');
+    await FileLogger.instance.logWithLevel('PDF导出', '开始创建概览章节', LogLevel.info);
     
     try {
       final stats = <Map<String, dynamic>>[];
@@ -535,7 +477,7 @@ class PdfExportService {
         stats.add({'title': '时间线', 'count': count, 'color': const PdfColor.fromInt(0xFF06B6D4)});
       }
       
-      _log('INFO', '概览章节数据准备完成');
+      await FileLogger.instance.logWithLevel('PDF导出', '概览章节数据准备完成', LogLevel.info);
       
       return pw.Page(
         pageFormat: PdfPageFormat.a4,
@@ -560,7 +502,7 @@ class PdfExportService {
         ),
       );
     } catch (e, stack) {
-      _log('ERROR', '概览章节创建失败，尝试简化版本', data: {'error': e.toString()}, stackTrace: stack);
+      await FileLogger.instance.logWithLevel('PDF导出', '概览章节创建失败，尝试简化版本: ${e.toString()}', LogLevel.error);
       
       final stats = <String>[];
       
@@ -639,8 +581,6 @@ class PdfExportService {
   }
   
   pw.Widget _buildStatCard(String title, int count, PdfColor color) {
-    _log('DEBUG', '创建统计卡片', data: {'title': title, 'count': count});
-    
     try {
       final bgColor = PdfColor.fromInt((color.toInt() & 0x00FFFFFF) | 0x1A000000);
       final shadowColor = PdfColor.fromInt(0x10000000);
@@ -669,7 +609,6 @@ class PdfExportService {
         ),
       );
     } catch (e, stack) {
-      _log('ERROR', '统计卡片创建失败，使用简化版本', data: {'title': title, 'error': e.toString()}, stackTrace: stack);
       return pw.Container(
         width: 140,
         padding: const pw.EdgeInsets.all(20),
@@ -690,7 +629,7 @@ class PdfExportService {
   }
   
   Future<pw.Page> _createChapterCoverPage(String chapter, String title, String subtitle, PdfColor color) async {
-    _log('INFO', '创建章节封面页', data: {'chapter': chapter, 'title': title});
+    await FileLogger.instance.logWithLevel('PDF导出', '创建章节封面页: chapter=$chapter, title=$title', LogLevel.info);
     
     try {
       return pw.Page(
@@ -718,7 +657,7 @@ class PdfExportService {
         ),
       );
     } catch (e, stack) {
-      _log('ERROR', '章节封面页创建失败，使用纯色版本', data: {'chapter': chapter, 'error': e.toString()}, stackTrace: stack);
+      await FileLogger.instance.logWithLevel('PDF导出', '章节封面页创建失败，使用纯色版本: chapter=$chapter, error=${e.toString()}', LogLevel.error);
       return pw.Page(
         pageFormat: PdfPageFormat.a4,
         build: (context) => pw.Container(
@@ -741,7 +680,7 @@ class PdfExportService {
   }
   
   Future<void> _addFoodChapter(pw.Document pdf, {required bool includePhotos, DateTime? startDate, DateTime? endDate}) async {
-    _log('INFO', '开始添加美食章节');
+    await FileLogger.instance.logWithLevel('PDF导出', '开始添加美食章节', LogLevel.info);
     
     try {
       var query = db.select(db.foodRecords);
@@ -755,18 +694,18 @@ class PdfExportService {
       }
       
       final records = await query.get();
-      _log('INFO', '美食记录查询完成', data: {'count': records.length});
+      await FileLogger.instance.logWithLevel('PDF导出', '美食记录查询完成: count=${records.length}', LogLevel.info);
       
       if (records.isEmpty) {
-        _log('INFO', '无美食记录，跳过章节');
+        await FileLogger.instance.logWithLevel('PDF导出', '无美食记录，跳过章节', LogLevel.info);
         return;
       }
       
       pdf.addPage(await _createChapterCoverPage('第一章', '美食记录', '共 ${records.length} 条记录', _primaryColor));
-      _log('DEBUG', '美食章节封面页添加完成');
+      await FileLogger.instance.logWithLevel('PDF导出', '美食章节封面页添加完成', LogLevel.debug);
       
       for (final record in records) {
-        _log('DEBUG', '处理美食记录', data: {'id': record.id, 'title': record.title});
+        await FileLogger.instance.logWithLevel('PDF导出', '处理美食记录: id=${record.id}, title=${record.title}', LogLevel.debug);
         
         List<File> images = [];
         if (includePhotos && record.images != null && record.images!.isNotEmpty) {
@@ -776,31 +715,31 @@ class PdfExportService {
                 .map((p) => File(p.toString()))
                 .where((f) => f.existsSync())
                 .toList();
-            _log('DEBUG', '美食记录图片加载完成', data: {'id': record.id, 'imageCount': images.length});
+            await FileLogger.instance.logWithLevel('PDF导出', '美食记录图片加载完成: id=${record.id}, imageCount=${images.length}', LogLevel.debug);
           } catch (e) {
-            _log('WARNING', '美食记录图片加载失败', data: {'id': record.id, 'error': e.toString()});
+            await FileLogger.instance.logWithLevel('PDF导出', '美食记录图片加载失败: id=${record.id}, error=${e.toString()}', LogLevel.warn);
           }
         }
         
         pdf.addPage(await _createFoodDetailPage(record, images));
       }
       
-      _log('INFO', '美食章节添加完成', data: {'recordCount': records.length});
+      await FileLogger.instance.logWithLevel('PDF导出', '美食章节添加完成: recordCount=${records.length}', LogLevel.info);
     } catch (e, stack) {
-      _log('ERROR', '美食章节添加失败', data: {'error': e.toString()}, stackTrace: stack);
+      await FileLogger.instance.logWithLevel('PDF导出', '美食章节添加失败: ${e.toString()}', LogLevel.error);
       rethrow;
     }
   }
   
   Future<pw.Page> _createFoodDetailPage(FoodRecord record, List<File> images) async {
-    _log('DEBUG', '创建美食详情页', data: {'id': record.id, 'title': record.title, 'imageCount': images.length});
+    await FileLogger.instance.logWithLevel('PDF导出', '创建美食详情页: id=${record.id}, title=${record.title}, imageCount=${images.length}', LogLevel.debug);
     
     try {
       final imageWidgets = <pw.Widget>[];
       
       for (final imageFile in images) {
         try {
-          _log('DEBUG', '加载美食图片', data: {'path': imageFile.path});
+          await FileLogger.instance.logWithLevel('PDF导出', '加载美食图片: path=${imageFile.path}', LogLevel.debug);
           final bytes = await imageFile.readAsBytes();
           final image = pw.MemoryImage(bytes);
           imageWidgets.add(
@@ -810,9 +749,9 @@ class PdfExportService {
               child: pw.Image(image, fit: pw.BoxFit.cover),
             ),
           );
-          _log('DEBUG', '美食图片加载成功', data: {'path': imageFile.path});
+          await FileLogger.instance.logWithLevel('PDF导出', '美食图片加载成功: path=${imageFile.path}', LogLevel.debug);
         } catch (e) {
-          _log('WARNING', '无法加载美食图片', data: {'path': imageFile.path, 'error': e.toString()});
+          await FileLogger.instance.logWithLevel('PDF导出', '无法加载美食图片: path=${imageFile.path}, error=${e.toString()}', LogLevel.warn);
         }
       }
       
@@ -876,13 +815,13 @@ class PdfExportService {
         ),
       );
     } catch (e, stack) {
-      _log('ERROR', '美食详情页创建失败', data: {'id': record.id, 'error': e.toString()}, stackTrace: stack);
+      await FileLogger.instance.logWithLevel('PDF导出', '美食详情页创建失败: id=${record.id}, error=${e.toString()}', LogLevel.error);
       rethrow;
     }
   }
   
   Future<void> _addMomentChapter(pw.Document pdf, {required bool includePhotos, DateTime? startDate, DateTime? endDate}) async {
-    _log('INFO', '开始添加小确幸章节');
+    await FileLogger.instance.logWithLevel('PDF导出', '开始添加小确幸章节', LogLevel.info);
     
     try {
       var query = db.select(db.momentRecords);
@@ -896,18 +835,18 @@ class PdfExportService {
       }
       
       final records = await query.get();
-      _log('INFO', '小确幸记录查询完成', data: {'count': records.length});
+      await FileLogger.instance.logWithLevel('PDF导出', '小确幸记录查询完成: count=${records.length}', LogLevel.info);
       
       if (records.isEmpty) {
-        _log('INFO', '无小确幸记录，跳过章节');
+        await FileLogger.instance.logWithLevel('PDF导出', '无小确幸记录，跳过章节', LogLevel.info);
         return;
       }
       
       pdf.addPage(await _createChapterCoverPage('第二章', '小确幸', '共 ${records.length} 条记录', _secondaryColor));
-      _log('DEBUG', '小确幸章节封面页添加完成');
+      await FileLogger.instance.logWithLevel('PDF导出', '小确幸章节封面页添加完成', LogLevel.debug);
       
       for (final record in records) {
-        _log('DEBUG', '处理小确幸记录', data: {'id': record.id});
+        await FileLogger.instance.logWithLevel('PDF导出', '处理小确幸记录: id=${record.id}', LogLevel.debug);
         
         List<File> images = [];
         if (includePhotos && record.images != null && record.images!.isNotEmpty) {
@@ -917,31 +856,31 @@ class PdfExportService {
                 .map((p) => File(p.toString()))
                 .where((f) => f.existsSync())
                 .toList();
-            _log('DEBUG', '小确幸记录图片加载完成', data: {'id': record.id, 'imageCount': images.length});
+            await FileLogger.instance.logWithLevel('PDF导出', '小确幸记录图片加载完成: id=${record.id}, imageCount=${images.length}', LogLevel.debug);
           } catch (e) {
-            _log('WARNING', '小确幸记录图片加载失败', data: {'id': record.id, 'error': e.toString()});
+            await FileLogger.instance.logWithLevel('PDF导出', '小确幸记录图片加载失败: id=${record.id}, error=${e.toString()}', LogLevel.warn);
           }
         }
         
         pdf.addPage(await _createMomentDetailPage(record, images));
       }
       
-      _log('INFO', '小确幸章节添加完成', data: {'recordCount': records.length});
+      await FileLogger.instance.logWithLevel('PDF导出', '小确幸章节添加完成: recordCount=${records.length}', LogLevel.info);
     } catch (e, stack) {
-      _log('ERROR', '小确幸章节添加失败', data: {'error': e.toString()}, stackTrace: stack);
+      await FileLogger.instance.logWithLevel('PDF导出', '小确幸章节添加失败: ${e.toString()}', LogLevel.error);
       rethrow;
     }
   }
   
   Future<pw.Page> _createMomentDetailPage(MomentRecord record, List<File> images) async {
-    _log('DEBUG', '创建小确幸详情页', data: {'id': record.id, 'imageCount': images.length});
+    await FileLogger.instance.logWithLevel('PDF导出', '创建小确幸详情页: id=${record.id}, imageCount=${images.length}', LogLevel.debug);
     
     try {
       final imageWidgets = <pw.Widget>[];
       
       for (final imageFile in images) {
         try {
-          _log('DEBUG', '加载小确幸图片', data: {'path': imageFile.path});
+          await FileLogger.instance.logWithLevel('PDF导出', '加载小确幸图片: path=${imageFile.path}', LogLevel.debug);
           final bytes = await imageFile.readAsBytes();
           final image = pw.MemoryImage(bytes);
           imageWidgets.add(
@@ -951,9 +890,9 @@ class PdfExportService {
               child: pw.Image(image, fit: pw.BoxFit.cover),
             ),
           );
-          _log('DEBUG', '小确幸图片加载成功', data: {'path': imageFile.path});
+          await FileLogger.instance.logWithLevel('PDF导出', '小确幸图片加载成功: path=${imageFile.path}', LogLevel.debug);
         } catch (e) {
-          _log('WARNING', '无法加载小确幸图片', data: {'path': imageFile.path, 'error': e.toString()});
+          await FileLogger.instance.logWithLevel('PDF导出', '无法加载小确幸图片: path=${imageFile.path}, error=${e.toString()}', LogLevel.warn);
         }
       }
       
@@ -1007,47 +946,47 @@ class PdfExportService {
         ),
       );
     } catch (e, stack) {
-      _log('ERROR', '小确幸详情页创建失败', data: {'id': record.id, 'error': e.toString()}, stackTrace: stack);
+      await FileLogger.instance.logWithLevel('PDF导出', '小确幸详情页创建失败: id=${record.id}, error=${e.toString()}', LogLevel.error);
       rethrow;
     }
   }
   
   Future<void> _addFriendChapter(pw.Document pdf, {required bool includePhotos}) async {
-    _log('INFO', '开始添加羁绊章节');
+    await FileLogger.instance.logWithLevel('PDF导出', '开始添加羁绊章节', LogLevel.info);
     
     try {
       final records = await (db.select(db.friendRecords)).get();
-      _log('INFO', '羁绊记录查询完成', data: {'count': records.length});
+      await FileLogger.instance.logWithLevel('PDF导出', '羁绊记录查询完成: count=${records.length}', LogLevel.info);
       
       if (records.isEmpty) {
-        _log('INFO', '无羁绊记录，跳过章节');
+        await FileLogger.instance.logWithLevel('PDF导出', '无羁绊记录，跳过章节', LogLevel.info);
         return;
       }
       
       pdf.addPage(await _createChapterCoverPage('第三章', '羁绊', '共 ${records.length} 位好友', const PdfColor.fromInt(0xFFEC4899)));
-      _log('DEBUG', '羁绊章节封面页添加完成');
+      await FileLogger.instance.logWithLevel('PDF导出', '羁绊章节封面页添加完成', LogLevel.debug);
       
       for (final record in records) {
-        _log('DEBUG', '处理羁绊记录', data: {'id': record.id, 'name': record.name});
+        await FileLogger.instance.logWithLevel('PDF导出', '处理羁绊记录: id=${record.id}, name=${record.name}', LogLevel.debug);
         pdf.addPage(await _createFriendDetailPage(record, includePhotos: includePhotos));
       }
       
-      _log('INFO', '羁绊章节添加完成', data: {'recordCount': records.length});
+      await FileLogger.instance.logWithLevel('PDF导出', '羁绊章节添加完成: recordCount=${records.length}', LogLevel.info);
     } catch (e, stack) {
-      _log('ERROR', '羁绊章节添加失败', data: {'error': e.toString()}, stackTrace: stack);
+      await FileLogger.instance.logWithLevel('PDF导出', '羁绊章节添加失败: ${e.toString()}', LogLevel.error);
       rethrow;
     }
   }
   
   Future<pw.Page> _createFriendDetailPage(FriendRecord record, {required bool includePhotos}) async {
-    _log('DEBUG', '创建羁绊详情页', data: {'id': record.id, 'name': record.name});
+    await FileLogger.instance.logWithLevel('PDF导出', '创建羁绊详情页: id=${record.id}, name=${record.name}', LogLevel.debug);
     
     try {
       pw.Widget? avatarWidget;
       
       if (includePhotos && record.avatarPath != null && record.avatarPath!.isNotEmpty) {
         try {
-          _log('DEBUG', '加载羁绊头像', data: {'id': record.id, 'avatarPath': record.avatarPath});
+          await FileLogger.instance.logWithLevel('PDF导出', '加载羁绊头像: id=${record.id}, avatarPath=${record.avatarPath}', LogLevel.debug);
           final avatarFile = File(record.avatarPath!);
           if (await avatarFile.exists()) {
             final bytes = await avatarFile.readAsBytes();
@@ -1057,12 +996,12 @@ class PdfExportService {
               verticalRadius: 40,
               child: pw.Image(image, fit: pw.BoxFit.cover, width: 80, height: 80),
             );
-            _log('DEBUG', '羁绊头像加载成功', data: {'id': record.id});
+            await FileLogger.instance.logWithLevel('PDF导出', '羁绊头像加载成功: id=${record.id}', LogLevel.debug);
           } else {
-            _log('WARNING', '羁绊头像文件不存在', data: {'id': record.id, 'path': record.avatarPath});
+            await FileLogger.instance.logWithLevel('PDF导出', '羁绊头像文件不存在: id=${record.id}, path=${record.avatarPath}', LogLevel.warn);
           }
         } catch (e) {
-          _log('WARNING', '无法加载羁绊头像', data: {'id': record.id, 'error': e.toString()});
+          await FileLogger.instance.logWithLevel('PDF导出', '无法加载羁绊头像: id=${record.id}, error=${e.toString()}', LogLevel.warn);
         }
       }
       
@@ -1127,13 +1066,13 @@ class PdfExportService {
         ),
       );
     } catch (e, stack) {
-      _log('ERROR', '羁绊详情页创建失败', data: {'id': record.id, 'error': e.toString()}, stackTrace: stack);
+      await FileLogger.instance.logWithLevel('PDF导出', '羁绊详情页创建失败: id=${record.id}, error=${e.toString()}', LogLevel.error);
       rethrow;
     }
   }
   
   Future<void> _addTravelChapter(pw.Document pdf, {required bool includePhotos, DateTime? startDate, DateTime? endDate}) async {
-    _log('INFO', '开始添加旅行章节');
+    await FileLogger.instance.logWithLevel('PDF导出', '开始添加旅行章节', LogLevel.info);
     
     try {
       var query = db.select(db.travelRecords);
@@ -1147,18 +1086,18 @@ class PdfExportService {
       }
       
       final records = await query.get();
-      _log('INFO', '旅行记录查询完成', data: {'count': records.length});
+      await FileLogger.instance.logWithLevel('PDF导出', '旅行记录查询完成: count=${records.length}', LogLevel.info);
       
       if (records.isEmpty) {
-        _log('INFO', '无旅行记录，跳过章节');
+        await FileLogger.instance.logWithLevel('PDF导出', '无旅行记录，跳过章节', LogLevel.info);
         return;
       }
       
       pdf.addPage(await _createChapterCoverPage('第四章', '旅行足迹', '共 ${records.length} 次旅行', _accentColor));
-      _log('DEBUG', '旅行章节封面页添加完成');
+      await FileLogger.instance.logWithLevel('PDF导出', '旅行章节封面页添加完成', LogLevel.debug);
       
       for (final record in records) {
-        _log('DEBUG', '处理旅行记录', data: {'id': record.id, 'destination': record.destination});
+        await FileLogger.instance.logWithLevel('PDF导出', '处理旅行记录: id=${record.id}, destination=${record.destination}', LogLevel.debug);
         
         List<File> images = [];
         if (includePhotos && record.images != null && record.images!.isNotEmpty) {
@@ -1168,31 +1107,31 @@ class PdfExportService {
                 .map((p) => File(p.toString()))
                 .where((f) => f.existsSync())
                 .toList();
-            _log('DEBUG', '旅行记录图片加载完成', data: {'id': record.id, 'imageCount': images.length});
+            await FileLogger.instance.logWithLevel('PDF导出', '旅行记录图片加载完成: id=${record.id}, imageCount=${images.length}', LogLevel.debug);
           } catch (e) {
-            _log('WARNING', '旅行记录图片加载失败', data: {'id': record.id, 'error': e.toString()});
+            await FileLogger.instance.logWithLevel('PDF导出', '旅行记录图片加载失败: id=${record.id}, error=${e.toString()}', LogLevel.warn);
           }
         }
         
         pdf.addPage(await _createTravelDetailPage(record, images));
       }
       
-      _log('INFO', '旅行章节添加完成', data: {'recordCount': records.length});
+      await FileLogger.instance.logWithLevel('PDF导出', '旅行章节添加完成: recordCount=${records.length}', LogLevel.info);
     } catch (e, stack) {
-      _log('ERROR', '旅行章节添加失败', data: {'error': e.toString()}, stackTrace: stack);
+      await FileLogger.instance.logWithLevel('PDF导出', '旅行章节添加失败: ${e.toString()}', LogLevel.error);
       rethrow;
     }
   }
   
   Future<pw.Page> _createTravelDetailPage(TravelRecord record, List<File> images) async {
-    _log('DEBUG', '创建旅行详情页', data: {'id': record.id, 'destination': record.destination, 'imageCount': images.length});
+    await FileLogger.instance.logWithLevel('PDF导出', '创建旅行详情页: id=${record.id}, destination=${record.destination}, imageCount=${images.length}', LogLevel.debug);
     
     try {
       final imageWidgets = <pw.Widget>[];
       
       for (final imageFile in images) {
         try {
-          _log('DEBUG', '加载旅行图片', data: {'path': imageFile.path});
+          await FileLogger.instance.logWithLevel('PDF导出', '加载旅行图片: path=${imageFile.path}', LogLevel.debug);
           final bytes = await imageFile.readAsBytes();
           final image = pw.MemoryImage(bytes);
           imageWidgets.add(
@@ -1202,9 +1141,9 @@ class PdfExportService {
               child: pw.Image(image, fit: pw.BoxFit.cover),
             ),
           );
-          _log('DEBUG', '旅行图片加载成功', data: {'path': imageFile.path});
+          await FileLogger.instance.logWithLevel('PDF导出', '旅行图片加载成功: path=${imageFile.path}', LogLevel.debug);
         } catch (e) {
-          _log('WARNING', '无法加载旅行图片', data: {'path': imageFile.path, 'error': e.toString()});
+          await FileLogger.instance.logWithLevel('PDF导出', '无法加载旅行图片: path=${imageFile.path}, error=${e.toString()}', LogLevel.warn);
         }
       }
       
@@ -1257,40 +1196,40 @@ class PdfExportService {
         ),
       );
     } catch (e, stack) {
-      _log('ERROR', '旅行详情页创建失败', data: {'id': record.id, 'error': e.toString()}, stackTrace: stack);
+      await FileLogger.instance.logWithLevel('PDF导出', '旅行详情页创建失败: id=${record.id}, error=${e.toString()}', LogLevel.error);
       rethrow;
     }
   }
   
   Future<void> _addGoalChapter(pw.Document pdf) async {
-    _log('INFO', '开始添加目标章节');
+    await FileLogger.instance.logWithLevel('PDF导出', '开始添加目标章节', LogLevel.info);
     
     try {
       final records = await (db.select(db.goalRecords)).get();
-      _log('INFO', '目标记录查询完成', data: {'count': records.length});
+      await FileLogger.instance.logWithLevel('PDF导出', '目标记录查询完成: count=${records.length}', LogLevel.info);
       
       if (records.isEmpty) {
-        _log('INFO', '无目标记录，跳过章节');
+        await FileLogger.instance.logWithLevel('PDF导出', '无目标记录，跳过章节', LogLevel.info);
         return;
       }
       
       pdf.addPage(await _createChapterCoverPage('第五章', '目标规划', '共 ${records.length} 个目标', const PdfColor.fromInt(0xFF8B5CF6)));
-      _log('DEBUG', '目标章节封面页添加完成');
+      await FileLogger.instance.logWithLevel('PDF导出', '目标章节封面页添加完成', LogLevel.debug);
       
       for (final record in records) {
-        _log('DEBUG', '处理目标记录', data: {'id': record.id, 'title': record.title});
+        await FileLogger.instance.logWithLevel('PDF导出', '处理目标记录: id=${record.id}, title=${record.title}', LogLevel.debug);
         pdf.addPage(await _createGoalDetailPage(record));
       }
       
-      _log('INFO', '目标章节添加完成', data: {'recordCount': records.length});
+      await FileLogger.instance.logWithLevel('PDF导出', '目标章节添加完成: recordCount=${records.length}', LogLevel.info);
     } catch (e, stack) {
-      _log('ERROR', '目标章节添加失败', data: {'error': e.toString()}, stackTrace: stack);
+      await FileLogger.instance.logWithLevel('PDF导出', '目标章节添加失败: ${e.toString()}', LogLevel.error);
       rethrow;
     }
   }
   
   Future<pw.Page> _createGoalDetailPage(GoalRecord record) async {
-    _log('DEBUG', '创建目标详情页', data: {'id': record.id, 'title': record.title});
+    await FileLogger.instance.logWithLevel('PDF导出', '创建目标详情页: id=${record.id}, title=${record.title}', LogLevel.debug);
     
     try {
       return pw.Page(
@@ -1360,13 +1299,13 @@ class PdfExportService {
         ),
       );
     } catch (e, stack) {
-      _log('ERROR', '目标详情页创建失败', data: {'id': record.id, 'error': e.toString()}, stackTrace: stack);
+      await FileLogger.instance.logWithLevel('PDF导出', '目标详情页创建失败: id=${record.id}, error=${e.toString()}', LogLevel.error);
       rethrow;
     }
   }
   
   Future<void> _addTimelineChapter(pw.Document pdf, {DateTime? startDate, DateTime? endDate}) async {
-    _log('INFO', '开始添加时间线章节');
+    await FileLogger.instance.logWithLevel('PDF导出', '开始添加时间线章节', LogLevel.info);
     
     try {
       var query = db.select(db.timelineEvents);
@@ -1380,30 +1319,30 @@ class PdfExportService {
       }
       
       final records = await query.get();
-      _log('INFO', '时间线记录查询完成', data: {'count': records.length});
+      await FileLogger.instance.logWithLevel('PDF导出', '时间线记录查询完成: count=${records.length}', LogLevel.info);
       
       if (records.isEmpty) {
-        _log('INFO', '无时间线记录，跳过章节');
+        await FileLogger.instance.logWithLevel('PDF导出', '无时间线记录，跳过章节', LogLevel.info);
         return;
       }
       
       pdf.addPage(await _createChapterCoverPage('第六章', '时间线', '共 ${records.length} 个事件', const PdfColor.fromInt(0xFF06B6D4)));
-      _log('DEBUG', '时间线章节封面页添加完成');
+      await FileLogger.instance.logWithLevel('PDF导出', '时间线章节封面页添加完成', LogLevel.debug);
       
       for (final record in records) {
-        _log('DEBUG', '处理时间线记录', data: {'id': record.id, 'title': record.title});
+        await FileLogger.instance.logWithLevel('PDF导出', '处理时间线记录: id=${record.id}, title=${record.title}', LogLevel.debug);
         pdf.addPage(await _createTimelineDetailPage(record));
       }
       
-      _log('INFO', '时间线章节添加完成', data: {'recordCount': records.length});
+      await FileLogger.instance.logWithLevel('PDF导出', '时间线章节添加完成: recordCount=${records.length}', LogLevel.info);
     } catch (e, stack) {
-      _log('ERROR', '时间线章节添加失败', data: {'error': e.toString()}, stackTrace: stack);
+      await FileLogger.instance.logWithLevel('PDF导出', '时间线章节添加失败: ${e.toString()}', LogLevel.error);
       rethrow;
     }
   }
   
   Future<pw.Page> _createTimelineDetailPage(TimelineEvent record) async {
-    _log('DEBUG', '创建时间线详情页', data: {'id': record.id, 'title': record.title});
+    await FileLogger.instance.logWithLevel('PDF导出', '创建时间线详情页: id=${record.id}, title=${record.title}', LogLevel.debug);
     
     try {
       return pw.Page(
@@ -1446,19 +1385,19 @@ class PdfExportService {
         ),
       );
     } catch (e, stack) {
-      _log('ERROR', '时间线详情页创建失败', data: {'id': record.id, 'error': e.toString()}, stackTrace: stack);
+      await FileLogger.instance.logWithLevel('PDF导出', '时间线详情页创建失败: id=${record.id}, error=${e.toString()}', LogLevel.error);
       rethrow;
     }
   }
   
   Future<void> sharePdf(String filePath) async {
-    _log('INFO', '开始分享PDF', data: {'filePath': filePath});
+    await FileLogger.instance.logWithLevel('PDF导出', '开始分享PDF: $filePath', LogLevel.info);
     
     try {
       await Share.shareXFiles([XFile(filePath)], subject: '人生编年史PDF导出');
-      _log('INFO', 'PDF分享完成');
+      await FileLogger.instance.logWithLevel('PDF导出', 'PDF分享完成', LogLevel.info);
     } catch (e, stack) {
-      _log('ERROR', 'PDF分享失败', data: {'error': e.toString()}, stackTrace: stack);
+      await FileLogger.instance.logWithLevel('PDF导出', 'PDF分享失败: ${e.toString()}', LogLevel.error);
       rethrow;
     }
   }

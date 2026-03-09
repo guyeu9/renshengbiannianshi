@@ -211,6 +211,9 @@ class AppDatabase extends _$AppDatabase {
             await ensureTable(chatMessages);
           }
 
+          // 确保模力方舟内置配置存在（针对老用户升级）
+          await _ensureDefaultEmbeddingProvider();
+
           // 修复历史数据：将逗号分隔的images字段转换为JSON数组格式
           if (await columnExists('travel_records', 'images')) {
             await customStatement('''
@@ -360,6 +363,31 @@ class AppDatabase extends _$AppDatabase {
     await customStatement('''
       INSERT INTO goal_records_fts(goal_records_fts) VALUES('rebuild')
     ''');
+  }
+
+  Future<void> _ensureDefaultEmbeddingProvider() async {
+    final existingMoark = await (select(aiProviders)
+          ..where((t) => t.name.equals('模力方舟') & t.serviceType.equals('embedding')))
+        .get();
+
+    if (existingMoark.isEmpty) {
+      final now = DateTime.now();
+      const uuid = Uuid();
+      await into(aiProviders).insert(
+        AiProvidersCompanion(
+          id: Value(uuid.v4()),
+          name: const Value('模力方舟'),
+          apiType: const Value('openai'),
+          serviceType: const Value('embedding'),
+          baseUrl: const Value('https://ai.gitee.com/v1'),
+          apiKey: const Value('AAMX6RZWNFGZ9H1CERSNPTQOQSIHSR5TBTNI8Y8G'),
+          modelName: const Value('Qwen3-Embedding-8B'),
+          isActive: const Value(true),
+          createdAt: Value(now),
+          updatedAt: Value(now),
+        ),
+      );
+    }
   }
 
   Future<void> _createIndexes() async {
