@@ -1,6 +1,6 @@
 import 'dart:convert';
 import '../models/log_entry.dart';
-import 'file_logger.dart';
+import 'file_logger.dart' hide LogLevel;
 
 class LogParserService {
   static final RegExp _logLineRegex = RegExp(

@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:life_chronicle/core/services/ai_service.dart';
 import 'package:life_chronicle/core/services/embedding_service.dart';
+import '../file_logger.dart';
 
 class OpenAiCompatibleService extends AiServiceBase {
   OpenAiCompatibleService(super.provider, {http.Client? client})
@@ -44,23 +45,33 @@ class OpenAiCompatibleService extends AiServiceBase {
     required String systemPrompt,
     required List<ChatMessage> messages,
   }) async {
-    final response = await _client.post(
-      Uri.parse(getChatEndpoint()),
-      headers: getHeaders(),
-      body: jsonEncode(buildRequestBody(systemPrompt, messages)),
-    );
-    
-    if (response.statusCode != 200) {
-      throw Exception('AI API error: ${response.statusCode} - ${response.body}');
+    await amapDebug('AI服务', '发送请求: model=${provider.modelName}, messages=${messages.length}');
+    try {
+      final response = await _client.post(
+        Uri.parse(getChatEndpoint()),
+        headers: getHeaders(),
+        body: jsonEncode(buildRequestBody(systemPrompt, messages)),
+      );
+      
+      if (response.statusCode != 200) {
+        await amapError('AI服务', 'API错误: ${response.statusCode} - ${response.body}');
+        throw Exception('AI API error: ${response.statusCode} - ${response.body}');
+      }
+      
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final choices = data['choices'] as List?;
+      if (choices == null || choices.isEmpty) {
+        await amapError('AI服务', 'AI返回空响应');
+        throw Exception('No response from AI');
+      }
+      
+      final content = (choices.first as Map<String, dynamic>)['message']['content'] as String;
+      await amapDebug('AI服务', '请求成功, 响应长度: ${content.length}');
+      return content;
+    } catch (e, stack) {
+      await amapError('AI服务', '请求异常: $e\n$stack');
+      rethrow;
     }
-    
-    final data = jsonDecode(response.body) as Map<String, dynamic>;
-    final choices = data['choices'] as List?;
-    if (choices == null || choices.isEmpty) {
-      throw Exception('No response from AI');
-    }
-    
-    return (choices.first as Map<String, dynamic>)['message']['content'] as String;
   }
   
   @override

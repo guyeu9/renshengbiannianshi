@@ -11,6 +11,7 @@ import 'change_log_recorder.dart';
 import 'encryption_service.dart';
 import 'webdav_client.dart';
 import 'webdav_config_service.dart';
+import '../file_logger.dart';
 
 enum BackupStatus {
   idle,
@@ -546,6 +547,7 @@ class BackupService {
     final fileName = 'life_chronicle_full_$timestamp.zip';
     String? logId;
     
+    await amapInfo('备份', '开始全量备份, 文件名: $fileName');
     _emitProgress(BackupStatus.preparing, message: '准备备份...');
     
     try {
@@ -566,10 +568,13 @@ class BackupService {
       final zipPath = path.join(tempDir.path, fileName);
       
       _emitProgress(BackupStatus.exporting, progress: 0.1, message: '导出数据...');
+      await amapDebug('备份', '正在导出数据...');
       final data = await exportAllData();
       final mediaFiles = await collectAllMediaFiles();
+      await amapDebug('备份', '数据导出完成, 媒体文件数: ${mediaFiles.length}');
       
       _emitProgress(BackupStatus.zipping, progress: 0.3, message: '打包文件...');
+      await amapDebug('备份', '正在打包文件...');
       final zipFile = await EncryptionService.createZipArchive(
         mediaFiles,
         data,
@@ -579,6 +584,7 @@ class BackupService {
       File encryptedFile = zipFile;
       if (config.encryptBackup) {
         _emitProgress(BackupStatus.encrypting, progress: 0.5, message: '加密备份...');
+        await amapDebug('备份', '正在加密备份...');
         encryptedFile = await EncryptionService.encryptFile(
           zipFile,
           encryptionPassword,
@@ -586,6 +592,7 @@ class BackupService {
       }
       
       _emitProgress(BackupStatus.uploading, progress: 0.7, message: '上传到 WebDAV...');
+      await amapDebug('备份', '正在上传到 WebDAV: ${config.url}');
       final client = WebDavClient(
         baseUrl: config.url,
         username: config.username,
@@ -619,8 +626,10 @@ class BackupService {
         mediaCount: mediaCount,
       );
       
+      await amapInfo('备份', '全量备份完成, 文件大小: $fileSize 字节, 记录数: $recordCount, 媒体数: $mediaCount');
       _emitProgress(BackupStatus.completed, progress: 1.0, message: '备份完成！');
-    } catch (e) {
+    } catch (e, stack) {
+      await amapError('备份', '全量备份失败: $e\n$stack');
       if (logId != null) {
         await _updateBackupLogFailed(
           logId: logId,
@@ -641,6 +650,7 @@ class BackupService {
     final fileName = 'life_chronicle_inc_$timestamp.zip';
     String? logId;
     
+    await amapInfo('备份', '开始增量备份, 文件名: $fileName');
     _emitProgress(BackupStatus.preparing, message: '准备增量备份...');
     
     try {
@@ -662,6 +672,7 @@ class BackupService {
       
       final unsyncedChanges = await db.changeLogDao.findUnsynced();
       if (unsyncedChanges.isEmpty) {
+        await amapInfo('备份', '没有需要备份的变更');
         await _updateBackupLogSuccess(
           logId: logId,
           recordCount: 0,
@@ -671,12 +682,15 @@ class BackupService {
         return;
       }
       
+      await amapDebug('备份', '发现 ${unsyncedChanges.length} 条未同步变更');
+      
       final nonIncrementalEntityTypes = ['entity_links', 'link_logs', 'user_profiles', 'ai_providers'];
       final hasNonIncrementalChanges = unsyncedChanges.any(
         (c) => nonIncrementalEntityTypes.contains(c.entityType),
       );
       
       if (hasNonIncrementalChanges) {
+        await amapInfo('备份', '检测到配置变更，转为全量备份');
         _emitProgress(BackupStatus.preparing, message: '检测到配置变更，执行全量备份...');
         await performFullBackup(config: config, encryptionPassword: encryptionPassword);
         return;
@@ -686,8 +700,10 @@ class BackupService {
       final zipPath = path.join(tempDir.path, fileName);
       
       _emitProgress(BackupStatus.exporting, progress: 0.1, message: '导出变更数据...');
+      await amapDebug('备份', '正在导出变更数据...');
       final incrementalData = await _exportIncrementalData(unsyncedChanges);
       final changedMediaFiles = await _collectChangedMediaFiles(unsyncedChanges);
+      await amapDebug('备份', '变更数据导出完成, 媒体文件数: ${changedMediaFiles.length}');
       
       _emitProgress(BackupStatus.zipping, progress: 0.3, message: '打包文件...');
       final zipFile = await EncryptionService.createZipArchive(
@@ -699,6 +715,7 @@ class BackupService {
       File encryptedFile = zipFile;
       if (config.encryptBackup) {
         _emitProgress(BackupStatus.encrypting, progress: 0.5, message: '加密备份...');
+        await amapDebug('备份', '正在加密备份...');
         encryptedFile = await EncryptionService.encryptFile(
           zipFile,
           encryptionPassword,
@@ -706,6 +723,7 @@ class BackupService {
       }
       
       _emitProgress(BackupStatus.uploading, progress: 0.7, message: '上传到 WebDAV...');
+      await amapDebug('备份', '正在上传到 WebDAV: ${config.url}');
       final client = WebDavClient(
         baseUrl: config.url,
         username: config.username,
@@ -743,8 +761,10 @@ class BackupService {
         mediaCount: mediaCount,
       );
       
+      await amapInfo('备份', '增量备份完成, 文件大小: $fileSize 字节, 记录数: $recordCount, 媒体数: $mediaCount');
       _emitProgress(BackupStatus.completed, progress: 1.0, message: '增量备份完成！');
-    } catch (e) {
+    } catch (e, stack) {
+      await amapError('备份', '增量备份失败: $e\n$stack');
       if (logId != null) {
         await _updateBackupLogFailed(
           logId: logId,

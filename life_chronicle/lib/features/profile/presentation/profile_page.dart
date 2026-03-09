@@ -30,6 +30,7 @@ import '../../goal/presentation/goal_page.dart';
 import 'ai_model_management_page.dart';
 import 'data_management_page.dart';
 import 'system_log_page.dart';
+import '../../../core/services/file_logger.dart';
 
 class ChronicleRecord {
   const ChronicleRecord({
@@ -2366,16 +2367,27 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('至少选择一个模块')));
       return;
     }
+    
+    await amapInfo('编年史', '开始生成编年史, 选中模块: ${selected.join(", ")}');
     setState(() => _generating = true);
     try {
       final range = _currentRange();
+      await amapDebug('编年史', '时间范围: ${_formatDate(range.start)} 至 ${_formatDate(range.end)}');
+      
       final db = ref.read(appDatabaseProvider);
+      await amapDebug('编年史', '开始收集编年史数据...');
       final content = await _collectChronicleData(db, range, selected);
+      await amapDebug('编年史', '数据收集完成, 模块摘要数: ${content.moduleSummaries.length}, 记录详情数: ${content.recordDetails.length}');
+      
       final title = _titleController.text.trim().isEmpty
           ? '${_formatDate(range.start)}-${_formatDate(range.end)} 编年史'
           : _titleController.text.trim();
       final aiSummary = _aiSummaryController.text.trim().isEmpty ? content.aiSummary : _aiSummaryController.text.trim();
+      
+      await amapDebug('编年史', '开始导出编年史文件, 标题: $title');
       final exportResult = await _exportChronicle(title, range, aiSummary, content.moduleSummaries, content.recordDetails);
+      await amapInfo('编年史', '导出完成, PDF路径: ${exportResult.pdfPath}, EPUB路径: ${exportResult.epubPath}');
+      
       final stats = {for (final item in content.moduleSummaries) item.title: item.count};
       final record = ChronicleRecord(
         id: '${DateTime.now().millisecondsSinceEpoch}',
@@ -2394,10 +2406,13 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
       final records = await loadChronicleRecords();
       final updated = [record, ...records];
       await saveChronicleRecords(updated);
+      await amapInfo('编年史', '编年史生成成功并保存, ID: ${record.id}');
+      
       if (!mounted) return;
       setState(() => _generating = false);
       Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const ChronicleManagePage()));
-    } catch (e) {
+    } catch (e, stack) {
+      await amapError('编年史', '生成失败: $e\n$stack');
       if (mounted) {
         setState(() => _generating = false);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('生成失败：$e')));

@@ -5,6 +5,7 @@ import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../database/app_database.dart';
+import 'file_logger.dart';
 
 class ExcelExportService {
   final AppDatabase db;
