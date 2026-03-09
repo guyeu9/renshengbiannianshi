@@ -1004,15 +1004,37 @@ class _TaskItemState extends State<_TaskItem> with SingleTickerProviderStateMixi
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: Text(
-            widget.task.title,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: widget.task.isCompleted ? const Color(0xFF6B7280) : const Color(0xFF111827),
-              decoration: widget.task.isCompleted ? TextDecoration.lineThrough : TextDecoration.none,
-              decorationColor: const Color(0xFFD1D5DB),
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                widget.task.title,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: widget.task.isCompleted ? const Color(0xFF6B7280) : const Color(0xFF111827),
+                  decoration: widget.task.isCompleted ? TextDecoration.lineThrough : TextDecoration.none,
+                  decorationColor: const Color(0xFFD1D5DB),
+                ),
+              ),
+              if (widget.task.isCompleted && widget.task.completedAt != null)
+                AnimatedOpacity(
+                  opacity: widget.task.isCompleted ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOut,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      '完成于：${_formatCompletedTime(widget.task.completedAt!)}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400,
+                        color: Color(0xFF888888),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ],
@@ -2254,6 +2276,7 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
                         style: _taskStyleFor(task),
                         title: task.title,
                         subtitle: _taskSubtitleFor(task),
+                        completedAt: task.completedAt,
                         onChanged: (v) => _updateTaskCompletionForGoal(db, task, v, goalId),
                         onTaskCompleted: _onTaskCompleted,
                       ),
@@ -3192,6 +3215,15 @@ String _formatDotDate(DateTime date) {
   return '${date.year}.$month.$day';
 }
 
+String _formatCompletedTime(DateTime date) {
+  final year = date.year.toString();
+  final month = date.month.toString().padLeft(2, '0');
+  final day = date.day.toString().padLeft(2, '0');
+  final hour = date.hour.toString().padLeft(2, '0');
+  final minute = date.minute.toString().padLeft(2, '0');
+  return '$year-$month-$day $hour:$minute';
+}
+
 _DayTaskStyle _taskStyleFor(GoalRecord task) {
   if (task.isCompleted) return _DayTaskStyle.done;
   final today = _dateOnly(DateTime.now());
@@ -3214,6 +3246,7 @@ Future<void> _updateTaskCompletionForGoal(AppDatabase db, GoalRecord task, bool 
     await (db.update(db.goalRecords)..where((t) => t.id.equals(task.id))).write(
       GoalRecordsCompanion(
         isCompleted: Value(checked),
+        completedAt: Value(checked ? now : null),
         updatedAt: Value(now),
       ),
     );
@@ -4162,6 +4195,7 @@ class _DayTaskTile extends StatefulWidget {
     required this.style,
     required this.title,
     this.subtitle,
+    this.completedAt,
     this.onChanged,
     this.onTaskCompleted,
   });
@@ -4171,6 +4205,7 @@ class _DayTaskTile extends StatefulWidget {
   final _DayTaskStyle style;
   final String title;
   final String? subtitle;
+  final DateTime? completedAt;
   final ValueChanged<bool>? onChanged;
   final VoidCallback? onTaskCompleted;
 
@@ -4276,16 +4311,38 @@ class _DayTaskTileState extends State<_DayTaskTile> with SingleTickerProviderSta
                 ),
                 const SizedBox(width: 6),
                 Expanded(
-                  child: widget.subtitle == null
-                      ? Text(widget.title, style: titleStyle)
-                      : Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(widget.title, style: titleStyle.copyWith(color: const Color(0xFF111827), decoration: TextDecoration.none)),
-                            const SizedBox(height: 2),
-                            Text(widget.subtitle!, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppTheme.primary)),
-                          ],
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.title,
+                        style: widget.subtitle == null
+                            ? titleStyle
+                            : titleStyle.copyWith(color: const Color(0xFF111827), decoration: TextDecoration.none),
+                      ),
+                      if (widget.subtitle != null) ...[
+                        const SizedBox(height: 2),
+                        Text(widget.subtitle!, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppTheme.primary)),
+                      ],
+                      if (widget.checked && widget.completedAt != null)
+                        AnimatedOpacity(
+                          opacity: widget.checked ? 1.0 : 0.0,
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeOut,
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              '完成于：${_formatCompletedTime(widget.completedAt!)}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w400,
+                                color: Color(0xFF888888),
+                              ),
+                            ),
+                          ),
                         ),
+                    ],
+                  ),
                 ),
               ],
             ),

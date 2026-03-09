@@ -4378,6 +4378,12 @@ class $GoalRecordsTable extends GoalRecords
   late final GeneratedColumn<DateTime> recordDate = GeneratedColumn<DateTime>(
       'record_date', aliasedName, false,
       type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _completedAtMeta =
+      const VerificationMeta('completedAt');
+  @override
+  late final GeneratedColumn<DateTime> completedAt = GeneratedColumn<DateTime>(
+      'completed_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
   static const VerificationMeta _createdAtMeta =
       const VerificationMeta('createdAt');
   @override
@@ -4420,6 +4426,7 @@ class $GoalRecordsTable extends GoalRecords
         targetMonth,
         dueDate,
         recordDate,
+        completedAt,
         createdAt,
         updatedAt,
         isDeleted
@@ -4529,6 +4536,12 @@ class $GoalRecordsTable extends GoalRecords
     } else if (isInserting) {
       context.missing(_recordDateMeta);
     }
+    if (data.containsKey('completed_at')) {
+      context.handle(
+          _completedAtMeta,
+          completedAt.isAcceptableOrUnknown(
+              data['completed_at']!, _completedAtMeta));
+    }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
           createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
@@ -4590,6 +4603,8 @@ class $GoalRecordsTable extends GoalRecords
           .read(DriftSqlType.dateTime, data['${effectivePrefix}due_date']),
       recordDate: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}record_date'])!,
+      completedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}completed_at']),
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
       updatedAt: attachedDatabase.typeMapping
@@ -4624,6 +4639,7 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
   final int? targetMonth;
   final DateTime? dueDate;
   final DateTime recordDate;
+  final DateTime? completedAt;
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isDeleted;
@@ -4646,6 +4662,7 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
       this.targetMonth,
       this.dueDate,
       required this.recordDate,
+      this.completedAt,
       required this.createdAt,
       required this.updatedAt,
       required this.isDeleted});
@@ -4690,6 +4707,9 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
       map['due_date'] = Variable<DateTime>(dueDate);
     }
     map['record_date'] = Variable<DateTime>(recordDate);
+    if (!nullToAbsent || completedAt != null) {
+      map['completed_at'] = Variable<DateTime>(completedAt);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
@@ -4732,6 +4752,9 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
           ? const Value.absent()
           : Value(dueDate),
       recordDate: Value(recordDate),
+      completedAt: completedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(completedAt),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       isDeleted: Value(isDeleted),
@@ -4760,6 +4783,7 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
       targetMonth: serializer.fromJson<int?>(json['targetMonth']),
       dueDate: serializer.fromJson<DateTime?>(json['dueDate']),
       recordDate: serializer.fromJson<DateTime>(json['recordDate']),
+      completedAt: serializer.fromJson<DateTime?>(json['completedAt']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
@@ -4787,6 +4811,7 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
       'targetMonth': serializer.toJson<int?>(targetMonth),
       'dueDate': serializer.toJson<DateTime?>(dueDate),
       'recordDate': serializer.toJson<DateTime>(recordDate),
+      'completedAt': serializer.toJson<DateTime?>(completedAt),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
@@ -4812,6 +4837,7 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
           Value<int?> targetMonth = const Value.absent(),
           Value<DateTime?> dueDate = const Value.absent(),
           DateTime? recordDate,
+          Value<DateTime?> completedAt = const Value.absent(),
           DateTime? createdAt,
           DateTime? updatedAt,
           bool? isDeleted}) =>
@@ -4837,6 +4863,7 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
         targetMonth: targetMonth.present ? targetMonth.value : this.targetMonth,
         dueDate: dueDate.present ? dueDate.value : this.dueDate,
         recordDate: recordDate ?? this.recordDate,
+        completedAt: completedAt.present ? completedAt.value : this.completedAt,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
         isDeleted: isDeleted ?? this.isDeleted,
@@ -4871,6 +4898,8 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
       dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
       recordDate:
           data.recordDate.present ? data.recordDate.value : this.recordDate,
+      completedAt:
+          data.completedAt.present ? data.completedAt.value : this.completedAt,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
@@ -4898,6 +4927,7 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
           ..write('targetMonth: $targetMonth, ')
           ..write('dueDate: $dueDate, ')
           ..write('recordDate: $recordDate, ')
+          ..write('completedAt: $completedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted')
@@ -4925,6 +4955,7 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
         targetMonth,
         dueDate,
         recordDate,
+        completedAt,
         createdAt,
         updatedAt,
         isDeleted
@@ -4951,6 +4982,7 @@ class GoalRecord extends DataClass implements Insertable<GoalRecord> {
           other.targetMonth == this.targetMonth &&
           other.dueDate == this.dueDate &&
           other.recordDate == this.recordDate &&
+          other.completedAt == this.completedAt &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted);
@@ -4975,6 +5007,7 @@ class GoalRecordsCompanion extends UpdateCompanion<GoalRecord> {
   final Value<int?> targetMonth;
   final Value<DateTime?> dueDate;
   final Value<DateTime> recordDate;
+  final Value<DateTime?> completedAt;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<bool> isDeleted;
@@ -4998,6 +5031,7 @@ class GoalRecordsCompanion extends UpdateCompanion<GoalRecord> {
     this.targetMonth = const Value.absent(),
     this.dueDate = const Value.absent(),
     this.recordDate = const Value.absent(),
+    this.completedAt = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
@@ -5022,6 +5056,7 @@ class GoalRecordsCompanion extends UpdateCompanion<GoalRecord> {
     this.targetMonth = const Value.absent(),
     this.dueDate = const Value.absent(),
     required DateTime recordDate,
+    this.completedAt = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.isDeleted = const Value.absent(),
@@ -5051,6 +5086,7 @@ class GoalRecordsCompanion extends UpdateCompanion<GoalRecord> {
     Expression<int>? targetMonth,
     Expression<DateTime>? dueDate,
     Expression<DateTime>? recordDate,
+    Expression<DateTime>? completedAt,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
@@ -5075,6 +5111,7 @@ class GoalRecordsCompanion extends UpdateCompanion<GoalRecord> {
       if (targetMonth != null) 'target_month': targetMonth,
       if (dueDate != null) 'due_date': dueDate,
       if (recordDate != null) 'record_date': recordDate,
+      if (completedAt != null) 'completed_at': completedAt,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
@@ -5101,6 +5138,7 @@ class GoalRecordsCompanion extends UpdateCompanion<GoalRecord> {
       Value<int?>? targetMonth,
       Value<DateTime?>? dueDate,
       Value<DateTime>? recordDate,
+      Value<DateTime?>? completedAt,
       Value<DateTime>? createdAt,
       Value<DateTime>? updatedAt,
       Value<bool>? isDeleted,
@@ -5124,6 +5162,7 @@ class GoalRecordsCompanion extends UpdateCompanion<GoalRecord> {
       targetMonth: targetMonth ?? this.targetMonth,
       dueDate: dueDate ?? this.dueDate,
       recordDate: recordDate ?? this.recordDate,
+      completedAt: completedAt ?? this.completedAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
@@ -5188,6 +5227,9 @@ class GoalRecordsCompanion extends UpdateCompanion<GoalRecord> {
     if (recordDate.present) {
       map['record_date'] = Variable<DateTime>(recordDate.value);
     }
+    if (completedAt.present) {
+      map['completed_at'] = Variable<DateTime>(completedAt.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -5224,6 +5266,7 @@ class GoalRecordsCompanion extends UpdateCompanion<GoalRecord> {
           ..write('targetMonth: $targetMonth, ')
           ..write('dueDate: $dueDate, ')
           ..write('recordDate: $recordDate, ')
+          ..write('completedAt: $completedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
@@ -13935,6 +13978,7 @@ typedef $$GoalRecordsTableCreateCompanionBuilder = GoalRecordsCompanion
   Value<int?> targetMonth,
   Value<DateTime?> dueDate,
   required DateTime recordDate,
+  Value<DateTime?> completedAt,
   required DateTime createdAt,
   required DateTime updatedAt,
   Value<bool> isDeleted,
@@ -13960,6 +14004,7 @@ typedef $$GoalRecordsTableUpdateCompanionBuilder = GoalRecordsCompanion
   Value<int?> targetMonth,
   Value<DateTime?> dueDate,
   Value<DateTime> recordDate,
+  Value<DateTime?> completedAt,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
   Value<bool> isDeleted,
@@ -14029,6 +14074,9 @@ class $$GoalRecordsTableFilterComposer
 
   ColumnFilters<DateTime> get recordDate => $composableBuilder(
       column: $table.recordDate, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get completedAt => $composableBuilder(
+      column: $table.completedAt, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
@@ -14105,6 +14153,9 @@ class $$GoalRecordsTableOrderingComposer
   ColumnOrderings<DateTime> get recordDate => $composableBuilder(
       column: $table.recordDate, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<DateTime> get completedAt => $composableBuilder(
+      column: $table.completedAt, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 
@@ -14178,6 +14229,9 @@ class $$GoalRecordsTableAnnotationComposer
   GeneratedColumn<DateTime> get recordDate => $composableBuilder(
       column: $table.recordDate, builder: (column) => column);
 
+  GeneratedColumn<DateTime> get completedAt => $composableBuilder(
+      column: $table.completedAt, builder: (column) => column);
+
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
@@ -14229,6 +14283,7 @@ class $$GoalRecordsTableTableManager extends RootTableManager<
             Value<int?> targetMonth = const Value.absent(),
             Value<DateTime?> dueDate = const Value.absent(),
             Value<DateTime> recordDate = const Value.absent(),
+            Value<DateTime?> completedAt = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
             Value<bool> isDeleted = const Value.absent(),
@@ -14253,6 +14308,7 @@ class $$GoalRecordsTableTableManager extends RootTableManager<
             targetMonth: targetMonth,
             dueDate: dueDate,
             recordDate: recordDate,
+            completedAt: completedAt,
             createdAt: createdAt,
             updatedAt: updatedAt,
             isDeleted: isDeleted,
@@ -14277,6 +14333,7 @@ class $$GoalRecordsTableTableManager extends RootTableManager<
             Value<int?> targetMonth = const Value.absent(),
             Value<DateTime?> dueDate = const Value.absent(),
             required DateTime recordDate,
+            Value<DateTime?> completedAt = const Value.absent(),
             required DateTime createdAt,
             required DateTime updatedAt,
             Value<bool> isDeleted = const Value.absent(),
@@ -14301,6 +14358,7 @@ class $$GoalRecordsTableTableManager extends RootTableManager<
             targetMonth: targetMonth,
             dueDate: dueDate,
             recordDate: recordDate,
+            completedAt: completedAt,
             createdAt: createdAt,
             updatedAt: updatedAt,
             isDeleted: isDeleted,

@@ -163,6 +163,7 @@ class GoalRecords extends Table {
   IntColumn get targetMonth => integer().nullable()();
   DateTimeColumn get dueDate => dateTime().nullable()();
   DateTimeColumn get recordDate => dateTime()();
+  DateTimeColumn get completedAt => dateTime().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();

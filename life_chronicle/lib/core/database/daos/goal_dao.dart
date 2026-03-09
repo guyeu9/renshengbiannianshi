@@ -83,13 +83,14 @@ class GoalDao extends DatabaseAccessor<AppDatabase> with _$GoalDaoMixin {
     await (update(db.goalRecords)..where((t) => t.id.equals(id))).write(
       GoalRecordsCompanion(
         isCompleted: Value(isCompleted),
+        completedAt: Value(isCompleted ? now : null),
         updatedAt: Value(now),
       ),
     );
     await _changeLogRecorder.recordUpdate(
       entityType: 'goal_records',
       entityId: id,
-      changedFields: ['isCompleted'],
+      changedFields: ['isCompleted', 'completedAt'],
     );
   }
 

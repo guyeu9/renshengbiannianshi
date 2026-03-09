@@ -44,7 +44,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 24;
+  int get schemaVersion => 25;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -230,6 +230,10 @@ class AppDatabase extends _$AppDatabase {
           if (from < 24) {
             await ensureTable(chatSessions);
             await ensureTable(chatMessages);
+          }
+
+          if (from < 25) {
+            await ensureColumn(table: goalRecords, column: goalRecords.completedAt);
           }
 
           // 修复历史数据：将逗号分隔的images字段转换为JSON数组格式
