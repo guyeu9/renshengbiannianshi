@@ -2,16 +2,17 @@ import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:excel/excel.dart';
 import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../database/app_database.dart';
 import 'file_logger.dart';
+import 'path_provider_service.dart';
 
 class ExcelExportService {
   final AppDatabase db;
+  final PathProviderService pathProvider;
   static const String _tag = 'ExcelExport';
   
-  ExcelExportService(this.db);
+  ExcelExportService(this.db, [this.pathProvider = const RealPathProviderService()]);
   
   Future<String> exportToExcel({
     bool includeFood = true,
@@ -60,7 +61,7 @@ class ExcelExportService {
     
     excel.delete('Sheet1');
     
-    final tempDir = await getTemporaryDirectory();
+    final tempDir = await pathProvider.getTemporaryDirectory();
     final now = DateTime.now();
     final timestamp = '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
     final fileName = '人生编年史导出_$timestamp.xlsx';

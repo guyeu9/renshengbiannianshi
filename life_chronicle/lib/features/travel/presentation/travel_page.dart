@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,6 +20,7 @@ import '../../../core/utils/media_storage.dart';
 import '../../../core/widgets/ai_parse_button.dart';
 import '../../../core/widgets/amap_location_page.dart';
 import '../../../core/widgets/custom_bottom_sheet.dart';
+import '../../../core/widgets/app_image.dart';
 import '../providers/travel_detail_provider.dart';
 import '../../bond/presentation/bond_page.dart' show FriendProfilePage;
 
@@ -4546,50 +4546,7 @@ class _PhotoAddGridItem extends StatelessWidget {
 }
 
 Widget _buildLocalImage(String path, {BoxFit fit = BoxFit.cover}) {
-  final trimmed = path.trim();
-  if (trimmed.isEmpty) {
-    return const SizedBox.shrink();
-  }
-  final isNetwork = trimmed.startsWith('http://') || trimmed.startsWith('https://');
-  if (isNetwork || kIsWeb) {
-    return Image.network(
-      trimmed,
-      fit: fit,
-      gaplessPlayback: true,
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) {
-          return child;
-        }
-        return Center(
-          child: CircularProgressIndicator(
-            value: loadingProgress.expectedTotalBytes != null
-                ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                : null,
-            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF2BCDEE)),
-          ),
-        );
-      },
-      errorBuilder: (context, error, stackTrace) {
-        return Container(
-          color: const Color(0xFFF1F5F9),
-          child: const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.image_not_supported, size: 40, color: Color(0xFF94A3B8)),
-                SizedBox(height: 8),
-                Text(
-                  '图片加载失败',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-  return Image.file(File(trimmed), fit: fit, gaplessPlayback: true);
+  return AppImage(source: path, fit: fit);
 }
 
 Future<List<String>> _persistPickedImages(List<XFile> files, String folder) async {

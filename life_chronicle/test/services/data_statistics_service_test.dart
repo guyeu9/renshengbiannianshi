@@ -1,8 +1,10 @@
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
 import 'package:life_chronicle/core/database/app_database.dart';
 import 'package:life_chronicle/core/services/data_statistics_service.dart';
+import 'package:life_chronicle/core/services/path_provider_service.dart';
 import '../test_utils/test_data_factory.dart';
 
 AppDatabase _createTestDatabase() {
@@ -11,17 +13,31 @@ AppDatabase _createTestDatabase() {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  group('DataStatisticsService Tests', skip: '需要 path_provider 插件，在集成测试环境中运行', () {
+  group('DataStatisticsService Tests', () {
     late AppDatabase db;
     late DataStatisticsService statisticsService;
+    late Directory tempDir;
 
-    setUp(() {
+    setUp(() async {
       db = _createTestDatabase();
-      statisticsService = DataStatisticsService(db);
+      
+      tempDir = await Directory.systemTemp.createTemp('test_statistics_');
+      final mediaDir = Directory('${tempDir.path}/media');
+      await mediaDir.create(recursive: true);
+      
+      final mockPathProvider = MockPathProviderService(
+        appDocDir: tempDir,
+        tempDir: tempDir,
+      );
+      
+      statisticsService = DataStatisticsService(db, mockPathProvider);
     });
 
     tearDown(() async {
       await db.close();
+      if (await tempDir.exists()) {
+        await tempDir.delete(recursive: true);
+      }
     });
 
     test('getStatistics should return empty statistics when no data', () async {

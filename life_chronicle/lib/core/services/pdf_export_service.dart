@@ -2,16 +2,18 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../database/app_database.dart';
 import 'file_logger.dart';
+import 'path_provider_service.dart';
 
 class PdfExportService {
   final AppDatabase db;
+  final PathProviderService pathProvider;
   
   static const _primaryColor = PdfColor.fromInt(0xFF4F46E5);
   static const _secondaryColor = PdfColor.fromInt(0xFF10B981);
@@ -23,7 +25,7 @@ class PdfExportService {
   pw.Font? _chineseFontBold;
   bool _fontsLoaded = false;
   
-  PdfExportService(this.db);
+  PdfExportService(this.db, [this.pathProvider = const RealPathProviderService()]);
   
   Future<void> _loadFonts() async {
     if (_fontsLoaded) {
@@ -34,28 +36,84 @@ class PdfExportService {
     await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 开始加载字体...', LogLevel.info);
     
     try {
+      // 第一步：尝试从应用内 assets 加载字体（最可靠）
+      await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 步骤1 - 尝试从应用内assets加载字体', LogLevel.info);
+      
+      final assetFontPaths = [
+        'assets/fonts/NotoSansSC-Regular.otf',
+        'assets/fonts/NotoSansSC-Bold.otf',
+        'assets/fonts/DroidSansFallback.ttf',
+      ];
+      
+      for (final assetPath in assetFontPaths) {
+        try {
+          await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 尝试加载asset字体: $assetPath', LogLevel.debug);
+          final fontData = await rootBundle.load(assetPath);
+          await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: asset字体加载成功: $assetPath, size=${fontData.lengthInBytes}', LogLevel.info);
+          
+          if (assetPath.contains('Bold')) {
+            _chineseFontBold = pw.Font.ttf(fontData);
+            await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 粗体字体从assets加载成功', LogLevel.info);
+          } else {
+            _chineseFont = pw.Font.ttf(fontData);
+            await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 常规字体从assets加载成功', LogLevel.info);
+          }
+        } catch (e) {
+          await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: asset字体不存在或加载失败: $assetPath, error=${e.toString()}', LogLevel.debug);
+        }
+      }
+      
+      // 如果从 assets 加载成功，直接返回
+      if (_chineseFont != null) {
+        if (_chineseFontBold == null) {
+          _chineseFontBold = _chineseFont;
+          await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 粗体字体使用常规字体作为回退', LogLevel.info);
+        }
+        await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 从assets加载字体完成 - regularFontLoaded=true, boldFontLoaded=true', LogLevel.info);
+        _fontsLoaded = true;
+        return;
+      }
+      
+      // 第二步：尝试从系统字体路径加载
+      await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 步骤2 - assets加载失败，尝试从系统字体加载', LogLevel.info);
+      
       final systemFontPaths = [
-        '/system/fonts/NotoSansCJK-Regular.ttc',
         '/system/fonts/NotoSansSC-Regular.otf',
         '/system/fonts/NotoSansCJKsc-Regular.otf',
+        '/system/fonts/SourceHanSansSC-Regular.otf',
         '/system/fonts/DroidSansFallbackFull.ttf',
         '/system/fonts/DroidSansFallback.ttf',
-        '/system/fonts/SourceHanSansSC-Regular.otf',
         '/system/fonts/Roboto-Regular.ttf',
         '/system/fonts/sans-serif.ttf',
+        '/system/fonts/Roboto-Light.ttf',
+        '/system/fonts/Roboto-Medium.ttf',
+        '/data/fonts/NotoSansSC-Regular.otf',
+        '/data/fonts/DroidSansFallback.ttf',
+        '/data/local/tmp/fonts/NotoSansSC-Regular.otf',
       ];
       
       final boldFontPaths = [
-        '/system/fonts/NotoSansCJK-Bold.ttc',
         '/system/fonts/NotoSansSC-Bold.otf',
         '/system/fonts/SourceHanSansSC-Bold.otf',
+        '/system/fonts/Roboto-Bold.ttf',
+        '/system/fonts/Roboto-Medium.ttf',
+        '/data/fonts/NotoSansSC-Bold.otf',
       ];
+      
+      bool isTtcFile(String path) {
+        return path.toLowerCase().endsWith('.ttc');
+      }
       
       await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 尝试加载常规字体，共${systemFontPaths.length}个候选', LogLevel.info);
       
       for (int i = 0; i < systemFontPaths.length; i++) {
         final fontPath = systemFontPaths[i];
         try {
+          if (isTtcFile(fontPath)) {
+            await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [$i] 跳过TTC格式字体(不支持): $fontPath', LogLevel.debug);
+            continue;
+          }
+          
           await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [$i/${systemFontPaths.length}] 检查字体文件: $fontPath', LogLevel.debug);
           final file = File(fontPath);
           final exists = await file.exists();
@@ -82,6 +140,11 @@ class PdfExportService {
       for (int i = 0; i < boldFontPaths.length; i++) {
         final fontPath = boldFontPaths[i];
         try {
+          if (isTtcFile(fontPath)) {
+            await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [bold-$i] 跳过TTC格式字体(不支持): $fontPath', LogLevel.debug);
+            continue;
+          }
+          
           await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: [bold-$i/${boldFontPaths.length}] 检查粗体字体文件: $fontPath', LogLevel.debug);
           final file = File(fontPath);
           final exists = await file.exists();
@@ -106,6 +169,11 @@ class PdfExportService {
       if (_chineseFontBold == null && _chineseFont != null) {
         await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 粗体字体未找到，使用常规字体作为回退', LogLevel.info);
         _chineseFontBold = _chineseFont;
+      }
+      
+      // 第三步：如果仍然没有加载到字体，记录警告
+      if (_chineseFont == null) {
+        await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 警告 - 未找到任何中文字体，PDF中的中文可能显示为空白', LogLevel.warn);
       }
       
       await FileLogger.instance.logWithLevel('PDF导出', '_loadFonts: 字体加载完成 - regularFontLoaded=${_chineseFont != null}, boldFontLoaded=${_chineseFontBold != null}', LogLevel.info);
@@ -242,7 +310,7 @@ class PdfExportService {
       }
       
       await FileLogger.instance.logWithLevel('PDF导出', '步骤12: 准备保存PDF文件', LogLevel.info);
-      final tempDir = await getTemporaryDirectory();
+      final tempDir = await pathProvider.getTemporaryDirectory();
       await FileLogger.instance.logWithLevel('PDF导出', '临时目录: ${tempDir.path}', LogLevel.debug);
       
       final now = DateTime.now();

@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:drift/drift.dart' show Value;
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,6 +18,7 @@ import '../../../core/utils/tag_color_utils.dart';
 import '../../../core/widgets/ai_parse_button.dart';
 import '../../../core/widgets/amap_location_page.dart';
 import '../../../core/widgets/custom_bottom_sheet.dart';
+import '../../../core/widgets/app_image.dart';
 import '../providers/moment_detail_provider.dart';
 
 List<String> _parseMomentImages(String? raw) {
@@ -721,7 +721,7 @@ class _MomentCard extends StatelessWidget {
               if (hasImage)
                 ClipRRect(
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                  child: SizedBox(height: item.imageHeight, child: _buildLocalImage(item.imageUrl, fit: BoxFit.cover)),
+                  child: SizedBox(height: item.imageHeight, child: AppImage(source: item.imageUrl, fit: BoxFit.cover)),
                 ),
               Padding(
                 padding: const EdgeInsets.all(12),
@@ -1242,12 +1242,12 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
 
     if (images.length == 1) {
       return GestureDetector(
-        onTap: () => _showImageDialog(context, images[0]),
+        onTap: () => ImagePreview.show(context, imageUrl: images[0]),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(16),
           child: AspectRatio(
             aspectRatio: 16 / 9,
-            child: _buildLocalImage(images[0], fit: BoxFit.cover),
+            child: AppImage(source: images[0], fit: BoxFit.cover),
           ),
         ),
       );
@@ -1260,12 +1260,12 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
             child: Padding(
               padding: EdgeInsets.only(right: images.indexOf(img) == 0 ? 8 : 0),
               child: GestureDetector(
-                onTap: () => _showImageDialog(context, img),
+                onTap: () => ImagePreview.showGallery(context, images: images, initialIndex: images.indexOf(img)),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: AspectRatio(
                     aspectRatio: 1,
-                    child: _buildLocalImage(img, fit: BoxFit.cover),
+                    child: AppImage(source: img, fit: BoxFit.cover),
                   ),
                 ),
               ),
@@ -1281,12 +1281,12 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
           Expanded(
             flex: 2,
             child: GestureDetector(
-              onTap: () => _showImageDialog(context, images[0]),
+              onTap: () => ImagePreview.showGallery(context, images: images, initialIndex: 0),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(16),
                 child: AspectRatio(
                   aspectRatio: 1,
-                  child: _buildLocalImage(images[0], fit: BoxFit.cover),
+                  child: AppImage(source: images[0], fit: BoxFit.cover),
                 ),
               ),
             ),
@@ -1297,23 +1297,23 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
             child: Column(
               children: [
                 GestureDetector(
-                  onTap: () => _showImageDialog(context, images[1]),
+                  onTap: () => ImagePreview.showGallery(context, images: images, initialIndex: 1),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(16),
                     child: AspectRatio(
                       aspectRatio: 1,
-                      child: _buildLocalImage(images[1], fit: BoxFit.cover),
+                      child: AppImage(source: images[1], fit: BoxFit.cover),
                     ),
                   ),
                 ),
                 const SizedBox(height: 8),
                 GestureDetector(
-                  onTap: () => _showImageDialog(context, images[2]),
+                  onTap: () => ImagePreview.showGallery(context, images: images, initialIndex: 2),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(16),
                     child: AspectRatio(
                       aspectRatio: 1,
-                      child: _buildLocalImage(images[2], fit: BoxFit.cover),
+                      child: AppImage(source: images[2], fit: BoxFit.cover),
                     ),
                   ),
                 ),
@@ -1337,39 +1337,13 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
       itemCount: images.length,
       itemBuilder: (context, index) {
         return GestureDetector(
-          onTap: () => _showImageDialog(context, images[index]),
+          onTap: () => ImagePreview.showGallery(context, images: images, initialIndex: index),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: _buildLocalImage(images[index], fit: BoxFit.cover),
+            child: AppImage(source: images[index], fit: BoxFit.cover),
           ),
         );
       },
-    );
-  }
-
-  void _showImageDialog(BuildContext context, String imageUrl) {
-    showDialog(
-      context: context,
-      builder: (_) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: EdgeInsets.zero,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            InteractiveViewer(
-              child: _buildLocalImage(imageUrl, fit: BoxFit.contain),
-            ),
-            Positioned(
-              top: 40,
-              right: 20,
-              child: IconButton(
-                icon: const Icon(Icons.close, color: Colors.white, size: 30),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -2297,7 +2271,7 @@ class _PhotoTile extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          _buildLocalImage(url, fit: BoxFit.cover),
+          AppImage(source: url, fit: BoxFit.cover),
           Positioned(
             right: 6,
             top: 6,
@@ -2337,18 +2311,6 @@ class _PhotoAddTile extends StatelessWidget {
       ),
     );
   }
-}
-
-Widget _buildLocalImage(String path, {BoxFit fit = BoxFit.cover}) {
-  final trimmed = path.trim();
-  if (trimmed.isEmpty) {
-    return const SizedBox.shrink();
-  }
-  final isNetwork = trimmed.startsWith('http://') || trimmed.startsWith('https://');
-  if (isNetwork || kIsWeb) {
-    return Image.network(trimmed, fit: fit, gaplessPlayback: true);
-  }
-  return Image.file(File(trimmed), fit: fit, gaplessPlayback: true);
 }
 
 class _InfoRow extends StatelessWidget {

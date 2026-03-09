@@ -4,7 +4,6 @@ import 'dart:ui' as ui;
 
 import 'package:confetti/confetti.dart';
 import 'package:drift/drift.dart' show OrderingMode, OrderingTerm, Value;
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,6 +21,7 @@ import '../../../core/utils/media_storage.dart';
 import '../../../core/utils/icon_utils.dart';
 import '../../../core/utils/tag_color_utils.dart';
 import '../../../core/widgets/ai_parse_button.dart';
+import '../../../core/widgets/app_image.dart';
 import '../providers/goal_detail_provider.dart';
 import '../../food/presentation/food_page.dart';
 import '../../travel/presentation/travel_page.dart';
@@ -1442,7 +1442,7 @@ class _AnnualGoalSummaryPageState extends ConsumerState<AnnualGoalSummaryPage> {
                                               borderRadius: BorderRadius.circular(12),
                                               child: Stack(
                                                 children: [
-                                                  Positioned.fill(child: _buildLocalImage(imageUrl, fit: BoxFit.cover)),
+                                                  Positioned.fill(child: AppImage(source: imageUrl, fit: BoxFit.cover)),
                                                   Positioned(
                                                     top: 4,
                                                     right: 4,
@@ -3190,18 +3190,6 @@ String _formatDotDate(DateTime date) {
   final month = date.month.toString().padLeft(2, '0');
   final day = date.day.toString().padLeft(2, '0');
   return '${date.year}.$month.$day';
-}
-
-Widget _buildLocalImage(String path, {BoxFit fit = BoxFit.cover}) {
-  final trimmed = path.trim();
-  if (trimmed.isEmpty) {
-    return const SizedBox.shrink();
-  }
-  final isNetwork = trimmed.startsWith('http://') || trimmed.startsWith('https://');
-  if (isNetwork || kIsWeb) {
-    return Image.network(trimmed, fit: fit, gaplessPlayback: true);
-  }
-  return Image.file(File(trimmed), fit: fit, gaplessPlayback: true);
 }
 
 _DayTaskStyle _taskStyleFor(GoalRecord task) {

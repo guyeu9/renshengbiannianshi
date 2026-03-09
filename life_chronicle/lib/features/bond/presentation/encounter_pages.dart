@@ -3,7 +3,6 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:drift/drift.dart' show Value;
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,21 +15,9 @@ import '../../../core/database/database_providers.dart';
 import '../../../core/providers/uuid_provider.dart';
 import '../../../core/utils/media_storage.dart';
 import '../../../core/widgets/amap_location_page.dart';
+import '../../../core/widgets/app_image.dart';
 import '../providers/encounter_detail_provider.dart';
 import 'bond_filter_components.dart';
-
-// 顶层辅助函数
-Widget _buildLocalImage(String path, {BoxFit fit = BoxFit.cover}) {
-  final trimmed = path.trim();
-  if (trimmed.isEmpty) {
-    return const SizedBox.shrink();
-  }
-  final isNetwork = trimmed.startsWith('http://') || trimmed.startsWith('https://');
-  if (isNetwork || kIsWeb) {
-    return Image.network(trimmed, fit: fit, gaplessPlayback: true);
-  }
-  return Image.file(File(trimmed), fit: fit, gaplessPlayback: true);
-}
 
 String initialLetter(String name) {
   final trimmed = name.trim();
@@ -56,7 +43,7 @@ class _AvatarCircle extends StatelessWidget {
       alignment: Alignment.center,
       child: path.isEmpty
           ? Text(letter, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF334155)))
-          : ClipOval(child: _buildLocalImage(path, fit: BoxFit.cover)),
+          : ClipOval(child: AppImage(source: path, fit: BoxFit.cover)),
     );
   }
 }
@@ -331,7 +318,7 @@ class _PhotoTile extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          _buildLocalImage(url, fit: BoxFit.cover),
+          AppImage(source: url, fit: BoxFit.cover),
           Positioned(
             right: 6,
             top: 6,
@@ -1530,7 +1517,7 @@ class _ImageGrid extends StatelessWidget {
       itemBuilder: (context, index) {
         return ClipRRect(
           borderRadius: BorderRadius.circular(12),
-          child: _buildLocalImage(images[index], fit: BoxFit.cover),
+          child: AppImage(source: images[index], fit: BoxFit.cover),
         );
       },
     );

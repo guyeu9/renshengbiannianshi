@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/native.dart';
 import 'package:life_chronicle/core/database/app_database.dart';
 import 'package:life_chronicle/core/services/pdf_export_service.dart';
+import 'package:life_chronicle/core/services/path_provider_service.dart';
 import '../test_utils/test_data_factory.dart';
 
 AppDatabase _createTestDatabase() {
@@ -10,17 +12,26 @@ AppDatabase _createTestDatabase() {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  group('PdfExportService Tests', skip: '需要 path_provider 插件，在集成测试环境中运行', () {
+  group('PdfExportService Tests', () {
     late AppDatabase db;
     late PdfExportService pdfExportService;
+    late Directory tempDir;
 
-    setUp(() {
+    setUp(() async {
       db = _createTestDatabase();
-      pdfExportService = PdfExportService(db);
+      tempDir = await Directory.systemTemp.createTemp('test_pdf_');
+      final mockPathProvider = MockPathProviderService(
+        appDocDir: tempDir,
+        tempDir: tempDir,
+      );
+      pdfExportService = PdfExportService(db, mockPathProvider);
     });
 
-    tearDown(() async {
+    tearDown() async {
       await db.close();
+      if (await tempDir.exists()) {
+        await tempDir.delete(recursive: true);
+      }
     });
 
     test('exportToPdf should create file path with correct format', () async {
@@ -214,6 +225,11 @@ void main() {
 
       expect(filePath, isNotNull);
       expect(filePath, endsWith('.pdf'));
+
+      final file = File(filePath);
+      expect(await file.exists(), isTrue);
+      final bytes = await file.readAsBytes();
+      expect(bytes.length, greaterThan(0));
     });
   });
 }

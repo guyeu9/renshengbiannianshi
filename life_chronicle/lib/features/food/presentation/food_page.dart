@@ -4,7 +4,6 @@ import 'dart:ui' as ui;
 
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -18,6 +17,7 @@ import '../../../core/database/database_providers.dart';
 import '../../../core/utils/media_storage.dart';
 import '../../../core/utils/tag_color_utils.dart';
 import '../../../core/widgets/amap_location_page.dart';
+import '../../../core/widgets/app_image.dart';
 import '../../../core/widgets/ai_parse_button.dart';
 
 class FoodPage extends StatefulWidget {
@@ -791,7 +791,7 @@ class _FoodRecordCard extends StatelessWidget {
                                 alignment: Alignment.center,
                                 child: const Icon(Icons.restaurant, color: Color(0xFF94A3B8), size: 32),
                               )
-                            : _buildLocalImage(cover, fit: BoxFit.cover),
+                            : AppImage(source: cover, fit: BoxFit.cover),
                       ),
                       if (record.isFavorite)
                         Positioned(
@@ -1138,7 +1138,7 @@ class _FoodWishlistRecordCard extends ConsumerWidget {
                           alignment: Alignment.center,
                           child: const Icon(Icons.bookmark_border, color: Color(0xFF94A3B8), size: 28),
                         )
-                      : _buildLocalImage(cover, fit: BoxFit.cover),
+                      : AppImage(source: cover, fit: BoxFit.cover),
                 ),
               ),
               Expanded(
@@ -2149,59 +2149,72 @@ class _ImageGrid extends StatelessWidget {
 
   final List<String> images;
 
+  void _openPreview(BuildContext context, int initialIndex) {
+    ImagePreview.showGallery(context, images: images, initialIndex: initialIndex);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (images.isEmpty) return const SizedBox.shrink();
 
     switch (images.length) {
       case 1:
-        return _buildSingleImage(images[0]);
+        return _buildSingleImage(context, images[0]);
       case 2:
-        return _buildTwoImages(images);
+        return _buildTwoImages(context, images);
       case 3:
-        return _buildThreeImages(images);
+        return _buildThreeImages(context, images);
       case 4:
-        return _buildFourImages(images);
+        return _buildFourImages(context, images);
       default:
-        return _buildFivePlusImages(images);
+        return _buildFivePlusImages(context, images);
     }
   }
 
-  Widget _buildSingleImage(String imageUrl) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: AspectRatio(
-        aspectRatio: 16 / 9,
-        child: _buildLocalImage(imageUrl, fit: BoxFit.cover),
+  Widget _buildSingleImage(BuildContext context, String imageUrl) {
+    return GestureDetector(
+      onTap: () => _openPreview(context, 0),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: AspectRatio(
+          aspectRatio: 16 / 9,
+          child: AppImage(source: imageUrl, fit: BoxFit.cover),
+        ),
       ),
     );
   }
 
-  Widget _buildTwoImages(List<String> images) {
+  Widget _buildTwoImages(BuildContext context, List<String> images) {
     return Row(
       children: [
         Expanded(
-          child: ClipRRect(
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(20),
-              bottomLeft: Radius.circular(20),
-            ),
-            child: AspectRatio(
-              aspectRatio: 1,
-              child: _buildLocalImage(images[0], fit: BoxFit.cover),
+          child: GestureDetector(
+            onTap: () => _openPreview(context, 0),
+            child: ClipRRect(
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                bottomLeft: Radius.circular(20),
+              ),
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: AppImage(source: images[0], fit: BoxFit.cover),
+              ),
             ),
           ),
         ),
         const SizedBox(width: 8),
         Expanded(
-          child: ClipRRect(
-            borderRadius: const BorderRadius.only(
-              topRight: Radius.circular(20),
-              bottomRight: Radius.circular(20),
-            ),
-            child: AspectRatio(
-              aspectRatio: 1,
-              child: _buildLocalImage(images[1], fit: BoxFit.cover),
+          child: GestureDetector(
+            onTap: () => _openPreview(context, 1),
+            child: ClipRRect(
+              borderRadius: const BorderRadius.only(
+                topRight: Radius.circular(20),
+                bottomRight: Radius.circular(20),
+              ),
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: AppImage(source: images[1], fit: BoxFit.cover),
+              ),
             ),
           ),
         ),
@@ -2209,42 +2222,51 @@ class _ImageGrid extends StatelessWidget {
     );
   }
 
-  Widget _buildThreeImages(List<String> images) {
+  Widget _buildThreeImages(BuildContext context, List<String> images) {
     return Column(
       children: [
-        ClipRRect(
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
-          ),
-          child: AspectRatio(
-            aspectRatio: 16 / 9,
-            child: _buildLocalImage(images[0], fit: BoxFit.cover),
+        GestureDetector(
+          onTap: () => _openPreview(context, 0),
+          child: ClipRRect(
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
+              child: AppImage(source: images[0], fit: BoxFit.cover),
+            ),
           ),
         ),
         const SizedBox(height: 8),
         Row(
           children: [
             Expanded(
-              child: ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(20),
-                ),
-                child: AspectRatio(
-                  aspectRatio: 1,
-                  child: _buildLocalImage(images[1], fit: BoxFit.cover),
+              child: GestureDetector(
+                onTap: () => _openPreview(context, 1),
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(20),
+                  ),
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: AppImage(source: images[1], fit: BoxFit.cover),
+                  ),
                 ),
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  bottomRight: Radius.circular(20),
-                ),
-                child: AspectRatio(
-                  aspectRatio: 1,
-                  child: _buildLocalImage(images[2], fit: BoxFit.cover),
+              child: GestureDetector(
+                onTap: () => _openPreview(context, 2),
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    bottomRight: Radius.circular(20),
+                  ),
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: AppImage(source: images[2], fit: BoxFit.cover),
+                  ),
                 ),
               ),
             ),
@@ -2254,7 +2276,7 @@ class _ImageGrid extends StatelessWidget {
     );
   }
 
-  Widget _buildFourImages(List<String> images) {
+  Widget _buildFourImages(BuildContext context, List<String> images) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
       child: GridView.count(
@@ -2265,88 +2287,106 @@ class _ImageGrid extends StatelessWidget {
         physics: const NeverScrollableScrollPhysics(),
         children: [
           for (var i = 0; i < 4; i++)
-            ClipRRect(
-              borderRadius: i == 0
-                  ? const BorderRadius.only(topLeft: Radius.circular(16))
-                  : i == 1
-                      ? const BorderRadius.only(topRight: Radius.circular(16))
-                      : i == 2
-                          ? const BorderRadius.only(bottomLeft: Radius.circular(16))
-                          : const BorderRadius.only(bottomRight: Radius.circular(16)),
-              child: _buildLocalImage(images[i], fit: BoxFit.cover),
+            GestureDetector(
+              onTap: () => _openPreview(context, i),
+              child: ClipRRect(
+                borderRadius: i == 0
+                    ? const BorderRadius.only(topLeft: Radius.circular(16))
+                    : i == 1
+                        ? const BorderRadius.only(topRight: Radius.circular(16))
+                        : i == 2
+                            ? const BorderRadius.only(bottomLeft: Radius.circular(16))
+                            : const BorderRadius.only(bottomRight: Radius.circular(16)),
+                child: AppImage(source: images[i], fit: BoxFit.cover),
+              ),
             ),
         ],
       ),
     );
   }
 
-  Widget _buildFivePlusImages(List<String> images) {
+  Widget _buildFivePlusImages(BuildContext context, List<String> images) {
     final moreCount = images.length - 5;
     return Column(
       children: [
-        ClipRRect(
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
-          ),
-          child: AspectRatio(
-            aspectRatio: 16 / 9,
-            child: _buildLocalImage(images[0], fit: BoxFit.cover),
+        GestureDetector(
+          onTap: () => _openPreview(context, 0),
+          child: ClipRRect(
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
+              child: AppImage(source: images[0], fit: BoxFit.cover),
+            ),
           ),
         ),
         const SizedBox(height: 8),
         Row(
           children: [
             Expanded(
-              child: AspectRatio(
-                aspectRatio: 1,
+              child: GestureDetector(
+                onTap: () => _openPreview(context, 1),
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(20),
+                    ),
+                    child: AppImage(source: images[1], fit: BoxFit.cover),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: GestureDetector(
+                onTap: () => _openPreview(context, 2),
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: AppImage(source: images[2], fit: BoxFit.cover),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: GestureDetector(
+                onTap: () => _openPreview(context, 3),
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: AppImage(source: images[3], fit: BoxFit.cover),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: GestureDetector(
+                onTap: () => _openPreview(context, 4),
                 child: ClipRRect(
                   borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(20),
+                    bottomRight: Radius.circular(20),
                   ),
-                  child: _buildLocalImage(images[1], fit: BoxFit.cover),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: _buildLocalImage(images[2], fit: BoxFit.cover),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: _buildLocalImage(images[3], fit: BoxFit.cover),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  bottomRight: Radius.circular(20),
-                ),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    _buildLocalImage(images[4], fit: BoxFit.cover),
-                    if (moreCount > 0)
-                      Container(
-                        color: Colors.black.withValues(alpha: 0.50),
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text('+$moreCount', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white)),
-                              const SizedBox(height: 4),
-                              const Text('查看更多', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white70)),
-                            ],
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      AppImage(source: images[4], fit: BoxFit.cover),
+                      if (moreCount > 0)
+                        Container(
+                          color: Colors.black.withValues(alpha: 0.50),
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text('+$moreCount', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white)),
+                                const SizedBox(height: 4),
+                                const Text('查看更多', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white70)),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -2691,7 +2731,7 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
           borderRadius: BorderRadius.circular(16),
           child: Stack(
             children: [
-              Positioned.fill(child: _buildLocalImage(imageUrl, fit: BoxFit.cover)),
+              Positioned.fill(child: AppImage(source: imageUrl, fit: BoxFit.cover)),
               Positioned(
                 top: 6,
                 right: 6,
@@ -4542,18 +4582,6 @@ String _extractCityToken(String input) {
   if (m3 != null) return m3.group(1) ?? '';
   final first = s.split(RegExp(r'[\s,，/]+')).first.trim();
   return first.length > 12 ? '' : first;
-}
-
-Widget _buildLocalImage(String path, {BoxFit fit = BoxFit.cover}) {
-  final trimmed = path.trim();
-  if (trimmed.isEmpty) {
-    return const SizedBox.shrink();
-  }
-  final isNetwork = trimmed.startsWith('http://') || trimmed.startsWith('https://');
-  if (isNetwork || kIsWeb) {
-    return Image.network(trimmed, fit: fit, gaplessPlayback: true);
-  }
-  return Image.file(File(trimmed), fit: fit, gaplessPlayback: true);
 }
 
 class _SmallAvatar extends StatelessWidget {

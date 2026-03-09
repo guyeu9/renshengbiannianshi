@@ -1,7 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +10,7 @@ import '../../../core/config/module_management_config.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/utils/media_storage.dart';
+import '../../../core/widgets/app_image.dart';
 import '../../../core/widgets/ai_parse_button.dart';
 import '../../../core/widgets/amap_location_page.dart';
 import '../../../core/widgets/custom_bottom_sheet.dart';
@@ -564,7 +563,7 @@ class _FriendCard extends StatelessWidget {
                     fit: StackFit.expand,
                     children: [
                       if (avatarPath.isNotEmpty)
-                        _buildLocalImage(avatarPath, fit: BoxFit.cover)
+                        AppImage(source: avatarPath, fit: BoxFit.cover)
                       else
                         Container(
                           decoration: const BoxDecoration(
@@ -1440,7 +1439,7 @@ class _FriendProfileCard extends StatelessWidget {
                           style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF64748B)),
                         ),
                       )
-                    : _buildLocalImage(friend.avatarPath!, fit: BoxFit.cover),
+                    : AppImage(source: friend.avatarPath!, fit: BoxFit.cover),
               ),
             ),
           ),
@@ -2125,7 +2124,7 @@ class _SingleImageMemoryCard extends StatelessWidget {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      _buildLocalImage(item.images.first, fit: BoxFit.cover),
+                      AppImage(source: item.images.first, fit: BoxFit.cover),
                       Positioned(
                         top: 12,
                         right: 12,
@@ -2270,7 +2269,7 @@ class _MultiImageMemoryCard extends StatelessWidget {
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
-                          _buildLocalImage(displayImages[index], fit: BoxFit.cover),
+                          AppImage(source: displayImages[index], fit: BoxFit.cover),
                           if (isLast)
                             Container(
                               color: Colors.black.withValues(alpha: 0.5),
@@ -2671,7 +2670,7 @@ class _FriendCreatePageState extends ConsumerState<FriendCreatePage> {
                                           style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: Color(0xFF94A3B8)),
                                         ),
                                       )
-                                    : _buildLocalImage(avatarPath, fit: BoxFit.cover),
+                                    : AppImage(source: avatarPath, fit: BoxFit.cover),
                               ),
                             ),
                             Positioned(
@@ -2994,18 +2993,6 @@ class _FriendCreatePageState extends ConsumerState<FriendCreatePage> {
   }
 }
 
-Widget _buildLocalImage(String path, {BoxFit fit = BoxFit.cover}) {
-  final trimmed = path.trim();
-  if (trimmed.isEmpty) {
-    return const SizedBox.shrink();
-  }
-  final isNetwork = trimmed.startsWith('http://') || trimmed.startsWith('https://');
-  if (isNetwork || kIsWeb) {
-    return Image.network(trimmed, fit: fit, gaplessPlayback: true);
-  }
-  return Image.file(File(trimmed), fit: fit, gaplessPlayback: true);
-}
-
 String _initialLetter(String name) {
   final trimmed = name.trim();
   return trimmed.isEmpty ? '?' : trimmed.characters.first;
@@ -3133,7 +3120,7 @@ class _AvatarCircle extends StatelessWidget {
       alignment: Alignment.center,
       child: path.isEmpty
           ? Text(letter, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF334155)))
-          : ClipOval(child: _buildLocalImage(path, fit: BoxFit.cover)),
+          : ClipOval(child: AppImage(source: path, fit: BoxFit.cover)),
     );
   }
 }

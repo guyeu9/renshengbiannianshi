@@ -2,6 +2,13 @@ import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:life_chronicle/core/database/app_database.dart';
 
 class TestDataFactory {
+  static int _counter = 0;
+  
+  static String _generateId(String prefix) {
+    _counter++;
+    return 'test-$prefix-${DateTime.now().microsecondsSinceEpoch}-$_counter';
+  }
+
   static FoodRecordsCompanion createFoodRecord({
     String? id,
     String? title,
@@ -12,7 +19,7 @@ class TestDataFactory {
   }) {
     final now = DateTime.now();
     return FoodRecordsCompanion.insert(
-      id: id ?? 'test-food-${now.microsecondsSinceEpoch}',
+      id: id ?? _generateId('food'),
       title: title ?? 'Test Food',
       content: Value(content),
       rating: Value(rating ?? 4.0),
@@ -32,7 +39,7 @@ class TestDataFactory {
   }) {
     final now = DateTime.now();
     return MomentRecordsCompanion.insert(
-      id: id ?? 'test-moment-${now.microsecondsSinceEpoch}',
+      id: id ?? _generateId('moment'),
       content: Value(content),
       mood: mood ?? '开心',
       city: Value(city),
@@ -51,7 +58,7 @@ class TestDataFactory {
   }) {
     final now = DateTime.now();
     return FriendRecordsCompanion.insert(
-      id: id ?? 'test-friend-${now.microsecondsSinceEpoch}',
+      id: id ?? _generateId('friend'),
       name: name ?? 'Test Friend',
       groupName: Value(groupName),
       impressionTags: Value(impressionTags),
@@ -71,8 +78,8 @@ class TestDataFactory {
   }) {
     final now = DateTime.now();
     return TravelRecordsCompanion.insert(
-      id: id ?? 'test-travel-${now.microsecondsSinceEpoch}',
-      tripId: tripId ?? 'test-trip-${now.microsecondsSinceEpoch}',
+      id: id ?? _generateId('travel'),
+      tripId: tripId ?? _generateId('trip'),
       title: Value(title ?? 'Test Travel'),
       content: Value(content),
       city: Value(city),
@@ -92,7 +99,7 @@ class TestDataFactory {
   }) {
     final now = DateTime.now();
     return GoalRecordsCompanion.insert(
-      id: id ?? 'test-goal-${now.microsecondsSinceEpoch}',
+      id: id ?? _generateId('goal'),
       level: 'yearly',
       title: title ?? 'Test Goal',
       category: Value(category ?? '学习'),
@@ -113,7 +120,7 @@ class TestDataFactory {
   }) {
     final now = DateTime.now();
     return TimelineEventsCompanion.insert(
-      id: id ?? 'test-event-${now.microsecondsSinceEpoch}',
+      id: id ?? _generateId('event'),
       title: title ?? 'Test Event',
       eventType: eventType ?? 'moment',
       note: Value(note),
@@ -134,7 +141,7 @@ class TestDataFactory {
   }) {
     final now = DateTime.now();
     return EntityLinksCompanion.insert(
-      id: id ?? 'test-link-${now.microsecondsSinceEpoch}',
+      id: id ?? _generateId('link'),
       sourceType: sourceType,
       sourceId: sourceId,
       targetType: targetType,
@@ -152,7 +159,7 @@ class TestDataFactory {
   }) {
     final now = DateTime.now();
     return TripsCompanion.insert(
-      id: id ?? 'test-trip-${now.microsecondsSinceEpoch}',
+      id: id ?? _generateId('trip'),
       name: name ?? 'Test Trip',
       startDate: Value(startDate),
       endDate: Value(endDate),

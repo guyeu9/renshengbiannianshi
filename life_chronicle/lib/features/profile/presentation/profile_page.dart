@@ -21,6 +21,7 @@ import '../../../core/utils/media_storage.dart';
 import '../../../core/utils/icon_utils.dart';
 import '../../../core/config/module_management_config.dart';
 import '../../../app/app_theme.dart';
+import '../../../core/widgets/app_image.dart';
 import '../../food/presentation/food_page.dart';
 import '../../travel/presentation/travel_page.dart';
 import '../../moment/presentation/moment_page.dart';
@@ -4110,7 +4111,7 @@ class _FavoriteItemCard extends StatelessWidget {
               child: SizedBox(
                 width: 72,
                 height: 72,
-                child: _buildLocalImage(imageUrl, fit: BoxFit.cover),
+                child: AppImage(source: imageUrl, fit: BoxFit.cover),
               ),
             ),
             const SizedBox(width: 12),
@@ -6561,16 +6562,4 @@ class _PlaceholderPage extends StatelessWidget {
       ),
     );
   }
-}
-
-Widget _buildLocalImage(String path, {BoxFit fit = BoxFit.cover}) {
-  final trimmed = path.trim();
-  if (trimmed.isEmpty) {
-    return const SizedBox.shrink();
-  }
-  final isNetwork = trimmed.startsWith('http://') || trimmed.startsWith('https://');
-  if (isNetwork || kIsWeb) {
-    return Image.network(trimmed, fit: fit, gaplessPlayback: true);
-  }
-  return Image.file(File(trimmed), fit: fit, gaplessPlayback: true);
 }

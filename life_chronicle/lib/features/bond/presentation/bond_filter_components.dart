@@ -1,23 +1,8 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/widgets/app_image.dart';
 
-// 顶层辅助函数
-Widget _buildLocalImage(String path, {BoxFit fit = BoxFit.cover}) {
-  final trimmed = path.trim();
-  if (trimmed.isEmpty) {
-    return const SizedBox.shrink();
-  }
-  final isNetwork = trimmed.startsWith('http://') || trimmed.startsWith('https://');
-  if (isNetwork) {
-    return Image.network(trimmed, fit: fit, gaplessPlayback: true);
-  }
-  return Image.file(File(trimmed), fit: fit, gaplessPlayback: true);
-}
-
-// 筛选结果数据类
 class FilterResult {
   const FilterResult({
     required this.dateIndex,
@@ -299,7 +284,7 @@ class FilterFriendTile extends StatelessWidget {
             CircleAvatar(
               radius: 16,
               backgroundColor: const Color(0xFFE5E7EB),
-              child: path.isEmpty ? Text(letter, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF64748B))) : ClipOval(child: _buildLocalImage(path, fit: BoxFit.cover)),
+              child: path.isEmpty ? Text(letter, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF64748B))) : ClipOval(child: AppImage(source: path, fit: BoxFit.cover)),
             ),
             const SizedBox(width: 10),
             Expanded(child: Text(name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF111827)))),

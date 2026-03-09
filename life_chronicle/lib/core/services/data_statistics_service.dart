@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 import '../database/app_database.dart';
+import 'path_provider_service.dart';
 
 class ModuleStatistics {
   final int recordCount;
@@ -82,8 +82,9 @@ class DataStatistics {
 
 class DataStatisticsService {
   final AppDatabase db;
+  final PathProviderService pathProvider;
   
-  DataStatisticsService(this.db);
+  DataStatisticsService(this.db, [this.pathProvider = const RealPathProviderService()]);
   
   Future<DataStatistics> getStatistics() async {
     // 获取各模块记录数
@@ -151,7 +152,7 @@ class DataStatisticsService {
   }
   
   Future<(int, int)> _getModuleMediaStats(String moduleName) async {
-    final appDocDir = await getApplicationDocumentsDirectory();
+    final appDocDir = await pathProvider.getApplicationDocumentsDirectory();
     final moduleDir = Directory(path.join(appDocDir.path, 'media', moduleName));
     
     if (!await moduleDir.exists()) {
@@ -172,7 +173,7 @@ class DataStatisticsService {
   }
   
   Future<int> _getDatabaseSize() async {
-    final appDocDir = await getApplicationDocumentsDirectory();
+    final appDocDir = await pathProvider.getApplicationDocumentsDirectory();
     // 使用正确的数据库文件名
     final dbFile = File(path.join(appDocDir.path, 'life_chronicle.sqlite'));
     
