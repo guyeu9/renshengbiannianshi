@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>❌ 检测报告 - 有问题</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: #f3f4f6; padding: 20px; line-height: 1.8; }
+    .container { max-width: 1000px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); overflow: hidden; }
+    .header { background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%); color: white; padding: 40px 30px; text-align: center; }
+    .header h1 { font-size: 32px; margin-bottom: 10px; }
+    .header .timestamp { font-size: 14px; opacity: 0.9; margin-top: 5px; }
+    .status-badge { display: inline-block; padding: 15px 40px; border-radius: 50px; font-size: 28px; font-weight: bold; background: white; color: #dc2626; margin-top: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+    .summary { padding: 30px; background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+    .summary-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-top: 20px; }
+    .summary-card { background: white; padding: 25px 15px; border-radius: 10px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.08); border: 2px solid transparent; transition: transform 0.2s; }
+    .summary-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.12); }
+    .summary-card .number { font-size: 40px; font-weight: bold; line-height: 1.2; }
+    .summary-card .label { font-size: 15px; color: #6b7280; margin-top: 8px; font-weight: 500; }
+    .summary-card.total { border-color: #d1d5db; }
+    .summary-card.total .number { color: #1f2937; }
+    .summary-card.passed { border-color: #86efac; background: #f0fdf4; }
+    .summary-card.passed .number { color: #16a34a; }
+    .summary-card.failed { border-color: #fca5a5; background: #fef2f2; }
+    .summary-card.failed .number { color: #dc2626; }
+    .summary-card.skipped { border-color: #fcd34d; background: #fffbeb; }
+    .summary-card.skipped .number { color: #d97706; }
+    .summary-card.rate { border-color: #93c5fd; background: #eff6ff; }
+    .summary-card.rate .number { color: #2563eb; }
+    .progress-bar { margin-top: 30px; height: 28px; background: #e5e7eb; border-radius: 14px; overflow: hidden; display: flex; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
+    .progress-passed { background: #16a34a; height: 100%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 12px; min-width: 40px; }
+    .progress-failed { background: #dc2626; height: 100%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 12px; min-width: 40px; }
+    .progress-skipped { background: #f59e0b; height: 100%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 12px; min-width: 40px; }
+    .section { padding: 35px 30px; border-bottom: 1px solid #e5e7eb; }
+    .section-title { font-size: 22px; font-weight: bold; color: #1f2937; margin-bottom: 25px; display: flex; align-items: center; gap: 12px; }
+    .section-title .count { font-size: 14px; background: #e5e7eb; padding: 4px 12px; border-radius: 20px; font-weight: normal; }
+    .module-list { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; }
+    .module-item { background: #f0f9ff; padding: 20px; border-radius: 10px; border-left: 5px solid #3b82f6; transition: transform 0.2s; }
+    .module-item:hover { transform: translateX(5px); }
+    .module-name { font-weight: bold; color: #1e40af; font-size: 16px; }
+    .module-count { font-size: 14px; color: #6b7280; margin-top: 8px; }
+    .test-group { margin-bottom: 25px; }
+    .test-group-title { font-size: 17px; font-weight: bold; margin-bottom: 18px; padding: 12px 18px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; }
+    .test-group-title.passed { background: #dcfce7; color: #166534; }
+    .test-group-title.failed { background: #fee2e2; color: #991b1b; }
+    .test-group-title.skipped { background: #fef3c7; color: #92400e; }
+    .test-item { padding: 18px; border: 2px solid #e5e7eb; border-radius: 10px; margin-bottom: 12px; transition: all 0.2s; }
+    .test-item:hover { border-color: #d1d5db; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .test-item.passed { background: #f0fdf4; border-color: #86efac; }
+    .test-item.failed { background: #fef2f2; border-color: #fca5a5; animation: pulse 2s infinite; }
+    .test-item.skipped { background: #fffbeb; border-color: #fcd34d; }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.2); }
+      50% { box-shadow: 0 0 0 8px rgba(220, 38, 38, 0); }
+    }
+    .test-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 15px; }
+    .test-name { font-weight: bold; color: #1f2937; font-size: 16px; }
+    .test-module { font-size: 13px; color: #6b7280; margin-top: 6px; }
+    .error-box { margin-top: 18px; background: #fef2f2; border: 2px solid #fecaca; border-radius: 8px; padding: 18px; }
+    .error-title { font-weight: bold; color: #991b1b; margin-bottom: 12px; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+    .error-message { font-family: 'Courier New', monospace; font-size: 13px; color: #7f1d1d; white-space: pre-wrap; word-break: break-all; max-height: 300px; overflow-y: auto; background: #fef2f2; padding: 12px; border-radius: 6px; border: 1px solid #fecaca; }
+    .term-explanation { margin-top: 15px; padding: 15px; background: #fffbeb; border-radius: 8px; font-size: 14px; color: #92400e; border-left: 4px solid #f59e0b; }
+    .skip-reason { margin-top: 15px; padding: 15px; background: #fef3c7; border-radius: 8px; font-size: 14px; color: #92400e; border-left: 4px solid #f59e0b; }
+    .footer { padding: 25px; text-align: center; color: #9ca3af; font-size: 14px; background: #f9fafb; }
+    .no-tests { padding: 60px 40px; text-align: center; color: #6b7280; }
+    .no-tests-icon { font-size: 64px; margin-bottom: 25px; }
+    .no-tests h3 { font-size: 22px; margin-bottom: 10px; color: #374151; }
+    .no-tests p { font-size: 15px; }
+    .legend { display: flex; justify-content: center; gap: 30px; margin-top: 20px; font-size: 14px; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .legend-color { width: 20px; height: 20px; border-radius: 6px; }
+    .legend-color.passed { background: #16a34a; }
+    .legend-color.failed { background: #dc2626; }
+    .legend-color.skipped { background: #f59e0b; }
+    .collapse-btn { background: none; border: none; color: inherit; cursor: pointer; font-size: 14px; padding: 8px 16px; border-radius: 6px; font-weight: 500; }
+    .collapse-btn:hover { background: rgba(0,0,0,0.08); }
+    .test-list { max-height: 600px; overflow-y: auto; padding-right: 10px; }
+    .test-list::-webkit-scrollbar { width: 8px; }
+    .test-list::-webkit-scrollbar-track { background: #f3f4f6; border-radius: 4px; }
+    .test-list::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+    .test-list::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>❌ ❌ 检测报告 - 有问题</h1>
+      <div class="timestamp">生成时间: 2026-03-09 14-57-41</div>
+      <div class="status-badge">发现问题</div>
+    </div>
+
+    <div class="summary">
+      <h2 class="section-title">📊 检测结果概览</h2>
+      <div class="summary-grid">
+        <div class="summary-card total">
+          <div class="number">4</div>
+          <div class="label">总检测数</div>
+        </div>
+        <div class="summary-card passed">
+          <div class="number">2</div>
+          <div class="label">✅ 通过</div>
+        </div>
+        <div class="summary-card failed">
+          <div class="number">1</div>
+          <div class="label">❌ 有问题</div>
+        </div>
+        <div class="summary-card skipped">
+          <div class="number">1</div>
+          <div class="label">⏭️ 跳过</div>
+        </div>
+        <div class="summary-card rate">
+          <div class="number">50.0%</div>
+          <div class="label">📊 通过率</div>
+        </div>
+      </div>
+      
+            <div class="progress-bar">
+        <div class="progress-passed" style="width: 50.0%;" title="通过: 2">2</div>
+        <div class="progress-failed" style="width: 25.0%;" title="有问题: 1">1</div>
+        <div class="progress-skipped" style="width: 25.0%;" title="跳过: 1">1</div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-color passed"></div> 通过 (2)</div>
+        <div class="legend-item"><div class="legend-color failed"></div> 有问题 (1)</div>
+        <div class="legend-item"><div class="legend-color skipped"></div> 跳过 (1)</div>
+      </div>
+      
+    </div>
+
+        <div class="section">
+      <h2 class="section-title">📦 检测覆盖模块 <span class="count">4 个模块</span></h2>
+      <ul class="module-list">
+                <li class="module-item">
+          <div class="module-name">其他检测</div>
+          <div class="module-count">1 个检测</div>
+        </li>
+                <li class="module-item">
+          <div class="module-name">业务逻辑服务</div>
+          <div class="module-count">1 个检测</div>
+        </li>
+                <li class="module-item">
+          <div class="module-name">数据访问层</div>
+          <div class="module-count">1 个检测</div>
+        </li>
+                <li class="module-item">
+          <div class="module-name">界面检测</div>
+          <div class="module-count">1 个检测</div>
+        </li>
+        
+      </ul>
+    </div>
+    
+
+        <div class="section">
+      <h2 class="section-title">❌ 有问题的检测 <span class="count">1 个</span></h2>
+      <div class="test-group">
+        <div class="test-group-title failed">
+          <span>🔴 请重点关注这些有问题的检测</span>
+        </div>
+        <div class="test-list">
+          <div class="test-item failed">
+    <div class="test-header">
+      <div>
+        <div class="test-name">❌ example test 2</div>
+        <div class="test-module">📁 业务逻辑服务</div>
+      </div>
+    </div>
+    
+  </div>
+
+        </div>
+      </div>
+    </div>
+    
+
+        <div class="section">
+      <h2 class="section-title">⏭️ 跳过的检测 <span class="count">1 个</span></h2>
+      <div class="test-group">
+        <div class="test-group-title skipped">
+          <span>🟡 这些检测被跳过了（可能需要特定环境）</span>
+        </div>
+        <div class="test-list">
+          <div class="test-item skipped">
+    <div class="test-header">
+      <div>
+        <div class="test-name">⏭️ example test 3</div>
+        <div class="test-module">📁 数据访问层</div>
+      </div>
+    </div>
+        <div class="skip-reason">
+      ⏭️ 跳过原因: 未指定跳过原因
+    </div>
+    
+  </div>
+
+        </div>
+      </div>
+    </div>
+    
+
+        <div class="section">
+      <h2 class="section-title">✅ 通过的检测 <span class="count">2 个</span></h2>
+      <div class="test-group">
+        <div class="test-group-title passed">
+          <span>🟢 这些检测全部通过</span>
+        </div>
+        <div class="test-list">
+          <div class="test-item passed">
+    <div class="test-header">
+      <div>
+        <div class="test-name">✅ example test 1</div>
+        <div class="test-module">📁 其他检测</div>
+      </div>
+    </div>
+    
+  </div>
+  <div class="test-item passed">
+    <div class="test-header">
+      <div>
+        <div class="test-name">✅ example test 3</div>
+        <div class="test-module">📁 数据访问层</div>
+      </div>
+    </div>
+    
+  </div>
+  <div class="test-item passed">
+    <div class="test-header">
+      <div>
+        <div class="test-name">✅ example test 4</div>
+        <div class="test-module">📁 界面检测</div>
+      </div>
+    </div>
+    
+  </div>
+
+        </div>
+      </div>
+    </div>
+    
+
+    
+
+    <div class="footer">
+      <strong>人生编年史 - 检测报告</strong> | 
+      总检测: 4 | 
+      通过: 2 | 
+      有问题: 1 | 
+      跳过: 1 | 
+      通过率: 50.0%
+    </div>
+  </div>
+</body>
+</html>

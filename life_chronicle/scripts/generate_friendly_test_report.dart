@@ -25,6 +25,8 @@ void main() {
   int skippedTests = 0;
   final failedTestList = <Map<String, dynamic>>[];
   final skippedTestList = <Map<String, dynamic>>[];
+  
+  final testInfoMap = <int, Map<String, dynamic>>{};
 
   final lines = testResultsJson.split('\n');
   for (final line in lines) {
@@ -33,19 +35,50 @@ void main() {
     try {
       final jsonLine = json.decode(line);
       if (jsonLine is Map<String, dynamic>) {
-        if (jsonLine.containsKey('test')) {
-          final test = jsonLine['test'] as Map<String, dynamic>;
-          tests.add(test);
-          totalTests++;
-          final result = test['result'] as String?;
-          if (result == 'success') {
-            passedTests++;
-          } else if (result == 'error' || result == 'failure') {
-            failedTests++;
-            failedTestList.add(test);
-          } else if (result == 'skipped') {
-            skippedTests++;
-            skippedTestList.add(test);
+        final type = jsonLine['type'] as String?;
+        
+        if (type == 'testStart') {
+          final test = jsonLine['test'] as Map<String, dynamic>?;
+          if (test != null) {
+            final testId = test['id'] as int?;
+            if (testId != null) {
+              testInfoMap[testId] = {
+                'id': testId,
+                'name': test['name'] as String? ?? '未知测试',
+                'url': test['url'] as String? ?? '',
+                'suiteID': test['suiteID'] as int?,
+                'line': test['line'] as int?,
+                'column': test['column'] as int?,
+              };
+            }
+          }
+        } else if (type == 'testDone') {
+          final testId = jsonLine['testID'] as int?;
+          final result = jsonLine['result'] as String?;
+          final skipped = jsonLine['skipped'] as bool? ?? false;
+          final hidden = jsonLine['hidden'] as bool? ?? false;
+          
+          if (testId != null && result != null && !hidden) {
+            final testInfo = testInfoMap[testId];
+            if (testInfo != null) {
+              final test = {
+                ...testInfo,
+                'result': result,
+                'skipped': skipped,
+              };
+              tests.add(test);
+              totalTests++;
+              
+              if (skipped) {
+                skippedTests++;
+                skippedTestList.add(test);
+              } else if (result == 'success') {
+                passedTests++;
+              } else if (result == 'error' || result == 'failure') {
+                failedTests++;
+                failedTestList.add(test);
+              }
+            }
           }
         } else if (jsonLine.containsKey('success')) {
           final success = jsonLine['success'] as bool?;
@@ -56,7 +89,7 @@ void main() {
         }
       }
     } catch (e) {
-      stderr.writeln('解析JSON行失败: $line');
+      stderr.writeln('解析JSON行失败: $line, 错误: $e');
     }
   }
 
@@ -241,8 +274,8 @@ String generateMarkdownSummary({
     buffer.writeln('');
     for (final test in failedTestList) {
       final name = test['name'] as String? ?? '未知检测';
-      final path = test['path'] as String? ?? '';
-      final module = getModuleName(path);
+      final url = test['url'] as String? ?? '';
+      final module = getModuleName(url);
       final error = test['error'] as String? ?? '';
       final friendlyError = makeErrorFriendly(error);
       
@@ -515,29 +548,29 @@ Map<String, int> analyzeModules(List<Map<String, dynamic>> tests) {
   final modules = <String, int>{};
   
   for (final test in tests) {
-    final path = test['path'] as String? ?? '';
-    final moduleName = getModuleName(path);
+    final url = test['url'] as String? ?? '';
+    final moduleName = getModuleName(url);
     modules[moduleName] = (modules[moduleName] ?? 0) + 1;
   }
   
   return modules;
 }
 
-String getModuleName(String path) {
-  if (path.contains('daos/')) return '数据访问层';
-  if (path.contains('services/')) return '业务逻辑服务';
-  if (path.contains('providers/')) return '状态管理';
-  if (path.contains('utils/')) return '工具类';
-  if (path.contains('integration/')) return '集成检测';
-  if (path.contains('backup/')) return '备份服务';
-  if (path.contains('widgets/')) return '界面检测';
+String getModuleName(String url) {
+  if (url.contains('daos/')) return '数据访问层';
+  if (url.contains('services/')) return '业务逻辑服务';
+  if (url.contains('providers/')) return '状态管理';
+  if (url.contains('utils/')) return '工具类';
+  if (url.contains('integration/')) return '集成检测';
+  if (url.contains('backup/')) return '备份服务';
+  if (url.contains('widgets/')) return '界面检测';
   return '其他检测';
 }
 
 String generateTestItem(Map<String, dynamic> test, String status) {
   final name = test['name'] as String? ?? '未知检测';
-  final path = test['path'] as String? ?? '';
-  final module = getModuleName(path);
+  final url = test['url'] as String? ?? '';
+  final module = getModuleName(url);
   final error = test['error'] as String? ?? '';
   final skipReason = test['skipReason'] as String? ?? '';
   

@@ -1,0 +1,11 @@
+{"type":"testStart","test":{"id":1,"name":"loading test/example_test.dart","suiteID":0,"groupIDs":[],"metadata":{"skip":false,"skipReason":null},"line":null,"column":null,"url":null},"time":1}
+{"type":"testDone","testID":1,"result":"success","skipped":false,"hidden":true,"time":100}
+{"type":"testStart","test":{"id":2,"name":"example test 1","suiteID":0,"groupIDs":[1],"metadata":{"skip":false,"skipReason":null},"line":10,"column":5,"url":"file:///test/example_test.dart"},"time":101}
+{"type":"testDone","testID":2,"result":"success","skipped":false,"hidden":false,"time":200}
+{"type":"testStart","test":{"id":3,"name":"example test 2","suiteID":0,"groupIDs":[1],"metadata":{"skip":false,"skipReason":null},"line":20,"column":5,"url":"file:///test/services/example_test.dart"},"time":201}
+{"type":"testDone","testID":3,"result":"failure","skipped":false,"hidden":false,"time":300}
+{"type":"testStart","test":{"id":4,"name":"example test 3","suiteID":0,"groupIDs":[1],"metadata":{"skip":true,"skipReason":"需要特定环境"},"line":30,"column":5,"url":"file:///test/daos/example_test.dart"},"time":301}
+{"type":"testDone","testID":4,"result":"success","skipped":true,"hidden":false,"time":350}
+{"type":"testStart","test":{"id":5,"name":"example test 4","suiteID":0,"groupIDs":[1],"metadata":{"skip":false,"skipReason":null},"line":40,"column":5,"url":"file:///test/widgets/example_test.dart"},"time":351}
+{"type":"testDone","testID":5,"result":"success","skipped":false,"hidden":false,"time":400}
+{"success":true}
