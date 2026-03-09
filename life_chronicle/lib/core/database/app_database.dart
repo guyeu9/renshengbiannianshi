@@ -210,6 +210,71 @@ class AppDatabase extends _$AppDatabase {
             await ensureTable(chatSessions);
             await ensureTable(chatMessages);
           }
+
+          // 修复历史数据：将逗号分隔的images字段转换为JSON数组格式
+          if (await columnExists('travel_records', 'images')) {
+            await customStatement('''
+              UPDATE travel_records 
+              SET images = json_array(images) 
+              WHERE images IS NOT NULL 
+              AND images != '' 
+              AND json_valid(images) = 0
+            ''');
+          }
+          if (await columnExists('travel_records', 'tags')) {
+            await customStatement('''
+              UPDATE travel_records 
+              SET tags = json_array(tags) 
+              WHERE tags IS NOT NULL 
+              AND tags != '' 
+              AND json_valid(tags) = 0
+            ''');
+          }
+          if (await columnExists('food_records', 'images')) {
+            await customStatement('''
+              UPDATE food_records 
+              SET images = json_array(images) 
+              WHERE images IS NOT NULL 
+              AND images != '' 
+              AND json_valid(images) = 0
+            ''');
+          }
+          if (await columnExists('food_records', 'tags')) {
+            await customStatement('''
+              UPDATE food_records 
+              SET tags = json_array(tags) 
+              WHERE tags IS NOT NULL 
+              AND tags != '' 
+              AND json_valid(tags) = 0
+            ''');
+          }
+          if (await columnExists('moment_records', 'images')) {
+            await customStatement('''
+              UPDATE moment_records 
+              SET images = json_array(images) 
+              WHERE images IS NOT NULL 
+              AND images != '' 
+              AND json_valid(images) = 0
+            ''');
+          }
+          if (await columnExists('moment_records', 'tags')) {
+            await customStatement('''
+              UPDATE moment_records 
+              SET tags = json_array(tags) 
+              WHERE tags IS NOT NULL 
+              AND tags != '' 
+              AND json_valid(tags) = 0
+            ''');
+          }
+          if (await columnExists('friend_records', 'images')) {
+            await customStatement('''
+              UPDATE friend_records 
+              SET images = json_array(images) 
+              WHERE images IS NOT NULL 
+              AND images != '' 
+              AND json_valid(images) = 0
+            ''');
+          }
         },
       );
 

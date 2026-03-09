@@ -4889,12 +4889,26 @@ List<String> _decodeStringList(String? raw) {
   if (raw == null) return const <String>[];
   final trimmed = raw.trim();
   if (trimmed.isEmpty) return const <String>[];
+  
+  // 尝试JSON解析
   try {
-    final list = jsonDecode(trimmed) as List;
-    return list.map((e) => e.toString()).toList();
-  } catch (_) {
-    return const <String>[];
+    final decoded = jsonDecode(trimmed);
+    if (decoded is List) {
+      return decoded.map((e) => e.toString()).toList();
+    }
+  } catch (_) {}
+  
+  // 兼容历史数据：逗号分隔格式
+  if (trimmed.contains(',') && !trimmed.startsWith('[')) {
+    return trimmed.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
   }
+  
+  // 单个路径
+  if (trimmed.isNotEmpty) {
+    return [trimmed];
+  }
+  
+  return const <String>[];
 }
 
 class _ContentParts {

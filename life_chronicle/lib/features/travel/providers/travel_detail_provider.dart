@@ -90,12 +90,26 @@ class TravelDetailState {
 
   static List<String> _decodeStringList(String? json) {
     if (json == null || json.trim().isEmpty) return const [];
+    final trimmed = json.trim();
+    
+    // 尝试JSON解析
     try {
-      final decoded = jsonDecode(json);
+      final decoded = jsonDecode(trimmed);
       if (decoded is List) {
         return decoded.map((e) => e.toString()).toList(growable: false);
       }
     } catch (_) {}
+    
+    // 兼容历史数据：逗号分隔格式
+    if (trimmed.contains(',') && !trimmed.startsWith('[')) {
+      return trimmed.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList(growable: false);
+    }
+    
+    // 单个路径
+    if (trimmed.isNotEmpty) {
+      return [trimmed];
+    }
+    
     return const [];
   }
 }
