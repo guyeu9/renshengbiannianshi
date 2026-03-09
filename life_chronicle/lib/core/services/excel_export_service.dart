@@ -9,6 +9,7 @@ import 'file_logger.dart';
 
 class ExcelExportService {
   final AppDatabase db;
+  static const String _tag = 'ExcelExport';
   
   ExcelExportService(this.db);
   
@@ -22,6 +23,9 @@ class ExcelExportService {
     DateTime? startDate,
     DateTime? endDate,
   }) async {
+    final stopwatch = Stopwatch()..start();
+    await amapInfo(_tag, '开始导出Excel, startDate=$startDate, endDate=$endDate');
+    
     final excel = Excel.createExcel();
     
     await _createOverviewSheet(excel,
@@ -66,6 +70,10 @@ class ExcelExportService {
     if (bytes != null) {
       final file = File(filePath);
       await file.writeAsBytes(bytes);
+      final fileSize = bytes.length;
+      stopwatch.stop();
+      await amapPerf(_tag, 'exportToExcel', stopwatch.elapsedMilliseconds, sizeBytes: fileSize);
+      await amapInfo(_tag, '导出完成: $filePath');
     }
     
     return filePath;
@@ -197,6 +205,7 @@ class ExcelExportService {
     }
     
     final records = await query.get();
+    await amapDebug(_tag, '导出美食记录: ${records.length}条');
     final sheet = excel['美食记录'];
     
     final headers = [
@@ -253,6 +262,7 @@ class ExcelExportService {
     }
     
     final records = await query.get();
+    await amapDebug(_tag, '导出小确幸: ${records.length}条');
     final sheet = excel['小确幸'];
     
     final headers = ['ID', '内容', '心情', '心情颜色', '标签', '地点', '城市', '收藏', '记录日期', '创建时间'];
@@ -282,6 +292,7 @@ class ExcelExportService {
   
   Future<void> _exportFriendRecords(Excel excel) async {
     final records = await (db.select(db.friendRecords)).get();
+    await amapDebug(_tag, '导出羁绊: ${records.length}条');
     final sheet = excel['羁绊'];
     
     final headers = ['ID', '姓名', '生日', '联系方式', '相识方式', '相识日期', '印象标签', '分组', '最后见面', '联系频率', '收藏'];
@@ -322,6 +333,7 @@ class ExcelExportService {
     }
     
     final records = await query.get();
+    await amapDebug(_tag, '导出旅行: ${records.length}条');
     final sheet = excel['旅行'];
     
     final headers = ['ID', '目的地', '内容', '计划日期', '地点', '城市', '国家', '心情', '标签', '收藏', '创建时间'];
@@ -352,6 +364,7 @@ class ExcelExportService {
   
   Future<void> _exportGoalRecords(Excel excel) async {
     final records = await (db.select(db.goalRecords)).get();
+    await amapDebug(_tag, '导出目标: ${records.length}条');
     final sheet = excel['目标'];
     
     final headers = ['ID', '标题', '备注', '总结', '分类', '标签', '层级', '进度', '已完成', '目标年月', '截止日期', '延期', '收藏', '创建时间'];
@@ -395,6 +408,7 @@ class ExcelExportService {
     }
     
     final records = await query.get();
+    await amapDebug(_tag, '导出时间线: ${records.length}条');
     final sheet = excel['时间线'];
     
     final headers = ['ID', '标题', '事件类型', '开始时间', '结束时间', '备注', '标签', '地点', '收藏', '创建时间'];
@@ -431,6 +445,7 @@ class ExcelExportService {
   }
   
   Future<void> shareExcel(String filePath) async {
+    await amapInfo(_tag, '分享Excel: $filePath');
     await Share.shareXFiles(
       [XFile(filePath)],
       subject: '人生编年史数据导出',
