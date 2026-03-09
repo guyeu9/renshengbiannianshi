@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:saver_gallery/saver_gallery.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:http/http.dart' as http;
@@ -9,8 +9,12 @@ import 'package:http/http.dart' as http;
 class ImageSaveUtil {
   static Future<bool> saveImageToGallery(String imagePath) async {
     try {
-      final result = await ImageGallerySaver.saveFile(imagePath);
-      return result['isSuccess'] == true;
+      final result = await SaverGallery.saveFile(
+        filePath: imagePath,
+        fileName: 'image_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        skipIfExists: false,
+      );
+      return result.isSuccess;
     } catch (e) {
       debugPrint('保存图片失败: $e');
       return false;
@@ -20,10 +24,12 @@ class ImageSaveUtil {
   static Future<bool> saveNetworkImageToGallery(String imageUrl) async {
     try {
       final response = await http.get(Uri.parse(imageUrl));
-      final result = await ImageGallerySaver.saveImage(
+      final result = await SaverGallery.saveImage(
         Uint8List.fromList(response.bodyBytes),
+        fileName: 'image_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        skipIfExists: false,
       );
-      return result['isSuccess'] == true;
+      return result.isSuccess;
     } catch (e) {
       debugPrint('保存网络图片失败: $e');
       return false;
