@@ -54,7 +54,7 @@ android {
 
     defaultConfig {
         applicationId "com.suliuzhe.lifechronicle"
-        minSdk 21
+        minSdkVersion flutter.minSdkVersion
         targetSdk 35
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName

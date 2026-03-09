@@ -12,6 +12,14 @@ allprojects {
 rootProject.buildDir = "../build"
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
+    
+    afterEvaluate {
+        if (project.hasProperty("android")) {
+            if (project.name == "image_gallery_saver") {
+                project.android.namespace = "com.example.imagegallerysaver"
+            }
+        }
+    }
 }
 subprojects {
     project.evaluationDependsOn(":app")

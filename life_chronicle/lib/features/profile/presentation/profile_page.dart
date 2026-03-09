@@ -10,6 +10,8 @@ import 'package:epubx/epubx.dart' as epub;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:drift/drift.dart' hide Column;
 import 'package:path/path.dart' as p;
@@ -35,6 +37,8 @@ import 'ai_model_management_page.dart';
 import 'data_management_page.dart';
 import 'system_log_page.dart';
 import '../../../core/services/file_logger.dart';
+import '../../../core/models/version_info.dart';
+import '../../../core/services/app_update_service.dart';
 
 class ChronicleRecord {
   const ChronicleRecord({
@@ -7612,8 +7616,6 @@ class HelpFeedbackPage extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            _buildSectionTitle('技术支持'),
-            const SizedBox(height: 10),
             _HelpListGroup(
               items: [
                 _HelpListItem(
@@ -7630,13 +7632,6 @@ class HelpFeedbackPage extends StatelessWidget {
                     MaterialPageRoute(builder: (_) => const SystemLogPage()),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            _buildSectionTitle('关于'),
-            const SizedBox(height: 10),
-            _HelpListGroup(
-              items: [
                 _HelpListItem(
                   icon: Icons.info_outline,
                   iconColor: Colors.black,
@@ -7675,20 +7670,6 @@ class HelpFeedbackPage extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: Color(0xFF6B7280),
         ),
       ),
     );
@@ -7771,7 +7752,7 @@ class HelpFeedbackPage extends StatelessWidget {
     );
   }
 
-  Widget _buildAboutContent() {
+  Widget _buildAboutContent(BuildContext context) {
     return Column(
       children: [
         Container(
@@ -7807,10 +7788,36 @@ class HelpFeedbackPage extends StatelessWidget {
         const SizedBox(height: 24),
         const Divider(),
         const SizedBox(height: 16),
-        _buildInfoRow('版本', '0.1.0'),
+        FutureBuilder<PackageInfo>(
+          future: PackageInfo.fromPlatform(),
+          builder: (context, snapshot) {
+            final version = snapshot.data?.version ?? '0.1.0';
+            return _buildInfoRow('版本', version);
+          },
+        ),
         _buildInfoRow('开发者', '人生编年史团队'),
         _buildInfoRow('联系邮箱', 'support@chronicle.life'),
         _buildInfoRow('官方网站', 'www.chronicle.life'),
+        const SizedBox(height: 20),
+        ElevatedButton(
+          onPressed: () => _checkForUpdate(context),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF2BCDEE),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.update, size: 20),
+              SizedBox(width: 8),
+              Text('检查更新', style: TextStyle(fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
       ],
     );
   }
