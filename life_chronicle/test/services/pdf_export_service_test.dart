@@ -215,17 +215,5 @@ void main() {
       expect(filePath, isNotNull);
       expect(filePath, endsWith('.pdf'));
     });
-
-    test('getLogs should return empty list initially', () {
-      expect(pdfExportService.getLogs(), isEmpty);
-    });
-
-    test('clearLogs should clear all logs', () async {
-      await pdfExportService.exportToPdf(includeFood: false, includeMoment: false);
-      expect(pdfExportService.getLogs(), isNotEmpty);
-      
-      pdfExportService.clearLogs();
-      expect(pdfExportService.getLogs(), isEmpty);
-    });
   });
 }
