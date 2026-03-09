@@ -323,7 +323,8 @@ class ProfilePage extends ConsumerWidget {
 
   Future<void> _shareProfile(BuildContext context, WidgetRef ref) async {
     try {
-      final profile = await ref.read(appDatabaseProvider).userProfiles.getSingleOrNull();
+      final db = ref.read(appDatabaseProvider);
+      final profile = await (db.select(db.userProfiles)).getSingleOrNull();
       final name = profile?.displayName ?? '林晓梦';
 
       final text = '''
@@ -347,9 +348,11 @@ class ProfilePage extends ConsumerWidget {
 
       await Share.share(text, subject: '人生编年史 - 个人中心');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('分享失败：$e')),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('分享失败：$e')),
+        );
+      }
     }
   }
 
@@ -6699,8 +6702,8 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
 
     final moodCount = <String, int>{};
     for (final m in moments) {
-      if (m.mood != null && m.mood!.isNotEmpty) {
-        moodCount[m.mood!] = (moodCount[m.mood!] ?? 0) + 1;
+      if (m.mood.isNotEmpty) {
+        moodCount[m.mood] = (moodCount[m.mood] ?? 0) + 1;
       }
     }
     final topMoods = moodCount.entries.toList()
