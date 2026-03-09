@@ -1,0 +1,19 @@
+{
+  "latestVersion": "0.1.0",
+  "buildNumber": 1,
+  "downloadUrl": {
+    "android": "https://example.com/app-release.apk",
+    "windows": "https://example.com/app-windows.zip",
+    "macos": "https://example.com/app-macos.dmg",
+    "linux": "https://example.com/app-linux.tar.gz"
+  },
+  "changelog": [
+    "✨ 新增AI史官功能，智能分析您的记录",
+    "🐛 修复数据备份时的偶发错误",
+    "⚡ 优化应用启动速度",
+    "🎨 优化部分界面显示效果"
+  ],
+  "forceUpdate": false,
+  "minCompatibleVersion": "0.0.1",
+  "releaseDate": "2026-03-10"
+}
