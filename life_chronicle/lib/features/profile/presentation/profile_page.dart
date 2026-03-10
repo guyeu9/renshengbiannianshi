@@ -7730,13 +7730,13 @@ $encountersText
                 ],
                 Wrap(
                   spacing: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  children: report.keywords.map((k) => Chip(
+                  children: report.keywords.map<Widget>((k) => Chip(
                     label: Text(k),
                     backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
                     labelStyle: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600, fontSize: 12),
                     padding: EdgeInsets.zero,
                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  )),
+                  )).toList(),
                 ),
               ],
             ),
