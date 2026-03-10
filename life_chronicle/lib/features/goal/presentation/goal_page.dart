@@ -24,10 +24,7 @@ import '../../../core/widgets/ai_parse_button.dart';
 import '../../../core/widgets/app_image.dart';
 import '../../../core/router/route_navigation.dart';
 import '../providers/goal_detail_provider.dart';
-import '../../food/presentation/food_page.dart';
 import '../../travel/presentation/travel_page.dart';
-import '../../moment/presentation/moment_page.dart';
-import '../../bond/presentation/bond_page.dart';
 
 class _GoalTypeOption {
   const _GoalTypeOption({

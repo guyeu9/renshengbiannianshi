@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/food/presentation/food_page.dart';
-import '../../features/moment/presentation/moment_page.dart';
 import '../../features/travel/presentation/travel_page.dart';
-import '../../features/goal/presentation/goal_page.dart';
-import '../../features/bond/presentation/bond_page.dart';
-import '../../features/bond/presentation/encounter_pages.dart';
 import '../../features/ai_historian/models/module_chat_params.dart';
+import '../../features/profile/presentation/profile_page.dart' show ChronicleRecord;
 import '../../core/widgets/amap_location_page.dart';
+import '../../core/database/app_database.dart';
 import 'app_router.dart';
 
 class RouteNavigation {
@@ -75,7 +72,7 @@ class RouteNavigation {
   }
 
   static void goToFriendProfile(BuildContext context, String friendId) {
-    context.go('${AppRoutes.friendProfile}'.replaceAll(':id', friendId));
+    context.go(AppRoutes.friendProfile.replaceAll(':id', friendId));
   }
 
   static void goToFriendCreate(BuildContext context, {FriendRecord? initialFriend}) {
@@ -209,8 +206,8 @@ class RouteNavigation {
     required String title,
     required String poiName,
     required String address,
-    required double latitude,
-    required double longitude,
+    double? latitude,
+    double? longitude,
     String city = '',
     String country = '',
   }) {

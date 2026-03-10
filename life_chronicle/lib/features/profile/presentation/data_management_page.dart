@@ -19,8 +19,6 @@ import '../../../core/services/data_statistics_service.dart';
 import '../../../core/services/excel_export_service.dart';
 import '../../../core/services/markdown_export_service.dart';
 import '../../../core/services/pdf_export_service.dart';
-import 'backup_log_page.dart';
-import 'amap_log_page.dart';
 
 enum ExportFormat {
   excel,

@@ -15,7 +15,6 @@ import '../../../core/database/database_providers.dart';
 import '../../../core/providers/uuid_provider.dart';
 import '../../../core/utils/image_save_util.dart';
 import '../../../core/utils/media_storage.dart';
-import '../../../core/widgets/amap_location_page.dart';
 import '../../../core/widgets/app_image.dart';
 import '../../../core/router/route_navigation.dart';
 import '../providers/encounter_detail_provider.dart';

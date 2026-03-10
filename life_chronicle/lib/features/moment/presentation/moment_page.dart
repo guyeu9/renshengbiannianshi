@@ -17,7 +17,6 @@ import '../../../core/utils/image_save_util.dart';
 import '../../../core/utils/media_storage.dart';
 import '../../../core/utils/tag_color_utils.dart';
 import '../../../core/widgets/ai_parse_button.dart';
-import '../../../core/widgets/amap_location_page.dart';
 import '../../../core/widgets/custom_bottom_sheet.dart';
 import '../../../core/widgets/app_image.dart';
 import '../../../core/router/route_navigation.dart';
@@ -713,7 +712,11 @@ class _MomentCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: () => RouteNavigation.goToMomentDetail(context, item.recordId),
+        onTap: () {
+          if (item.recordId != null) {
+            RouteNavigation.goToMomentDetail(context, item.recordId!);
+          }
+        },
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),

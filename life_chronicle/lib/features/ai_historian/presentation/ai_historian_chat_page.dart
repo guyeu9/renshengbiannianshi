@@ -23,6 +23,7 @@ import '../models/module_chat_params.dart';
 import '../models/quick_action_config.dart';
 import '../models/stats_data.dart';
 import '../services/context_builder.dart';
+import '../services/record_retriever.dart';
 import '../services/prompt_builder.dart';
 import '../services/stats_calculator.dart';
 
@@ -156,7 +157,6 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
     }
     
     final db = ref.read(appDatabaseProvider);
-    final contextBuilder = ContextBuilder(db);
     final retriever = RecordRetriever(db);
     
     if (widget.isDetailMode && widget.moduleParams!.recordIds != null) {
@@ -426,7 +426,7 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
       if (widget.isDetailMode) {
         content = '你好！我是你的AI史官。我已加载这条$moduleName记录的详细信息，让我帮你分析它吧！';
       } else {
-        content = '你好！我是你的AI史官。我已加载你的$moduleName档案，共$_totalRecords条记录。让我帮你深入分析你的${moduleName}数据吧！';
+        content = '你好！我是你的AI史官。我已加载你的$moduleName档案，共$_totalRecords条记录。让我帮你深入分析你的$moduleName数据吧！';
       }
     } else {
       content = '你好！我是你的 AI 史官。我已经阅读了你的人生档案，包含 $_totalRecords 条记录。今天你想回顾哪段记忆？';
@@ -782,45 +782,6 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
         RouteNavigation.goToEncounterDetail(context, card.id);
         break;
     }
-  }
-
-  List<Widget> _buildSuggestionChips() {
-    if (quickActions != null && quickActions!.isNotEmpty) {
-      return quickActions!.map((action) {
-        return Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: _SuggestionChip(
-            icon: action.icon,
-            iconColor: action.iconColor,
-            label: action.label,
-            onTap: enabled ? () => onQuickMessageWithContext(action.analysisType, action.queryTemplate) : null,
-          ),
-        );
-      }).toList();
-    }
-    
-    return [
-      _SuggestionChip(
-        icon: Icons.mood,
-        iconColor: const Color(0xFFA855F7),
-        label: '总结上月心情',
-        onTap: enabled ? () => onQuickMessageWithContext('mood_summary', '请帮我总结一下上个月的心情变化') : null,
-      ),
-      const SizedBox(width: 8),
-      _SuggestionChip(
-        icon: Icons.pie_chart,
-        iconColor: const Color(0xFF60A5FA),
-        label: '分析年度目标进度',
-        onTap: enabled ? () => onQuickMessageWithContext('goal_progress', '请分析一下我今年的目标完成进度') : null,
-      ),
-      const SizedBox(width: 8),
-      _SuggestionChip(
-        icon: Icons.history,
-        iconColor: const Color(0xFFFB923C),
-        label: '那年今日',
-        onTap: enabled ? () => onQuickMessageWithContext('on_this_day', '那年今天我做了什么？') : null,
-      ),
-    ];
   }
 
   @override
@@ -1209,52 +1170,53 @@ class _AiChatTopBar extends StatelessWidget {
                 ),
               ),
               if (moduleParams == null) ...[
-              InkWell(
-                onTap: onToggleFullData,
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: fullData ? AppTheme.primary.withValues(alpha: 0.15) : Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: fullData ? AppTheme.primary : Colors.grey.shade300,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        fullData ? Icons.dataset : Icons.dataset_outlined,
-                        size: 16,
-                        color: fullData ? AppTheme.primary : Colors.grey.shade600,
+                InkWell(
+                  onTap: onToggleFullData,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: fullData ? AppTheme.primary.withValues(alpha: 0.15) : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: fullData ? AppTheme.primary : Colors.grey.shade300,
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '全量数据',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          fullData ? Icons.dataset : Icons.dataset_outlined,
+                          size: 16,
                           color: fullData ? AppTheme.primary : Colors.grey.shade600,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 4),
+                        Text(
+                          '全量数据',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: fullData ? AppTheme.primary : Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                onPressed: onAnalytics,
-                icon: const Icon(Icons.analytics, color: Color(0xFF475569)),
-                splashRadius: 22,
-                tooltip: '分析报告',
-              ),
-              IconButton(
-                onPressed: onClear,
-                icon: const Icon(Icons.delete_sweep, color: Color(0xFF475569)),
-                splashRadius: 22,
-                tooltip: '清空对话',
-              ),
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: onAnalytics,
+                  icon: const Icon(Icons.analytics, color: Color(0xFF475569)),
+                  splashRadius: 22,
+                  tooltip: '分析报告',
+                ),
+                IconButton(
+                  onPressed: onClear,
+                  icon: const Icon(Icons.delete_sweep, color: Color(0xFF475569)),
+                  splashRadius: 22,
+                  tooltip: '清空对话',
+                ),
+              ],
             ],
           ),
         ),
@@ -1283,6 +1245,45 @@ class _AiChatInputBar extends StatelessWidget {
   final bool enabled;
   final List<QuickActionConfig>? quickActions;
   final ModuleChatParams? moduleParams;
+
+  List<Widget> _buildSuggestionChips() {
+    if (quickActions != null && quickActions!.isNotEmpty) {
+      return quickActions!.map((action) {
+        return Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: _SuggestionChip(
+            icon: action.icon,
+            iconColor: action.iconColor,
+            label: action.label,
+            onTap: enabled ? () => onQuickMessageWithContext(action.analysisType, action.queryTemplate) : null,
+          ),
+        );
+      }).toList();
+    }
+    
+    return [
+      _SuggestionChip(
+        icon: Icons.mood,
+        iconColor: const Color(0xFFA855F7),
+        label: '总结上月心情',
+        onTap: enabled ? () => onQuickMessageWithContext('mood_summary', '请帮我总结一下上个月的心情变化') : null,
+      ),
+      const SizedBox(width: 8),
+      _SuggestionChip(
+        icon: Icons.pie_chart,
+        iconColor: const Color(0xFF60A5FA),
+        label: '分析年度目标进度',
+        onTap: enabled ? () => onQuickMessageWithContext('goal_progress', '请分析一下我今年的目标完成进度') : null,
+      ),
+      const SizedBox(width: 8),
+      _SuggestionChip(
+        icon: Icons.history,
+        iconColor: const Color(0xFFFB923C),
+        label: '那年今日',
+        onTap: enabled ? () => onQuickMessageWithContext('on_this_day', '那年今天我做了什么？') : null,
+      ),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {

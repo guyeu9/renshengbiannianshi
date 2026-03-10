@@ -179,7 +179,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 parentNavigatorKey: _rootNavigatorKey,
                 builder: (context, state) {
                   final id = state.pathParameters['id']!;
-                  return JournalDetailPage(journalId: id);
+                  return JournalDetailPage(recordId: id);
                 },
               ),
             ],
@@ -417,7 +417,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
     ),
     observers: [AppRouteObserver()],
-    debugLogDiagnostics: true,
   );
 });
 

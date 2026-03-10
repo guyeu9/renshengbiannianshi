@@ -14,13 +14,7 @@ import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/utils/icon_utils.dart';
 import '../../../core/router/route_navigation.dart';
-import '../../ai_historian/presentation/ai_historian_chat_page.dart';
-import '../../bond/presentation/encounter_pages.dart';
-import '../../food/presentation/food_page.dart';
-import '../../goal/presentation/goal_page.dart';
-import '../../moment/presentation/moment_page.dart';
-import '../../profile/presentation/profile_page.dart';
-import '../../travel/presentation/travel_page.dart';
+import '../../travel/presentation/travel_page.dart' show TravelItem;
 
 class HomeSchedulePage extends StatefulWidget {
   const HomeSchedulePage({super.key});

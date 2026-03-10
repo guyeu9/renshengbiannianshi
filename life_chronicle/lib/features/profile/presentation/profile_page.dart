@@ -16,10 +16,8 @@ import 'package:drift/drift.dart' hide Column;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../core/database/app_database.dart';
-import '../../../core/router/app_router.dart';
 import '../../../core/router/route_navigation.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/providers/ai_provider.dart';
@@ -29,18 +27,10 @@ import '../../../core/utils/icon_utils.dart';
 import '../../../core/config/module_management_config.dart';
 import '../../../app/app_theme.dart';
 import '../../../core/widgets/app_image.dart';
-import '../../food/presentation/food_page.dart';
-import '../../travel/presentation/travel_page.dart';
-import '../../moment/presentation/moment_page.dart';
-import '../../bond/presentation/bond_page.dart';
-import '../../bond/presentation/encounter_pages.dart';
-import '../../goal/presentation/goal_page.dart';
-import 'ai_model_management_page.dart';
-import 'data_management_page.dart';
-import 'system_log_page.dart';
 import '../../../core/services/file_logger.dart';
 import '../../../core/models/version_info.dart';
 import '../../../core/services/app_update_service.dart';
+import '../../travel/presentation/travel_page.dart' show TravelItem;
 
 class ChronicleRecord {
   const ChronicleRecord({
@@ -2566,7 +2556,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
       
       if (!mounted) return;
       setState(() => _generating = false);
-      context.goReplacement(AppRoutes.chronicleManage);
+      RouteNavigation.goToChronicleManage(context);
     } catch (e, stack) {
       await amapError('编年史', '生成失败: $e\n$stack');
       if (mounted) {
@@ -6572,7 +6562,7 @@ class YearReportPage extends ConsumerStatefulWidget {
 }
 
 class _YearReportPageState extends ConsumerState<YearReportPage> {
-  int _selectedYear = DateTime.now().year - 1;
+  int? _selectedYear;
   bool _loading = false;
   bool _generating = false;
   double _progress = 0;
@@ -6581,19 +6571,112 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
   YearStatistics? _statistics;
   Map<String, String> _moduleReports = {};
   AnnualReportContent? _finalReport;
-
-  List<int> get _availableYears {
-    final current = DateTime.now().year;
-    return List.generate(5, (i) => current - 1 - i);
-  }
+  List<int> _availableYears = [];
+  bool _loadingYears = true;
 
   @override
   void initState() {
     super.initState();
-    _loadStatistics();
+    _loadAvailableYears();
+  }
+
+  Future<void> _loadAvailableYears() async {
+    setState(() => _loadingYears = true);
+    
+    try {
+      final db = ref.read(appDatabaseProvider);
+      final years = <int>{};
+      
+      final currentYear = DateTime.now().year;
+      years.add(currentYear);
+      
+      final foodYears = await db.customSelect(
+        "SELECT DISTINCT strftime('%Y', record_date) as year FROM food_records WHERE is_deleted = 0",
+        readsFrom: {db.foodRecords},
+      ).get();
+      for (final row in foodYears) {
+        final yearStr = row.read<String>('year');
+        if (yearStr.isNotEmpty) {
+          years.add(int.tryParse(yearStr) ?? 0);
+        }
+      }
+      
+      final momentYears = await db.customSelect(
+        "SELECT DISTINCT strftime('%Y', record_date) as year FROM moment_records WHERE is_deleted = 0",
+        readsFrom: {db.momentRecords},
+      ).get();
+      for (final row in momentYears) {
+        final yearStr = row.read<String>('year');
+        if (yearStr.isNotEmpty) {
+          years.add(int.tryParse(yearStr) ?? 0);
+        }
+      }
+      
+      final travelYears = await db.customSelect(
+        "SELECT DISTINCT strftime('%Y', record_date) as year FROM travel_records WHERE is_deleted = 0",
+        readsFrom: {db.travelRecords},
+      ).get();
+      for (final row in travelYears) {
+        final yearStr = row.read<String>('year');
+        if (yearStr.isNotEmpty) {
+          years.add(int.tryParse(yearStr) ?? 0);
+        }
+      }
+      
+      final goalYears = await db.customSelect(
+        "SELECT DISTINCT strftime('%Y', record_date) as year FROM goal_records WHERE is_deleted = 0",
+        readsFrom: {db.goalRecords},
+      ).get();
+      for (final row in goalYears) {
+        final yearStr = row.read<String>('year');
+        if (yearStr.isNotEmpty) {
+          years.add(int.tryParse(yearStr) ?? 0);
+        }
+      }
+      
+      final encounterYears = await db.customSelect(
+        "SELECT DISTINCT strftime('%Y', record_date) as year FROM timeline_events WHERE is_deleted = 0 AND event_type = 'encounter'",
+        readsFrom: {db.timelineEvents},
+      ).get();
+      for (final row in encounterYears) {
+        final yearStr = row.read<String>('year');
+        if (yearStr.isNotEmpty) {
+          years.add(int.tryParse(yearStr) ?? 0);
+        }
+      }
+      
+      years.removeWhere((y) => y < 2000 || y > currentYear + 1);
+      
+      final sortedYears = years.toList()..sort((a, b) => b.compareTo(a));
+      
+      if (!mounted) return;
+      setState(() {
+        _availableYears = sortedYears;
+        _loadingYears = false;
+        if (sortedYears.isNotEmpty) {
+          _selectedYear = sortedYears.first;
+        }
+      });
+      
+      if (_selectedYear != null) {
+        _loadStatistics();
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loadingYears = false;
+        _availableYears = [DateTime.now().year];
+        _selectedYear = DateTime.now().year;
+      });
+      _loadStatistics();
+    }
   }
 
   Future<void> _loadStatistics() async {
+    if (_selectedYear == null) return;
+    
+    final year = _selectedYear!;
+    
     setState(() {
       _loading = true;
       _statistics = null;
@@ -6603,7 +6686,7 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
 
     try {
       final db = ref.read(appDatabaseProvider);
-      final stats = await _computeStatistics(db, _selectedYear);
+      final stats = await _computeStatistics(db, year);
       if (!mounted) return;
       setState(() {
         _statistics = stats;
@@ -6727,24 +6810,69 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
       return;
     }
 
-    if (_statistics == null) return;
+    if (_statistics == null || _selectedYear == null) return;
+
+    final year = _selectedYear!;
+    final stats = _statistics!;
 
     setState(() {
       _generating = true;
       _progress = 0;
-      _progressText = '正在生成美食篇章...';
+      _progressText = '正在加载原始数据...';
     });
 
     try {
-      final stats = _statistics!;
+      final db = ref.read(appDatabaseProvider);
+      final yearStart = DateTime(year, 1, 1);
+      final yearEnd = DateTime(year, 12, 31, 23, 59, 59);
+
+      final foods = await (db.select(db.foodRecords)
+            ..where((t) => t.recordDate.isBiggerOrEqualValue(yearStart))
+            ..where((t) => t.recordDate.isSmallerOrEqualValue(yearEnd))
+            ..where((t) => t.isDeleted.equals(false))
+            ..where((t) => t.isWishlist.equals(false)))
+          .get();
+
+      final moments = await (db.select(db.momentRecords)
+            ..where((t) => t.recordDate.isBiggerOrEqualValue(yearStart))
+            ..where((t) => t.recordDate.isSmallerOrEqualValue(yearEnd))
+            ..where((t) => t.isDeleted.equals(false)))
+          .get();
+
+      final travels = await (db.select(db.travelRecords)
+            ..where((t) => t.recordDate.isBiggerOrEqualValue(yearStart))
+            ..where((t) => t.recordDate.isSmallerOrEqualValue(yearEnd))
+            ..where((t) => t.isDeleted.equals(false))
+            ..where((t) => t.isWishlist.equals(false)))
+          .get();
+
+      final goals = await (db.select(db.goalRecords)
+            ..where((t) => t.recordDate.isBiggerOrEqualValue(yearStart))
+            ..where((t) => t.recordDate.isSmallerOrEqualValue(yearEnd))
+            ..where((t) => t.isDeleted.equals(false)))
+          .get();
+
+      final encounters = await (db.select(db.timelineEvents)
+            ..where((t) => t.recordDate.isBiggerOrEqualValue(yearStart))
+            ..where((t) => t.recordDate.isSmallerOrEqualValue(yearEnd))
+            ..where((t) => t.isDeleted.equals(false))
+            ..where((t) => t.eventType.equals('encounter')))
+          .get();
+
+      final friends = await db.friendDao.watchAllActive().first;
+
+      if (!mounted) return;
+
+      final systemPrompt = _buildUltimateSystemPrompt();
 
       setState(() {
         _progress = 0.1;
+        _progressText = '正在生成美食篇章...';
       });
 
-      final foodPrompt = _buildFoodPrompt(stats);
+      final foodPrompt = _buildFoodPrompt(stats, foods);
       final foodReport = await chatService.chat(
-        systemPrompt: '你是人生编年史APP的年度报告撰写者，擅长用温暖有温度的文字总结美食记忆。',
+        systemPrompt: systemPrompt,
         messages: [ai_service.ChatMessage(role: 'user', content: foodPrompt)],
       );
       _moduleReports['food'] = foodReport;
@@ -6755,9 +6883,9 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
         _progressText = '正在生成情绪篇章...';
       });
 
-      final moodPrompt = _buildMoodPrompt(stats);
+      final moodPrompt = _buildMoodPrompt(stats, moments);
       final moodReport = await chatService.chat(
-        systemPrompt: '你是人生编年史APP的年度报告撰写者，擅长分析情绪变化和人生感悟。',
+        systemPrompt: systemPrompt,
         messages: [ai_service.ChatMessage(role: 'user', content: moodPrompt)],
       );
       _moduleReports['mood'] = moodReport;
@@ -6768,9 +6896,9 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
         _progressText = '正在生成旅行篇章...';
       });
 
-      final travelPrompt = _buildTravelPrompt(stats);
+      final travelPrompt = _buildTravelPrompt(stats, travels);
       final travelReport = await chatService.chat(
-        systemPrompt: '你是人生编年史APP的年度报告撰写者，擅长记录旅行足迹和探索精神。',
+        systemPrompt: systemPrompt,
         messages: [ai_service.ChatMessage(role: 'user', content: travelPrompt)],
       );
       _moduleReports['travel'] = travelReport;
@@ -6781,9 +6909,9 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
         _progressText = '正在生成目标篇章...';
       });
 
-      final goalPrompt = _buildGoalPrompt(stats);
+      final goalPrompt = _buildGoalPrompt(stats, goals);
       final goalReport = await chatService.chat(
-        systemPrompt: '你是人生编年史APP的年度报告撰写者，擅长总结成长与成就。',
+        systemPrompt: systemPrompt,
         messages: [ai_service.ChatMessage(role: 'user', content: goalPrompt)],
       );
       _moduleReports['goal'] = goalReport;
@@ -6794,9 +6922,9 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
         _progressText = '正在生成羁绊篇章...';
       });
 
-      final bondPrompt = _buildBondPrompt(stats);
+      final bondPrompt = _buildBondPrompt(stats, encounters, friends);
       final bondReport = await chatService.chat(
-        systemPrompt: '你是人生编年史APP的年度报告撰写者，擅长描述人际关系和情感羁绊。',
+        systemPrompt: systemPrompt,
         messages: [ai_service.ChatMessage(role: 'user', content: bondPrompt)],
       );
       _moduleReports['bond'] = bondReport;
@@ -6804,12 +6932,36 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
       if (!mounted) return;
       setState(() {
         _progress = 0.85;
-        _progressText = '正在汇总生成总报告...';
+        _progressText = '正在生成生活概览...';
+      });
+
+      final overviewPrompt = _buildOverviewPrompt(stats, _moduleReports);
+      final overviewReport = await chatService.chat(
+        systemPrompt: systemPrompt,
+        messages: [ai_service.ChatMessage(role: 'user', content: overviewPrompt)],
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _progress = 0.92;
+        _progressText = '正在生成AI洞察...';
+      });
+
+      final insightsPrompt = _buildInsightsPrompt(stats, _moduleReports);
+      final insightsReport = await chatService.chat(
+        systemPrompt: systemPrompt,
+        messages: [ai_service.ChatMessage(role: 'user', content: insightsPrompt)],
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _progress = 0.97;
+        _progressText = '正在生成年度结语...';
       });
 
       final summaryPrompt = _buildSummaryPrompt(stats, _moduleReports);
       final summaryReport = await chatService.chat(
-        systemPrompt: '你是人生编年史APP的年度报告撰写者，请生成一份完整的年度报告总结。',
+        systemPrompt: systemPrompt,
         messages: [ai_service.ChatMessage(role: 'user', content: summaryPrompt)],
       );
 
@@ -6818,14 +6970,20 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
         _progress = 1;
         _progressText = '生成完成';
         _finalReport = AnnualReportContent(
-          opening: '$_selectedYear年，你用记录书写了独一无二的人生篇章。',
+          opening: '$year年，你用记录书写了独一无二的人生篇章。',
+          lifeOverview: overviewReport,
+          lifestyle: _extractLifestyle(overviewReport),
+          behaviorPatterns: _extractBehaviorPatterns(overviewReport),
+          preferencePortrait: _extractPreferencePortrait(overviewReport),
+          trendChanges: _extractTrendChanges(overviewReport),
+          aiInsights: insightsReport,
           foodChapter: _moduleReports['food'] ?? '',
           emotionChapter: _moduleReports['mood'] ?? '',
           travelChapter: _moduleReports['travel'] ?? '',
           goalChapter: _moduleReports['goal'] ?? '',
           friendshipChapter: _moduleReports['bond'] ?? '',
           closing: summaryReport,
-          keywords: ['成长', '探索', '温暖'],
+          keywords: _extractKeywords(insightsReport),
         );
         _generating = false;
       });
@@ -6838,7 +6996,168 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
     }
   }
 
-  String _buildFoodPrompt(YearStatistics stats) {
+  String _buildUltimateSystemPrompt() {
+    return '''
+你是人生编年史APP中的AI史官（Life Historian AI）。
+
+你的职责是阅读、理解并分析用户长期记录的生活数据，帮助用户发现生活规律、行为模式和个人偏好。
+
+你不是普通聊天助手，而是一位长期观察用户生活的记录者与分析者。你会像一位冷静、理性但富有人情味的史官一样，通过用户留下的记录，还原他们的生活轨迹，并给出洞察。
+
+你的分析必须基于数据，而不是主观猜测。
+
+# 一、你的核心角色
+
+你是一位生活数据分析史官。
+
+你的主要任务包括：
+1. 阅读用户的历史记录
+2. 发现其中的行为模式
+3. 分析用户的偏好与习惯
+4. 总结用户的生活规律
+5. 给出客观而有启发性的洞察
+
+# 二、你的分析原则
+
+## 1 数据优先原则
+所有结论必须来自用户数据。不要编造事实、推测不存在的数据、夸大结论。
+如果数据不足，你应该说明："当前数据不足以得出明确结论。"
+
+## 2 模式发现原则
+你的核心能力是发现生活模式（Pattern）。例如：频繁出现的行为、明显偏好的选择、时间周期变化、场景规律、行为趋势。
+
+## 3 趋势分析原则
+当数据包含时间维度时，请尝试分析：行为是否发生变化、是否存在增长或下降趋势、用户习惯是否稳定。
+
+## 4 避免过度结论
+不要因为少量数据得出强结论。
+
+# 三、你的分析结构
+
+每次分析必须按照以下结构输出：
+1. 生活洞察（Insights）
+2. 数据观察（Data Observations）
+3. 可能的生活模式（Patterns）
+4. 建议或启发（Suggestions）
+
+# 四、数据解释规则
+
+当你看到用户数据时，请重点关注：
+1. 频率：哪些行为出现最多
+2. 偏好：用户是否反复选择某些类型
+3. 场景：用户通常在什么情境下进行这些活动
+4. 时间：活动是否集中在某些时间
+
+# 五、分析语气要求
+
+你的语气应该：冷静、清晰、观察者视角、逻辑严谨。
+避免：过度情绪化、夸张表达、心理治疗式语言。
+推荐表达方式："从记录来看…"、"数据似乎表明…"、"一个明显的趋势是…"
+
+# 六、当数据不足时
+
+如果用户数据很少，你必须明确说明："当前记录数量较少，分析结论可能不稳定。"并仅给出轻度观察。
+
+# 七、最终输出格式
+
+输出结构：Insights、Data Observations、Patterns、Suggestions
+不要输出JSON。输出自然语言结构即可。
+
+# 八、你的目标
+
+你的最终目标不是简单回答问题，而是帮助用户：
+- 看见自己的生活模式
+- 理解自己的行为习惯
+- 发现生活中的规律
+''';
+  }
+
+  String _buildOverviewPrompt(YearStatistics stats, Map<String, String> modules) {
+    return '''
+请为${stats.year}年生成一份生活概览（300字以内）。
+
+统计数据：
+- 全年总记录数：${stats.totalRecords}条
+- 美食：${stats.foodCount}条
+- 小确幸：${stats.momentCount}条
+- 旅行：${stats.travelCount}条
+- 目标：${stats.goalCount}条
+- 相遇：${stats.encounterCount}次
+
+请分析并输出：
+1. 生活方式类型（社交型/探索型/规律型）
+2. 主要行为模式
+3. 偏好画像
+4. 趋势变化
+
+请用温暖有温度的语言总结这一年的生活全貌。
+''';
+  }
+
+  String _buildInsightsPrompt(YearStatistics stats, Map<String, String> modules) {
+    return '''
+请为${stats.year}年生成3-5条关键AI洞察（每条50字以内）。
+
+各模块总结：
+- 美食篇章：${modules['food'] ?? '暂无'}
+- 情绪篇章：${modules['mood'] ?? '暂无'}
+- 旅行篇章：${modules['travel'] ?? '暂无'}
+- 目标篇章：${modules['goal'] ?? '暂无'}
+- 羁绊篇章：${modules['bond'] ?? '暂无'}
+
+请输出3-5条关键洞察，每条洞察应该：
+1. 基于数据分析
+2. 有启发性
+3. 简洁有力
+''';
+  }
+
+  String _extractLifestyle(String overview) {
+    if (overview.contains('社交型')) return '社交型';
+    if (overview.contains('探索型')) return '探索型';
+    if (overview.contains('规律型')) return '规律型';
+    return '混合型';
+  }
+
+  String _extractBehaviorPatterns(String overview) {
+    return overview;
+  }
+
+  String _extractPreferencePortrait(String overview) {
+    return overview;
+  }
+
+  String _extractTrendChanges(String overview) {
+    return overview;
+  }
+
+  List<String> _extractKeywords(String insights) {
+    final keywords = <String>[];
+    final commonKeywords = ['成长', '探索', '温暖', '社交', '美食', '旅行', '目标', '羁绊', '幸福', '变化'];
+    for (final keyword in commonKeywords) {
+      if (insights.contains(keyword) && keywords.length < 5) {
+        keywords.add(keyword);
+      }
+    }
+    if (keywords.isEmpty) {
+      keywords.addAll(['成长', '探索', '温暖']);
+    }
+    return keywords;
+  }
+
+  String _buildFoodPrompt(YearStatistics stats, List<FoodRecord> records) {
+    final recordsText = records.isEmpty
+      ? '暂无美食记录数据。'
+      : records.map((r) => '''
+【${r.id}】 ${r.recordDate.toString().split(' ').first}
+标题：${r.title}
+${r.content?.isNotEmpty == true ? '内容：${r.content}\n' : ''}
+${r.rating != null ? '评分：${r.rating}星\n' : ''}
+${r.pricePerPerson != null ? '人均：¥${r.pricePerPerson}\n' : ''}
+${r.poiName?.isNotEmpty == true ? '地点：${r.poiName}\n' : ''}
+${(r.tags?.isNotEmpty == true) ? '标签：${r.tags}\n' : ''}
+''').join('\n');
+
     return '''
 请为${stats.year}年的美食记录写一段总结（200字以内）。
 
@@ -6848,11 +7167,23 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
 - 最常去的城市/餐厅：${stats.topFoodCities.map((e) => '${e.key}(${e.value}次)').join('、')}
 - 最高评分美食：${stats.topRatedFoods.map((f) => '${f.title}(${f.rating}分)').join('、')}
 
+原始记录数据（共${records.length}条）：
+$recordsText
+
 请用温暖有温度的语言总结这一年的味觉旅程。
 ''';
   }
 
-  String _buildMoodPrompt(YearStatistics stats) {
+  String _buildMoodPrompt(YearStatistics stats, List<MomentRecord> records) {
+    final recordsText = records.isEmpty
+      ? '暂无情绪记录数据。'
+      : records.map((r) => '''
+【${r.id}】 ${r.recordDate.toString().split(' ').first}
+心情：${r.mood}
+${r.content?.isNotEmpty == true ? '内容：${r.content}\n' : ''}
+${r.tags?.isNotEmpty == true ? '标签：${r.tags}\n' : ''}
+''').join('\n');
+
     return '''
 请为${stats.year}年的情绪记录写一段总结（200字以内）。
 
@@ -6860,11 +7191,24 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
 - 全年小确幸记录：${stats.momentCount}条
 - 最常见情绪：${stats.topMoods.map((e) => '${e.key}(${e.value}次)').join('、')}
 
+原始记录数据（共${records.length}条）：
+$recordsText
+
 请用温暖有温度的语言总结这一年的情绪变化。
 ''';
   }
 
-  String _buildTravelPrompt(YearStatistics stats) {
+  String _buildTravelPrompt(YearStatistics stats, List<TravelRecord> records) {
+    final recordsText = records.isEmpty
+      ? '暂无旅行记录数据。'
+      : records.map((r) => '''
+【${r.id}】 ${r.recordDate.toString().split(' ').first}
+${r.title?.isNotEmpty == true ? '标题：${r.title}\n' : ''}
+${r.content?.isNotEmpty == true ? '内容：${r.content}\n' : ''}
+${r.destination?.isNotEmpty == true ? '目的地：${r.destination}\n' : ''}
+${r.poiName?.isNotEmpty == true ? '地点：${r.poiName}\n' : ''}
+''').join('\n');
+
     return '''
 请为${stats.year}年的旅行记录写一段总结（200字以内）。
 
@@ -6872,11 +7216,26 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
 - 全年旅行记录：${stats.travelCount}条
 - 最常去的目的地：${stats.topDestinations.map((e) => '${e.key}(${e.value}次)').join('、')}
 
+原始记录数据（共${records.length}条）：
+$recordsText
+
 请用温暖有温度的语言总结这一年的探索足迹。
 ''';
   }
 
-  String _buildGoalPrompt(YearStatistics stats) {
+  String _buildGoalPrompt(YearStatistics stats, List<GoalRecord> records) {
+    final recordsText = records.isEmpty
+      ? '暂无目标记录数据。'
+      : records.map((r) => '''
+【${r.id}】 ${r.recordDate.toString().split(' ').first}
+标题：${r.title}
+${r.note?.isNotEmpty == true ? '备注：${r.note}\n' : ''}
+${r.summary?.isNotEmpty == true ? '总结：${r.summary}\n' : ''}
+分类：${r.category ?? '未分类'}
+进度：${(r.progress * 100).toStringAsFixed(0)}%
+状态：${r.isCompleted ? '已完成' : '进行中'}
+''').join('\n');
+
     return '''
 请为${stats.year}年的目标完成情况写一段总结（200字以内）。
 
@@ -6885,17 +7244,30 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
 - 已完成：${stats.completedGoals}个
 - 完成率：${(stats.goalCompletionRate * 100).toStringAsFixed(0)}%
 
+原始记录数据（共${records.length}条）：
+$recordsText
+
 请用温暖有温度的语言总结这一年的成长与成就。
 ''';
   }
 
-  String _buildBondPrompt(YearStatistics stats) {
+  String _buildBondPrompt(YearStatistics stats, List<TimelineEvent> encounters, List<FriendRecord> friends) {
+    final encountersText = encounters.isEmpty
+        ? '暂无相遇记录数据。'
+        : encounters.map((e) => '''
+【${e.id}】 ${e.recordDate.toString().split(' ').first}
+事件：${e.title}
+''').join('\n');
+
     return '''
 请为${stats.year}年的羁绊记录写一段总结（200字以内）。
 
 统计数据：
 - 全年相遇记录：${stats.encounterCount}次
 - 记录的好友数：${stats.friendCount}位
+
+原始相遇记录数据（共${encounters.length}条）：
+$encountersText
 
 请用温暖有温度的语言总结这一年的人际关系。
 ''';
@@ -6924,8 +7296,6 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
 
   Future<void> _exportPdf() async {
     if (_finalReport == null || _statistics == null) return;
-
-    setState(() => _loading = true);
 
     try {
       final pdf = pw.Document();
@@ -7061,12 +7431,10 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
       await file.writeAsBytes(await pdf.save());
 
       if (!mounted) return;
-      setState(() => _loading = false);
 
       await Share.shareXFiles([XFile(file.path)], text: '${stats.year}年度报告');
     } catch (e) {
       if (!mounted) return;
-      setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('导出PDF失败：$e')),
       );
@@ -7133,34 +7501,43 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
         elevation: 0,
         iconTheme: IconThemeData(color: textMain),
       ),
-      body: _loading
+      body: _loadingYears
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade200),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<int>(
-                        value: _selectedYear,
-                        isExpanded: true,
-                        items: _availableYears.map((y) => DropdownMenuItem(value: y, child: Text('$y 年'))).toList(),
-                        onChanged: (v) {
-                          if (v != null && v != _selectedYear) {
-                            setState(() => _selectedYear = v);
-                            _loadStatistics();
-                          }
-                        },
+          : _selectedYear == null
+              ? const Center(child: Text('暂无数据'))
+              : _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: surface,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<int>(
+                            value: _selectedYear,
+                            isExpanded: true,
+                            items: _availableYears.map((y) => DropdownMenuItem(value: y, child: Text('$y 年'))).toList(),
+                            onChanged: (v) {
+                              if (v != null && v != _selectedYear) {
+                                setState(() {
+                                  _selectedYear = v;
+                                  _statistics = null;
+                                  _finalReport = null;
+                                  _moduleReports = {};
+                                });
+                                _loadStatistics();
+                              }
+                            },
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
                   const SizedBox(height: 24),
                   if (_statistics != null) ...[
                     _buildStatsCard(_statistics!),
@@ -7273,23 +7650,98 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
   }
 
   Widget _buildReportPreview(AnnualReportContent report) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('报告预览', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.textMain)),
-            const SizedBox(height: 16),
-            if (report.foodChapter.isNotEmpty) _buildChapterPreview('美食篇章', report.foodChapter, const Color(0xFFFFA726)),
-            if (report.emotionChapter.isNotEmpty) _buildChapterPreview('情绪篇章', report.emotionChapter, const Color(0xFFFFCA28)),
-            if (report.travelChapter.isNotEmpty) _buildChapterPreview('旅行篇章', report.travelChapter, const Color(0xFF42A5F5)),
-            if (report.goalChapter.isNotEmpty) _buildChapterPreview('目标篇章', report.goalChapter, const Color(0xFFAB47BC)),
-            if (report.friendshipChapter.isNotEmpty) _buildChapterPreview('羁绊篇章', report.friendshipChapter, const Color(0xFFEC407A)),
-            const Divider(height: 32),
-            Text(report.closing, style: TextStyle(color: AppTheme.textMuted, height: 1.6)),
-          ],
+    return Column(
+      children: [
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.auto_awesome, color: AppTheme.primary, size: 24),
+                    const SizedBox(width: 8),
+                    Text('生活概览', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.textMain)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  report.lifeOverview.isNotEmpty ? report.lifeOverview : '暂无数据',
+                  style: TextStyle(color: AppTheme.textMain, height: 1.6),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  children: report.keywords.map((k) => Chip(
+                    label: Text(k),
+                    backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
+                    labelStyle: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600),
+                  )),
+                ),
+              ],
+            ),
+          ),
         ),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.insights, color: const Color(0xFFAB47BC), size: 24),
+                    const SizedBox(width: 8),
+                    Text('AI洞察', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.textMain)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  report.aiInsights.isNotEmpty ? report.aiInsights : '暂无数据',
+                  style: TextStyle(color: AppTheme.textMain, height: 1.6),
+                ),
+              ],
+            ),
+          ),
+        ),
+        _buildExpandableChapter('美食篇章', report.foodChapter, const Color(0xFFFFA726)),
+        _buildExpandableChapter('情绪篇章', report.emotionChapter, const Color(0xFFFFCA28)),
+        _buildExpandableChapter('旅行篇章', report.travelChapter, const Color(0xFF42A5F5)),
+        _buildExpandableChapter('目标篇章', report.goalChapter, const Color(0xFFAB47BC)),
+        _buildExpandableChapter('羁绊篇章', report.friendshipChapter, const Color(0xFFEC407A)),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.favorite, color: const Color(0xFFEF5350), size: 24),
+                    const SizedBox(width: 8),
+                    Text('年度结语', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.textMain)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  report.closing.isNotEmpty ? report.closing : '暂无数据',
+                  style: TextStyle(color: AppTheme.textMuted, height: 1.6),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildExpandableChapter(String title, String content, Color color) {
+    return Card(
+      child: ExpansionTile(
+        title: title,
+        color: color,
+        content: content,
       ),
     );
   }
@@ -7358,6 +7810,12 @@ class YearStatistics {
 class AnnualReportContent {
   const AnnualReportContent({
     required this.opening,
+    this.lifeOverview = '',
+    this.lifestyle = '',
+    this.behaviorPatterns = '',
+    this.preferencePortrait = '',
+    this.trendChanges = '',
+    this.aiInsights = '',
     required this.foodChapter,
     required this.emotionChapter,
     required this.travelChapter,
@@ -7368,6 +7826,12 @@ class AnnualReportContent {
   });
 
   final String opening;
+  final String lifeOverview;
+  final String lifestyle;
+  final String behaviorPatterns;
+  final String preferencePortrait;
+  final String trendChanges;
+  final String aiInsights;
   final String foodChapter;
   final String emotionChapter;
   final String travelChapter;

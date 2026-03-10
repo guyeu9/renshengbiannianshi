@@ -303,7 +303,7 @@ class StatsCalculator {
 
       if (record.extra['targetYear'] != null) {
         final year = record.extra['targetYear'].toString();
-        yearDistribution['${year}年'] = (yearDistribution['${year}年'] ?? 0) + 1;
+        yearDistribution['$year年'] = (yearDistribution['$year年'] ?? 0) + 1;
       }
 
       if (record.extra['isCompleted'] == true) {
