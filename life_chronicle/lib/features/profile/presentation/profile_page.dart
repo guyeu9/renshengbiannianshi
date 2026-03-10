@@ -7729,7 +7729,8 @@ $encountersText
                   const SizedBox(height: 8),
                 ],
                 Wrap(
-                  spacing: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  spacing: 8,
+                  runSpacing: 4,
                   children: report.keywords.map<Widget>((k) => Chip(
                     label: Text(k),
                     backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
@@ -7808,24 +7809,6 @@ $encountersText
             padding: const EdgeInsets.all(16),
             child: Text(content, style: TextStyle(color: AppTheme.textMain, height: 1.6)),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildChapterPreview(String title, String content, Color color) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-            child: Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: color)),
-          ),
-          const SizedBox(height: 8),
-          Text(content, style: TextStyle(color: AppTheme.textMain, height: 1.5), maxLines: 3, overflow: TextOverflow.ellipsis),
         ],
       ),
     );
