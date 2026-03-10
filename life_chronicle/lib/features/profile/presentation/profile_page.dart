@@ -7116,18 +7116,35 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
     if (overview.contains('社交型')) return '社交型';
     if (overview.contains('探索型')) return '探索型';
     if (overview.contains('规律型')) return '规律型';
+    if (overview.contains('独处型')) return '独处型';
+    if (overview.contains('稳定型')) return '稳定型';
     return '混合型';
   }
 
   String _extractBehaviorPatterns(String overview) {
-    return overview;
+    final patterns = <String>[];
+    if (overview.contains('周末') || overview.contains('周末活动')) patterns.add('周末活动丰富');
+    if (overview.contains('高频') || overview.contains('频繁')) patterns.add('高频记录');
+    if (overview.contains('固定') || overview.contains('规律')) patterns.add('生活规律');
+    if (overview.contains('新') || overview.contains('探索')) patterns.add('喜欢探索新事物');
+    if (overview.contains('社交') || overview.contains('朋友')) patterns.add('社交活跃');
+    return patterns.isNotEmpty ? patterns.join('、') : overview;
   }
 
   String _extractPreferencePortrait(String overview) {
-    return overview;
+    final prefs = <String>[];
+    if (overview.contains('美食') || overview.contains('餐厅')) prefs.add('美食爱好者');
+    if (overview.contains('旅行') || overview.contains('出行')) prefs.add('旅行达人');
+    if (overview.contains('阅读') || overview.contains('学习')) prefs.add('学习型');
+    if (overview.contains('运动') || overview.contains('健身')) prefs.add('运动型');
+    if (overview.contains('音乐') || overview.contains('艺术')) prefs.add('艺术型');
+    return prefs.isNotEmpty ? prefs.join('、') : overview;
   }
 
   String _extractTrendChanges(String overview) {
+    if (overview.contains('增长') || overview.contains('增加')) return '呈增长趋势';
+    if (overview.contains('下降') || overview.contains('减少')) return '有所下降';
+    if (overview.contains('稳定') || overview.contains('持平')) return '保持稳定';
     return overview;
   }
 
@@ -7368,6 +7385,14 @@ $encountersText
           ),
         ),
       );
+
+      if (report.lifeOverview.isNotEmpty) {
+        pdf.addPage(_buildChapterPage('生活概览', report.lifeOverview, PdfColors.teal));
+      }
+
+      if (report.aiInsights.isNotEmpty) {
+        pdf.addPage(_buildChapterPage('AI洞察', report.aiInsights, PdfColors.purple));
+      }
 
       if (report.foodChapter.isNotEmpty) {
         pdf.addPage(_buildChapterPage('美食篇章', report.foodChapter, PdfColors.orange));
@@ -7671,12 +7696,46 @@ $encountersText
                   style: TextStyle(color: AppTheme.textMain, height: 1.6),
                 ),
                 const SizedBox(height: 12),
+                if (report.lifestyle.isNotEmpty) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(color: const Color(0xFF2BCDEE).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                    child: Text('生活方式: ${report.lifestyle}', style: const TextStyle(fontSize: 13, color: Color(0xFF2BCDEE), fontWeight: FontWeight.w600)),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                if (report.behaviorPatterns.isNotEmpty && report.behaviorPatterns != report.lifeOverview) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(color: const Color(0xFFFFA726).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                    child: Text('行为模式: ${report.behaviorPatterns}', style: const TextStyle(fontSize: 13, color: Color(0xFFFFA726), fontWeight: FontWeight.w600)),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                if (report.preferencePortrait.isNotEmpty && report.preferencePortrait != report.lifeOverview) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(color: const Color(0xFF42A5F5).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                    child: Text('偏好画像: ${report.preferencePortrait}', style: const TextStyle(fontSize: 13, color: Color(0xFF42A5F5), fontWeight: FontWeight.w600)),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                if (report.trendChanges.isNotEmpty && report.trendChanges != report.lifeOverview) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(color: const Color(0xFFAB47BC).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                    child: Text('趋势变化: ${report.trendChanges}', style: const TextStyle(fontSize: 13, color: Color(0xFFAB47BC), fontWeight: FontWeight.w600)),
+                  ),
+                  const SizedBox(height: 8),
+                ],
                 Wrap(
                   spacing: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   children: report.keywords.map((k) => Chip(
                     label: Text(k),
                     backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
-                    labelStyle: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600),
+                    labelStyle: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600, fontSize: 12),
+                    padding: EdgeInsets.zero,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   )),
                 ),
               ],
@@ -7737,11 +7796,19 @@ $encountersText
   }
 
   Widget _buildExpandableChapter(String title, String content, Color color) {
+    if (content.isEmpty) {
+      return const SizedBox.shrink();
+    }
     return Card(
+      margin: const EdgeInsets.only(bottom: 12),
       child: ExpansionTile(
-        title: title,
-        color: color,
-        content: content,
+        title: Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: color)),
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(content, style: TextStyle(color: AppTheme.textMain, height: 1.6)),
+          ),
+        ],
       ),
     );
   }
