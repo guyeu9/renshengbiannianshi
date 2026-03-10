@@ -13,6 +13,7 @@ import '../../../app/app_theme.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/providers/uuid_provider.dart';
+import '../../../core/router/route_navigation.dart';
 import '../../../core/services/backup/backup.dart';
 import '../../../core/services/data_statistics_service.dart';
 import '../../../core/services/excel_export_service.dart';
@@ -2392,11 +2393,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => const BackupLogPage(),
-                          ),
-                        );
+                        RouteNavigation.goToBackupLog(context);
                       },
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppTheme.primary,
@@ -2437,11 +2434,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                 alignment: Alignment.centerRight,
                 child: TextButton.icon(
                   onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const AmapLogPage(),
-                      ),
-                    );
+                    RouteNavigation.goToAmapLog(context);
                   },
                   icon: Icon(Icons.map_outlined, size: 16, color: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
                   label: Text(

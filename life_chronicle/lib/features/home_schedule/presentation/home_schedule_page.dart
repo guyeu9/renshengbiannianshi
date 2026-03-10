@@ -13,6 +13,7 @@ import '../../../core/config/module_management_config.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/utils/icon_utils.dart';
+import '../../../core/router/route_navigation.dart';
 import '../../ai_historian/presentation/ai_historian_chat_page.dart';
 import '../../bond/presentation/encounter_pages.dart';
 import '../../food/presentation/food_page.dart';
@@ -133,9 +134,7 @@ class _GlassHeaderState extends State<_GlassHeader> {
                 borderRadius: BorderRadius.circular(999),
                 onTap: () async {
                   FocusManager.instance.primaryFocus?.unfocus();
-                  await Navigator.of(context, rootNavigator: true).push(
-                    MaterialPageRoute(builder: (_) => const ProfilePage()),
-                  );
+                  RouteNavigation.goToPersonalProfile(context);
                   if (!mounted) return;
                   _refreshAvatar();
                 },
@@ -239,9 +238,7 @@ class _GlassHeaderState extends State<_GlassHeader> {
                       textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
                     ),
                     onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const AiHistorianChatPage()),
-                      );
+                      RouteNavigation.goToAiHistorian(context);
                     },
                     child: const Text('AI史官'),
                   ),
@@ -255,9 +252,7 @@ class _GlassHeaderState extends State<_GlassHeader> {
                     icon: Icons.settings,
                     showDot: false,
                     onTap: () async {
-                      await Navigator.of(context, rootNavigator: true).push(
-                        MaterialPageRoute(builder: (_) => const ProfilePage()),
-                      );
+                      RouteNavigation.goToPersonalProfile(context);
                       if (!mounted) return;
                       _refreshAvatar();
                     },
@@ -1209,7 +1204,7 @@ class _EventStream extends ConsumerWidget {
                           type: 'food',
                           id: null,
                           onTap: () {
-                            Navigator.of(context).push(MaterialPageRoute(builder: (_) => FoodDetailPage(recordId: f.id)));
+                            RouteNavigation.goToFoodDetail(context, f.id);
                           },
                         ),
                     ];
@@ -1361,7 +1356,7 @@ class _EventStream extends ConsumerWidget {
   }
 
   Future<void> _openEncounterDetail(BuildContext context, String encounterId) async {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => EncounterDetailPage(encounterId: encounterId)));
+    RouteNavigation.goToEncounterDetail(context, encounterId);
   }
 
   Future<void> _openTravelDetail(BuildContext context, WidgetRef ref, String travelId) async {
@@ -1377,11 +1372,11 @@ class _EventStream extends ConsumerWidget {
       return;
     }
     final item = TravelItem.fromRecord(record);
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => TravelDetailPage(item: item)));
+    RouteNavigation.goToTravelDetail(context, item.travelId, item: item);
   }
 
   Future<void> _openMomentDetail(BuildContext context, String momentId) async {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => MomentDetailPage(recordId: momentId)));
+    RouteNavigation.goToMomentDetail(context, momentId);
   }
 
   Future<void> _openGoalDetail(BuildContext context, WidgetRef ref, String goalId) async {
@@ -1418,7 +1413,7 @@ class _EventStream extends ConsumerWidget {
       }
     }
     if (!context.mounted) return;
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => GoalDetailPage(record: yearGoal)));
+    RouteNavigation.goToGoalDetail(context, yearGoal.id, record: yearGoal);
   }
 }
 

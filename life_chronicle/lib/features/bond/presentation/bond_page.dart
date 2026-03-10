@@ -14,6 +14,7 @@ import '../../../core/widgets/app_image.dart';
 import '../../../core/widgets/ai_parse_button.dart';
 import '../../../core/widgets/amap_location_page.dart';
 import '../../../core/widgets/custom_bottom_sheet.dart';
+import '../../../core/router/route_navigation.dart';
 import '../../food/presentation/food_page.dart' show FoodDetailPage;
 import '../../moment/presentation/moment_page.dart' show MomentDetailPage;
 import '../../travel/presentation/travel_page.dart' show TravelDetailPage, TravelItem;
@@ -120,11 +121,11 @@ class _BondPageState extends State<BondPage> {
 
   void _handleAdd() {
     if (_tabIndex == 0) {
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FriendCreatePage()));
+      RouteNavigation.goToFriendCreate(context);
       return;
     }
     if (_tabIndex == 1) {
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EncounterCreatePage()));
+      RouteNavigation.goToEncounterCreate(context);
     }
   }
 
@@ -224,7 +225,14 @@ class _BondHeader extends StatelessWidget {
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
                 ),
               ),
-              AiParseButton(text: '解析', onPressed: () {}),
+              AiParseButton(
+                text: '解析',
+                onPressed: () => RouteNavigation.goToAiHistorianForModule(
+                  context,
+                  moduleType: 'bond',
+                  moduleName: '羁绊',
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -544,7 +552,7 @@ class _FriendCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(24),
       elevation: 0,
       child: InkWell(
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => _BondFriendDetailPage(friendId: friend.id))),
+        onTap: () => RouteNavigation.goToFriendProfile(context, friend.id),
         borderRadius: BorderRadius.circular(24),
         child: Container(
           decoration: BoxDecoration(
@@ -1143,16 +1151,16 @@ class _EncounterItemRow extends ConsumerWidget {
   void _navigateToDetail(BuildContext context) {
     switch (item.type) {
       case 'encounter':
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => EncounterDetailPage(encounterId: item.id)));
+        RouteNavigation.goToEncounterDetail(context, item.id);
         break;
       case 'food':
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => FoodDetailPage(recordId: item.id)));
+        RouteNavigation.goToFoodDetail(context, item.id);
         break;
       case 'moment':
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => MomentDetailPage(recordId: item.id)));
+        RouteNavigation.goToMomentDetail(context, item.id);
         break;
       case 'travel':
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => TravelDetailPage(item: TravelItem(
+        RouteNavigation.goToTravelDetail(context, item.id, item: TravelItem(
           travelId: item.id,
           tripId: '',
           recordDate: item.recordDate,
@@ -1160,7 +1168,7 @@ class _EncounterItemRow extends ConsumerWidget {
           title: item.title,
           subtitle: item.content,
           imageUrl: item.images.isNotEmpty ? item.images.first : '',
-        ))));
+        ));
         break;
     }
   }
@@ -1343,7 +1351,7 @@ class _BondFriendDetailPage extends ConsumerWidget {
                             await db.friendDao.updateFavorite(friend.id, isFavorite: !friend.isFavorite, now: now);
                           },
                           onEdit: () {
-                            Navigator.of(context).push(MaterialPageRoute(builder: (_) => FriendCreatePage(initialFriend: friend)));
+                            RouteNavigation.goToFriendCreate(context, initialFriend: friend);
                           },
                         ),
                         const SizedBox(height: 14),
@@ -2164,17 +2172,14 @@ class _SingleImageMemoryCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12),
                             onTap: item.poiName.trim().isNotEmpty || item.poiAddress.trim().isNotEmpty
                                 ? () {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) => AmapLocationPage.preview(
-                                          title: '地点',
-                                          poiName: item.poiName,
-                                          address: item.poiAddress,
-                                          city: item.city,
-                                          latitude: item.latitude,
-                                          longitude: item.longitude,
-                                        ),
-                                      ),
+                                    RouteNavigation.openMapPreview(
+                                      context,
+                                      title: '地点',
+                                      poiName: item.poiName,
+                                      address: item.poiAddress,
+                                      city: item.city,
+                                      latitude: item.latitude,
+                                      longitude: item.longitude,
                                     );
                                   }
                                 : null,
@@ -2295,17 +2300,14 @@ class _MultiImageMemoryCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                         onTap: item.poiName.trim().isNotEmpty || item.poiAddress.trim().isNotEmpty
                             ? () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => AmapLocationPage.preview(
-                                      title: '地点',
-                                      poiName: item.poiName,
-                                      address: item.poiAddress,
-                                      city: item.city,
-                                      latitude: item.latitude,
-                                      longitude: item.longitude,
-                                    ),
-                                  ),
+                                RouteNavigation.openMapPreview(
+                                  context,
+                                  title: '地点',
+                                  poiName: item.poiName,
+                                  address: item.poiAddress,
+                                  city: item.city,
+                                  latitude: item.latitude,
+                                  longitude: item.longitude,
                                 );
                               }
                             : null,
@@ -2365,17 +2367,14 @@ class _NoImageMemoryCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                       onTap: item.poiName.trim().isNotEmpty || item.poiAddress.trim().isNotEmpty
                           ? () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => AmapLocationPage.preview(
-                                    title: '地点',
-                                    poiName: item.poiName,
-                                    address: item.poiAddress,
-                                    city: item.city,
-                                    latitude: item.latitude,
-                                    longitude: item.longitude,
-                                  ),
-                                ),
+                              RouteNavigation.openMapPreview(
+                                context,
+                                title: '地点',
+                                poiName: item.poiName,
+                                address: item.poiAddress,
+                                city: item.city,
+                                latitude: item.latitude,
+                                longitude: item.longitude,
                               );
                             }
                           : null,

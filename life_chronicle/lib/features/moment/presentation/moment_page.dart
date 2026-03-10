@@ -20,6 +20,7 @@ import '../../../core/widgets/ai_parse_button.dart';
 import '../../../core/widgets/amap_location_page.dart';
 import '../../../core/widgets/custom_bottom_sheet.dart';
 import '../../../core/widgets/app_image.dart';
+import '../../../core/router/route_navigation.dart';
 import '../providers/moment_detail_provider.dart';
 
 List<String> _parseMomentImages(String? raw) {
@@ -230,7 +231,14 @@ class _MomentHeader extends StatelessWidget {
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
                 ),
               ),
-              AiParseButton(text: '解析', onPressed: () {}),
+              AiParseButton(
+                text: '解析',
+                onPressed: () => RouteNavigation.goToAiHistorianForModule(
+                  context,
+                  moduleType: 'moment',
+                  moduleName: '小确幸',
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -272,7 +280,7 @@ class _MomentHeader extends StatelessWidget {
               _HeaderCircle(
                 icon: Icons.add,
                 iconColor: const Color(0xFF2BCDEE),
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MomentCreatePage())),
+                onTap: () => RouteNavigation.goToMomentCreate(context),
               ),
             ],
           ),
@@ -705,11 +713,7 @@ class _MomentCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => MomentDetailPage(item: item, recordId: item.recordId),
-          ),
-        ),
+        onTap: () => RouteNavigation.goToMomentDetail(context, item.recordId),
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
@@ -917,9 +921,7 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
           tags: tags,
           linkChips: linkChips,
           onEdit: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => MomentCreatePage(initialRecord: record)),
-            );
+            RouteNavigation.goToMomentCreate(context, initialRecord: record);
           },
           poiName: poiName,
           poiAddress: poiAddress,
@@ -1134,17 +1136,14 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
                   value: poiName.trim().isNotEmpty ? poiName.trim() : poiAddress.trim(),
                   trailingIcon: Icons.chevron_right,
                   onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => AmapLocationPage.preview(
-                          title: title,
-                          poiName: poiName.trim(),
-                          address: poiAddress.trim(),
-                          city: city.trim(),
-                          latitude: latitude,
-                          longitude: longitude,
-                        ),
-                      ),
+                    RouteNavigation.openMapPreview(
+                      context,
+                      title: title,
+                      poiName: poiName.trim(),
+                      address: poiAddress.trim(),
+                      city: city.trim(),
+                      latitude: latitude,
+                      longitude: longitude,
                     );
                   },
                 ),
@@ -1638,15 +1637,12 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
   }
 
   Future<void> _editLocation() async {
-    final result = await Navigator.of(context).push<AmapLocationPickResult>(
-      MaterialPageRoute(
-        builder: (_) => AmapLocationPage.pick(
-          initialPoiName: _locationName,
-          initialAddress: _locationAddress,
-          initialLatitude: _latitude,
-          initialLongitude: _longitude,
-        ),
-      ),
+    final result = await RouteNavigation.openMapPicker(
+      context,
+      initialPoiName: _locationName,
+      initialAddress: _locationAddress,
+      initialLatitude: _latitude,
+      initialLongitude: _longitude,
     );
     if (result == null) return;
     setState(() {

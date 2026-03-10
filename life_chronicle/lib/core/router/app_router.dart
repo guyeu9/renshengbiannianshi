@@ -12,27 +12,57 @@ import '../../features/bond/presentation/bond_page.dart';
 import '../../features/bond/presentation/encounter_pages.dart';
 import '../../features/profile/presentation/profile_page.dart';
 import '../../features/profile/presentation/ai_model_management_page.dart';
+import '../../features/profile/presentation/data_management_page.dart';
+import '../../features/profile/presentation/backup_log_page.dart';
+import '../../features/profile/presentation/amap_log_page.dart';
+import '../../features/profile/presentation/system_log_page.dart';
 import '../../features/ai_historian/presentation/ai_historian_chat_page.dart';
+import '../../features/ai_historian/models/module_chat_params.dart';
+import 'route_observer.dart';
 
 class AppRoutes {
   static const String home = '/';
+  
   static const String food = '/food';
   static const String foodDetail = '/food/:id';
   static const String foodCreate = '/food/create';
+  
   static const String moment = '/moment';
   static const String momentDetail = '/moment/:id';
   static const String momentCreate = '/moment/create';
+  
   static const String travel = '/travel';
   static const String travelDetail = '/travel/:id';
   static const String travelCreate = '/travel/create';
+  static const String journalDetail = '/travel/journal/:id';
+  
   static const String goal = '/goal';
   static const String goalDetail = '/goal/:id';
   static const String goalCreate = '/goal/create';
+  static const String annualGoalSummary = '/goal/annual-summary';
+  static const String goalAllLinks = '/goal/links/:id';
+  
   static const String bond = '/bond';
   static const String encounterDetail = '/encounter/:id';
   static const String encounterCreate = '/encounter/create';
+  static const String friendProfile = '/bond/friend/:id';
+  static const String friendCreate = '/bond/friend/create';
+  
   static const String profile = '/profile';
   static const String aiModelManagement = '/profile/ai-models';
+  static const String chronicleGenerateConfig = '/profile/chronicle-config';
+  static const String favoritesCenter = '/profile/favorites';
+  static const String chronicleManage = '/profile/chronicle-manage';
+  static const String yearReport = '/profile/year-report';
+  static const String dataManagement = '/profile/data-management';
+  static const String moduleManagement = '/profile/module-management';
+  static const String universalLink = '/profile/universal-link';
+  static const String personalProfile = '/profile/personal';
+  static const String reminderSettings = '/profile/reminder';
+  static const String privacySecurity = '/profile/privacy';
+  static const String helpFeedback = '/profile/help';
+  static const String systemLog = '/profile/system-log';
+  
   static const String aiHistorian = '/ai-historian';
 }
 
@@ -143,6 +173,15 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                   );
                 },
               ),
+              GoRoute(
+                path: 'journal/:id',
+                name: 'journalDetail',
+                parentNavigatorKey: _rootNavigatorKey,
+                builder: (context, state) {
+                  final id = state.pathParameters['id']!;
+                  return JournalDetailPage(journalId: id);
+                },
+              ),
             ],
           ),
           GoRoute(
@@ -166,6 +205,27 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) {
                   final extra = state.extra as Map<String, dynamic>?;
                   return GoalDetailPage(record: extra?['record']);
+                },
+              ),
+              GoRoute(
+                path: 'annual-summary',
+                name: 'annualGoalSummary',
+                parentNavigatorKey: _rootNavigatorKey,
+                builder: (context, state) {
+                  final extra = state.extra as Map<String, dynamic>?;
+                  return AnnualGoalSummaryPage(
+                    initialYear: extra?['initialYear'] ?? DateTime.now().year,
+                    availableYears: extra?['availableYears'] ?? [DateTime.now().year],
+                  );
+                },
+              ),
+              GoRoute(
+                path: 'links/:id',
+                name: 'goalAllLinks',
+                parentNavigatorKey: _rootNavigatorKey,
+                builder: (context, state) {
+                  final id = state.pathParameters['id']!;
+                  return GoalAllLinksPage(goalId: id);
                 },
               ),
             ],
@@ -195,6 +255,24 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                   return EncounterDetailPage(encounterId: id);
                 },
               ),
+              GoRoute(
+                path: 'friend/create',
+                name: 'friendCreate',
+                parentNavigatorKey: _rootNavigatorKey,
+                builder: (context, state) {
+                  final extra = state.extra as Map<String, dynamic>?;
+                  return FriendCreatePage(initialFriend: extra?['initialFriend']);
+                },
+              ),
+              GoRoute(
+                path: 'friend/:id',
+                name: 'friendProfile',
+                parentNavigatorKey: _rootNavigatorKey,
+                builder: (context, state) {
+                  final id = state.pathParameters['id']!;
+                  return FriendProfilePage(friendId: id);
+                },
+              ),
             ],
           ),
           GoRoute(
@@ -208,6 +286,105 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 parentNavigatorKey: _rootNavigatorKey,
                 builder: (context, state) => const AiModelManagementPage(),
               ),
+              GoRoute(
+                path: 'chronicle-config',
+                name: 'chronicleGenerateConfig',
+                parentNavigatorKey: _rootNavigatorKey,
+                builder: (context, state) => const ChronicleGenerateConfigPage(),
+              ),
+              GoRoute(
+                path: 'favorites',
+                name: 'favoritesCenter',
+                parentNavigatorKey: _rootNavigatorKey,
+                builder: (context, state) => const FavoritesCenterPage(),
+              ),
+              GoRoute(
+                path: 'chronicle-manage',
+                name: 'chronicleManage',
+                parentNavigatorKey: _rootNavigatorKey,
+                builder: (context, state) => const ChronicleManagePage(),
+              ),
+              GoRoute(
+                path: 'year-report',
+                name: 'yearReport',
+                parentNavigatorKey: _rootNavigatorKey,
+                builder: (context, state) => const YearReportPage(),
+              ),
+              GoRoute(
+                path: 'data-management',
+                name: 'dataManagement',
+                parentNavigatorKey: _rootNavigatorKey,
+                builder: (context, state) => const DataManagementPage(),
+              ),
+              GoRoute(
+                path: 'module-management',
+                name: 'moduleManagement',
+                parentNavigatorKey: _rootNavigatorKey,
+                builder: (context, state) => const ModuleManagementPage(),
+              ),
+              GoRoute(
+                path: 'universal-link',
+                name: 'universalLink',
+                parentNavigatorKey: _rootNavigatorKey,
+                builder: (context, state) => const UniversalLinkPage(),
+              ),
+              GoRoute(
+                path: 'personal',
+                name: 'personalProfile',
+                parentNavigatorKey: _rootNavigatorKey,
+                builder: (context, state) => const PersonalProfilePage(),
+              ),
+              GoRoute(
+                path: 'reminder',
+                name: 'reminderSettings',
+                parentNavigatorKey: _rootNavigatorKey,
+                builder: (context, state) => const ReminderSettingsPage(),
+              ),
+              GoRoute(
+                path: 'privacy',
+                name: 'privacySecurity',
+                parentNavigatorKey: _rootNavigatorKey,
+                builder: (context, state) => const PrivacySecurityPage(),
+              ),
+              GoRoute(
+                path: 'help',
+                name: 'helpFeedback',
+                parentNavigatorKey: _rootNavigatorKey,
+                builder: (context, state) => const HelpFeedbackPage(),
+              ),
+              GoRoute(
+                path: 'system-log',
+                name: 'systemLog',
+                parentNavigatorKey: _rootNavigatorKey,
+                builder: (context, state) => const SystemLogPage(),
+              ),
+              GoRoute(
+                path: 'chronicle-preview',
+                name: 'chroniclePreview',
+                parentNavigatorKey: _rootNavigatorKey,
+                builder: (context, state) {
+                  final extra = state.extra as Map<String, dynamic>?;
+                  return ChroniclePreviewPage(record: extra?['record']);
+                },
+              ),
+              GoRoute(
+                path: 'universal-link-logs',
+                name: 'universalLinkAllLogs',
+                parentNavigatorKey: _rootNavigatorKey,
+                builder: (context, state) => const UniversalLinkAllLogsPage(),
+              ),
+              GoRoute(
+                path: 'backup-log',
+                name: 'backupLog',
+                parentNavigatorKey: _rootNavigatorKey,
+                builder: (context, state) => const BackupLogPage(),
+              ),
+              GoRoute(
+                path: 'amap-log',
+                name: 'amapLog',
+                parentNavigatorKey: _rootNavigatorKey,
+                builder: (context, state) => const AmapLogPage(),
+              ),
             ],
           ),
         ],
@@ -215,7 +392,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.aiHistorian,
         name: 'aiHistorian',
-        builder: (context, state) => const AiHistorianChatPage(),
+        builder: (context, state) {
+          final params = state.extra as ModuleChatParams?;
+          return AiHistorianChatPage(moduleParams: params);
+        },
       ),
     ],
     errorBuilder: (context, state) => Scaffold(
@@ -236,6 +416,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
     ),
+    observers: [AppRouteObserver()],
+    debugLogDiagnostics: true,
   );
 });
 

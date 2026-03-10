@@ -218,7 +218,7 @@ class RecordRetriever {
     if (module == 'all' || module == 'goal') {
       records.addAll(await _loadAllGoalRecords());
     }
-    if (module == 'all' || module == 'encounter') {
+    if (module == 'all' || module == 'encounter' || module == 'bond') {
       records.addAll(await _loadAllEncounterRecords());
     }
     

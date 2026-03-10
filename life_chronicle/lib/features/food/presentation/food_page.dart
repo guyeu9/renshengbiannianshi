@@ -16,6 +16,7 @@ import '../../../core/config/module_management_config.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/router/app_router.dart';
+import '../../../core/router/route_navigation.dart';
 import '../../../core/utils/media_storage.dart';
 import '../../../core/utils/tag_color_utils.dart';
 import '../../../core/widgets/amap_location_page.dart';
@@ -226,7 +227,11 @@ class _FoodFixedHeader extends StatelessWidget {
               ),
               AiParseButton(
                 text: '解析',
-                onPressed: () {},
+                onPressed: () => RouteNavigation.goToAiHistorianForModule(
+                  context,
+                  moduleType: 'food',
+                  moduleName: '美食',
+                ),
               ),
             ],
           ),
@@ -1416,17 +1421,14 @@ class FoodDetailPage extends ConsumerWidget {
   }) {
     final shareKey = GlobalKey();
     void openMapPreview() {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => AmapLocationPage.preview(
-            title: title,
-            poiName: locationTitle,
-            address: locationSubtitle,
-            city: city,
-            latitude: latitude,
-            longitude: longitude,
-          ),
-        ),
+      RouteNavigation.openMapPreview(
+        context,
+        title: title,
+        poiName: locationTitle,
+        address: locationSubtitle,
+        city: city,
+        latitude: latitude,
+        longitude: longitude,
       );
     }
     return Scaffold(
@@ -3104,16 +3106,13 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
     return InkWell(
       borderRadius: BorderRadius.circular(24),
       onTap: () async {
-        final result = await Navigator.of(context).push<AmapLocationPickResult>(
-          MaterialPageRoute(
-            builder: (_) => AmapLocationPage.pick(
-              initialPoiName: _poiName,
-              initialAddress: _poiAddress,
-              initialLatitude: _latitude,
-              initialLongitude: _longitude,
-              initialCity: _poiCity,
-            ),
-          ),
+        final result = await RouteNavigation.openMapPicker(
+          context,
+          initialPoiName: _poiName,
+          initialAddress: _poiAddress,
+          initialLatitude: _latitude,
+          initialLongitude: _longitude,
+          initialCity: _poiCity,
         );
         if (!mounted) return;
         if (result == null) return;

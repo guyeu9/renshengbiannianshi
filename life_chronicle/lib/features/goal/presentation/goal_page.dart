@@ -22,6 +22,7 @@ import '../../../core/utils/icon_utils.dart';
 import '../../../core/utils/tag_color_utils.dart';
 import '../../../core/widgets/ai_parse_button.dart';
 import '../../../core/widgets/app_image.dart';
+import '../../../core/router/route_navigation.dart';
 import '../providers/goal_detail_provider.dart';
 import '../../food/presentation/food_page.dart';
 import '../../travel/presentation/travel_page.dart';
@@ -263,7 +264,14 @@ class _GoalHeader extends StatelessWidget {
               const Expanded(
                 child: Text('目标', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
               ),
-              AiParseButton(text: '解析', onPressed: () {}),
+              AiParseButton(
+                text: '解析',
+                onPressed: () => RouteNavigation.goToAiHistorianForModule(
+                  context,
+                  moduleType: 'goal',
+                  moduleName: '目标',
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -305,7 +313,7 @@ class _GoalHeader extends StatelessWidget {
               _CircleButton(
                 icon: Icons.add,
                 iconColor: const Color(0xFF2BCDEE),
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GoalCreatePage())),
+                onTap: () => RouteNavigation.goToGoalCreate(context),
               ),
             ],
           ),
@@ -540,9 +548,7 @@ class _GoalHomeBodyState extends ConsumerState<_GoalHomeBody> {
                       ),
                     ),
                     TextButton(
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => AnnualGoalSummaryPage(initialYear: activeYear, availableYears: years)),
-                  ),
+                  onPressed: () => RouteNavigation.goToAnnualGoalSummary(context, initialYear: activeYear, availableYears: years),
                   style: TextButton.styleFrom(
                     foregroundColor: const Color(0xFF3B82F6),
                     textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
@@ -754,7 +760,7 @@ class _AnnualGoalCardState extends State<_AnnualGoalCard> with SingleTickerProvi
       borderRadius: BorderRadius.circular(24),
       child: InkWell(
         borderRadius: BorderRadius.circular(24),
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => GoalDetailPage(record: widget.record))),
+        onTap: () => RouteNavigation.goToGoalDetail(context, widget.record.id, record: widget.record),
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -1663,13 +1669,9 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
     );
     if (!mounted) return;
     if (result == 'maintain') {
-      Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => GoalBreakdownMaintenancePage(goal: widget.record),
-      ));
+      RouteNavigation.goToGoalBreakdownMaintenance(context, widget.record.id);
     } else if (result == 'edit') {
-      Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => GoalCreatePage(goal: widget.record),
-      ));
+      RouteNavigation.goToGoalCreate(context, goal: widget.record);
     } else if (result == 'delete') {
       _showDeleteConfirmation();
     }
@@ -2204,9 +2206,7 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
                             children: [
                               const Expanded(child: Text('关联记忆', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827)))),
                               TextButton(
-                                onPressed: () => Navigator.of(context).push(
-                                  MaterialPageRoute(builder: (_) => GoalAllLinksPage(goalId: record.id)),
-                                ),
+                                onPressed: () => RouteNavigation.goToGoalAllLinks(context, record.id),
                                 style: TextButton.styleFrom(foregroundColor: AppTheme.primary, textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
                                 child: const Text('查看全部'),
                               ),
@@ -2304,9 +2304,7 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
           children: [
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => GoalPostponePage(goal: record),
-                )),
+                onPressed: () => RouteNavigation.goToGoalPostpone(context, record.id),
                 icon: const Icon(Icons.update, size: 16),
                 label: const Text('顺延计划'),
                 style: OutlinedButton.styleFrom(
@@ -4451,9 +4449,7 @@ class _FoodMemoryCard extends StatelessWidget {
         if (food == null) return const SizedBox.shrink();
 
         return GestureDetector(
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => FoodDetailPage(recordId: foodId)),
-          ),
+          onTap: () => RouteNavigation.goToFoodDetail(context, foodId),
           child: SizedBox(
             width: 128,
             child: Column(
@@ -4520,9 +4516,7 @@ class _TravelMemoryCard extends StatelessWidget {
         if (travel == null) return const SizedBox.shrink();
 
         return GestureDetector(
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => TravelDetailPage(item: TravelItem.fromRecord(travel))),
-          ),
+          onTap: () => RouteNavigation.goToTravelDetail(context, travel.id, item: TravelItem.fromRecord(travel)),
           child: SizedBox(
             width: 128,
             child: Column(
@@ -4589,9 +4583,7 @@ class _MomentMemoryCard extends StatelessWidget {
         if (moment == null) return const SizedBox.shrink();
 
         return GestureDetector(
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => MomentDetailPage(recordId: momentId)),
-          ),
+          onTap: () => RouteNavigation.goToMomentDetail(context, momentId),
           child: SizedBox(
             width: 128,
             child: Column(
@@ -4658,9 +4650,7 @@ class _FriendMemoryCard extends StatelessWidget {
         if (friend == null) return const SizedBox.shrink();
 
         return GestureDetector(
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => FriendProfilePage(friendId: friendId)),
-          ),
+          onTap: () => RouteNavigation.goToFriendProfile(context, friendId),
           child: SizedBox(
             width: 128,
             child: Column(
@@ -4901,7 +4891,7 @@ class _FoodListItem extends StatelessWidget {
         if (food == null) return const SizedBox.shrink();
 
         return ListTile(
-          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => FoodDetailPage(recordId: foodId))),
+          onTap: () => RouteNavigation.goToFoodDetail(context, foodId),
           leading: Container(
             width: 48,
             height: 48,
@@ -4939,7 +4929,7 @@ class _TravelListItem extends StatelessWidget {
         if (travel == null) return const SizedBox.shrink();
 
         return ListTile(
-          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => TravelDetailPage(item: TravelItem.fromRecord(travel)))),
+          onTap: () => RouteNavigation.goToTravelDetail(context, travel.id, item: TravelItem.fromRecord(travel)),
           leading: Container(
             width: 48,
             height: 48,
@@ -4977,7 +4967,7 @@ class _MomentListItem extends StatelessWidget {
         if (moment == null) return const SizedBox.shrink();
 
         return ListTile(
-          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => MomentDetailPage(recordId: momentId))),
+          onTap: () => RouteNavigation.goToMomentDetail(context, momentId),
           leading: Container(
             width: 48,
             height: 48,
@@ -5015,7 +5005,7 @@ class _FriendListItem extends StatelessWidget {
         if (friend == null) return const SizedBox.shrink();
 
         return ListTile(
-          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => FriendProfilePage(friendId: friendId))),
+          onTap: () => RouteNavigation.goToFriendProfile(context, friendId),
           leading: Container(
             width: 48,
             height: 48,

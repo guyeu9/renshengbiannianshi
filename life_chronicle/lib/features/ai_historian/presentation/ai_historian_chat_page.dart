@@ -17,7 +17,14 @@ import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/providers/ai_provider.dart';
 import '../../../core/services/ai_service.dart' as ai_service;
+import '../../../core/router/route_navigation.dart';
+import '../config/module_configs.dart';
+import '../models/module_chat_params.dart';
+import '../models/quick_action_config.dart';
+import '../models/stats_data.dart';
 import '../services/context_builder.dart';
+import '../services/prompt_builder.dart';
+import '../services/stats_calculator.dart';
 
 enum MessageRole { user, assistant }
 
@@ -93,13 +100,23 @@ class ChatMessageModel {
 }
 
 class AiHistorianChatPage extends ConsumerStatefulWidget {
-  const AiHistorianChatPage({super.key});
+  final ModuleChatParams? moduleParams;
+
+  const AiHistorianChatPage({
+    super.key,
+    this.moduleParams,
+  });
+
+  bool get isModuleMode => moduleParams != null;
+  bool get isDetailMode => moduleParams?.isDetailMode ?? false;
 
   @override
   ConsumerState<AiHistorianChatPage> createState() => _AiHistorianChatPageState();
 }
 
 class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
+  final _promptBuilder = PromptBuilder();
+  final _statsCalculator = StatsCalculator();
   final TextEditingController _inputController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _isLoading = false;
@@ -110,16 +127,76 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
   final List<ChatMessageModel> _messages = [];
   bool _showSessionDrawer = false;
   bool _isInitialized = false;
-  bool _fullData = false;
+  bool _fullData = true;
   String? _userAvatarPath;
+  
+  StatsData? _moduleStats;
+  List<RecordContext> _moduleRecords = [];
+  List<QuickActionConfig> _quickActions = [];
   static const _defaultAvatarUrl = 'https://lh3.googleusercontent.com/aida-public/AB6AXuBbKe_aCd46pUms7LLAFzD6OXtQ8lCfAXJOsCrBecRIq0Rsb6hG4jY_titPPL6OX4UEolhRaXIm5q1CN8mgX1sDnDEpjIu6VsAPEPXD_TgVO70SfpWy3Ip2I0CsCyMuTYopG68o1H3zfeCTGnhMwcli29GRkYeNRSh_bne4ffgw7Lym8TRcy9xvfIRJ7re4r_AZ6HYWFXuNljbmovvrN8K3yGjv8iiZ5MCKo2rG0vQcYlScRiJTep-ftfRgTq7kF_pycqvsKRxWyfNh';
 
   @override
   void initState() {
     super.initState();
-    _loadRecordStats();
+    if (widget.isModuleMode) {
+      _loadModuleData();
+    } else {
+      _loadRecordStats();
+    }
     _initializeSession();
     _loadUserAvatar();
+  }
+
+  Future<void> _loadModuleData() async {
+    final moduleType = widget.moduleParams!.moduleType;
+    final config = getModuleConfig(moduleType);
+    
+    if (config != null) {
+      _quickActions = config.quickActions;
+    }
+    
+    final db = ref.read(appDatabaseProvider);
+    final contextBuilder = ContextBuilder(db);
+    final retriever = RecordRetriever(db);
+    
+    if (widget.isDetailMode && widget.moduleParams!.recordIds != null) {
+      final recordId = widget.moduleParams!.recordIds!.first;
+      final record = await retriever.fetchRecordById(moduleType, recordId);
+      if (record != null) {
+        _moduleRecords = [record];
+      }
+    } else {
+      _moduleRecords = await retriever.retrieveRecords(
+        queryType: QueryType.summary,
+        userQuery: '',
+        module: moduleType,
+        fullData: widget.moduleParams!.fullData,
+      );
+    }
+    
+    _moduleStats = await _calculateModuleStats(moduleType, _moduleRecords);
+    _totalRecords = _moduleRecords.length;
+    
+    setState(() {});
+  }
+
+  Future<StatsData> _calculateModuleStats(String moduleType, List<RecordContext> records) async {
+    switch (moduleType) {
+      case 'food':
+        return await _statsCalculator.calculateFoodStats(records);
+      case 'travel':
+        return await _statsCalculator.calculateTravelStats(records);
+      case 'moment':
+        return await _statsCalculator.calculateMomentStats(records);
+      case 'goal':
+        return await _statsCalculator.calculateGoalStats(records);
+      case 'bond':
+        final friendRecords = records.where((r) => r.type == '朋友').toList();
+        final encounterRecords = records.where((r) => r.type == '相遇').toList();
+        return await _statsCalculator.calculateBondStats(friendRecords, encounterRecords);
+      default:
+        return StatsData(totalRecords: records.length);
+    }
   }
 
   Future<void> _loadUserAvatar() async {
@@ -342,10 +419,23 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
 
   void _addWelcomeMessage() {
     final now = DateTime.now();
+    String content;
+    
+    if (widget.isModuleMode) {
+      final moduleName = widget.moduleParams!.moduleName;
+      if (widget.isDetailMode) {
+        content = '你好！我是你的AI史官。我已加载这条$moduleName记录的详细信息，让我帮你分析它吧！';
+      } else {
+        content = '你好！我是你的AI史官。我已加载你的$moduleName档案，共$_totalRecords条记录。让我帮你深入分析你的${moduleName}数据吧！';
+      }
+    } else {
+      content = '你好！我是你的 AI 史官。我已经阅读了你的人生档案，包含 $_totalRecords 条记录。今天你想回顾哪段记忆？';
+    }
+    
     final welcomeMessage = ChatMessageModel(
       id: 'welcome_${now.millisecondsSinceEpoch}',
       role: MessageRole.assistant,
-      content: '你好！我是你的 AI 史官。我已经阅读了你的人生档案，包含 $_totalRecords 条记录。今天你想回顾哪段记忆？',
+      content: content,
       timestamp: now,
     );
     setState(() {
@@ -431,15 +521,28 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
     _scrollToBottom();
 
     try {
-      final db = ref.read(appDatabaseProvider);
-      final contextBuilder = ContextBuilder(db);
+      String systemPrompt;
       
-      final systemPrompt = await contextBuilder.buildSystemPrompt(
-        userQuery: text,
-        recordStats: _recordStats,
-        totalRecords: _totalRecords,
-        fullData: _fullData,
-      );
+      if (widget.isModuleMode) {
+        systemPrompt = _promptBuilder.buildPrompt(
+          moduleType: widget.moduleParams!.moduleType,
+          moduleName: widget.moduleParams!.moduleName,
+          stats: _moduleStats ?? StatsData(totalRecords: _totalRecords),
+          records: _moduleRecords,
+          question: text,
+          analysisType: widget.moduleParams?.analysisType,
+        );
+      } else {
+        final db = ref.read(appDatabaseProvider);
+        final contextBuilder = ContextBuilder(db);
+        
+        systemPrompt = await contextBuilder.buildSystemPrompt(
+          userQuery: text,
+          recordStats: _recordStats,
+          totalRecords: _totalRecords,
+          fullData: _fullData,
+        );
+      }
 
       final history = _messages
           .where((m) => m.id != aiMessageId)
@@ -547,18 +650,31 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
     _scrollToBottom();
 
     try {
-      final db = ref.read(appDatabaseProvider);
-      final contextBuilder = ContextBuilder(db);
+      String systemPrompt;
       
-      final preloadedRecords = await contextBuilder.retrieveForQuickAction(actionType, fullData: _fullData);
-      
-      final systemPrompt = await contextBuilder.buildSystemPrompt(
-        userQuery: displayMessage,
-        recordStats: _recordStats,
-        totalRecords: _totalRecords,
-        preloadedRecords: preloadedRecords,
-        fullData: _fullData,
-      );
+      if (widget.isModuleMode) {
+        systemPrompt = _promptBuilder.buildPrompt(
+          moduleType: widget.moduleParams!.moduleType,
+          moduleName: widget.moduleParams!.moduleName,
+          stats: _moduleStats ?? StatsData(totalRecords: _totalRecords),
+          records: _moduleRecords,
+          question: displayMessage,
+          analysisType: actionType,
+        );
+      } else {
+        final db = ref.read(appDatabaseProvider);
+        final contextBuilder = ContextBuilder(db);
+        
+        final preloadedRecords = await contextBuilder.retrieveForQuickAction(actionType, fullData: _fullData);
+        
+        systemPrompt = await contextBuilder.buildSystemPrompt(
+          userQuery: displayMessage,
+          recordStats: _recordStats,
+          totalRecords: _totalRecords,
+          preloadedRecords: preloadedRecords,
+          fullData: _fullData,
+        );
+      }
 
       final history = _messages
           .where((m) => m.id != aiMessageId)
@@ -649,27 +765,62 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
   }
 
   void _handleCardTap(RecommendationCard card) {
-    String route;
     switch (card.type) {
       case 'food':
-        route = '/food/${card.id}';
+        RouteNavigation.goToFoodDetail(context, card.id);
         break;
       case 'moment':
-        route = '/moment/${card.id}';
+        RouteNavigation.goToMomentDetail(context, card.id);
         break;
       case 'travel':
-        route = '/travel/${card.id}';
+        RouteNavigation.goToTravelDetail(context, card.id);
         break;
       case 'goal':
-        route = '/goal/${card.id}';
+        RouteNavigation.goToGoalDetail(context, card.id);
         break;
       case 'encounter':
-        route = '/encounter/${card.id}';
+        RouteNavigation.goToEncounterDetail(context, card.id);
         break;
-      default:
-        return;
     }
-    Navigator.of(context).pushNamed(route);
+  }
+
+  List<Widget> _buildSuggestionChips() {
+    if (quickActions != null && quickActions!.isNotEmpty) {
+      return quickActions!.map((action) {
+        return Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: _SuggestionChip(
+            icon: action.icon,
+            iconColor: action.iconColor,
+            label: action.label,
+            onTap: enabled ? () => onQuickMessageWithContext(action.analysisType, action.queryTemplate) : null,
+          ),
+        );
+      }).toList();
+    }
+    
+    return [
+      _SuggestionChip(
+        icon: Icons.mood,
+        iconColor: const Color(0xFFA855F7),
+        label: '总结上月心情',
+        onTap: enabled ? () => onQuickMessageWithContext('mood_summary', '请帮我总结一下上个月的心情变化') : null,
+      ),
+      const SizedBox(width: 8),
+      _SuggestionChip(
+        icon: Icons.pie_chart,
+        iconColor: const Color(0xFF60A5FA),
+        label: '分析年度目标进度',
+        onTap: enabled ? () => onQuickMessageWithContext('goal_progress', '请分析一下我今年的目标完成进度') : null,
+      ),
+      const SizedBox(width: 8),
+      _SuggestionChip(
+        icon: Icons.history,
+        iconColor: const Color(0xFFFB923C),
+        label: '那年今日',
+        onTap: enabled ? () => onQuickMessageWithContext('on_this_day', '那年今天我做了什么？') : null,
+      ),
+    ];
   }
 
   @override
@@ -685,11 +836,12 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
               children: [
                 _AiChatTopBar(
                   onClear: _clearConversation,
-                  onAnalytics: () => Navigator.of(context).pushNamed('/chronicle'),
+                  onAnalytics: () => RouteNavigation.goToChronicleGenerateConfig(context),
                   onToggleSessions: () => setState(() => _showSessionDrawer = !_showSessionDrawer),
                   hasAiService: hasAiService,
                   fullData: _fullData,
                   onToggleFullData: () => setState(() => _fullData = !_fullData),
+                  moduleParams: widget.moduleParams,
                 ),
                 if (_errorMessage != null)
                   Container(
@@ -711,7 +863,7 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
                           ),
                         ),
                         TextButton(
-                          onPressed: () => Navigator.of(context).pushNamed('/ai-model-management'),
+                          onPressed: () => RouteNavigation.goToAiModelManagement(context),
                           child: const Text('去配置'),
                         ),
                       ],
@@ -778,6 +930,8 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
             onQuickMessage: _sendQuickMessage,
             onQuickMessageWithContext: _sendQuickMessageWithContext,
             enabled: hasAiService && _isInitialized,
+            quickActions: _quickActions,
+            moduleParams: widget.moduleParams,
           ),
         ],
       ),
@@ -974,6 +1128,7 @@ class _AiChatTopBar extends StatelessWidget {
     required this.hasAiService,
     required this.fullData,
     required this.onToggleFullData,
+    this.moduleParams,
   });
 
   final VoidCallback onClear;
@@ -982,9 +1137,15 @@ class _AiChatTopBar extends StatelessWidget {
   final bool hasAiService;
   final bool fullData;
   final VoidCallback onToggleFullData;
+  final ModuleChatParams? moduleParams;
 
   @override
   Widget build(BuildContext context) {
+    final title = moduleParams?.moduleName ?? 'AI 史官';
+    final subtitle = moduleParams != null 
+        ? '专注分析${moduleParams!.moduleName}数据'
+        : (hasAiService ? '在线' : '离线 · 请配置AI服务');
+    
     return ClipRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
@@ -1013,9 +1174,9 @@ class _AiChatTopBar extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'AI 史官',
-                      style: TextStyle(
+                    Text(
+                      title,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
                         color: Color(0xFF0F172A),
@@ -1035,7 +1196,7 @@ class _AiChatTopBar extends StatelessWidget {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          hasAiService ? '在线' : '离线 · 请配置AI服务',
+                          subtitle,
                           style: const TextStyle(
                             fontSize: 12,
                             color: Color(0xFF64748B),
@@ -1047,6 +1208,7 @@ class _AiChatTopBar extends StatelessWidget {
                   ],
                 ),
               ),
+              if (moduleParams == null) ...[
               InkWell(
                 onTap: onToggleFullData,
                 borderRadius: BorderRadius.circular(8),
@@ -1109,6 +1271,8 @@ class _AiChatInputBar extends StatelessWidget {
     required this.onQuickMessage,
     required this.onQuickMessageWithContext,
     required this.enabled,
+    this.quickActions,
+    this.moduleParams,
   });
 
   final TextEditingController controller;
@@ -1117,6 +1281,8 @@ class _AiChatInputBar extends StatelessWidget {
   final void Function(String) onQuickMessage;
   final void Function(String actionType, String displayMessage) onQuickMessageWithContext;
   final bool enabled;
+  final List<QuickActionConfig>? quickActions;
+  final ModuleChatParams? moduleParams;
 
   @override
   Widget build(BuildContext context) {
@@ -1159,7 +1325,11 @@ class _AiChatInputBar extends StatelessWidget {
                       Icon(Icons.dataset_linked, size: 14, color: enabled ? AppTheme.primary : const Color(0xFF94A3B8)),
                       const SizedBox(width: 6),
                       Text(
-                        enabled ? '已接入：美食、旅行、小确幸等全量数据' : '请先配置 AI 服务',
+                        enabled 
+                            ? (moduleParams != null 
+                                ? '已接入：${moduleParams!.moduleName}模块数据' 
+                                : '已接入：美食、旅行、小确幸等全量数据')
+                            : '请先配置 AI 服务',
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
@@ -1174,28 +1344,7 @@ class _AiChatInputBar extends StatelessWidget {
                   height: 34,
                   child: ListView(
                     scrollDirection: Axis.horizontal,
-                    children: [
-                      _SuggestionChip(
-                        icon: Icons.mood,
-                        iconColor: const Color(0xFFA855F7),
-                        label: '总结上月心情',
-                        onTap: enabled ? () => onQuickMessageWithContext('mood_summary', '请帮我总结一下上个月的心情变化') : null,
-                      ),
-                      const SizedBox(width: 8),
-                      _SuggestionChip(
-                        icon: Icons.pie_chart,
-                        iconColor: const Color(0xFF60A5FA),
-                        label: '分析年度目标进度',
-                        onTap: enabled ? () => onQuickMessageWithContext('goal_progress', '请分析一下我今年的目标完成进度') : null,
-                      ),
-                      const SizedBox(width: 8),
-                      _SuggestionChip(
-                        icon: Icons.history,
-                        iconColor: const Color(0xFFFB923C),
-                        label: '那年今日',
-                        onTap: enabled ? () => onQuickMessageWithContext('on_this_day', '那年今天我做了什么？') : null,
-                      ),
-                    ],
+                    children: _buildSuggestionChips(),
                   ),
                 ),
                 const SizedBox(height: 10),

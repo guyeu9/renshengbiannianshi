@@ -17,6 +17,7 @@ import '../../../core/utils/image_save_util.dart';
 import '../../../core/utils/media_storage.dart';
 import '../../../core/widgets/amap_location_page.dart';
 import '../../../core/widgets/app_image.dart';
+import '../../../core/router/route_navigation.dart';
 import '../providers/encounter_detail_provider.dart';
 import 'bond_filter_components.dart';
 
@@ -665,15 +666,12 @@ class _EncounterCreatePageState extends ConsumerState<EncounterCreatePage> {
   }
 
   Future<void> _selectLocation() async {
-    final result = await Navigator.of(context).push<AmapLocationPickResult>(
-      MaterialPageRoute(
-        builder: (_) => AmapLocationPage.pick(
-          initialPoiName: _poiName,
-          initialAddress: _poiAddress,
-          initialLatitude: _latitude,
-          initialLongitude: _longitude,
-        ),
-      ),
+    final result = await RouteNavigation.openMapPicker(
+      context,
+      initialPoiName: _poiName,
+      initialAddress: _poiAddress,
+      initialLatitude: _latitude,
+      initialLongitude: _longitude,
     );
     if (result == null) return;
     if (!mounted) return;
@@ -1076,17 +1074,14 @@ class _EncounterDetailPageState extends ConsumerState<EncounterDetailPage> {
           final poiName = (event.poiName ?? '').trim();
           final poiAddress = (event.poiAddress ?? '').trim();
           if (poiName.isEmpty && poiAddress.isEmpty) return;
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => AmapLocationPage.preview(
-                title: title,
-                poiName: poiName,
-                address: poiAddress,
-                city: '',
-                latitude: event.latitude,
-                longitude: event.longitude,
-              ),
-            ),
+          RouteNavigation.openMapPreview(
+            context,
+            title: title,
+            poiName: poiName,
+            address: poiAddress,
+            city: '',
+            latitude: event.latitude,
+            longitude: event.longitude,
           );
         }
 
@@ -1364,9 +1359,7 @@ class _EncounterDetailPageState extends ConsumerState<EncounterDetailPage> {
                     icon: Icons.edit,
                     label: '编辑',
                     onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => EncounterCreatePage(initialEvent: event)),
-                      );
+                      RouteNavigation.goToEncounterCreate(context, initialEvent: event);
                     },
                   ),
                   _BottomAction(

@@ -22,6 +22,7 @@ import '../../../core/widgets/amap_location_page.dart';
 import '../../../core/widgets/custom_bottom_sheet.dart';
 import '../../../core/utils/image_save_util.dart';
 import '../../../core/widgets/app_image.dart';
+import '../../../core/router/route_navigation.dart';
 import '../providers/travel_detail_provider.dart';
 import '../../bond/presentation/bond_page.dart' show FriendProfilePage;
 
@@ -149,7 +150,14 @@ class _TravelTopBar extends StatelessWidget {
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
             ),
           ),
-          AiParseButton(text: '解析', onPressed: () {}),
+          AiParseButton(
+            text: '解析',
+            onPressed: () => RouteNavigation.goToAiHistorianForModule(
+              context,
+              moduleType: 'travel',
+              moduleName: '旅行',
+            ),
+          ),
         ],
       ),
     );
@@ -702,7 +710,7 @@ class _TravelOnRoadCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => TravelDetailPage(item: entry.item))),
+        onTap: () => RouteNavigation.goToTravelDetail(context, entry.item.travelId, item: entry.item),
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
@@ -937,7 +945,7 @@ class _TravelWishlistCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => TravelDetailPage(item: item))),
+        onTap: () => RouteNavigation.goToTravelDetail(context, item.travelId, item: item),
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
@@ -1057,11 +1065,7 @@ class TravelDetailPage extends ConsumerWidget {
           floatingActionButton: FloatingActionButton(
             backgroundColor: const Color(0xFF2BCDEE),
             foregroundColor: Colors.white,
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => TravelJournalCreatePage(initialTripId: tripId, initialTripTitle: tripTitle),
-              ),
-            ),
+            onPressed: () => RouteNavigation.goToJournalCreate(context, initialTripId: tripId, initialTripTitle: tripTitle),
             child: const Icon(Icons.add, size: 28),
           ),
           body: CustomScrollView(
@@ -1148,23 +1152,12 @@ class TravelDetailPage extends ConsumerWidget {
                               const SizedBox(width: 10),
                               _FrostedCircleIconButton(
                                 icon: Icons.edit,
-                                onTap: () => Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => TravelCreatePage(
-                                      initialRecord: record,
-                                      initialTrip: trip,
-                                    ),
-                                  ),
-                                ),
+                                onTap: () => RouteNavigation.goToTravelCreate(context, initialRecord: record),
                               ),
                               const SizedBox(width: 10),
                               _FrostedCircleIconButton(
                                 icon: Icons.add,
-                                onTap: () => Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => TravelJournalCreatePage(initialTripId: tripId, initialTripTitle: tripTitle),
-                                  ),
-                                ),
+                                onTap: () => RouteNavigation.goToJournalCreate(context, initialTripId: tripId, initialTripTitle: tripTitle),
                               ),
                               const SizedBox(width: 10),
                               _PrimaryPillButton(
@@ -1303,11 +1296,7 @@ class TravelDetailPage extends ConsumerWidget {
                             _CompanionAvatars(
                               friends: linkedFriends,
                               onTap: (friend) {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => FriendProfilePage(friendId: friend.id),
-                                  ),
-                                );
+                                RouteNavigation.goToFriendProfile(context, friend.id);
                               },
                             ),
                         ],
@@ -1687,17 +1676,14 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
   }
 
   Future<void> _pickDestinationLocation() async {
-    final result = await Navigator.of(context).push<AmapLocationPickResult>(
-      MaterialPageRoute(
-        builder: (_) => AmapLocationPage.pick(
-          initialPoiName: _poiName.trim().isNotEmpty ? _poiName.trim() : _destinationController.text.trim(),
-          initialAddress: _poiAddress,
-          initialLatitude: _latitude,
-          initialLongitude: _longitude,
-          initialCity: _city,
-          initialCountry: _country,
-        ),
-      ),
+    final result = await RouteNavigation.openMapPicker(
+      context,
+      initialPoiName: _poiName.trim().isNotEmpty ? _poiName.trim() : _destinationController.text.trim(),
+      initialAddress: _poiAddress,
+      initialLatitude: _latitude,
+      initialLongitude: _longitude,
+      initialCity: _city,
+      initialCountry: _country,
     );
     if (!mounted) return;
     if (result == null) return;
@@ -2663,17 +2649,14 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
   }
 
   Future<void> _pickLocation() async {
-    final result = await Navigator.of(context).push<AmapLocationPickResult>(
-      MaterialPageRoute(
-        builder: (_) => AmapLocationPage.pick(
-          initialPoiName: _poiName,
-          initialAddress: _poiAddress,
-          initialLatitude: _latitude,
-          initialLongitude: _longitude,
-          initialCity: _city,
-          initialCountry: _country,
-        ),
-      ),
+    final result = await RouteNavigation.openMapPicker(
+      context,
+      initialPoiName: _poiName,
+      initialAddress: _poiAddress,
+      initialLatitude: _latitude,
+      initialLongitude: _longitude,
+      initialCity: _city,
+      initialCountry: _country,
     );
     if (!mounted) return;
     if (result == null) return;
@@ -3914,11 +3897,7 @@ class _TimelineJournalCard extends StatelessWidget {
     final timeLabel = '${record.recordDate.year}-${record.recordDate.month.toString().padLeft(2, '0')}-${record.recordDate.day.toString().padLeft(2, '0')} ${record.recordDate.hour.toString().padLeft(2, '0')}:${record.recordDate.minute.toString().padLeft(2, '0')}';
     return GestureDetector(
       onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => JournalDetailPage(recordId: record.id),
-          ),
-        );
+        RouteNavigation.goToJournalDetail(context, record.id);
       },
       child: Container(
         padding: const EdgeInsets.all(12),
@@ -3994,7 +3973,7 @@ Widget _buildWechatStyleImages(BuildContext context, List<String> images, Travel
   if (images.isEmpty) return const SizedBox.shrink();
 
   void navigateToDetail() {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => JournalDetailPage(recordId: record.id)));
+    RouteNavigation.goToJournalDetail(context, record.id);
   }
 
   if (images.length == 1) {
@@ -5998,17 +5977,14 @@ class _JournalDetailPageState extends ConsumerState<JournalDetailPage>
                   label: '地理位置',
                   value: poiName.isNotEmpty ? poiName : poiAddress,
                   onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => AmapLocationPage.preview(
-                          title: state.title,
-                          poiName: poiName,
-                          address: poiAddress,
-                          city: '',
-                          latitude: record.latitude,
-                          longitude: record.longitude,
-                        ),
-                      ),
+                    RouteNavigation.openMapPreview(
+                      context,
+                      title: state.title,
+                      poiName: poiName,
+                      address: poiAddress,
+                      city: '',
+                      latitude: record.latitude,
+                      longitude: record.longitude,
                     );
                   },
                 ),
@@ -6077,14 +6053,7 @@ class _JournalDetailPageState extends ConsumerState<JournalDetailPage>
                 icon: Icons.edit,
                 label: '编辑',
                 onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => TravelJournalCreatePage(
-                        initialTripId: record.tripId,
-                        initialRecord: record,
-                      ),
-                    ),
-                  );
+                  RouteNavigation.goToJournalCreate(context, initialTripId: record.tripId, initialRecord: record);
                 },
               ),
               _JournalBottomButton(

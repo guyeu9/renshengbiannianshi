@@ -16,8 +16,11 @@ import 'package:drift/drift.dart' hide Column;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/router/app_router.dart';
+import '../../../core/router/route_navigation.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/providers/ai_provider.dart';
 import '../../../core/services/ai_service.dart' as ai_service;
@@ -360,11 +363,7 @@ class ProfilePage extends ConsumerWidget {
   }
 
   void _showNotificationSettings(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (ctx) => const ReminderSettingsPage(),
-      ),
-    );
+    RouteNavigation.goToReminderSettings(context);
   }
 
   Future<int> _calculateRecordDays(WidgetRef ref) async {
@@ -426,9 +425,7 @@ class ProfilePage extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         _ChronicleCard(
-                          onGenerate: () => Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const ChronicleGenerateConfigPage()),
-                          ),
+                          onGenerate: () => RouteNavigation.goToChronicleGenerateConfig(context),
                         ),
                         const SizedBox(height: 18),
                         const _SectionTitle(title: '功能管理'),
@@ -442,9 +439,7 @@ class ProfilePage extends ConsumerWidget {
                                 iconColor: _iconPurple,
                                 title: '收藏中心',
                                 subtitle: '美食 · 旅行 · 小确幸',
-                                onTap: () => Navigator.of(context).push(
-                                  MaterialPageRoute(builder: (_) => const FavoritesCenterPage()),
-                                ),
+                                onTap: () => RouteNavigation.goToFavoritesCenter(context),
                                 trailingIcon: Icons.ios_share,
                               ),
                             ),
@@ -460,9 +455,7 @@ class ProfilePage extends ConsumerWidget {
                                 iconColor: const Color(0xFF5D8CC0),
                                 title: '编年史管理',
                                 subtitle: '查看历史版本',
-                                onTap: () => Navigator.of(context).push(
-                                  MaterialPageRoute(builder: (_) => const ChronicleManagePage()),
-                                ),
+                                onTap: () => RouteNavigation.goToChronicleManage(context),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -473,9 +466,7 @@ class ProfilePage extends ConsumerWidget {
                                 iconColor: _iconRed,
                                 title: '年度报告',
                                 subtitle: '回顾过往精彩',
-                                onTap: () => Navigator.of(context).push(
-                                  MaterialPageRoute(builder: (_) => const YearReportPage()),
-                                ),
+                                onTap: () => RouteNavigation.goToYearReport(context),
                               ),
                             ),
                           ],
@@ -490,9 +481,7 @@ class ProfilePage extends ConsumerWidget {
                                 iconColor: _iconBlue,
                                 title: '数据备份',
                                 subtitle: '云端安全存储',
-                                onTap: () => Navigator.of(context).push(
-                                  MaterialPageRoute(builder: (_) => const DataManagementPage()),
-                                ),
+                                onTap: () => RouteNavigation.goToDataManagement(context),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -503,9 +492,7 @@ class ProfilePage extends ConsumerWidget {
                                 iconColor: const Color(0xFF5D8CC0),
                                 title: '模块管理',
                                 subtitle: '个性化主页',
-                                onTap: () => Navigator.of(context).push(
-                                  MaterialPageRoute(builder: (_) => const ModuleManagementPage()),
-                                ),
+                                onTap: () => RouteNavigation.goToModuleManagement(context),
                               ),
                             ),
                           ],
@@ -517,49 +504,37 @@ class ProfilePage extends ConsumerWidget {
                               icon: Icons.hub,
                               iconColor: const Color(0xFF4CAF50),
                               title: '万物互联',
-                              onTap: () => Navigator.of(context).push(
-                                MaterialPageRoute(builder: (_) => const UniversalLinkPage()),
-                              ),
+                              onTap: () => RouteNavigation.goToUniversalLink(context),
                             ),
                             _ListItem(
                               icon: Icons.psychology,
                               iconColor: const Color(0xFF6366F1),
                               title: 'AI 模型管理',
-                              onTap: () => Navigator.of(context).push(
-                                MaterialPageRoute(builder: (_) => const AiModelManagementPage()),
-                              ),
+                              onTap: () => RouteNavigation.goToAiModelManagement(context),
                             ),
                             _ListItem(
                               icon: Icons.person,
                               iconColor: Colors.black,
                               title: '个人资料',
-                              onTap: () => Navigator.of(context).push(
-                                MaterialPageRoute(builder: (_) => const PersonalProfilePage()),
-                              ),
+                              onTap: () => RouteNavigation.goToPersonalProfile(context),
                             ),
                             _ListItem(
                               icon: Icons.notifications_active,
                               iconColor: Colors.black,
                               title: '提醒设置',
-                              onTap: () => Navigator.of(context).push(
-                                MaterialPageRoute(builder: (_) => const ReminderSettingsPage()),
-                              ),
+                              onTap: () => RouteNavigation.goToReminderSettings(context),
                             ),
                             _ListItem(
                               icon: Icons.lock,
                               iconColor: Colors.black,
                               title: '隐私与安全',
-                              onTap: () => Navigator.of(context).push(
-                                MaterialPageRoute(builder: (_) => const PrivacySecurityPage()),
-                              ),
+                              onTap: () => RouteNavigation.goToPrivacySecurity(context),
                             ),
                             _ListItem(
                               icon: Icons.help,
                               iconColor: Colors.black,
                               title: '帮助与反馈',
-                              onTap: () => Navigator.of(context).push(
-                                MaterialPageRoute(builder: (_) => const HelpFeedbackPage()),
-                              ),
+                              onTap: () => RouteNavigation.goToHelpFeedback(context),
                             ),
                           ],
                         ),
@@ -2591,7 +2566,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
       
       if (!mounted) return;
       setState(() => _generating = false);
-      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const ChronicleManagePage()));
+      context.goReplacement(AppRoutes.chronicleManage);
     } catch (e, stack) {
       await amapError('编年史', '生成失败: $e\n$stack');
       if (mounted) {
@@ -3420,13 +3395,13 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
 
   void _navigateToDetail(BuildContext context, String id) async {
     if (id.startsWith('food-')) {
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => FoodDetailPage(recordId: id.substring(5))));
+      RouteNavigation.goToFoodDetail(context, id.substring(5));
     } else if (id.startsWith('travel-')) {
       final db = ref.read(appDatabaseProvider);
       final travelId = id.substring(7);
       final travel = await (db.select(db.travelRecords)..where((t) => t.id.equals(travelId))).getSingleOrNull();
       if (travel == null || !context.mounted) return;
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => TravelDetailPage(item: TravelItem(
+      RouteNavigation.goToTravelDetail(context, travel.id, item: TravelItem(
         travelId: travel.id,
         tripId: '',
         recordDate: travel.recordDate,
@@ -3434,19 +3409,19 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
         title: travel.title ?? '',
         subtitle: travel.destination ?? '',
         imageUrl: _parseStringList(travel.images).firstOrNull ?? '',
-      ))));
+      ));
     } else if (id.startsWith('moment-')) {
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => MomentDetailPage(recordId: id.substring(7))));
+      RouteNavigation.goToMomentDetail(context, id.substring(7));
     } else if (id.startsWith('bond-')) {
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => FriendProfilePage(friendId: id.substring(5))));
+      RouteNavigation.goToFriendProfile(context, id.substring(5));
     } else if (id.startsWith('goal-')) {
       final db = ref.read(appDatabaseProvider);
       final goalId = id.substring(5);
       final goal = await (db.select(db.goalRecords)..where((t) => t.id.equals(goalId))).getSingleOrNull();
       if (goal == null || !context.mounted) return;
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => GoalDetailPage(record: goal)));
+      RouteNavigation.goToGoalDetail(context, goal.id, record: goal);
     } else if (id.startsWith('encounter-')) {
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => EncounterDetailPage(encounterId: id.substring(10))));
+      RouteNavigation.goToEncounterDetail(context, id.substring(10));
     }
   }
 
@@ -4002,7 +3977,7 @@ class _ChronicleManagePageState extends ConsumerState<ChronicleManagePage> {
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ChronicleGenerateConfigPage()));
+              RouteNavigation.goToChronicleGenerateConfig(context);
             },
             style: TextButton.styleFrom(foregroundColor: primary, textStyle: const TextStyle(fontWeight: FontWeight.w900)),
             child: const Text('生成新版本'),
@@ -4044,7 +4019,7 @@ class _ChronicleManagePageState extends ConsumerState<ChronicleManagePage> {
                     _ChronicleVersionCard(
                       record: record,
                       onPreview: () {
-                        Navigator.of(context).push(MaterialPageRoute(builder: (_) => ChroniclePreviewPage(record: record)));
+                        RouteNavigation.goToChroniclePreview(context, record);
                       },
                       onExport: () => _exportRecord(record),
                       onFeatureToggle: () => _toggleFeatured(record),
@@ -4528,7 +4503,7 @@ class _UniversalLinkHomePageState extends ConsumerState<_UniversalLinkHomePage> 
                         ),
                       ),
                       TextButton(
-                        onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UniversalLinkAllLogsPage())),
+                        onPressed: () => RouteNavigation.goToUniversalLinkAllLogs(context),
                         style: TextButton.styleFrom(foregroundColor: const Color(0xFF2BCDEE), textStyle: const TextStyle(fontWeight: FontWeight.w900)),
                         child: const Text('全部日志'),
                       ),
@@ -4637,7 +4612,7 @@ class _UniversalLinkHomePageState extends ConsumerState<_UniversalLinkHomePage> 
                       const Text('最近关联', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
                       const Spacer(),
                       TextButton(
-                        onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UniversalLinkAllLogsPage())),
+                        onPressed: () => RouteNavigation.goToUniversalLinkAllLogs(context),
                         style: TextButton.styleFrom(foregroundColor: const Color(0xFF2BCDEE), textStyle: const TextStyle(fontWeight: FontWeight.w900)),
                         child: const Text('查看全部'),
                       ),
@@ -7627,9 +7602,7 @@ class HelpFeedbackPage extends StatelessWidget {
                   icon: Icons.bug_report_outlined,
                   iconColor: Colors.black,
                   title: '系统日志',
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const SystemLogPage()),
-                  ),
+                  onTap: () => RouteNavigation.goToSystemLog(context),
                 ),
                 _HelpListItem(
                   icon: Icons.info_outline,
