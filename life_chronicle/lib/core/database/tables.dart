@@ -396,6 +396,7 @@ class ChatSessions extends Table {
   TextColumn get id => text()();
   TextColumn get title => text().withDefault(const Constant('新对话'))();
   TextColumn get summary => text().nullable()();
+  TextColumn get moduleType => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   DateTimeColumn get lastMessageAt => dateTime().nullable()();
@@ -410,6 +411,7 @@ class ChatSessions extends Table {
         {updatedAt},
         {isDeleted},
         {isArchived},
+        {moduleType},
       ];
 }
 

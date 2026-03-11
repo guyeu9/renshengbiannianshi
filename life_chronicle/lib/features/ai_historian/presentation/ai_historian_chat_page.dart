@@ -6,6 +6,7 @@ import 'dart:ui';
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
@@ -18,6 +19,8 @@ import '../../../core/database/database_providers.dart';
 import '../../../core/providers/ai_provider.dart';
 import '../../../core/services/ai_service.dart' as ai_service;
 import '../../../core/router/route_navigation.dart';
+import '../../../core/router/app_router.dart';
+import 'package:go_router/go_router.dart';
 import '../config/module_configs.dart';
 import '../models/module_chat_params.dart';
 import '../models/quick_action_config.dart';
@@ -238,11 +241,9 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
 
   Future<void> _initializeSession() async {
     final db = ref.read(appDatabaseProvider);
-    final sessions = await (db.select(db.chatSessions)
-          ..where((t) => t.isDeleted.equals(false))
-          ..where((t) => t.isArchived.equals(false))
-          ..orderBy([(t) => OrderingTerm(expression: t.lastMessageAt, mode: OrderingMode.desc)]))
-        .get();
+    
+    final moduleType = widget.isModuleMode ? widget.moduleParams!.moduleType : null;
+    final sessions = await db.chatDao.getActiveSessionsByModuleType(moduleType);
 
     if (sessions.isEmpty) {
       await _createNewSession();
@@ -265,6 +266,7 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
     await db.chatDao.upsertSession(ChatSessionsCompanion(
       id: Value(sessionId),
       title: const Value('新对话'),
+      moduleType: Value(widget.isModuleMode ? widget.moduleParams!.moduleType : null),
       createdAt: Value(now),
       updatedAt: Value(now),
       lastMessageAt: Value(now),
@@ -802,6 +804,7 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
                   hasAiService: hasAiService,
                   fullData: _fullData,
                   onToggleFullData: () => setState(() => _fullData = !_fullData),
+                  onGoBack: () => context.go(AppRoutes.home),
                   moduleParams: widget.moduleParams,
                 ),
                 if (_errorMessage != null)
@@ -873,6 +876,7 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
                       if (_showSessionDrawer)
                         _SessionDrawer(
                           currentSessionId: _currentSessionId,
+                          moduleType: widget.isModuleMode ? widget.moduleParams!.moduleType : null,
                           onSessionTap: _switchSession,
                           onNewSession: _createNewSession,
                           onDeleteSession: _deleteSession,
@@ -903,6 +907,7 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
 class _SessionDrawer extends ConsumerWidget {
   const _SessionDrawer({
     required this.currentSessionId,
+    required this.moduleType,
     required this.onSessionTap,
     required this.onNewSession,
     required this.onDeleteSession,
@@ -910,6 +915,7 @@ class _SessionDrawer extends ConsumerWidget {
   });
 
   final String? currentSessionId;
+  final String? moduleType;
   final void Function(String) onSessionTap;
   final VoidCallback onNewSession;
   final void Function(String) onDeleteSession;
@@ -960,7 +966,7 @@ class _SessionDrawer extends ConsumerWidget {
                   ),
                   Expanded(
                     child: StreamBuilder<List<ChatSession>>(
-                      stream: db.chatDao.watchAllActiveSessions(),
+                      stream: db.chatDao.watchActiveSessionsByModuleType(moduleType),
                       builder: (context, snapshot) {
                         if (!snapshot.hasData) {
                           return const Center(child: CircularProgressIndicator());
@@ -1089,6 +1095,7 @@ class _AiChatTopBar extends StatelessWidget {
     required this.hasAiService,
     required this.fullData,
     required this.onToggleFullData,
+    required this.onGoBack,
     this.moduleParams,
   });
 
@@ -1098,6 +1105,7 @@ class _AiChatTopBar extends StatelessWidget {
   final bool hasAiService;
   final bool fullData;
   final VoidCallback onToggleFullData;
+  final VoidCallback onGoBack;
   final ModuleChatParams? moduleParams;
 
   @override
@@ -1121,6 +1129,15 @@ class _AiChatTopBar extends StatelessWidget {
           ),
           child: Row(
             children: [
+              InkWell(
+                onTap: onGoBack,
+                borderRadius: BorderRadius.circular(999),
+                child: const Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Icon(Icons.arrow_back, color: Color(0xFF475569), size: 20),
+                ),
+              ),
+              const SizedBox(width: 4),
               InkWell(
                 onTap: onToggleSessions,
                 borderRadius: BorderRadius.circular(999),
@@ -1601,6 +1618,16 @@ class _AiMessageBubble extends StatelessWidget {
   final ChatMessageModel message;
   final void Function(RecommendationCard)? onCardTap;
 
+  void _copyContent(BuildContext context) {
+    Clipboard.setData(ClipboardData(text: message.content));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('已复制到剪贴板'),
+        duration: Duration(seconds: 1),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -1651,6 +1678,20 @@ class _AiMessageBubble extends StatelessWidget {
                             width: 12,
                             height: 12,
                             child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary),
+                          ),
+                        ] else if (message.content.isNotEmpty) ...[
+                          const SizedBox(width: 8),
+                          InkWell(
+                            onTap: () => _copyContent(context),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Padding(
+                              padding: const EdgeInsets.all(4),
+                              child: Icon(
+                                Icons.copy_outlined,
+                                size: 16,
+                                color: Colors.grey.shade400,
+                              ),
+                            ),
                           ),
                         ],
                       ],

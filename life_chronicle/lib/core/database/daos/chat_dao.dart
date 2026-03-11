@@ -62,6 +62,38 @@ class ChatDao extends DatabaseAccessor<AppDatabase> with _$ChatDaoMixin {
         .watch();
   }
 
+  Stream<List<ChatSession>> watchActiveSessionsByModuleType(String? moduleType) {
+    final query = select(db.chatSessions)
+      ..where((t) => t.isDeleted.equals(false))
+      ..where((t) => t.isArchived.equals(false));
+    
+    if (moduleType != null) {
+      query.where((t) => t.moduleType.equals(moduleType));
+    } else {
+      query.where((t) => t.moduleType.isNull());
+    }
+    
+    query.orderBy([(t) => OrderingTerm(expression: t.lastMessageAt, mode: OrderingMode.desc)]);
+    
+    return query.watch();
+  }
+
+  Future<List<ChatSession>> getActiveSessionsByModuleType(String? moduleType) {
+    final query = select(db.chatSessions)
+      ..where((t) => t.isDeleted.equals(false))
+      ..where((t) => t.isArchived.equals(false));
+    
+    if (moduleType != null) {
+      query.where((t) => t.moduleType.equals(moduleType));
+    } else {
+      query.where((t) => t.moduleType.isNull());
+    }
+    
+    query.orderBy([(t) => OrderingTerm(expression: t.lastMessageAt, mode: OrderingMode.desc)]);
+    
+    return query.get();
+  }
+
   Stream<List<ChatMessage>> watchMessagesBySessionId(String sessionId) {
     return (select(db.chatMessages)
           ..where((t) => t.sessionId.equals(sessionId))

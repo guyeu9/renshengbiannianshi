@@ -11240,6 +11240,12 @@ class $ChatSessionsTable extends ChatSessions
   late final GeneratedColumn<String> summary = GeneratedColumn<String>(
       'summary', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _moduleTypeMeta =
+      const VerificationMeta('moduleType');
+  @override
+  late final GeneratedColumn<String> moduleType = GeneratedColumn<String>(
+      'module_type', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _createdAtMeta =
       const VerificationMeta('createdAt');
   @override
@@ -11283,6 +11289,7 @@ class $ChatSessionsTable extends ChatSessions
         id,
         title,
         summary,
+        moduleType,
         createdAt,
         updatedAt,
         lastMessageAt,
@@ -11311,6 +11318,12 @@ class $ChatSessionsTable extends ChatSessions
     if (data.containsKey('summary')) {
       context.handle(_summaryMeta,
           summary.isAcceptableOrUnknown(data['summary']!, _summaryMeta));
+    }
+    if (data.containsKey('module_type')) {
+      context.handle(
+          _moduleTypeMeta,
+          moduleType.isAcceptableOrUnknown(
+              data['module_type']!, _moduleTypeMeta));
     }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
@@ -11355,6 +11368,8 @@ class $ChatSessionsTable extends ChatSessions
           .read(DriftSqlType.string, data['${effectivePrefix}title'])!,
       summary: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}summary']),
+      moduleType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}module_type']),
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
       updatedAt: attachedDatabase.typeMapping
@@ -11378,6 +11393,7 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
   final String id;
   final String title;
   final String? summary;
+  final String? moduleType;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? lastMessageAt;
@@ -11387,6 +11403,7 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
       {required this.id,
       required this.title,
       this.summary,
+      this.moduleType,
       required this.createdAt,
       required this.updatedAt,
       this.lastMessageAt,
@@ -11399,6 +11416,9 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
     map['title'] = Variable<String>(title);
     if (!nullToAbsent || summary != null) {
       map['summary'] = Variable<String>(summary);
+    }
+    if (!nullToAbsent || moduleType != null) {
+      map['module_type'] = Variable<String>(moduleType);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -11417,6 +11437,9 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
       summary: summary == null && nullToAbsent
           ? const Value.absent()
           : Value(summary),
+      moduleType: moduleType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(moduleType),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       lastMessageAt: lastMessageAt == null && nullToAbsent
@@ -11434,6 +11457,7 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
       id: serializer.fromJson<String>(json['id']),
       title: serializer.fromJson<String>(json['title']),
       summary: serializer.fromJson<String?>(json['summary']),
+      moduleType: serializer.fromJson<String?>(json['moduleType']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       lastMessageAt: serializer.fromJson<DateTime?>(json['lastMessageAt']),
@@ -11448,6 +11472,7 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
       'id': serializer.toJson<String>(id),
       'title': serializer.toJson<String>(title),
       'summary': serializer.toJson<String?>(summary),
+      'moduleType': serializer.toJson<String?>(moduleType),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'lastMessageAt': serializer.toJson<DateTime?>(lastMessageAt),
@@ -11460,6 +11485,7 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
           {String? id,
           String? title,
           Value<String?> summary = const Value.absent(),
+          Value<String?> moduleType = const Value.absent(),
           DateTime? createdAt,
           DateTime? updatedAt,
           Value<DateTime?> lastMessageAt = const Value.absent(),
@@ -11469,6 +11495,7 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
         id: id ?? this.id,
         title: title ?? this.title,
         summary: summary.present ? summary.value : this.summary,
+        moduleType: moduleType.present ? moduleType.value : this.moduleType,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
         lastMessageAt:
@@ -11481,6 +11508,8 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
       id: data.id.present ? data.id.value : this.id,
       title: data.title.present ? data.title.value : this.title,
       summary: data.summary.present ? data.summary.value : this.summary,
+      moduleType:
+          data.moduleType.present ? data.moduleType.value : this.moduleType,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       lastMessageAt: data.lastMessageAt.present
@@ -11498,6 +11527,7 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
           ..write('id: $id, ')
           ..write('title: $title, ')
           ..write('summary: $summary, ')
+          ..write('moduleType: $moduleType, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('lastMessageAt: $lastMessageAt, ')
@@ -11508,8 +11538,8 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
   }
 
   @override
-  int get hashCode => Object.hash(id, title, summary, createdAt, updatedAt,
-      lastMessageAt, isArchived, isDeleted);
+  int get hashCode => Object.hash(id, title, summary, moduleType, createdAt,
+      updatedAt, lastMessageAt, isArchived, isDeleted);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -11517,6 +11547,7 @@ class ChatSession extends DataClass implements Insertable<ChatSession> {
           other.id == this.id &&
           other.title == this.title &&
           other.summary == this.summary &&
+          other.moduleType == this.moduleType &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.lastMessageAt == this.lastMessageAt &&
@@ -11528,6 +11559,7 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
   final Value<String> id;
   final Value<String> title;
   final Value<String?> summary;
+  final Value<String?> moduleType;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<DateTime?> lastMessageAt;
@@ -11538,6 +11570,7 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
     this.id = const Value.absent(),
     this.title = const Value.absent(),
     this.summary = const Value.absent(),
+    this.moduleType = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.lastMessageAt = const Value.absent(),
@@ -11549,6 +11582,7 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
     required String id,
     this.title = const Value.absent(),
     this.summary = const Value.absent(),
+    this.moduleType = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.lastMessageAt = const Value.absent(),
@@ -11562,6 +11596,7 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
     Expression<String>? id,
     Expression<String>? title,
     Expression<String>? summary,
+    Expression<String>? moduleType,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? lastMessageAt,
@@ -11573,6 +11608,7 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
       if (id != null) 'id': id,
       if (title != null) 'title': title,
       if (summary != null) 'summary': summary,
+      if (moduleType != null) 'module_type': moduleType,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (lastMessageAt != null) 'last_message_at': lastMessageAt,
@@ -11586,6 +11622,7 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
       {Value<String>? id,
       Value<String>? title,
       Value<String?>? summary,
+      Value<String?>? moduleType,
       Value<DateTime>? createdAt,
       Value<DateTime>? updatedAt,
       Value<DateTime?>? lastMessageAt,
@@ -11596,6 +11633,7 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
       id: id ?? this.id,
       title: title ?? this.title,
       summary: summary ?? this.summary,
+      moduleType: moduleType ?? this.moduleType,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       lastMessageAt: lastMessageAt ?? this.lastMessageAt,
@@ -11616,6 +11654,9 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
     }
     if (summary.present) {
       map['summary'] = Variable<String>(summary.value);
+    }
+    if (moduleType.present) {
+      map['module_type'] = Variable<String>(moduleType.value);
     }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
@@ -11644,6 +11685,7 @@ class ChatSessionsCompanion extends UpdateCompanion<ChatSession> {
           ..write('id: $id, ')
           ..write('title: $title, ')
           ..write('summary: $summary, ')
+          ..write('moduleType: $moduleType, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('lastMessageAt: $lastMessageAt, ')
@@ -17289,6 +17331,7 @@ typedef $$ChatSessionsTableCreateCompanionBuilder = ChatSessionsCompanion
   required String id,
   Value<String> title,
   Value<String?> summary,
+  Value<String?> moduleType,
   required DateTime createdAt,
   required DateTime updatedAt,
   Value<DateTime?> lastMessageAt,
@@ -17301,6 +17344,7 @@ typedef $$ChatSessionsTableUpdateCompanionBuilder = ChatSessionsCompanion
   Value<String> id,
   Value<String> title,
   Value<String?> summary,
+  Value<String?> moduleType,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
   Value<DateTime?> lastMessageAt,
@@ -17326,6 +17370,9 @@ class $$ChatSessionsTableFilterComposer
 
   ColumnFilters<String> get summary => $composableBuilder(
       column: $table.summary, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get moduleType => $composableBuilder(
+      column: $table.moduleType, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
@@ -17361,6 +17408,9 @@ class $$ChatSessionsTableOrderingComposer
   ColumnOrderings<String> get summary => $composableBuilder(
       column: $table.summary, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get moduleType => $composableBuilder(
+      column: $table.moduleType, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 
@@ -17395,6 +17445,9 @@ class $$ChatSessionsTableAnnotationComposer
 
   GeneratedColumn<String> get summary =>
       $composableBuilder(column: $table.summary, builder: (column) => column);
+
+  GeneratedColumn<String> get moduleType => $composableBuilder(
+      column: $table.moduleType, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -17441,6 +17494,7 @@ class $$ChatSessionsTableTableManager extends RootTableManager<
             Value<String> id = const Value.absent(),
             Value<String> title = const Value.absent(),
             Value<String?> summary = const Value.absent(),
+            Value<String?> moduleType = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
             Value<DateTime?> lastMessageAt = const Value.absent(),
@@ -17452,6 +17506,7 @@ class $$ChatSessionsTableTableManager extends RootTableManager<
             id: id,
             title: title,
             summary: summary,
+            moduleType: moduleType,
             createdAt: createdAt,
             updatedAt: updatedAt,
             lastMessageAt: lastMessageAt,
@@ -17463,6 +17518,7 @@ class $$ChatSessionsTableTableManager extends RootTableManager<
             required String id,
             Value<String> title = const Value.absent(),
             Value<String?> summary = const Value.absent(),
+            Value<String?> moduleType = const Value.absent(),
             required DateTime createdAt,
             required DateTime updatedAt,
             Value<DateTime?> lastMessageAt = const Value.absent(),
@@ -17474,6 +17530,7 @@ class $$ChatSessionsTableTableManager extends RootTableManager<
             id: id,
             title: title,
             summary: summary,
+            moduleType: moduleType,
             createdAt: createdAt,
             updatedAt: updatedAt,
             lastMessageAt: lastMessageAt,

@@ -44,7 +44,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 25;
+  int get schemaVersion => 26;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -234,6 +234,12 @@ class AppDatabase extends _$AppDatabase {
 
           if (from < 25) {
             await ensureColumn(table: goalRecords, column: goalRecords.completedAt);
+          }
+
+          if (from < 26) {
+            if (!await columnExists('chat_sessions', 'moduleType')) {
+              await customStatement('ALTER TABLE chat_sessions ADD COLUMN moduleType TEXT');
+            }
           }
 
           // 修复历史数据：将逗号分隔的images字段转换为JSON数组格式

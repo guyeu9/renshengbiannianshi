@@ -16,9 +16,11 @@ import 'package:drift/drift.dart' hide Column;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/router/route_navigation.dart';
+import '../../../core/router/app_router.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/providers/ai_provider.dart';
 import '../../../core/services/ai_service.dart' as ai_service;
@@ -2582,6 +2584,26 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
         bottom: false,
         child: Stack(
           children: [
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                height: 56,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => context.go(AppRoutes.home),
+                      icon: const Icon(Icons.arrow_back, color: textMain),
+                      splashRadius: 22,
+                    ),
+                    const SizedBox(width: 8),
+                    Text('定格时光', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: textMain)),
+                  ],
+                ),
+              ),
+            ),
             ListView(
               padding: const EdgeInsets.only(top: 70, left: 16, right: 16, bottom: 100),
               children: [
@@ -2590,7 +2612,6 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('定格时光', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: textMain)),
                       const SizedBox(height: 4),
                       Text('选择您想珍藏的记忆片段，生成专属编年史。', style: TextStyle(fontSize: 14, color: textMuted)),
                     ],
