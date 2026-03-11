@@ -3,12 +3,14 @@ class StatsData {
   final Map<String, dynamic> distribution;
   final Map<String, dynamic> keyMetrics;
   final Map<String, dynamic> timePatterns;
+  final Map<String, dynamic> additionalData;
 
   const StatsData({
     required this.totalRecords,
     this.distribution = const {},
     this.keyMetrics = const {},
     this.timePatterns = const {},
+    this.additionalData = const {},
   });
 
   String toPromptString() {

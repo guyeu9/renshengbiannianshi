@@ -374,6 +374,68 @@ class RecordRetriever {
     return result;
   }
 
+  Future<Map<String, List<EntityLinkInfo>>> _batchLoadLinks(
+    String entityType,
+    List<String> entityIds,
+  ) async {
+    if (entityIds.isEmpty) return {};
+    
+    final allLinks = await _db.linkDao.listLinksForEntities(
+      entityType: entityType,
+      entityIds: entityIds,
+    );
+    
+    final friendIds = <String>{};
+    for (final link in allLinks) {
+      if (link.targetType == 'friend') {
+        friendIds.add(link.targetId);
+      }
+      if (link.sourceType == 'friend') {
+        friendIds.add(link.sourceId);
+      }
+    }
+    
+    final friendNames = <String, String>{};
+    if (friendIds.isNotEmpty) {
+      final friends = await (_db.select(_db.friendRecords)
+            ..where((t) => t.id.isIn(friendIds.toList())))
+          .get();
+      for (final friend in friends) {
+        friendNames[friend.id] = friend.name;
+      }
+    }
+    
+    final linksByEntityId = <String, List<EntityLinkInfo>>{};
+    for (final link in allLinks) {
+      String entityId;
+      EntityLinkInfo linkInfo;
+      
+      if (link.sourceType == entityType && entityIds.contains(link.sourceId)) {
+        entityId = link.sourceId;
+        linkInfo = EntityLinkInfo(
+          targetType: link.targetType,
+          targetId: link.targetId,
+          targetTitle: friendNames[link.targetId],
+          linkType: link.linkType,
+        );
+      } else if (link.targetType == entityType && entityIds.contains(link.targetId)) {
+        entityId = link.targetId;
+        linkInfo = EntityLinkInfo(
+          targetType: link.sourceType,
+          targetId: link.sourceId,
+          targetTitle: friendNames[link.sourceId],
+          linkType: link.linkType,
+        );
+      } else {
+        continue;
+      }
+      
+      (linksByEntityId[entityId] ??= []).add(linkInfo);
+    }
+    
+    return linksByEntityId;
+  }
+
   Future<List<RecordContext>> _loadAllFoodRecords([int? limit]) async {
     var query = _db.select(_db.foodRecords)
       ..where((t) => t.isDeleted.equals(false))
@@ -385,32 +447,34 @@ class RecordRetriever {
     
     final foods = await query.get();
     
-    return Future.wait(foods.map((f) async {
-      final links = await _loadLinks('food', f.id);
-      return RecordContext(
-        type: '美食',
-        id: f.id,
-        title: f.title,
-        content: f.content ?? '',
-        date: f.recordDate,
-        images: _parseImages(f.images),
-        tags: _parseTags(f.tags),
-        isFavorite: f.isFavorite,
-        links: links.isNotEmpty ? links : null,
-        extra: {
-          'rating': f.rating,
-          'pricePerPerson': f.pricePerPerson,
-          'mood': f.mood,
-          'poiName': f.poiName,
-          'poiAddress': f.poiAddress,
-          'city': f.city,
-          'country': f.country,
-          'link': f.link,
-          'isWishlist': f.isWishlist,
-          'wishlistDone': f.wishlistDone,
-        },
-      );
-    }));
+    if (foods.isEmpty) return [];
+    
+    final foodIds = foods.map((f) => f.id).toList();
+    final linksByFoodId = await _batchLoadLinks('food', foodIds);
+    
+    return foods.map((f) => RecordContext(
+      type: '美食',
+      id: f.id,
+      title: f.title,
+      content: f.content ?? '',
+      date: f.recordDate,
+      images: _parseImages(f.images),
+      tags: _parseTags(f.tags),
+      isFavorite: f.isFavorite,
+      links: linksByFoodId[f.id]?.isNotEmpty == true ? linksByFoodId[f.id] : null,
+      extra: {
+        'rating': f.rating,
+        'pricePerPerson': f.pricePerPerson,
+        'mood': f.mood,
+        'poiName': f.poiName,
+        'poiAddress': f.poiAddress,
+        'city': f.city,
+        'country': f.country,
+        'link': f.link,
+        'isWishlist': f.isWishlist,
+        'wishlistDone': f.wishlistDone,
+      },
+    )).toList();
   }
 
   Future<List<RecordContext>> _loadAllMomentRecords([int? limit]) async {
@@ -424,27 +488,29 @@ class RecordRetriever {
     
     final moments = await query.get();
     
-    return Future.wait(moments.map((m) async {
-      final links = await _loadLinks('moment', m.id);
-      return RecordContext(
-        type: '小确幸',
-        id: m.id,
-        title: '',
-        content: m.content ?? '',
-        date: m.recordDate,
-        images: _parseImages(m.images),
-        tags: _parseTags(m.tags),
-        isFavorite: m.isFavorite,
-        links: links.isNotEmpty ? links : null,
-        extra: {
-          'mood': m.mood,
-          'moodColor': m.moodColor,
-          'poiName': m.poiName,
-          'poiAddress': m.poiAddress,
-          'city': m.city,
-        },
-      );
-    }));
+    if (moments.isEmpty) return [];
+    
+    final momentIds = moments.map((m) => m.id).toList();
+    final linksByMomentId = await _batchLoadLinks('moment', momentIds);
+    
+    return moments.map((m) => RecordContext(
+      type: '小确幸',
+      id: m.id,
+      title: '',
+      content: m.content ?? '',
+      date: m.recordDate,
+      images: _parseImages(m.images),
+      tags: _parseTags(m.tags),
+      isFavorite: m.isFavorite,
+      links: linksByMomentId[m.id]?.isNotEmpty == true ? linksByMomentId[m.id] : null,
+      extra: {
+        'mood': m.mood,
+        'moodColor': m.moodColor,
+        'poiName': m.poiName,
+        'poiAddress': m.poiAddress,
+        'city': m.city,
+      },
+    )).toList();
   }
 
   Future<List<RecordContext>> _loadAllTravelRecords([int? limit]) async {
@@ -458,39 +524,41 @@ class RecordRetriever {
     
     final travels = await query.get();
     
-    return Future.wait(travels.map((t) async {
-      final links = await _loadLinks('travel', t.id);
-      return RecordContext(
-        type: '旅行',
-        id: t.id,
-        title: t.title ?? '',
-        content: t.content ?? '',
-        date: t.recordDate,
-        images: _parseImages(t.images),
-        tags: _parseTags(t.tags),
-        isFavorite: t.isFavorite,
-        links: links.isNotEmpty ? links : null,
-        extra: {
-          'tripId': t.tripId,
-          'destination': t.destination,
-          'poiName': t.poiName,
-          'poiAddress': t.poiAddress,
-          'city': t.city,
-          'country': t.country,
-          'mood': t.mood,
-          'expenseTransport': t.expenseTransport,
-          'expenseHotel': t.expenseHotel,
-          'expenseFood': t.expenseFood,
-          'expenseTicket': t.expenseTicket,
-          'flightLink': t.flightLink,
-          'hotelLink': t.hotelLink,
-          'isWishlist': t.isWishlist,
-          'wishlistDone': t.wishlistDone,
-          'isJournal': t.isJournal,
-          'planDate': t.planDate,
-        },
-      );
-    }));
+    if (travels.isEmpty) return [];
+    
+    final travelIds = travels.map((t) => t.id).toList();
+    final linksByTravelId = await _batchLoadLinks('travel', travelIds);
+    
+    return travels.map((t) => RecordContext(
+      type: '旅行',
+      id: t.id,
+      title: t.title ?? '',
+      content: t.content ?? '',
+      date: t.recordDate,
+      images: _parseImages(t.images),
+      tags: _parseTags(t.tags),
+      isFavorite: t.isFavorite,
+      links: linksByTravelId[t.id]?.isNotEmpty == true ? linksByTravelId[t.id] : null,
+      extra: {
+        'tripId': t.tripId,
+        'destination': t.destination,
+        'poiName': t.poiName,
+        'poiAddress': t.poiAddress,
+        'city': t.city,
+        'country': t.country,
+        'mood': t.mood,
+        'expenseTransport': t.expenseTransport,
+        'expenseHotel': t.expenseHotel,
+        'expenseFood': t.expenseFood,
+        'expenseTicket': t.expenseTicket,
+        'flightLink': t.flightLink,
+        'hotelLink': t.hotelLink,
+        'isWishlist': t.isWishlist,
+        'wishlistDone': t.wishlistDone,
+        'isJournal': t.isJournal,
+        'planDate': t.planDate,
+      },
+    )).toList();
   }
 
   Future<List<RecordContext>> _loadAllGoalRecords([int? limit]) async {
@@ -504,34 +572,36 @@ class RecordRetriever {
     
     final goals = await query.get();
     
-    return Future.wait(goals.map((g) async {
-      final links = await _loadLinks('goal', g.id);
-      return RecordContext(
-        type: '目标',
-        id: g.id,
-        title: g.title,
-        content: g.note ?? '',
-        date: g.recordDate,
-        tags: _parseTags(g.tags),
-        isFavorite: g.isFavorite,
-        links: links.isNotEmpty ? links : null,
-        extra: {
-          'parentId': g.parentId,
-          'level': g.level,
-          'summary': g.summary,
-          'category': g.category,
-          'progress': g.progress,
-          'isCompleted': g.isCompleted,
-          'isPostponed': g.isPostponed,
-          'remindFrequency': g.remindFrequency,
-          'targetYear': g.targetYear,
-          'targetQuarter': g.targetQuarter,
-          'targetMonth': g.targetMonth,
-          'dueDate': g.dueDate,
-          'completedAt': g.completedAt,
-        },
-      );
-    }));
+    if (goals.isEmpty) return [];
+    
+    final goalIds = goals.map((g) => g.id).toList();
+    final linksByGoalId = await _batchLoadLinks('goal', goalIds);
+    
+    return goals.map((g) => RecordContext(
+      type: '目标',
+      id: g.id,
+      title: g.title,
+      content: g.note ?? '',
+      date: g.recordDate,
+      tags: _parseTags(g.tags),
+      isFavorite: g.isFavorite,
+      links: linksByGoalId[g.id]?.isNotEmpty == true ? linksByGoalId[g.id] : null,
+      extra: {
+        'parentId': g.parentId,
+        'level': g.level,
+        'summary': g.summary,
+        'category': g.category,
+        'progress': g.progress,
+        'isCompleted': g.isCompleted,
+        'isPostponed': g.isPostponed,
+        'remindFrequency': g.remindFrequency,
+        'targetYear': g.targetYear,
+        'targetQuarter': g.targetQuarter,
+        'targetMonth': g.targetMonth,
+        'dueDate': g.dueDate,
+        'completedAt': g.completedAt,
+      },
+    )).toList();
   }
 
   Future<List<RecordContext>> _loadAllEncounterRecords([int? limit]) async {
@@ -546,25 +616,27 @@ class RecordRetriever {
     
     final encounters = await query.get();
     
-    return Future.wait(encounters.map((e) async {
-      final links = await _loadLinks('encounter', e.id);
-      return RecordContext(
-        type: '相遇',
-        id: e.id,
-        title: e.title,
-        content: e.note ?? '',
-        date: e.recordDate,
-        tags: _parseTags(e.tags),
-        isFavorite: e.isFavorite,
-        links: links.isNotEmpty ? links : null,
-        extra: {
-          'startAt': e.startAt,
-          'endAt': e.endAt,
-          'poiName': e.poiName,
-          'poiAddress': e.poiAddress,
-        },
-      );
-    }));
+    if (encounters.isEmpty) return [];
+    
+    final encounterIds = encounters.map((e) => e.id).toList();
+    final linksByEncounterId = await _batchLoadLinks('encounter', encounterIds);
+    
+    return encounters.map((e) => RecordContext(
+      type: '相遇',
+      id: e.id,
+      title: e.title,
+      content: e.note ?? '',
+      date: e.recordDate,
+      tags: _parseTags(e.tags),
+      isFavorite: e.isFavorite,
+      links: linksByEncounterId[e.id]?.isNotEmpty == true ? linksByEncounterId[e.id] : null,
+      extra: {
+        'startAt': e.startAt,
+        'endAt': e.endAt,
+        'poiName': e.poiName,
+        'poiAddress': e.poiAddress,
+      },
+    )).toList();
   }
 
   Future<List<RecordContext>> _loadFoodByTimeRange(DateTime start, DateTime end, int? limit) async {
@@ -580,29 +652,31 @@ class RecordRetriever {
     
     final foods = await query.get();
     
-    return Future.wait(foods.map((f) async {
-      final links = await _loadLinks('food', f.id);
-      return RecordContext(
-        type: '美食',
-        id: f.id,
-        title: f.title,
-        content: f.content ?? '',
-        date: f.recordDate,
-        images: _parseImages(f.images),
-        tags: _parseTags(f.tags),
-        isFavorite: f.isFavorite,
-        links: links.isNotEmpty ? links : null,
-        extra: {
-          'rating': f.rating,
-          'pricePerPerson': f.pricePerPerson,
-          'mood': f.mood,
-          'poiName': f.poiName,
-          'poiAddress': f.poiAddress,
-          'city': f.city,
-          'country': f.country,
-        },
-      );
-    }));
+    if (foods.isEmpty) return [];
+    
+    final foodIds = foods.map((f) => f.id).toList();
+    final linksByFoodId = await _batchLoadLinks('food', foodIds);
+    
+    return foods.map((f) => RecordContext(
+      type: '美食',
+      id: f.id,
+      title: f.title,
+      content: f.content ?? '',
+      date: f.recordDate,
+      images: _parseImages(f.images),
+      tags: _parseTags(f.tags),
+      isFavorite: f.isFavorite,
+      links: linksByFoodId[f.id]?.isNotEmpty == true ? linksByFoodId[f.id] : null,
+      extra: {
+        'rating': f.rating,
+        'pricePerPerson': f.pricePerPerson,
+        'mood': f.mood,
+        'poiName': f.poiName,
+        'poiAddress': f.poiAddress,
+        'city': f.city,
+        'country': f.country,
+      },
+    )).toList();
   }
 
   Future<List<RecordContext>> _loadMomentByTimeRange(DateTime start, DateTime end, int? limit) async {
@@ -618,27 +692,29 @@ class RecordRetriever {
     
     final moments = await query.get();
     
-    return Future.wait(moments.map((m) async {
-      final links = await _loadLinks('moment', m.id);
-      return RecordContext(
-        type: '小确幸',
-        id: m.id,
-        title: '',
-        content: m.content ?? '',
-        date: m.recordDate,
-        images: _parseImages(m.images),
-        tags: _parseTags(m.tags),
-        isFavorite: m.isFavorite,
-        links: links.isNotEmpty ? links : null,
-        extra: {
-          'mood': m.mood,
-          'moodColor': m.moodColor,
-          'poiName': m.poiName,
-          'poiAddress': m.poiAddress,
-          'city': m.city,
-        },
-      );
-    }));
+    if (moments.isEmpty) return [];
+    
+    final momentIds = moments.map((m) => m.id).toList();
+    final linksByMomentId = await _batchLoadLinks('moment', momentIds);
+    
+    return moments.map((m) => RecordContext(
+      type: '小确幸',
+      id: m.id,
+      title: '',
+      content: m.content ?? '',
+      date: m.recordDate,
+      images: _parseImages(m.images),
+      tags: _parseTags(m.tags),
+      isFavorite: m.isFavorite,
+      links: linksByMomentId[m.id]?.isNotEmpty == true ? linksByMomentId[m.id] : null,
+      extra: {
+        'mood': m.mood,
+        'moodColor': m.moodColor,
+        'poiName': m.poiName,
+        'poiAddress': m.poiAddress,
+        'city': m.city,
+      },
+    )).toList();
   }
 
   Future<List<RecordContext>> _loadTravelByTimeRange(DateTime start, DateTime end, int? limit) async {
@@ -654,28 +730,30 @@ class RecordRetriever {
     
     final travels = await query.get();
     
-    return Future.wait(travels.map((t) async {
-      final links = await _loadLinks('travel', t.id);
-      return RecordContext(
-        type: '旅行',
-        id: t.id,
-        title: t.title ?? '',
-        content: t.content ?? '',
-        date: t.recordDate,
-        images: _parseImages(t.images),
-        tags: _parseTags(t.tags),
-        isFavorite: t.isFavorite,
-        links: links.isNotEmpty ? links : null,
-        extra: {
-          'tripId': t.tripId,
-          'destination': t.destination,
-          'poiName': t.poiName,
-          'city': t.city,
-          'country': t.country,
-          'mood': t.mood,
-        },
-      );
-    }));
+    if (travels.isEmpty) return [];
+    
+    final travelIds = travels.map((t) => t.id).toList();
+    final linksByTravelId = await _batchLoadLinks('travel', travelIds);
+    
+    return travels.map((t) => RecordContext(
+      type: '旅行',
+      id: t.id,
+      title: t.title ?? '',
+      content: t.content ?? '',
+      date: t.recordDate,
+      images: _parseImages(t.images),
+      tags: _parseTags(t.tags),
+      isFavorite: t.isFavorite,
+      links: linksByTravelId[t.id]?.isNotEmpty == true ? linksByTravelId[t.id] : null,
+      extra: {
+        'tripId': t.tripId,
+        'destination': t.destination,
+        'poiName': t.poiName,
+        'city': t.city,
+        'country': t.country,
+        'mood': t.mood,
+      },
+    )).toList();
   }
 
   Future<List<RecordContext>> _loadGoalByTimeRange(DateTime start, DateTime end, int? limit) async {
@@ -691,28 +769,30 @@ class RecordRetriever {
     
     final goals = await query.get();
     
-    return Future.wait(goals.map((g) async {
-      final links = await _loadLinks('goal', g.id);
-      return RecordContext(
-        type: '目标',
-        id: g.id,
-        title: g.title,
-        content: g.note ?? '',
-        date: g.recordDate,
-        tags: _parseTags(g.tags),
-        isFavorite: g.isFavorite,
-        links: links.isNotEmpty ? links : null,
-        extra: {
-          'parentId': g.parentId,
-          'level': g.level,
-          'summary': g.summary,
-          'category': g.category,
-          'progress': g.progress,
-          'isCompleted': g.isCompleted,
-          'dueDate': g.dueDate,
-        },
-      );
-    }));
+    if (goals.isEmpty) return [];
+    
+    final goalIds = goals.map((g) => g.id).toList();
+    final linksByGoalId = await _batchLoadLinks('goal', goalIds);
+    
+    return goals.map((g) => RecordContext(
+      type: '目标',
+      id: g.id,
+      title: g.title,
+      content: g.note ?? '',
+      date: g.recordDate,
+      tags: _parseTags(g.tags),
+      isFavorite: g.isFavorite,
+      links: linksByGoalId[g.id]?.isNotEmpty == true ? linksByGoalId[g.id] : null,
+      extra: {
+        'parentId': g.parentId,
+        'level': g.level,
+        'summary': g.summary,
+        'category': g.category,
+        'progress': g.progress,
+        'isCompleted': g.isCompleted,
+        'dueDate': g.dueDate,
+      },
+    )).toList();
   }
 
   Future<List<RecordContext>> _loadEncounterByTimeRange(DateTime start, DateTime end, int? limit) async {
@@ -729,25 +809,27 @@ class RecordRetriever {
     
     final encounters = await query.get();
     
-    return Future.wait(encounters.map((e) async {
-      final links = await _loadLinks('encounter', e.id);
-      return RecordContext(
-        type: '相遇',
-        id: e.id,
-        title: e.title,
-        content: e.note ?? '',
-        date: e.recordDate,
-        tags: _parseTags(e.tags),
-        isFavorite: e.isFavorite,
-        links: links.isNotEmpty ? links : null,
-        extra: {
-          'startAt': e.startAt,
-          'endAt': e.endAt,
-          'poiName': e.poiName,
-          'poiAddress': e.poiAddress,
-        },
-      );
-    }));
+    if (encounters.isEmpty) return [];
+    
+    final encounterIds = encounters.map((e) => e.id).toList();
+    final linksByEncounterId = await _batchLoadLinks('encounter', encounterIds);
+    
+    return encounters.map((e) => RecordContext(
+      type: '相遇',
+      id: e.id,
+      title: e.title,
+      content: e.note ?? '',
+      date: e.recordDate,
+      tags: _parseTags(e.tags),
+      isFavorite: e.isFavorite,
+      links: linksByEncounterId[e.id]?.isNotEmpty == true ? linksByEncounterId[e.id] : null,
+      extra: {
+        'startAt': e.startAt,
+        'endAt': e.endAt,
+        'poiName': e.poiName,
+        'poiAddress': e.poiAddress,
+      },
+    )).toList();
   }
 
   Future<List<RecordContext>> _searchFoodRecords(List<String> keywords, int? limit) async {
@@ -771,29 +853,31 @@ class RecordRetriever {
     
     final foods = await query.get();
     
-    return Future.wait(foods.map((f) async {
-      final links = await _loadLinks('food', f.id);
-      return RecordContext(
-        type: '美食',
-        id: f.id,
-        title: f.title,
-        content: f.content ?? '',
-        date: f.recordDate,
-        images: _parseImages(f.images),
-        tags: _parseTags(f.tags),
-        isFavorite: f.isFavorite,
-        links: links.isNotEmpty ? links : null,
-        extra: {
-          'rating': f.rating,
-          'pricePerPerson': f.pricePerPerson,
-          'mood': f.mood,
-          'poiName': f.poiName,
-          'poiAddress': f.poiAddress,
-          'city': f.city,
-          'country': f.country,
-        },
-      );
-    }));
+    if (foods.isEmpty) return [];
+    
+    final foodIds = foods.map((f) => f.id).toList();
+    final linksByFoodId = await _batchLoadLinks('food', foodIds);
+    
+    return foods.map((f) => RecordContext(
+      type: '美食',
+      id: f.id,
+      title: f.title,
+      content: f.content ?? '',
+      date: f.recordDate,
+      images: _parseImages(f.images),
+      tags: _parseTags(f.tags),
+      isFavorite: f.isFavorite,
+      links: linksByFoodId[f.id]?.isNotEmpty == true ? linksByFoodId[f.id] : null,
+      extra: {
+        'rating': f.rating,
+        'pricePerPerson': f.pricePerPerson,
+        'mood': f.mood,
+        'poiName': f.poiName,
+        'poiAddress': f.poiAddress,
+        'city': f.city,
+        'country': f.country,
+      },
+    )).toList();
   }
 
   Future<List<RecordContext>> _searchMomentRecords(List<String> keywords, int? limit) async {
@@ -817,27 +901,29 @@ class RecordRetriever {
     
     final moments = await query.get();
     
-    return Future.wait(moments.map((m) async {
-      final links = await _loadLinks('moment', m.id);
-      return RecordContext(
-        type: '小确幸',
-        id: m.id,
-        title: '',
-        content: m.content ?? '',
-        date: m.recordDate,
-        images: _parseImages(m.images),
-        tags: _parseTags(m.tags),
-        isFavorite: m.isFavorite,
-        links: links.isNotEmpty ? links : null,
-        extra: {
-          'mood': m.mood,
-          'moodColor': m.moodColor,
-          'poiName': m.poiName,
-          'poiAddress': m.poiAddress,
-          'city': m.city,
-        },
-      );
-    }));
+    if (moments.isEmpty) return [];
+    
+    final momentIds = moments.map((m) => m.id).toList();
+    final linksByMomentId = await _batchLoadLinks('moment', momentIds);
+    
+    return moments.map((m) => RecordContext(
+      type: '小确幸',
+      id: m.id,
+      title: '',
+      content: m.content ?? '',
+      date: m.recordDate,
+      images: _parseImages(m.images),
+      tags: _parseTags(m.tags),
+      isFavorite: m.isFavorite,
+      links: linksByMomentId[m.id]?.isNotEmpty == true ? linksByMomentId[m.id] : null,
+      extra: {
+        'mood': m.mood,
+        'moodColor': m.moodColor,
+        'poiName': m.poiName,
+        'poiAddress': m.poiAddress,
+        'city': m.city,
+      },
+    )).toList();
   }
 
   Future<List<RecordContext>> _searchTravelRecords(List<String> keywords, int? limit) async {
@@ -861,28 +947,30 @@ class RecordRetriever {
     
     final travels = await query.get();
     
-    return Future.wait(travels.map((t) async {
-      final links = await _loadLinks('travel', t.id);
-      return RecordContext(
-        type: '旅行',
-        id: t.id,
-        title: t.title ?? '',
-        content: t.content ?? '',
-        date: t.recordDate,
-        images: _parseImages(t.images),
-        tags: _parseTags(t.tags),
-        isFavorite: t.isFavorite,
-        links: links.isNotEmpty ? links : null,
-        extra: {
-          'tripId': t.tripId,
-          'destination': t.destination,
-          'poiName': t.poiName,
-          'city': t.city,
-          'country': t.country,
-          'mood': t.mood,
-        },
-      );
-    }));
+    if (travels.isEmpty) return [];
+    
+    final travelIds = travels.map((t) => t.id).toList();
+    final linksByTravelId = await _batchLoadLinks('travel', travelIds);
+    
+    return travels.map((t) => RecordContext(
+      type: '旅行',
+      id: t.id,
+      title: t.title ?? '',
+      content: t.content ?? '',
+      date: t.recordDate,
+      images: _parseImages(t.images),
+      tags: _parseTags(t.tags),
+      isFavorite: t.isFavorite,
+      links: linksByTravelId[t.id]?.isNotEmpty == true ? linksByTravelId[t.id] : null,
+      extra: {
+        'tripId': t.tripId,
+        'destination': t.destination,
+        'poiName': t.poiName,
+        'city': t.city,
+        'country': t.country,
+        'mood': t.mood,
+      },
+    )).toList();
   }
 
   Future<List<RecordContext>> _searchGoalRecords(List<String> keywords, int? limit) async {
@@ -906,28 +994,30 @@ class RecordRetriever {
     
     final goals = await query.get();
     
-    return Future.wait(goals.map((g) async {
-      final links = await _loadLinks('goal', g.id);
-      return RecordContext(
-        type: '目标',
-        id: g.id,
-        title: g.title,
-        content: g.note ?? '',
-        date: g.recordDate,
-        tags: _parseTags(g.tags),
-        isFavorite: g.isFavorite,
-        links: links.isNotEmpty ? links : null,
-        extra: {
-          'parentId': g.parentId,
-          'level': g.level,
-          'summary': g.summary,
-          'category': g.category,
-          'progress': g.progress,
-          'isCompleted': g.isCompleted,
-          'dueDate': g.dueDate,
-        },
-      );
-    }));
+    if (goals.isEmpty) return [];
+    
+    final goalIds = goals.map((g) => g.id).toList();
+    final linksByGoalId = await _batchLoadLinks('goal', goalIds);
+    
+    return goals.map((g) => RecordContext(
+      type: '目标',
+      id: g.id,
+      title: g.title,
+      content: g.note ?? '',
+      date: g.recordDate,
+      tags: _parseTags(g.tags),
+      isFavorite: g.isFavorite,
+      links: linksByGoalId[g.id]?.isNotEmpty == true ? linksByGoalId[g.id] : null,
+      extra: {
+        'parentId': g.parentId,
+        'level': g.level,
+        'summary': g.summary,
+        'category': g.category,
+        'progress': g.progress,
+        'isCompleted': g.isCompleted,
+        'dueDate': g.dueDate,
+      },
+    )).toList();
   }
 
   Future<List<RecordContext>> _searchEncounterRecords(List<String> keywords, int? limit) async {
@@ -952,25 +1042,27 @@ class RecordRetriever {
     
     final encounters = await query.get();
     
-    return Future.wait(encounters.map((e) async {
-      final links = await _loadLinks('encounter', e.id);
-      return RecordContext(
-        type: '相遇',
-        id: e.id,
-        title: e.title,
-        content: e.note ?? '',
-        date: e.recordDate,
-        tags: _parseTags(e.tags),
-        isFavorite: e.isFavorite,
-        links: links.isNotEmpty ? links : null,
-        extra: {
-          'startAt': e.startAt,
-          'endAt': e.endAt,
-          'poiName': e.poiName,
-          'poiAddress': e.poiAddress,
-        },
-      );
-    }));
+    if (encounters.isEmpty) return [];
+    
+    final encounterIds = encounters.map((e) => e.id).toList();
+    final linksByEncounterId = await _batchLoadLinks('encounter', encounterIds);
+    
+    return encounters.map((e) => RecordContext(
+      type: '相遇',
+      id: e.id,
+      title: e.title,
+      content: e.note ?? '',
+      date: e.recordDate,
+      tags: _parseTags(e.tags),
+      isFavorite: e.isFavorite,
+      links: linksByEncounterId[e.id]?.isNotEmpty == true ? linksByEncounterId[e.id] : null,
+      extra: {
+        'startAt': e.startAt,
+        'endAt': e.endAt,
+        'poiName': e.poiName,
+        'poiAddress': e.poiAddress,
+      },
+    )).toList();
   }
 
   Future<RecordContext?> fetchRecordById(String type, String id) async {

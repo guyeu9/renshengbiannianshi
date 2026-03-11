@@ -42,10 +42,24 @@ ${buildQuestionPrompt(question, analysisType)}
 【行为模式】
 【专属建议】
 
-如涉及推荐记录，请在回复末尾输出推荐卡片JSON：
+如需推荐相关记录，请在回复末尾输出推荐卡片JSON（最多5条）：
 ```json
-{"recommendations": [{"id": "记录ID", "type": "记录类型", "title": "标题", "reason": "推荐理由"}]}
+{"recommendations": [
+  {
+    "type": "food|moment|travel|goal|encounter",
+    "id": "记录ID（从记录中获取）",
+    "title": "标题",
+    "summary": "简短描述（30字以内）",
+    "imageUrl": "第一张图片路径（如果有图片）",
+    "rating": 4.5,
+    "tags": ["标签1", "标签2"],
+    "date": "2024-03-10",
+    "isFavorite": true
+  }
+]}
 ```
+
+**重要**：推荐卡片中的 id 必须是记录中的真实 ID，type 必须是以下之一：food、moment、travel、goal、encounter
 ''';
   }
 

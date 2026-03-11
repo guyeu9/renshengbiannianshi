@@ -383,10 +383,16 @@ class ContextBuilder {
     }
     
     if (query.contains('上周')) {
-      final weekStart = now.subtract(Duration(days: now.weekday + 6));
+      // 计算上周的时间范围
+      // 上周一 = 今天 - (weekday + 6) 天
+      // 例如：今天是周三(weekday=3)，上周一 = 今天 - 9天
+      // 验证：周三减9天 = 上周一 ✓
+      final daysToLastMonday = now.weekday + 6;
+      final lastMonday = now.subtract(Duration(days: daysToLastMonday));
+      final lastSunday = lastMonday.add(const Duration(days: 6));
       return {
-        'start': DateTime(weekStart.year, weekStart.month, weekStart.day),
-        'end': DateTime(now.year, now.month, now.day),
+        'start': DateTime(lastMonday.year, lastMonday.month, lastMonday.day),
+        'end': DateTime(lastSunday.year, lastSunday.month, lastSunday.day, 23, 59, 59),
       };
     }
     

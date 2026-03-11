@@ -286,8 +286,8 @@ class FriendDataProcessor {
     if (friend.meetWay != null && friend.meetWay!.isNotEmpty) {
       buffer.writeln('- 认识途径：${friend.meetWay}');
     }
-    if (friend.impressionTags.isNotEmpty) {
-      buffer.writeln('- 印象标签：${friend.impressionTags.join('、')}');
+    if (friend.impressionTags != null && friend.impressionTags!.isNotEmpty) {
+      buffer.writeln('- 印象标签：${friend.impressionTags!.split(',').join('、')}');
     }
     if (friend.birthday != null) {
       buffer.writeln('- 生日：${_formatBirthday(friend.birthday!)}');
@@ -368,8 +368,8 @@ class FriendDataProcessor {
     if (friend.meetWay != null && friend.meetWay!.isNotEmpty) {
       buffer.writeln('- 认识途径：${friend.meetWay}');
     }
-    if (friend.impressionTags.isNotEmpty) {
-      buffer.writeln('- 印象标签：${friend.impressionTags.join('、')}');
+    if (friend.impressionTags != null && friend.impressionTags!.isNotEmpty) {
+      buffer.writeln('- 印象标签：${friend.impressionTags!.split(',').join('、')}');
     }
     if (friend.birthday != null) {
       buffer.writeln('- 生日：${_formatBirthday(friend.birthday!)}');

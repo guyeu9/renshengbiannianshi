@@ -168,6 +168,15 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
     }
 
     _totalRecords = friendParams.totalMemories;
+
+    final processor = FriendDataProcessor();
+    final friend = _createFriendRecordFromParams(friendParams);
+    final result = processor.processMemories(
+      friend: friend,
+      memories: friendParams.memories,
+      analysisType: 'relationship_profile',
+    );
+
     _moduleStats = StatsData(
       totalRecords: friendParams.totalMemories,
       additionalData: {
@@ -176,6 +185,18 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
         'lastMeetDays': friendParams.lastMeetDays,
         'memoryByType': friendParams.memoryByType,
         'totalFriends': friendParams.totalFriends,
+        'stats': {
+          'totalMemories': result.stats.totalMemories,
+          'knownDays': result.stats.knownDays,
+          'yearSpan': result.stats.yearSpan,
+          'byType': result.stats.byType,
+          'byYear': result.stats.byYear,
+          'topPlaces': result.stats.topPlaces.map((p) => {'name': p.name, 'count': p.count}).toList(),
+          'topActivities': result.stats.topActivities.map((a) => {'name': a.name, 'count': a.count}).toList(),
+          'moodDistribution': result.stats.moodDistribution,
+        },
+        'processingLevel': result.level.name,
+        'processedCount': result.processedCount,
       },
     );
 
