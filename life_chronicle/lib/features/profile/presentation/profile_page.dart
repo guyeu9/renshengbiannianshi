@@ -16,11 +16,9 @@ import 'package:drift/drift.dart' hide Column;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/router/route_navigation.dart';
-import '../../../core/router/app_router.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/providers/ai_provider.dart';
 import '../../../core/services/ai_service.dart' as ai_service;
@@ -2594,7 +2592,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
                 child: Row(
                   children: [
                     IconButton(
-                      onPressed: () => context.go(AppRoutes.home),
+                      onPressed: () => Navigator.of(context).pop(),
                       icon: const Icon(Icons.arrow_back, color: textMain),
                       splashRadius: 22,
                     ),

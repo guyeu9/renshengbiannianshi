@@ -7,6 +7,7 @@ import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
@@ -790,13 +791,20 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
   Widget build(BuildContext context) {
     final hasAiService = ref.watch(hasActiveChatProvider);
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF6F8F8),
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: Column(
-              children: [
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          context.go(AppRoutes.home);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF6F8F8),
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: Column(
+                children: [
                 _AiChatTopBar(
                   onClear: _clearConversation,
                   onAnalytics: () => RouteNavigation.goToChronicleGenerateConfig(context),
@@ -900,6 +908,7 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
           ),
         ],
       ),
+    ),
     );
   }
 }
@@ -1667,10 +1676,23 @@ class _AiMessageBubble extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
-                          child: Text(
-                            message.content.isEmpty && message.isStreaming ? '正在思考...' : message.content,
-                            style: const TextStyle(fontSize: 14, height: 1.5, color: Color(0xFF334155)),
-                          ),
+                          child: message.content.isEmpty && message.isStreaming
+                              ? const Text('正在思考...', style: TextStyle(fontSize: 14, height: 1.5, color: Color(0xFF334155)))
+                              : MarkdownBody(
+                                  data: message.content,
+                                  selectable: true,
+                                  styleSheet: MarkdownStyleSheet(
+                                    p: const TextStyle(fontSize: 14, height: 1.5, color: Color(0xFF334155)),
+                                    h1: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                                    h2: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                                    h3: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                                    strong: const TextStyle(fontWeight: FontWeight.bold),
+                                    em: const TextStyle(fontStyle: FontStyle.italic),
+                                    code: TextStyle(backgroundColor: Colors.grey.shade100, fontFamily: 'monospace', fontSize: 13),
+                                    blockquote: TextStyle(color: Colors.grey.shade600),
+                                    listBullet: const TextStyle(color: AppTheme.primary),
+                                  ),
+                                ),
                         ),
                         if (message.isStreaming) ...[
                           const SizedBox(width: 8),
