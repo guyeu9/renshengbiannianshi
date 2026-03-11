@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/travel/presentation/travel_page.dart';
 import '../../features/ai_historian/models/module_chat_params.dart';
+import '../../features/ai_historian/models/friend_chat_params.dart';
 import '../../features/profile/presentation/profile_page.dart' show ChronicleRecord;
 import '../../core/widgets/amap_location_page.dart';
 import '../../core/database/app_database.dart';
@@ -174,6 +175,22 @@ class RouteNavigation {
       analysisType: analysisType,
       recordIds: recordIds,
       fullData: fullData,
+    );
+    context.go(AppRoutes.aiHistorian, extra: params);
+  }
+
+  static void goToAiHistorianForFriend(
+    BuildContext context, {
+    required FriendChatParams friendParams,
+    String? initialQuery,
+    String? analysisType,
+  }) {
+    final params = ModuleChatParams(
+      moduleType: 'friend',
+      moduleName: friendParams.friendName,
+      initialQuery: initialQuery,
+      analysisType: analysisType,
+      friendParams: friendParams,
     );
     context.go(AppRoutes.aiHistorian, extra: params);
   }

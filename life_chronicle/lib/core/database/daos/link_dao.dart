@@ -169,6 +169,21 @@ class LinkDao extends DatabaseAccessor<AppDatabase> with _$LinkDaoMixin {
     return query.get();
   }
 
+  Future<List<EntityLink>> listLinksForEntities({
+    required String entityType,
+    required List<String> entityIds,
+  }) {
+    if (entityIds.isEmpty) return Future.value([]);
+    final query = select(db.entityLinks)
+      ..where(
+        (t) =>
+            (t.sourceType.equals(entityType) & t.sourceId.isIn(entityIds)) |
+            (t.targetType.equals(entityType) & t.targetId.isIn(entityIds)),
+      )
+      ..orderBy([(t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc)]);
+    return query.get();
+  }
+
   Future<void> syncGoalProgress({required String goalId, required DateTime now}) async {
     final goal = await (db.select(db.goalRecords)
           ..where((t) => t.id.equals(goalId))

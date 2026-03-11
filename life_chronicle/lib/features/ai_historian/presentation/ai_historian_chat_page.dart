@@ -24,12 +24,14 @@ import '../../../core/router/app_router.dart';
 import 'package:go_router/go_router.dart';
 import '../config/module_configs.dart';
 import '../models/module_chat_params.dart';
+import '../models/friend_chat_params.dart';
 import '../models/quick_action_config.dart';
 import '../models/stats_data.dart';
 import '../services/context_builder.dart';
 import '../services/record_retriever.dart';
 import '../services/prompt_builder.dart';
 import '../services/stats_calculator.dart';
+import '../services/friend_data_processor.dart';
 
 enum MessageRole { user, assistant }
 
@@ -144,12 +146,60 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
   void initState() {
     super.initState();
     if (widget.isModuleMode) {
-      _loadModuleData();
+      if (widget.moduleParams?.isFriendMode ?? false) {
+        _loadFriendData();
+      } else {
+        _loadModuleData();
+      }
     } else {
       _loadRecordStats();
     }
     _initializeSession();
     _loadUserAvatar();
+  }
+
+  Future<void> _loadFriendData() async {
+    final friendParams = widget.moduleParams?.friendParams;
+    if (friendParams == null) return;
+
+    final config = getModuleConfig('friend');
+    if (config != null) {
+      _quickActions = config.quickActions;
+    }
+
+    _totalRecords = friendParams.totalMemories;
+    _moduleStats = StatsData(
+      totalRecords: friendParams.totalMemories,
+      additionalData: {
+        'friendName': friendParams.friendName,
+        'knownDays': friendParams.knownDays,
+        'lastMeetDays': friendParams.lastMeetDays,
+        'memoryByType': friendParams.memoryByType,
+        'totalFriends': friendParams.totalFriends,
+      },
+    );
+
+    setState(() {});
+  }
+
+  FriendRecord _createFriendRecordFromParams(FriendChatParams params) {
+    return FriendRecord(
+      id: params.friendId,
+      name: params.friendName,
+      avatarPath: params.friendAvatar,
+      birthday: params.birthday,
+      contact: null,
+      meetWay: params.meetWay,
+      meetDate: params.meetDate,
+      impressionTags: jsonEncode(params.impressionTags),
+      groupName: null,
+      lastMeetDate: params.lastMeetDate,
+      contactFrequency: params.contactFrequency,
+      isFavorite: params.isFavorite,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+      isDeleted: false,
+    );
   }
 
   Future<void> _loadModuleData() async {
@@ -464,7 +514,14 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
   }
 
   String _removeRecommendationsJson(String content) {
-    return content.replaceAll(RegExp(r'\s*```json\s*[\s\S]*?\s*```\s*'), '').trim();
+    var result = content;
+    result = result.replaceAll(RegExp(r'<think[\s\S]*?</think\b>', caseSensitive: false), '');
+    result = result.replaceAll(RegExp(r'<thinking[\s\S]*?</thinking\b>', caseSensitive: false), '');
+    result = result.replaceAll(RegExp(r'<analysis[\s\S]*?</analysis\b>', caseSensitive: false), '');
+    result = result.replaceAll(RegExp(r'<reasoning[\s\S]*?</reasoning\b>', caseSensitive: false), '');
+    result = result.replaceAll(RegExp(r'\s*```json\s*[\s\S]*?\s*```\s*'), '');
+    result = result.replaceAll(RegExp(r'\n{3,}'), '\n\n');
+    return result.trim();
   }
 
   void _scrollToBottom() {
@@ -526,7 +583,31 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
     try {
       String systemPrompt;
       
-      if (widget.isModuleMode) {
+      if (widget.isModuleMode && widget.moduleParams?.isFriendMode == true) {
+        // 朋友模式：使用 FriendDataProcessor 构建提示词
+        final friendParams = widget.moduleParams!.friendParams!;
+        final processor = FriendDataProcessor();
+        final result = processor.processMemories(
+          friend: _createFriendRecordFromParams(friendParams),
+          memories: friendParams.memories,
+          analysisType: widget.moduleParams?.analysisType ?? 'relationship_profile',
+        );
+        
+        final config = getModuleConfig('friend');
+        final modulePrompt = config?.modulePrompt ?? '';
+        
+        systemPrompt = '''
+$modulePrompt
+
+${result.prompt}
+
+## 用户问题
+
+$text
+
+请基于以上数据进行分析，给出温暖、有洞察的回答。
+''';
+      } else if (widget.isModuleMode) {
         systemPrompt = _promptBuilder.buildPrompt(
           moduleType: widget.moduleParams!.moduleType,
           moduleName: widget.moduleParams!.moduleName,
@@ -655,7 +736,33 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
     try {
       String systemPrompt;
       
-      if (widget.isModuleMode) {
+      if (widget.isModuleMode && widget.moduleParams?.isFriendMode == true) {
+        // 朋友模式：使用 FriendDataProcessor 构建提示词
+        final friendParams = widget.moduleParams!.friendParams!;
+        final processor = FriendDataProcessor();
+        final result = processor.processMemories(
+          friend: _createFriendRecordFromParams(friendParams),
+          memories: friendParams.memories,
+          analysisType: actionType,
+        );
+        
+        final config = getModuleConfig('friend');
+        final modulePrompt = config?.modulePrompt ?? '';
+        
+        systemPrompt = '''
+$modulePrompt
+
+${result.prompt}
+
+## 分析任务
+
+分析类型：$actionType
+
+用户问题：$displayMessage
+
+请按照分析类型的要求，进行深度分析。
+''';
+      } else if (widget.isModuleMode) {
         systemPrompt = _promptBuilder.buildPrompt(
           moduleType: widget.moduleParams!.moduleType,
           moduleName: widget.moduleParams!.moduleName,

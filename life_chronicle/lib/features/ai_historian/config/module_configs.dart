@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:life_chronicle/features/ai_historian/models/module_config.dart';
 import 'package:life_chronicle/features/ai_historian/models/quick_action_config.dart';
+import 'friend_configs.dart';
 
 const String _systemPrompt = '''
 你是人生编年史APP的AI史官，也是用户的"人生数据分析师"。
@@ -549,6 +550,7 @@ final Map<String, ModuleConfig> moduleConfigs = {
   'moment': momentModuleConfig,
   'goal': goalModuleConfig,
   'bond': bondModuleConfig,
+  'friend': friendModuleConfig,
 };
 
 ModuleConfig? getModuleConfig(String moduleType) {

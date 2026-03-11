@@ -15,6 +15,7 @@ import '../../../core/widgets/ai_parse_button.dart';
 import '../../../core/widgets/custom_bottom_sheet.dart';
 import '../../../core/router/route_navigation.dart';
 import '../../travel/presentation/travel_page.dart' show TravelItem;
+import '../../ai_historian/models/friend_chat_params.dart';
 import '../providers/encounter_timeline_provider.dart';
 import 'bond_filter_components.dart';
 
@@ -1186,6 +1187,190 @@ class _BondFriendDetailPage extends ConsumerWidget {
 
   final String friendId;
 
+  Future<void> _navigateToAiAnalysis(
+    BuildContext context,
+    AppDatabase db,
+    FriendRecord friend,
+  ) async {
+    final links = await db.linkDao.listLinksForEntity(
+      entityType: 'friend',
+      entityId: friend.id,
+    );
+
+    final grouped = _groupLinkIds(links, 'friend', friend.id);
+    final momentIds = grouped['moment'] ?? <String>[];
+    final foodIds = grouped['food'] ?? <String>[];
+    final travelIds = grouped['travel'] ?? <String>[];
+    final encounterIds = grouped['encounter'] ?? <String>[];
+
+    final memories = <FriendMemoryData>[];
+
+    if (encounterIds.isNotEmpty) {
+      final events = await (db.select(db.timelineEvents)
+            ..where((t) => t.isDeleted.equals(false))
+            ..where((t) => t.id.isIn(encounterIds)))
+          .get();
+      for (final e in events) {
+        memories.add(FriendMemoryData(
+          id: e.id,
+          type: 'encounter',
+          date: e.recordDate,
+          title: e.title,
+          content: e.note,
+          place: e.poiName,
+          images: const [],
+          mood: null,
+        ));
+      }
+    }
+
+    if (momentIds.isNotEmpty) {
+      final moments = await (db.select(db.momentRecords)
+            ..where((t) => t.isDeleted.equals(false))
+            ..where((t) => t.id.isIn(momentIds)))
+          .get();
+      for (final m in moments) {
+        memories.add(FriendMemoryData(
+          id: m.id,
+          type: 'moment',
+          date: m.recordDate,
+          title: _momentTitleFromContent(m.content),
+          content: _momentBodyFromContent(m.content),
+          place: m.poiName ?? m.city,
+          images: _decodeStringList(m.images),
+          mood: m.mood,
+        ));
+      }
+    }
+
+    if (foodIds.isNotEmpty) {
+      final foods = await (db.select(db.foodRecords)
+            ..where((t) => t.isDeleted.equals(false))
+            ..where((t) => t.id.isIn(foodIds)))
+          .get();
+      for (final f in foods) {
+        memories.add(FriendMemoryData(
+          id: f.id,
+          type: 'food',
+          date: f.recordDate,
+          title: f.title,
+          content: f.content,
+          place: f.poiName ?? f.city,
+          images: _decodeStringList(f.images),
+          mood: null,
+        ));
+      }
+    }
+
+    if (travelIds.isNotEmpty) {
+      final travels = await (db.select(db.travelRecords)
+            ..where((t) => t.isDeleted.equals(false))
+            ..where((t) => t.id.isIn(travelIds)))
+          .get();
+      for (final t in travels) {
+        memories.add(FriendMemoryData(
+          id: t.id,
+          type: 'travel',
+          date: t.recordDate,
+          title: t.title ?? t.destination ?? '旅行',
+          content: t.content,
+          place: t.poiName ?? t.destination,
+          images: _decodeStringList(t.images),
+          mood: null,
+        ));
+      }
+    }
+
+    memories.sort((a, b) => b.date.compareTo(a.date));
+
+    final now = DateTime.now();
+    final knownDays = friend.meetDate != null
+        ? now.difference(friend.meetDate!).inDays
+        : 0;
+    final lastMeetDays = friend.lastMeetDate != null
+        ? now.difference(friend.lastMeetDate!).inDays
+        : 0;
+
+    final memoryByType = <String, int>{};
+    for (final m in memories) {
+      memoryByType[m.type] = (memoryByType[m.type] ?? 0) + 1;
+    }
+
+    final allFriends = await db.friendDao.watchAllActive().first;
+    final totalFriends = allFriends.length;
+
+    final params = FriendChatParams(
+      friendId: friend.id,
+      friendName: friend.name,
+      friendAvatar: friend.avatarPath,
+      birthday: friend.birthday,
+      meetWay: friend.meetWay,
+      meetDate: friend.meetDate,
+      impressionTags: _decodeStringList(friend.impressionTags),
+      contactFrequency: friend.contactFrequency,
+      lastMeetDate: friend.lastMeetDate,
+      isFavorite: friend.isFavorite,
+      knownDays: knownDays,
+      totalMemories: memories.length,
+      memoryByType: memoryByType,
+      lastMeetDays: lastMeetDays,
+      memories: memories,
+      friendRank: 0,
+      totalFriends: totalFriends,
+    );
+
+    if (context.mounted) {
+      RouteNavigation.goToAiHistorianForFriend(context, friendParams: params);
+    }
+  }
+
+  Map<String, List<String>> _groupLinkIds(List<EntityLink> links, String selfType, String selfId) {
+    final result = <String, List<String>>{};
+    for (final link in links) {
+      final isSource = link.sourceType == selfType && link.sourceId == selfId;
+      final otherType = isSource ? link.targetType : link.sourceType;
+      final otherId = isSource ? link.targetId : link.sourceId;
+      (result[otherType] ??= <String>[]).add(otherId);
+    }
+    return result;
+  }
+
+  List<String> _decodeStringList(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return const <String>[];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is List) {
+        return decoded.map((e) => e.toString()).where((e) => e.trim().isNotEmpty).toList(growable: false);
+      }
+    } catch (_) {}
+    return const <String>[];
+  }
+
+  String _momentTitleFromContent(String? raw) {
+    final content = (raw ?? '').trim();
+    if (content.isEmpty) return '小确幸';
+    final lines = content.split('\n').map((e) => e.trim()).where((e) => e.isNotEmpty).toList(growable: false);
+    return lines.isEmpty ? '小确幸' : lines.first;
+  }
+
+  String _momentBodyFromContent(String? raw) {
+    final content = (raw ?? '').trim();
+    if (content.isEmpty) return '';
+    final lines = content.split('\n');
+    var foundTitle = false;
+    final rest = <String>[];
+    for (final line in lines) {
+      if (!foundTitle) {
+        if (line.trim().isNotEmpty) {
+          foundTitle = true;
+        }
+        continue;
+      }
+      rest.add(line);
+    }
+    return rest.join('\n').trim();
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final db = ref.watch(appDatabaseProvider);
@@ -1354,14 +1539,7 @@ class _BondFriendDetailPage extends ConsumerWidget {
                         Center(
                           child: InkWell(
                             borderRadius: BorderRadius.circular(999),
-                            onTap: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('AI 洞察报告功能正在开发中，敬请期待'),
-                                  behavior: SnackBarBehavior.floating,
-                                ),
-                              );
-                            },
+                            onTap: () => _navigateToAiAnalysis(context, db, friend),
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                               decoration: BoxDecoration(
