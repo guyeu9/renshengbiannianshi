@@ -775,7 +775,7 @@ class _FoodRecordCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
-        onTap: () => context.push('${AppRoutes.food}/${record.id}'),
+        onTap: () => context.go('${AppRoutes.food}/${record.id}'),
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
@@ -1338,7 +1338,7 @@ class FoodDetailPage extends ConsumerWidget {
             showContent: true,
           ),
           onEdit: () {
-            context.push('${AppRoutes.food}/create', extra: {'initialRecord': record});
+            context.go('${AppRoutes.food}/create', extra: {'initialRecord': record});
           },
           onToggleFavorite: () async {
             await db.foodDao.updateFavorite(
@@ -1367,7 +1367,7 @@ class FoodDetailPage extends ConsumerWidget {
             Navigator.of(context).pop();
           },
           onCheckInAgain: () {
-            context.push('${AppRoutes.food}/create', extra: {
+            context.go('${AppRoutes.food}/create', extra: {
               'prefillTitle': record.title,
               'prefillPoiName': (record.poiName ?? '').trim().isEmpty ? record.title : record.poiName,
               'prefillPoiAddress': (record.poiAddress ?? record.city ?? '').trim(),

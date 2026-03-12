@@ -363,8 +363,11 @@ class BackupLogs extends Table {
 class AnnualReviews extends Table {
   TextColumn get id => text()();
   IntColumn get year => integer()();
+  TextColumn get title => text().withDefault(const Constant(''))();
   TextColumn get content => text().nullable()();
   TextColumn get images => text().nullable()();
+  TextColumn get stats => text().nullable()();
+  TextColumn get keywords => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 

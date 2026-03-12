@@ -16,9 +16,11 @@ import 'package:drift/drift.dart' hide Column;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/router/route_navigation.dart';
+import '../../../core/router/app_router.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/providers/ai_provider.dart';
 import '../../../core/services/ai_service.dart' as ai_service;
@@ -399,42 +401,49 @@ class ProfilePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      backgroundColor: _background,
-      body: SafeArea(
-        bottom: false,
-        child: Stack(
-          children: [
-            ListView(
-              padding: EdgeInsets.only(bottom: 40 + MediaQuery.paddingOf(context).bottom),
-              children: [
-                const _Header(),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _ChronicleCard(
-                          onGenerate: () => RouteNavigation.goToChronicleGenerateConfig(context),
-                        ),
-                        const SizedBox(height: 18),
-                        const _SectionTitle(title: '功能管理'),
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _LargeTile(
-                                icon: Icons.collections_bookmark,
-                                iconBg: _softPurple,
-                                iconColor: _iconPurple,
-                                title: '收藏中心',
-                                subtitle: '美食 · 旅行 · 小确幸',
-                                onTap: () => RouteNavigation.goToFavoritesCenter(context),
-                                trailingIcon: Icons.ios_share,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          context.go(AppRoutes.home);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: _background,
+        body: SafeArea(
+          bottom: false,
+          child: Stack(
+            children: [
+              ListView(
+                padding: EdgeInsets.only(bottom: 40 + MediaQuery.paddingOf(context).bottom),
+                children: [
+                  const _Header(),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _ChronicleCard(
+                            onGenerate: () => RouteNavigation.goToChronicleGenerateConfig(context),
+                          ),
+                          const SizedBox(height: 18),
+                          const _SectionTitle(title: '功能管理'),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _LargeTile(
+                                  icon: Icons.collections_bookmark,
+                                  iconBg: _softPurple,
+                                  iconColor: _iconPurple,
+                                  title: '收藏中心',
+                                  subtitle: '美食 · 旅行 · 小确幸',
+                                  onTap: () => RouteNavigation.goToFavoritesCenter(context),
+                                  trailingIcon: Icons.ios_share,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
+                            ],
+                          ),
                         const SizedBox(height: 12),
                         Row(
                           children: [
@@ -552,7 +561,7 @@ class ProfilePage extends ConsumerWidget {
               left: 16,
               child: _FrostedCircleButton(
                 icon: Icons.arrow_back_ios_new,
-                onTap: () => Navigator.of(context).maybePop(),
+                onTap: () => context.go(AppRoutes.home),
               ),
             ),
             // 悬浮按钮 - 分享和通知
@@ -6573,8 +6582,307 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
   }
 }
 
+class AnnualReportListPage extends ConsumerStatefulWidget {
+  const AnnualReportListPage({super.key});
+
+  @override
+  ConsumerState<AnnualReportListPage> createState() => _AnnualReportListPageState();
+}
+
+class _AnnualReportListPageState extends ConsumerState<AnnualReportListPage> {
+  @override
+  Widget build(BuildContext context) {
+    const background = Color(0xFFF2F4F6);
+    const primary = Color(0xFF2563EB);
+    
+    return Scaffold(
+      backgroundColor: background,
+      appBar: AppBar(
+        backgroundColor: Colors.white.withValues(alpha: 0.7),
+        title: const Text('年度报告', style: TextStyle(fontWeight: FontWeight.w800)),
+        actions: [
+          TextButton(
+            onPressed: () {
+              RouteNavigation.goToYearReport(context);
+            },
+            style: TextButton.styleFrom(foregroundColor: primary, textStyle: const TextStyle(fontWeight: FontWeight.w900)),
+            child: const Text('生成报告'),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: Consumer(
+          builder: (context, ref, child) {
+            final reportsAsync = ref.watch(annualReportListProvider);
+            
+            return reportsAsync.when(
+              data: (reports) {
+                if (reports.isEmpty) {
+                  return _buildEmptyState();
+                }
+                return ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: const Color(0xFFF3F4F6)),
+                      ),
+                      child: const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('年度报告', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                          SizedBox(height: 8),
+                          Text('系统会保留每次生成的年度报告，支持查看、导出与重命名。', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B), height: 1.5)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    for (final report in reports)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _AnnualReportCard(
+                          report: report,
+                          onTap: () => _viewReport(report),
+                          onDelete: () => _deleteReport(report),
+                          onRename: () => _renameReport(report),
+                        ),
+                      ),
+                  ],
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, stack) => Center(
+                child: Text('加载失败: $err', style: const TextStyle(color: Color(0xFFEF4444))),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xFFF3F4F6)),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('年度报告', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+              SizedBox(height: 8),
+              Text('年度报告会根据你的记录数据，生成包含生活概览、AI洞察、各模块篇章的完整报告。', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B), height: 1.5)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        Center(
+          child: Column(
+            children: [
+              Icon(Icons.auto_awesome, size: 64, color: Colors.grey.shade300),
+              const SizedBox(height: 16),
+              Text('暂无年度报告', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.grey.shade500)),
+              const SizedBox(height: 8),
+              Text('点击右上角"生成报告"开始创建', style: TextStyle(fontSize: 12, color: Colors.grey.shade400)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _viewReport(AnnualReportRecord report) {
+    RouteNavigation.goToYearReport(context);
+  }
+
+  Future<void> _deleteReport(AnnualReportRecord report) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('删除报告'),
+        content: Text('确定要删除"${report.displayTitle}"吗？此操作不可撤销。'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: const Color(0xFFEF4444)),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirmed == true) {
+      final db = ref.read(appDatabaseProvider);
+      await db.annualReviewDao.deleteById(report.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('报告已删除')),
+        );
+      }
+    }
+  }
+
+  Future<void> _renameReport(AnnualReportRecord report) async {
+    final controller = TextEditingController(text: report.title);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('重命名报告'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: '请输入报告标题',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirmed == true && controller.text.trim().isNotEmpty) {
+      final db = ref.read(appDatabaseProvider);
+      await db.annualReviewDao.updateTitle(report.id, controller.text.trim());
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('报告已重命名')),
+        );
+      }
+    }
+  }
+}
+
+class _AnnualReportCard extends StatelessWidget {
+  const _AnnualReportCard({
+    required this.report,
+    required this.onTap,
+    required this.onDelete,
+    required this.onRename,
+  });
+
+  final AnnualReportRecord report;
+  final VoidCallback onTap;
+  final VoidCallback onDelete;
+  final VoidCallback onRename;
+
+  @override
+  Widget build(BuildContext context) {
+    final dateStr = '${report.createdAt.year}-${report.createdAt.month.toString().padLeft(2, '0')}-${report.createdAt.day.toString().padLeft(2, '0')}';
+    
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFF3F4F6)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF8AB4F8).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.auto_awesome, color: Color(0xFF8AB4F8), size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(report.displayTitle, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                      const SizedBox(height: 4),
+                      Text(dateStr, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                    ],
+                  ),
+                ),
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    if (value == 'rename') onRename();
+                    if (value == 'delete') onDelete();
+                  },
+                  itemBuilder: (ctx) => [
+                    const PopupMenuItem(value: 'rename', child: Text('重命名')),
+                    const PopupMenuItem(value: 'delete', child: Text('删除')),
+                  ],
+                ),
+              ],
+            ),
+            if (report.keywords.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: report.keywords.take(5).map((k) => Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(999)),
+                  child: Text(k, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF3B82F6))),
+                )).toList(),
+              ),
+            ],
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                _buildStatChip('美食', report.stats.foodCount, const Color(0xFFFFA726)),
+                const SizedBox(width: 8),
+                _buildStatChip('小确幸', report.stats.momentCount, const Color(0xFFFFCA28)),
+                const SizedBox(width: 8),
+                _buildStatChip('旅行', report.stats.travelCount, const Color(0xFF42A5F5)),
+                const SizedBox(width: 8),
+                _buildStatChip('目标', report.stats.goalCount, const Color(0xFFAB47BC)),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatChip(String label, int count, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+      child: Text('$label: $count', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color)),
+    );
+  }
+}
+
 class YearReportPage extends ConsumerStatefulWidget {
-  const YearReportPage({super.key});
+  const YearReportPage({
+    super.key,
+    this.initialReport,
+    this.initialStats,
+    this.reportId,
+    this.createdAt,
+  });
+
+  final AnnualReportContent? initialReport;
+  final YearStatistics? initialStats;
+  final String? reportId;
+  final DateTime? createdAt;
 
   @override
   ConsumerState<YearReportPage> createState() => _YearReportPageState();
@@ -6586,6 +6894,7 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
   bool _generating = false;
   double _progress = 0;
   String _progressText = '';
+  final TextEditingController _titleController = TextEditingController();
 
   YearStatistics? _statistics;
   Map<String, String> _moduleReports = {};
@@ -6593,10 +6902,26 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
   List<int> _availableYears = [];
   bool _loadingYears = true;
 
+  bool get _isViewMode => widget.initialReport != null;
+
   @override
   void initState() {
     super.initState();
-    _loadAvailableYears();
+    if (_isViewMode) {
+      _finalReport = widget.initialReport;
+      _statistics = widget.initialStats;
+      _selectedYear = widget.initialStats?.year;
+      _titleController.text = widget.initialStats != null ? '${widget.initialStats!.year}年度报告' : '';
+      _loadingYears = false;
+    } else {
+      _loadAvailableYears();
+    }
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadAvailableYears() async {
@@ -7874,6 +8199,58 @@ class YearStatistics {
   final List<FoodRecord> topRatedFoods;
   final List<TravelRecord> topTravels;
   final List<MomentRecord> topMoments;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'year': year,
+      'totalRecords': totalRecords,
+      'foodCount': foodCount,
+      'momentCount': momentCount,
+      'travelCount': travelCount,
+      'goalCount': goalCount,
+      'encounterCount': encounterCount,
+      'friendCount': friendCount,
+      'topFoodCities': topFoodCities.map((e) => {'key': e.key, 'value': e.value}).toList(),
+      'avgFoodRating': avgFoodRating,
+      'topDestinations': topDestinations.map((e) => {'key': e.key, 'value': e.value}).toList(),
+      'topMoods': topMoods.map((e) => {'key': e.key, 'value': e.value}).toList(),
+      'goalCompletionRate': goalCompletionRate,
+      'completedGoals': completedGoals,
+      'totalGoals': totalGoals,
+    };
+  }
+
+  factory YearStatistics.fromJson(Map<String, dynamic> json) {
+    return YearStatistics(
+      year: json['year'] as int? ?? DateTime.now().year,
+      totalRecords: json['totalRecords'] as int? ?? 0,
+      foodCount: json['foodCount'] as int? ?? 0,
+      momentCount: json['momentCount'] as int? ?? 0,
+      travelCount: json['travelCount'] as int? ?? 0,
+      goalCount: json['goalCount'] as int? ?? 0,
+      encounterCount: json['encounterCount'] as int? ?? 0,
+      friendCount: json['friendCount'] as int? ?? 0,
+      topFoodCities: (json['topFoodCities'] as List?)
+              ?.map((e) => MapEntry(e['key'] as String, e['value'] as int))
+              .toList() ??
+          [],
+      avgFoodRating: (json['avgFoodRating'] as num?)?.toDouble() ?? 0.0,
+      topDestinations: (json['topDestinations'] as List?)
+              ?.map((e) => MapEntry(e['key'] as String, e['value'] as int))
+              .toList() ??
+          [],
+      topMoods: (json['topMoods'] as List?)
+              ?.map((e) => MapEntry(e['key'] as String, e['value'] as int))
+              .toList() ??
+          [],
+      goalCompletionRate: (json['goalCompletionRate'] as num?)?.toDouble() ?? 0.0,
+      completedGoals: json['completedGoals'] as int? ?? 0,
+      totalGoals: json['totalGoals'] as int? ?? 0,
+      topRatedFoods: [],
+      topTravels: [],
+      topMoments: [],
+    );
+  }
 }
 
 class AnnualReportContent {
@@ -7908,7 +8285,160 @@ class AnnualReportContent {
   final String friendshipChapter;
   final String closing;
   final List<String> keywords;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'opening': opening,
+      'lifeOverview': lifeOverview,
+      'lifestyle': lifestyle,
+      'behaviorPatterns': behaviorPatterns,
+      'preferencePortrait': preferencePortrait,
+      'trendChanges': trendChanges,
+      'aiInsights': aiInsights,
+      'foodChapter': foodChapter,
+      'emotionChapter': emotionChapter,
+      'travelChapter': travelChapter,
+      'goalChapter': goalChapter,
+      'friendshipChapter': friendshipChapter,
+      'closing': closing,
+      'keywords': keywords,
+    };
+  }
+
+  factory AnnualReportContent.fromJson(Map<String, dynamic> json) {
+    return AnnualReportContent(
+      opening: json['opening'] as String? ?? '',
+      lifeOverview: json['lifeOverview'] as String? ?? '',
+      lifestyle: json['lifestyle'] as String? ?? '',
+      behaviorPatterns: json['behaviorPatterns'] as String? ?? '',
+      preferencePortrait: json['preferencePortrait'] as String? ?? '',
+      trendChanges: json['trendChanges'] as String? ?? '',
+      aiInsights: json['aiInsights'] as String? ?? '',
+      foodChapter: json['foodChapter'] as String? ?? '',
+      emotionChapter: json['emotionChapter'] as String? ?? '',
+      travelChapter: json['travelChapter'] as String? ?? '',
+      goalChapter: json['goalChapter'] as String? ?? '',
+      friendshipChapter: json['friendshipChapter'] as String? ?? '',
+      closing: json['closing'] as String? ?? '',
+      keywords: (json['keywords'] as List?)?.map((e) => e.toString()).toList() ?? [],
+    );
+  }
 }
+
+class AnnualReportRecord {
+  const AnnualReportRecord({
+    required this.id,
+    required this.year,
+    required this.title,
+    required this.content,
+    required this.stats,
+    required this.keywords,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  final String id;
+  final int year;
+  final String title;
+  final AnnualReportContent content;
+  final YearStatistics stats;
+  final List<String> keywords;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  String get displayTitle => title.isEmpty ? '$year年度报告' : title;
+
+  static AnnualReportRecord fromDatabase(AnnualReview review) {
+    AnnualReportContent? content;
+    YearStatistics? stats;
+    List<String> keywordsList = [];
+
+    if (review.content != null && review.content!.isNotEmpty) {
+      try {
+        content = AnnualReportContent.fromJson(jsonDecode(review.content!));
+      } catch (_) {
+        content = AnnualReportContent(
+          opening: review.content!,
+          foodChapter: '',
+          emotionChapter: '',
+          travelChapter: '',
+          goalChapter: '',
+          friendshipChapter: '',
+          closing: '',
+          keywords: [],
+        );
+      }
+    }
+
+    if (review.stats != null && review.stats!.isNotEmpty) {
+      try {
+        stats = YearStatistics.fromJson(jsonDecode(review.stats!));
+      } catch (_) {
+        stats = YearStatistics(
+          year: review.year,
+          totalRecords: 0,
+          foodCount: 0,
+          momentCount: 0,
+          travelCount: 0,
+          goalCount: 0,
+          encounterCount: 0,
+          friendCount: 0,
+          topFoodCities: [],
+          avgFoodRating: 0,
+          topDestinations: [],
+          topMoods: [],
+          goalCompletionRate: 0,
+          completedGoals: 0,
+          totalGoals: 0,
+          topRatedFoods: [],
+          topTravels: [],
+          topMoments: [],
+        );
+      }
+    }
+
+    if (review.keywords != null && review.keywords!.isNotEmpty) {
+      try {
+        keywordsList = List<String>.from(jsonDecode(review.keywords!));
+      } catch (_) {
+        keywordsList = content?.keywords ?? [];
+      }
+    } else {
+      keywordsList = content?.keywords ?? [];
+    }
+
+    return AnnualReportRecord(
+      id: review.id,
+      year: review.year,
+      title: review.title,
+      content: content!,
+      stats: stats!,
+      keywords: keywordsList,
+      createdAt: review.createdAt,
+      updatedAt: review.updatedAt,
+    );
+  }
+
+  Map<String, dynamic> toDatabaseCompanion({DateTime? existingCreatedAt}) {
+    return {
+      'id': id,
+      'year': year,
+      'title': title,
+      'content': jsonEncode(content.toJson()),
+      'stats': jsonEncode(stats.toJson()),
+      'keywords': jsonEncode(keywords),
+      'createdAt': existingCreatedAt ?? createdAt,
+      'updatedAt': DateTime.now(),
+    };
+  }
+}
+
+final annualReportListProvider = StreamProvider<List<AnnualReportRecord>>((ref) {
+  final db = ref.watch(appDatabaseProvider);
+  return db.annualReviewDao.watchAll().map((reviews) {
+    return reviews.map((r) => AnnualReportRecord.fromDatabase(r)).toList();
+  });
+});
 
 class ReminderSettingsPage extends ConsumerStatefulWidget {
   const ReminderSettingsPage({super.key});

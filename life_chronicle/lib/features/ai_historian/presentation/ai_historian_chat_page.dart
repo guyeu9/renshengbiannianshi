@@ -19,6 +19,7 @@ import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/providers/ai_provider.dart';
 import '../../../core/services/ai_service.dart' as ai_service;
+import '../../../core/services/file_logger.dart';
 import '../../../core/router/route_navigation.dart';
 import '../../../core/router/app_router.dart';
 import 'package:go_router/go_router.dart';
@@ -202,8 +203,9 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
       );
 
       setState(() {});
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('加载好友数据失败: $e');
+      await FileLogger.instance.logWithLevel('AI史官', '加载好友数据失败: $e\n$stackTrace', LogLevel.error);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('加载好友数据失败：$e')),
@@ -263,8 +265,9 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
       _totalRecords = _moduleRecords.length;
       
       setState(() {});
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('加载模块数据失败: $e');
+      await FileLogger.instance.logWithLevel('AI史官', '加载模块数据失败: $e\n$stackTrace', LogLevel.error);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('加载模块数据失败：$e')),
@@ -346,8 +349,9 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
       setState(() {
         _isInitialized = true;
       });
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('AI史官初始化失败: $e');
+      await FileLogger.instance.logWithLevel('AI史官', '初始化失败: $e\n$stackTrace', LogLevel.error);
       if (mounted) {
         setState(() {
           _isInitialized = true;
@@ -381,8 +385,9 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
       });
 
       _addWelcomeMessage();
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('创建会话失败: $e');
+      await FileLogger.instance.logWithLevel('AI史官', '创建会话失败: $e\n$stackTrace', LogLevel.error);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('创建会话失败：$e')),
@@ -423,8 +428,9 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
       if (_messages.isEmpty) {
         _addWelcomeMessage();
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('加载会话消息失败: $e');
+      await FileLogger.instance.logWithLevel('AI史官', '加载会话消息失败: $e\n$stackTrace', LogLevel.error);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('加载会话消息失败：$e')),
@@ -763,7 +769,9 @@ $text
         });
         await _saveMessage(finalMessage);
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('发送消息失败: $e');
+      await FileLogger.instance.logWithLevel('AI史官', '发送消息失败: $e\n$stackTrace', LogLevel.error);
       final index = _messages.indexWhere((m) => m.id == aiMessageId);
       if (index != -1) {
         final finalMessage = _messages[index].copyWith(
@@ -935,7 +943,9 @@ ${result.prompt}
         });
         await _saveMessage(finalMessage);
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('执行快捷操作失败: $e');
+      await FileLogger.instance.logWithLevel('AI史官', '执行快捷操作失败: $e\n$stackTrace', LogLevel.error);
       final index = _messages.indexWhere((m) => m.id == aiMessageId);
       if (index != -1) {
         final finalMessage = _messages[index].copyWith(
@@ -1013,7 +1023,8 @@ ${result.prompt}
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (!didPop) {
-          context.go(AppRoutes.home);
+          final sourceRoute = widget.moduleParams?.sourceRoute ?? AppRoutes.home;
+          context.go(sourceRoute);
         }
       },
       child: Scaffold(
@@ -1030,7 +1041,10 @@ ${result.prompt}
                   hasAiService: hasAiService,
                   fullData: _fullData,
                   onToggleFullData: () => setState(() => _fullData = !_fullData),
-                  onGoBack: () => context.go(AppRoutes.home),
+                  onGoBack: () {
+                    final sourceRoute = widget.moduleParams?.sourceRoute ?? AppRoutes.home;
+                    context.go(sourceRoute);
+                  },
                   moduleParams: widget.moduleParams,
                 ),
                 if (_errorMessage != null)

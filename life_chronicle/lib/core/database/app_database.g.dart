@@ -10400,6 +10400,13 @@ class $AnnualReviewsTable extends AnnualReviews
   late final GeneratedColumn<int> year = GeneratedColumn<int>(
       'year', aliasedName, false,
       type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+      'title', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
   static const VerificationMeta _contentMeta =
       const VerificationMeta('content');
   @override
@@ -10410,6 +10417,17 @@ class $AnnualReviewsTable extends AnnualReviews
   @override
   late final GeneratedColumn<String> images = GeneratedColumn<String>(
       'images', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _statsMeta = const VerificationMeta('stats');
+  @override
+  late final GeneratedColumn<String> stats = GeneratedColumn<String>(
+      'stats', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _keywordsMeta =
+      const VerificationMeta('keywords');
+  @override
+  late final GeneratedColumn<String> keywords = GeneratedColumn<String>(
+      'keywords', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _createdAtMeta =
       const VerificationMeta('createdAt');
@@ -10425,7 +10443,7 @@ class $AnnualReviewsTable extends AnnualReviews
       type: DriftSqlType.dateTime, requiredDuringInsert: true);
   @override
   List<GeneratedColumn> get $columns =>
-      [id, year, content, images, createdAt, updatedAt];
+      [id, year, title, content, images, stats, keywords, createdAt, updatedAt];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -10447,6 +10465,10 @@ class $AnnualReviewsTable extends AnnualReviews
     } else if (isInserting) {
       context.missing(_yearMeta);
     }
+    if (data.containsKey('title')) {
+      context.handle(
+          _titleMeta, title.isAcceptableOrUnknown(data['title']!, _titleMeta));
+    }
     if (data.containsKey('content')) {
       context.handle(_contentMeta,
           content.isAcceptableOrUnknown(data['content']!, _contentMeta));
@@ -10454,6 +10476,14 @@ class $AnnualReviewsTable extends AnnualReviews
     if (data.containsKey('images')) {
       context.handle(_imagesMeta,
           images.isAcceptableOrUnknown(data['images']!, _imagesMeta));
+    }
+    if (data.containsKey('stats')) {
+      context.handle(
+          _statsMeta, stats.isAcceptableOrUnknown(data['stats']!, _statsMeta));
+    }
+    if (data.containsKey('keywords')) {
+      context.handle(_keywordsMeta,
+          keywords.isAcceptableOrUnknown(data['keywords']!, _keywordsMeta));
     }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
@@ -10480,10 +10510,16 @@ class $AnnualReviewsTable extends AnnualReviews
           .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       year: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}year'])!,
+      title: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}title'])!,
       content: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}content']),
       images: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}images']),
+      stats: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}stats']),
+      keywords: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}keywords']),
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
       updatedAt: attachedDatabase.typeMapping
@@ -10500,15 +10536,21 @@ class $AnnualReviewsTable extends AnnualReviews
 class AnnualReview extends DataClass implements Insertable<AnnualReview> {
   final String id;
   final int year;
+  final String title;
   final String? content;
   final String? images;
+  final String? stats;
+  final String? keywords;
   final DateTime createdAt;
   final DateTime updatedAt;
   const AnnualReview(
       {required this.id,
       required this.year,
+      required this.title,
       this.content,
       this.images,
+      this.stats,
+      this.keywords,
       required this.createdAt,
       required this.updatedAt});
   @override
@@ -10516,11 +10558,18 @@ class AnnualReview extends DataClass implements Insertable<AnnualReview> {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['year'] = Variable<int>(year);
+    map['title'] = Variable<String>(title);
     if (!nullToAbsent || content != null) {
       map['content'] = Variable<String>(content);
     }
     if (!nullToAbsent || images != null) {
       map['images'] = Variable<String>(images);
+    }
+    if (!nullToAbsent || stats != null) {
+      map['stats'] = Variable<String>(stats);
+    }
+    if (!nullToAbsent || keywords != null) {
+      map['keywords'] = Variable<String>(keywords);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -10531,11 +10580,17 @@ class AnnualReview extends DataClass implements Insertable<AnnualReview> {
     return AnnualReviewsCompanion(
       id: Value(id),
       year: Value(year),
+      title: Value(title),
       content: content == null && nullToAbsent
           ? const Value.absent()
           : Value(content),
       images:
           images == null && nullToAbsent ? const Value.absent() : Value(images),
+      stats:
+          stats == null && nullToAbsent ? const Value.absent() : Value(stats),
+      keywords: keywords == null && nullToAbsent
+          ? const Value.absent()
+          : Value(keywords),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -10547,8 +10602,11 @@ class AnnualReview extends DataClass implements Insertable<AnnualReview> {
     return AnnualReview(
       id: serializer.fromJson<String>(json['id']),
       year: serializer.fromJson<int>(json['year']),
+      title: serializer.fromJson<String>(json['title']),
       content: serializer.fromJson<String?>(json['content']),
       images: serializer.fromJson<String?>(json['images']),
+      stats: serializer.fromJson<String?>(json['stats']),
+      keywords: serializer.fromJson<String?>(json['keywords']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -10559,8 +10617,11 @@ class AnnualReview extends DataClass implements Insertable<AnnualReview> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'year': serializer.toJson<int>(year),
+      'title': serializer.toJson<String>(title),
       'content': serializer.toJson<String?>(content),
       'images': serializer.toJson<String?>(images),
+      'stats': serializer.toJson<String?>(stats),
+      'keywords': serializer.toJson<String?>(keywords),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -10569,15 +10630,21 @@ class AnnualReview extends DataClass implements Insertable<AnnualReview> {
   AnnualReview copyWith(
           {String? id,
           int? year,
+          String? title,
           Value<String?> content = const Value.absent(),
           Value<String?> images = const Value.absent(),
+          Value<String?> stats = const Value.absent(),
+          Value<String?> keywords = const Value.absent(),
           DateTime? createdAt,
           DateTime? updatedAt}) =>
       AnnualReview(
         id: id ?? this.id,
         year: year ?? this.year,
+        title: title ?? this.title,
         content: content.present ? content.value : this.content,
         images: images.present ? images.value : this.images,
+        stats: stats.present ? stats.value : this.stats,
+        keywords: keywords.present ? keywords.value : this.keywords,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
       );
@@ -10585,8 +10652,11 @@ class AnnualReview extends DataClass implements Insertable<AnnualReview> {
     return AnnualReview(
       id: data.id.present ? data.id.value : this.id,
       year: data.year.present ? data.year.value : this.year,
+      title: data.title.present ? data.title.value : this.title,
       content: data.content.present ? data.content.value : this.content,
       images: data.images.present ? data.images.value : this.images,
+      stats: data.stats.present ? data.stats.value : this.stats,
+      keywords: data.keywords.present ? data.keywords.value : this.keywords,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -10597,8 +10667,11 @@ class AnnualReview extends DataClass implements Insertable<AnnualReview> {
     return (StringBuffer('AnnualReview(')
           ..write('id: $id, ')
           ..write('year: $year, ')
+          ..write('title: $title, ')
           ..write('content: $content, ')
           ..write('images: $images, ')
+          ..write('stats: $stats, ')
+          ..write('keywords: $keywords, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -10606,16 +10679,19 @@ class AnnualReview extends DataClass implements Insertable<AnnualReview> {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, year, content, images, createdAt, updatedAt);
+  int get hashCode => Object.hash(
+      id, year, title, content, images, stats, keywords, createdAt, updatedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is AnnualReview &&
           other.id == this.id &&
           other.year == this.year &&
+          other.title == this.title &&
           other.content == this.content &&
           other.images == this.images &&
+          other.stats == this.stats &&
+          other.keywords == this.keywords &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -10623,16 +10699,22 @@ class AnnualReview extends DataClass implements Insertable<AnnualReview> {
 class AnnualReviewsCompanion extends UpdateCompanion<AnnualReview> {
   final Value<String> id;
   final Value<int> year;
+  final Value<String> title;
   final Value<String?> content;
   final Value<String?> images;
+  final Value<String?> stats;
+  final Value<String?> keywords;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
   const AnnualReviewsCompanion({
     this.id = const Value.absent(),
     this.year = const Value.absent(),
+    this.title = const Value.absent(),
     this.content = const Value.absent(),
     this.images = const Value.absent(),
+    this.stats = const Value.absent(),
+    this.keywords = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -10640,8 +10722,11 @@ class AnnualReviewsCompanion extends UpdateCompanion<AnnualReview> {
   AnnualReviewsCompanion.insert({
     required String id,
     required int year,
+    this.title = const Value.absent(),
     this.content = const Value.absent(),
     this.images = const Value.absent(),
+    this.stats = const Value.absent(),
+    this.keywords = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.rowid = const Value.absent(),
@@ -10652,8 +10737,11 @@ class AnnualReviewsCompanion extends UpdateCompanion<AnnualReview> {
   static Insertable<AnnualReview> custom({
     Expression<String>? id,
     Expression<int>? year,
+    Expression<String>? title,
     Expression<String>? content,
     Expression<String>? images,
+    Expression<String>? stats,
+    Expression<String>? keywords,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -10661,8 +10749,11 @@ class AnnualReviewsCompanion extends UpdateCompanion<AnnualReview> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (year != null) 'year': year,
+      if (title != null) 'title': title,
       if (content != null) 'content': content,
       if (images != null) 'images': images,
+      if (stats != null) 'stats': stats,
+      if (keywords != null) 'keywords': keywords,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -10672,16 +10763,22 @@ class AnnualReviewsCompanion extends UpdateCompanion<AnnualReview> {
   AnnualReviewsCompanion copyWith(
       {Value<String>? id,
       Value<int>? year,
+      Value<String>? title,
       Value<String?>? content,
       Value<String?>? images,
+      Value<String?>? stats,
+      Value<String?>? keywords,
       Value<DateTime>? createdAt,
       Value<DateTime>? updatedAt,
       Value<int>? rowid}) {
     return AnnualReviewsCompanion(
       id: id ?? this.id,
       year: year ?? this.year,
+      title: title ?? this.title,
       content: content ?? this.content,
       images: images ?? this.images,
+      stats: stats ?? this.stats,
+      keywords: keywords ?? this.keywords,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -10697,11 +10794,20 @@ class AnnualReviewsCompanion extends UpdateCompanion<AnnualReview> {
     if (year.present) {
       map['year'] = Variable<int>(year.value);
     }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
     if (content.present) {
       map['content'] = Variable<String>(content.value);
     }
     if (images.present) {
       map['images'] = Variable<String>(images.value);
+    }
+    if (stats.present) {
+      map['stats'] = Variable<String>(stats.value);
+    }
+    if (keywords.present) {
+      map['keywords'] = Variable<String>(keywords.value);
     }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
@@ -10720,8 +10826,11 @@ class AnnualReviewsCompanion extends UpdateCompanion<AnnualReview> {
     return (StringBuffer('AnnualReviewsCompanion(')
           ..write('id: $id, ')
           ..write('year: $year, ')
+          ..write('title: $title, ')
           ..write('content: $content, ')
           ..write('images: $images, ')
+          ..write('stats: $stats, ')
+          ..write('keywords: $keywords, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -16908,8 +17017,11 @@ typedef $$AnnualReviewsTableCreateCompanionBuilder = AnnualReviewsCompanion
     Function({
   required String id,
   required int year,
+  Value<String> title,
   Value<String?> content,
   Value<String?> images,
+  Value<String?> stats,
+  Value<String?> keywords,
   required DateTime createdAt,
   required DateTime updatedAt,
   Value<int> rowid,
@@ -16918,8 +17030,11 @@ typedef $$AnnualReviewsTableUpdateCompanionBuilder = AnnualReviewsCompanion
     Function({
   Value<String> id,
   Value<int> year,
+  Value<String> title,
   Value<String?> content,
   Value<String?> images,
+  Value<String?> stats,
+  Value<String?> keywords,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
   Value<int> rowid,
@@ -16940,11 +17055,20 @@ class $$AnnualReviewsTableFilterComposer
   ColumnFilters<int> get year => $composableBuilder(
       column: $table.year, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<String> get title => $composableBuilder(
+      column: $table.title, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<String> get content => $composableBuilder(
       column: $table.content, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get images => $composableBuilder(
       column: $table.images, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get stats => $composableBuilder(
+      column: $table.stats, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get keywords => $composableBuilder(
+      column: $table.keywords, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
@@ -16968,11 +17092,20 @@ class $$AnnualReviewsTableOrderingComposer
   ColumnOrderings<int> get year => $composableBuilder(
       column: $table.year, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get title => $composableBuilder(
+      column: $table.title, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get content => $composableBuilder(
       column: $table.content, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get images => $composableBuilder(
       column: $table.images, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get stats => $composableBuilder(
+      column: $table.stats, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get keywords => $composableBuilder(
+      column: $table.keywords, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
@@ -16996,11 +17129,20 @@ class $$AnnualReviewsTableAnnotationComposer
   GeneratedColumn<int> get year =>
       $composableBuilder(column: $table.year, builder: (column) => column);
 
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
   GeneratedColumn<String> get content =>
       $composableBuilder(column: $table.content, builder: (column) => column);
 
   GeneratedColumn<String> get images =>
       $composableBuilder(column: $table.images, builder: (column) => column);
+
+  GeneratedColumn<String> get stats =>
+      $composableBuilder(column: $table.stats, builder: (column) => column);
+
+  GeneratedColumn<String> get keywords =>
+      $composableBuilder(column: $table.keywords, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -17037,8 +17179,11 @@ class $$AnnualReviewsTableTableManager extends RootTableManager<
           updateCompanionCallback: ({
             Value<String> id = const Value.absent(),
             Value<int> year = const Value.absent(),
+            Value<String> title = const Value.absent(),
             Value<String?> content = const Value.absent(),
             Value<String?> images = const Value.absent(),
+            Value<String?> stats = const Value.absent(),
+            Value<String?> keywords = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -17046,8 +17191,11 @@ class $$AnnualReviewsTableTableManager extends RootTableManager<
               AnnualReviewsCompanion(
             id: id,
             year: year,
+            title: title,
             content: content,
             images: images,
+            stats: stats,
+            keywords: keywords,
             createdAt: createdAt,
             updatedAt: updatedAt,
             rowid: rowid,
@@ -17055,8 +17203,11 @@ class $$AnnualReviewsTableTableManager extends RootTableManager<
           createCompanionCallback: ({
             required String id,
             required int year,
+            Value<String> title = const Value.absent(),
             Value<String?> content = const Value.absent(),
             Value<String?> images = const Value.absent(),
+            Value<String?> stats = const Value.absent(),
+            Value<String?> keywords = const Value.absent(),
             required DateTime createdAt,
             required DateTime updatedAt,
             Value<int> rowid = const Value.absent(),
@@ -17064,8 +17215,11 @@ class $$AnnualReviewsTableTableManager extends RootTableManager<
               AnnualReviewsCompanion.insert(
             id: id,
             year: year,
+            title: title,
             content: content,
             images: images,
+            stats: stats,
+            keywords: keywords,
             createdAt: createdAt,
             updatedAt: updatedAt,
             rowid: rowid,
