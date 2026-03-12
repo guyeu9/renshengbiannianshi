@@ -555,7 +555,6 @@ class ProfilePage extends ConsumerWidget {
                   ),
                 ],
               ),
-            ),
             // 悬浮按钮 - 返回
             Positioned(
               top: 16,
