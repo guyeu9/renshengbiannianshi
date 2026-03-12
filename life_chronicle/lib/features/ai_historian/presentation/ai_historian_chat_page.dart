@@ -724,7 +724,7 @@ $text
       DateTime lastUpdate = DateTime.now();
       const updateInterval = Duration(milliseconds: 100);
 
-      final fullContent = await chatService.chatStream(
+      await chatService.chatStream(
         systemPrompt: systemPrompt,
         messages: history,
         onChunk: (chunk) {
@@ -896,7 +896,7 @@ ${result.prompt}
       DateTime lastUpdate2 = DateTime.now();
       const updateInterval2 = Duration(milliseconds: 100);
 
-      final fullContent = await chatService.chatStream(
+      await chatService.chatStream(
         systemPrompt: systemPrompt,
         messages: history,
         onChunk: (chunk) {
