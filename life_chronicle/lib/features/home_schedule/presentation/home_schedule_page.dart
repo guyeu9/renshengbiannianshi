@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../app/app_theme.dart';
 import '../../../core/config/module_management_config.dart';
@@ -14,6 +15,7 @@ import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/utils/icon_utils.dart';
 import '../../../core/router/route_navigation.dart';
+import '../../../core/router/app_router.dart';
 import '../../travel/presentation/travel_page.dart' show TravelItem;
 
 class HomeSchedulePage extends StatefulWidget {
@@ -128,7 +130,7 @@ class _GlassHeaderState extends State<_GlassHeader> {
                 borderRadius: BorderRadius.circular(999),
                 onTap: () async {
                   FocusManager.instance.primaryFocus?.unfocus();
-                  RouteNavigation.goToPersonalProfile(context);
+                  context.go(AppRoutes.profile);
                   if (!mounted) return;
                   _refreshAvatar();
                 },
@@ -246,7 +248,7 @@ class _GlassHeaderState extends State<_GlassHeader> {
                     icon: Icons.settings,
                     showDot: false,
                     onTap: () async {
-                      RouteNavigation.goToPersonalProfile(context);
+                      context.go(AppRoutes.profile);
                       if (!mounted) return;
                       _refreshAvatar();
                     },

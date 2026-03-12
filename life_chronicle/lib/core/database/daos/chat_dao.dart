@@ -67,10 +67,10 @@ class ChatDao extends DatabaseAccessor<AppDatabase> with _$ChatDaoMixin {
       ..where((t) => t.isDeleted.equals(false))
       ..where((t) => t.isArchived.equals(false));
     
-    if (moduleType != null) {
+    if (moduleType != null && moduleType.isNotEmpty) {
       query.where((t) => t.moduleType.equals(moduleType));
     } else {
-      query.where((t) => t.moduleType.isNull());
+      query.where((t) => t.moduleType.isNull() | t.moduleType.equals(''));
     }
     
     query.orderBy([(t) => OrderingTerm(expression: t.lastMessageAt, mode: OrderingMode.desc)]);
@@ -83,10 +83,10 @@ class ChatDao extends DatabaseAccessor<AppDatabase> with _$ChatDaoMixin {
       ..where((t) => t.isDeleted.equals(false))
       ..where((t) => t.isArchived.equals(false));
     
-    if (moduleType != null) {
+    if (moduleType != null && moduleType.isNotEmpty) {
       query.where((t) => t.moduleType.equals(moduleType));
     } else {
-      query.where((t) => t.moduleType.isNull());
+      query.where((t) => t.moduleType.isNull() | t.moduleType.equals(''));
     }
     
     query.orderBy([(t) => OrderingTerm(expression: t.lastMessageAt, mode: OrderingMode.desc)]);

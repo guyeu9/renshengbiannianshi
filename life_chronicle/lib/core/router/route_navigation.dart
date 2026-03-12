@@ -13,7 +13,7 @@ class RouteNavigation {
   RouteNavigation._();
 
   static void goToFoodDetail(BuildContext context, String id) {
-    context.go('${AppRoutes.food}/$id');
+    context.push('${AppRoutes.food}/$id');
   }
 
   static Future<bool?> pushToFoodDetail(BuildContext context, String id) {
@@ -21,139 +21,139 @@ class RouteNavigation {
   }
 
   static void goToFoodCreate(BuildContext context, {FoodRecord? initialRecord}) {
-    context.go(AppRoutes.foodCreate, extra: {'initialRecord': initialRecord});
+    context.push(AppRoutes.foodCreate, extra: {'initialRecord': initialRecord});
   }
 
   static void goToMomentDetail(BuildContext context, String id) {
-    context.go('${AppRoutes.moment}/$id');
+    context.push('${AppRoutes.moment}/$id');
   }
 
   static void goToMomentCreate(BuildContext context, {MomentRecord? initialRecord}) {
-    context.go(AppRoutes.momentCreate, extra: {'initialRecord': initialRecord});
+    context.push(AppRoutes.momentCreate, extra: {'initialRecord': initialRecord});
   }
 
   static void goToTravelDetail(BuildContext context, String id, {TravelItem? item}) {
-    context.go('${AppRoutes.travel}/$id', extra: {'item': item});
+    context.push('${AppRoutes.travel}/$id', extra: {'item': item});
   }
 
   static void goToTravelCreate(BuildContext context, {TravelRecord? initialRecord}) {
-    context.go(AppRoutes.travelCreate, extra: {'initialRecord': initialRecord});
+    context.push(AppRoutes.travelCreate, extra: {'initialRecord': initialRecord});
   }
 
   static void goToJournalDetail(BuildContext context, String id) {
-    context.go('/travel/journal/$id');
+    context.push('/travel/journal/$id');
   }
 
   static void goToJournalCreate(BuildContext context, {String? initialTripId, String? initialTripTitle, TravelRecord? initialRecord}) {
-    context.go('/travel/journal/create', extra: {'initialTripId': initialTripId, 'initialTripTitle': initialTripTitle, 'initialRecord': initialRecord});
+    context.push('/travel/journal/create', extra: {'initialTripId': initialTripId, 'initialTripTitle': initialTripTitle, 'initialRecord': initialRecord});
   }
 
   static void goToGoalDetail(BuildContext context, String id, {GoalRecord? record}) {
-    context.go('${AppRoutes.goal}/$id', extra: {'record': record});
+    context.push('${AppRoutes.goal}/$id', extra: {'record': record});
   }
 
   static void goToGoalCreate(BuildContext context, {GoalRecord? goal}) {
-    context.go(AppRoutes.goalCreate, extra: {'goal': goal});
+    context.push(AppRoutes.goalCreate, extra: {'goal': goal});
   }
 
   static void goToAnnualGoalSummary(BuildContext context, {required int initialYear, required List<int> availableYears}) {
-    context.go(AppRoutes.annualGoalSummary, extra: {'initialYear': initialYear, 'availableYears': availableYears});
+    context.push(AppRoutes.annualGoalSummary, extra: {'initialYear': initialYear, 'availableYears': availableYears});
   }
 
   static void goToGoalAllLinks(BuildContext context, String goalId) {
-    context.go('/goal/links/$goalId');
+    context.push('/goal/links/$goalId');
   }
 
   static void goToGoalBreakdownMaintenance(BuildContext context, String goalId) {
-    context.go('/goal/breakdown', extra: {'goalId': goalId});
+    context.push('/goal/breakdown', extra: {'goalId': goalId});
   }
 
   static void goToGoalPostpone(BuildContext context, String goalId) {
-    context.go('/goal/postpone', extra: {'goalId': goalId});
+    context.push('/goal/postpone', extra: {'goalId': goalId});
   }
 
   static void goToFriendProfile(BuildContext context, String friendId) {
-    context.go(AppRoutes.friendProfile.replaceAll(':id', friendId));
+    context.push(AppRoutes.friendProfile.replaceAll(':id', friendId));
   }
 
   static void goToFriendCreate(BuildContext context, {FriendRecord? initialFriend}) {
-    context.go(AppRoutes.friendCreate, extra: {'initialFriend': initialFriend});
+    context.push(AppRoutes.friendCreate, extra: {'initialFriend': initialFriend});
   }
 
   static void goToEncounterDetail(BuildContext context, String id) {
-    context.go('${AppRoutes.bond}/encounter/$id');
+    context.push('${AppRoutes.bond}/encounter/$id');
   }
 
   static void goToEncounterCreate(BuildContext context, {TimelineEvent? initialEvent}) {
-    context.go(AppRoutes.encounterCreate, extra: {'initialEvent': initialEvent});
+    context.push(AppRoutes.encounterCreate, extra: {'initialEvent': initialEvent});
   }
 
   static void goToChronicleGenerateConfig(BuildContext context) {
-    context.go(AppRoutes.chronicleGenerateConfig);
+    context.push(AppRoutes.chronicleGenerateConfig);
   }
 
   static void goToChroniclePreview(BuildContext context, ChronicleRecord record) {
-    context.go('/profile/chronicle-preview', extra: {'record': record});
+    context.push('/profile/chronicle-preview', extra: {'record': record});
   }
 
   static void goToFavoritesCenter(BuildContext context) {
-    context.go(AppRoutes.favoritesCenter);
+    context.push(AppRoutes.favoritesCenter);
   }
 
   static void goToChronicleManage(BuildContext context) {
-    context.go(AppRoutes.chronicleManage);
+    context.push(AppRoutes.chronicleManage);
   }
 
   static void goToYearReport(BuildContext context) {
-    context.go(AppRoutes.yearReport);
+    context.push(AppRoutes.yearReport);
   }
 
   static void goToDataManagement(BuildContext context) {
-    context.go(AppRoutes.dataManagement);
+    context.push(AppRoutes.dataManagement);
   }
 
   static void goToModuleManagement(BuildContext context) {
-    context.go(AppRoutes.moduleManagement);
+    context.push(AppRoutes.moduleManagement);
   }
 
   static void goToUniversalLink(BuildContext context) {
-    context.go(AppRoutes.universalLink);
+    context.push(AppRoutes.universalLink);
   }
 
   static void goToUniversalLinkAllLogs(BuildContext context) {
-    context.go('/profile/universal-link-logs');
+    context.push('/profile/universal-link-logs');
   }
 
   static void goToPersonalProfile(BuildContext context) {
-    context.go(AppRoutes.personalProfile);
+    context.push(AppRoutes.personalProfile);
   }
 
   static void goToReminderSettings(BuildContext context) {
-    context.go(AppRoutes.reminderSettings);
+    context.push(AppRoutes.reminderSettings);
   }
 
   static void goToPrivacySecurity(BuildContext context) {
-    context.go(AppRoutes.privacySecurity);
+    context.push(AppRoutes.privacySecurity);
   }
 
   static void goToHelpFeedback(BuildContext context) {
-    context.go(AppRoutes.helpFeedback);
+    context.push(AppRoutes.helpFeedback);
   }
 
   static void goToSystemLog(BuildContext context) {
-    context.go(AppRoutes.systemLog);
+    context.push(AppRoutes.systemLog);
   }
 
   static void goToBackupLog(BuildContext context) {
-    context.go('/profile/backup-log');
+    context.push('/profile/backup-log');
   }
 
   static void goToAmapLog(BuildContext context) {
-    context.go('/profile/amap-log');
+    context.push('/profile/amap-log');
   }
 
   static void goToAiModelManagement(BuildContext context) {
-    context.go(AppRoutes.aiModelManagement);
+    context.push(AppRoutes.aiModelManagement);
   }
 
   static void goToAiHistorian(BuildContext context, {ModuleChatParams? moduleParams}) {
@@ -244,8 +244,9 @@ class RouteNavigation {
   }
 
   static void back(BuildContext context, {dynamic result}) {
-    if (Navigator.canPop(context)) {
-      Navigator.pop(context, result);
+    final router = GoRouter.of(context);
+    if (router.canPop()) {
+      router.pop(result);
     } else {
       context.go(AppRoutes.home);
     }

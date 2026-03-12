@@ -159,48 +159,57 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
   }
 
   Future<void> _loadFriendData() async {
-    final friendParams = widget.moduleParams?.friendParams;
-    if (friendParams == null) return;
+    try {
+      final friendParams = widget.moduleParams?.friendParams;
+      if (friendParams == null) return;
 
-    final config = getModuleConfig('friend');
-    if (config != null) {
-      _quickActions = config.quickActions;
-    }
+      final config = getModuleConfig('friend');
+      if (config != null) {
+        _quickActions = config.quickActions;
+      }
 
-    _totalRecords = friendParams.totalMemories;
+      _totalRecords = friendParams.totalMemories;
 
-    final processor = FriendDataProcessor();
-    final friend = _createFriendRecordFromParams(friendParams);
-    final result = processor.processMemories(
-      friend: friend,
-      memories: friendParams.memories,
-      analysisType: 'relationship_profile',
-    );
+      final processor = FriendDataProcessor();
+      final friend = _createFriendRecordFromParams(friendParams);
+      final result = processor.processMemories(
+        friend: friend,
+        memories: friendParams.memories,
+        analysisType: 'relationship_profile',
+      );
 
-    _moduleStats = StatsData(
-      totalRecords: friendParams.totalMemories,
-      additionalData: {
-        'friendName': friendParams.friendName,
-        'knownDays': friendParams.knownDays,
-        'lastMeetDays': friendParams.lastMeetDays,
-        'memoryByType': friendParams.memoryByType,
-        'totalFriends': friendParams.totalFriends,
-        'stats': {
-          'totalMemories': result.stats.totalMemories,
-          'knownDays': result.stats.knownDays,
-          'yearSpan': result.stats.yearSpan,
-          'byType': result.stats.byType,
-          'byYear': result.stats.byYear,
-          'topPlaces': result.stats.topPlaces.map((p) => {'name': p.name, 'count': p.count}).toList(),
-          'topActivities': result.stats.topActivities.map((a) => {'name': a.name, 'count': a.count}).toList(),
-          'moodDistribution': result.stats.moodDistribution,
+      _moduleStats = StatsData(
+        totalRecords: friendParams.totalMemories,
+        additionalData: {
+          'friendName': friendParams.friendName,
+          'knownDays': friendParams.knownDays,
+          'lastMeetDays': friendParams.lastMeetDays,
+          'memoryByType': friendParams.memoryByType,
+          'totalFriends': friendParams.totalFriends,
+          'stats': {
+            'totalMemories': result.stats.totalMemories,
+            'knownDays': result.stats.knownDays,
+            'yearSpan': result.stats.yearSpan,
+            'byType': result.stats.byType,
+            'byYear': result.stats.byYear,
+            'topPlaces': result.stats.topPlaces.map((p) => {'name': p.name, 'count': p.count}).toList(),
+            'topActivities': result.stats.topActivities.map((a) => {'name': a.name, 'count': a.count}).toList(),
+            'moodDistribution': result.stats.moodDistribution,
+          },
+          'processingLevel': result.level.name,
+          'processedCount': result.processedCount,
         },
-        'processingLevel': result.level.name,
-        'processedCount': result.processedCount,
-      },
-    );
+      );
 
-    setState(() {});
+      setState(() {});
+    } catch (e) {
+      debugPrint('加载好友数据失败: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('加载好友数据失败：$e')),
+        );
+      }
+    }
   }
 
   FriendRecord _createFriendRecordFromParams(FriendChatParams params) {
@@ -224,35 +233,44 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
   }
 
   Future<void> _loadModuleData() async {
-    final moduleType = widget.moduleParams!.moduleType;
-    final config = getModuleConfig(moduleType);
-    
-    if (config != null) {
-      _quickActions = config.quickActions;
-    }
-    
-    final db = ref.read(appDatabaseProvider);
-    final retriever = RecordRetriever(db);
-    
-    if (widget.isDetailMode && widget.moduleParams!.recordIds != null) {
-      final recordId = widget.moduleParams!.recordIds!.first;
-      final record = await retriever.fetchRecordById(moduleType, recordId);
-      if (record != null) {
-        _moduleRecords = [record];
+    try {
+      final moduleType = widget.moduleParams!.moduleType;
+      final config = getModuleConfig(moduleType);
+      
+      if (config != null) {
+        _quickActions = config.quickActions;
       }
-    } else {
-      _moduleRecords = await retriever.retrieveRecords(
-        queryType: QueryType.summary,
-        userQuery: '',
-        module: moduleType,
-        fullData: widget.moduleParams!.fullData,
-      );
+      
+      final db = ref.read(appDatabaseProvider);
+      final retriever = RecordRetriever(db);
+      
+      if (widget.isDetailMode && widget.moduleParams!.recordIds != null) {
+        final recordId = widget.moduleParams!.recordIds!.first;
+        final record = await retriever.fetchRecordById(moduleType, recordId);
+        if (record != null) {
+          _moduleRecords = [record];
+        }
+      } else {
+        _moduleRecords = await retriever.retrieveRecords(
+          queryType: QueryType.summary,
+          userQuery: '',
+          module: moduleType,
+          fullData: widget.moduleParams!.fullData,
+        );
+      }
+      
+      _moduleStats = await _calculateModuleStats(moduleType, _moduleRecords);
+      _totalRecords = _moduleRecords.length;
+      
+      setState(() {});
+    } catch (e) {
+      debugPrint('加载模块数据失败: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('加载模块数据失败：$e')),
+        );
+      }
     }
-    
-    _moduleStats = await _calculateModuleStats(moduleType, _moduleRecords);
-    _totalRecords = _moduleRecords.length;
-    
-    setState(() {});
   }
 
   Future<StatsData> _calculateModuleStats(String moduleType, List<RecordContext> records) async {
@@ -312,76 +330,106 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
   }
 
   Future<void> _initializeSession() async {
-    final db = ref.read(appDatabaseProvider);
-    
-    final moduleType = widget.isModuleMode ? widget.moduleParams!.moduleType : null;
-    final sessions = await db.chatDao.getActiveSessionsByModuleType(moduleType);
+    try {
+      final db = ref.read(appDatabaseProvider);
+      
+      final moduleType = widget.isModuleMode ? widget.moduleParams!.moduleType : null;
+      final sessions = await db.chatDao.getActiveSessionsByModuleType(moduleType);
 
-    if (sessions.isEmpty) {
-      await _createNewSession();
-    } else {
-      _currentSessionId = sessions.first.id;
-      await _loadSessionMessages(_currentSessionId!);
+      if (sessions.isEmpty) {
+        await _createNewSession();
+      } else {
+        _currentSessionId = sessions.first.id;
+        await _loadSessionMessages(_currentSessionId!);
+      }
+
+      setState(() {
+        _isInitialized = true;
+      });
+    } catch (e) {
+      debugPrint('AI史官初始化失败: $e');
+      if (mounted) {
+        setState(() {
+          _isInitialized = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('加载会话失败：$e')),
+        );
+      }
     }
-
-    setState(() {
-      _isInitialized = true;
-    });
   }
 
   Future<void> _createNewSession() async {
-    final db = ref.read(appDatabaseProvider);
-    const uuid = Uuid();
-    final now = DateTime.now();
-    final sessionId = uuid.v4();
+    try {
+      final db = ref.read(appDatabaseProvider);
+      const uuid = Uuid();
+      final now = DateTime.now();
+      final sessionId = uuid.v4();
 
-    await db.chatDao.upsertSession(ChatSessionsCompanion(
-      id: Value(sessionId),
-      title: const Value('新对话'),
-      moduleType: Value(widget.isModuleMode ? widget.moduleParams!.moduleType : null),
-      createdAt: Value(now),
-      updatedAt: Value(now),
-      lastMessageAt: Value(now),
-    ));
+      await db.chatDao.upsertSession(ChatSessionsCompanion(
+        id: Value(sessionId),
+        title: const Value('新对话'),
+        moduleType: Value(widget.isModuleMode ? widget.moduleParams!.moduleType : null),
+        createdAt: Value(now),
+        updatedAt: Value(now),
+        lastMessageAt: Value(now),
+      ));
 
-    setState(() {
-      _currentSessionId = sessionId;
-      _messages.clear();
-    });
+      setState(() {
+        _currentSessionId = sessionId;
+        _messages.clear();
+      });
 
-    _addWelcomeMessage();
+      _addWelcomeMessage();
+    } catch (e) {
+      debugPrint('创建会话失败: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('创建会话失败：$e')),
+        );
+      }
+    }
   }
 
   Future<void> _loadSessionMessages(String sessionId) async {
-    final db = ref.read(appDatabaseProvider);
-    final messages = await db.chatDao.getMessagesBySessionId(sessionId);
+    try {
+      final db = ref.read(appDatabaseProvider);
+      final messages = await db.chatDao.getMessagesBySessionId(sessionId);
 
-    setState(() {
-      _messages.clear();
-      for (final msg in messages) {
-        final recommendations = <RecommendationCard>[];
-        if (msg.recommendations != null && msg.recommendations!.isNotEmpty) {
-          try {
-            final json = jsonDecode(msg.recommendations!) as List;
-            recommendations.addAll(
-              json.map((e) => RecommendationCard.fromJson(e as Map<String, dynamic>)),
-            );
-          } catch (e) {
-            debugPrint('Failed to parse recommendations: $e');
+      setState(() {
+        _messages.clear();
+        for (final msg in messages) {
+          final recommendations = <RecommendationCard>[];
+          if (msg.recommendations != null && msg.recommendations!.isNotEmpty) {
+            try {
+              final json = jsonDecode(msg.recommendations!) as List;
+              recommendations.addAll(
+                json.map((e) => RecommendationCard.fromJson(e as Map<String, dynamic>)),
+              );
+            } catch (e) {
+              debugPrint('Failed to parse recommendations: $e');
+            }
           }
+          _messages.add(ChatMessageModel(
+            id: msg.id,
+            role: msg.role == 'user' ? MessageRole.user : MessageRole.assistant,
+            content: msg.content,
+            timestamp: msg.timestamp,
+            recommendations: recommendations,
+          ));
         }
-        _messages.add(ChatMessageModel(
-          id: msg.id,
-          role: msg.role == 'user' ? MessageRole.user : MessageRole.assistant,
-          content: msg.content,
-          timestamp: msg.timestamp,
-          recommendations: recommendations,
-        ));
-      }
-    });
+      });
 
-    if (_messages.isEmpty) {
-      _addWelcomeMessage();
+      if (_messages.isEmpty) {
+        _addWelcomeMessage();
+      }
+    } catch (e) {
+      debugPrint('加载会话消息失败: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('加载会话消息失败：$e')),
+        );
+      }
     }
   }
 
@@ -525,11 +573,25 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
         final json = jsonDecode(jsonStr) as Map<String, dynamic>;
         final cards = json['recommendations'] as List?;
         if (cards != null) {
+          debugPrint('成功解析到 ${cards.length} 个推荐卡片');
           return cards.map((c) => RecommendationCard.fromJson(c as Map<String, dynamic>)).toList();
         }
       }
+      final jsonMatch2 = RegExp(r'\{[\s\S]*?"recommendations"[\s\S]*?\}').firstMatch(content);
+      if (jsonMatch2 != null) {
+        try {
+          final json = jsonDecode(jsonMatch2.group(0)!) as Map<String, dynamic>;
+          final cards = json['recommendations'] as List?;
+          if (cards != null) {
+            debugPrint('成功解析到 ${cards.length} 个推荐卡片（备用格式）');
+            return cards.map((c) => RecommendationCard.fromJson(c as Map<String, dynamic>)).toList();
+          }
+        } catch (e) {
+          debugPrint('备用JSON格式解析失败: $e');
+        }
+      }
     } catch (e) {
-      debugPrint('Failed to parse recommendations: $e');
+      debugPrint('解析推荐卡片失败: $e');
     }
     return [];
   }
@@ -658,25 +720,39 @@ $text
               ))
           .toList();
 
+      StringBuffer contentBuffer = StringBuffer();
+      DateTime lastUpdate = DateTime.now();
+      const updateInterval = Duration(milliseconds: 100);
+
       final fullContent = await chatService.chatStream(
         systemPrompt: systemPrompt,
         messages: history,
         onChunk: (chunk) {
-          final index = _messages.indexWhere((m) => m.id == aiMessageId);
-          if (index != -1) {
-            setState(() {
-              _messages[index] = _messages[index].copyWith(
-                content: _messages[index].content + chunk,
-              );
-            });
+          contentBuffer.write(chunk);
+          final now = DateTime.now();
+          if (now.difference(lastUpdate) >= updateInterval) {
+            final index = _messages.indexWhere((m) => m.id == aiMessageId);
+            if (index != -1) {
+              setState(() {
+                _messages[index] = _messages[index].copyWith(
+                  content: contentBuffer.toString(),
+                );
+              });
+            }
+            lastUpdate = now;
           }
         },
       );
 
       final index = _messages.indexWhere((m) => m.id == aiMessageId);
       if (index != -1) {
-        final recommendations = _parseRecommendations(fullContent);
-        final cleanContent = _removeRecommendationsJson(fullContent);
+        setState(() {
+          _messages[index] = _messages[index].copyWith(
+            content: contentBuffer.toString(),
+          );
+        });
+        final recommendations = _parseRecommendations(contentBuffer.toString());
+        final cleanContent = _removeRecommendationsJson(contentBuffer.toString());
         final finalMessage = _messages[index].copyWith(
           content: cleanContent,
           isStreaming: false,
@@ -816,25 +892,39 @@ ${result.prompt}
               ))
           .toList();
 
+      StringBuffer contentBuffer2 = StringBuffer();
+      DateTime lastUpdate2 = DateTime.now();
+      const updateInterval2 = Duration(milliseconds: 100);
+
       final fullContent = await chatService.chatStream(
         systemPrompt: systemPrompt,
         messages: history,
         onChunk: (chunk) {
-          final index = _messages.indexWhere((m) => m.id == aiMessageId);
-          if (index != -1) {
-            setState(() {
-              _messages[index] = _messages[index].copyWith(
-                content: _messages[index].content + chunk,
-              );
-            });
+          contentBuffer2.write(chunk);
+          final now = DateTime.now();
+          if (now.difference(lastUpdate2) >= updateInterval2) {
+            final index = _messages.indexWhere((m) => m.id == aiMessageId);
+            if (index != -1) {
+              setState(() {
+                _messages[index] = _messages[index].copyWith(
+                  content: contentBuffer2.toString(),
+                );
+              });
+            }
+            lastUpdate2 = now;
           }
         },
       );
 
       final index = _messages.indexWhere((m) => m.id == aiMessageId);
       if (index != -1) {
-        final recommendations = _parseRecommendations(fullContent);
-        final cleanContent = _removeRecommendationsJson(fullContent);
+        setState(() {
+          _messages[index] = _messages[index].copyWith(
+            content: contentBuffer2.toString(),
+          );
+        });
+        final recommendations = _parseRecommendations(contentBuffer2.toString());
+        final cleanContent = _removeRecommendationsJson(contentBuffer2.toString());
         final finalMessage = _messages[index].copyWith(
           content: cleanContent,
           isStreaming: false,
