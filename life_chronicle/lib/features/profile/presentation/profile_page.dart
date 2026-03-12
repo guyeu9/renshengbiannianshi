@@ -418,32 +418,32 @@ class ProfilePage extends ConsumerWidget {
                 padding: EdgeInsets.only(bottom: 40 + MediaQuery.paddingOf(context).bottom),
                 children: [
                   const _Header(),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _ChronicleCard(
-                            onGenerate: () => RouteNavigation.goToChronicleGenerateConfig(context),
-                          ),
-                          const SizedBox(height: 18),
-                          const _SectionTitle(title: '功能管理'),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _LargeTile(
-                                  icon: Icons.collections_bookmark,
-                                  iconBg: _softPurple,
-                                  iconColor: _iconPurple,
-                                  title: '收藏中心',
-                                  subtitle: '美食 · 旅行 · 小确幸',
-                                  onTap: () => RouteNavigation.goToFavoritesCenter(context),
-                                  trailingIcon: Icons.ios_share,
-                                ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _ChronicleCard(
+                          onGenerate: () => RouteNavigation.goToChronicleGenerateConfig(context),
+                        ),
+                        const SizedBox(height: 18),
+                        const _SectionTitle(title: '功能管理'),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _LargeTile(
+                                icon: Icons.collections_bookmark,
+                                iconBg: _softPurple,
+                                iconColor: _iconPurple,
+                                title: '收藏中心',
+                                subtitle: '美食 · 旅行 · 小确幸',
+                                onTap: () => RouteNavigation.goToFavoritesCenter(context),
+                                trailingIcon: Icons.ios_share,
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: 12),
                         Row(
                           children: [
@@ -555,8 +555,8 @@ class ProfilePage extends ConsumerWidget {
                   ),
                 ],
               ),
-            // 悬浮按钮 - 返回
-            Positioned(
+              // 悬浮按钮 - 返回
+              Positioned(
               top: 16,
               left: 16,
               child: _FrostedCircleButton(
