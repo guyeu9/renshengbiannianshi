@@ -557,32 +557,33 @@ class ProfilePage extends ConsumerWidget {
               ),
               // 悬浮按钮 - 返回
               Positioned(
-              top: 16,
-              left: 16,
-              child: _FrostedCircleButton(
-                icon: Icons.arrow_back_ios_new,
-                onTap: () => context.go(AppRoutes.home),
+                top: 16,
+                left: 16,
+                child: _FrostedCircleButton(
+                  icon: Icons.arrow_back_ios_new,
+                  onTap: () => context.go(AppRoutes.home),
+                ),
               ),
-            ),
-            // 悬浮按钮 - 分享和通知
-            Positioned(
-              top: 16,
-              right: 16,
-              child: Row(
-                children: [
-                  _FrostedCircleButton(
-                    icon: Icons.share,
-                    onTap: () => _shareProfile(context, ref),
-                  ),
-                  const SizedBox(width: 12),
-                  _FrostedCircleButton(
-                    icon: Icons.notifications,
-                    onTap: () => _showNotificationSettings(context),
-                  ),
-                ],
+              // 悬浮按钮 - 分享和通知
+              Positioned(
+                top: 16,
+                right: 16,
+                child: Row(
+                  children: [
+                    _FrostedCircleButton(
+                      icon: Icons.share,
+                      onTap: () => _shareProfile(context, ref),
+                    ),
+                    const SizedBox(width: 12),
+                    _FrostedCircleButton(
+                      icon: Icons.notifications,
+                      onTap: () => _showNotificationSettings(context),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
