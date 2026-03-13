@@ -296,11 +296,19 @@ class RecordRetriever {
     final keywords = _extractKeywords(query);
     final perTypeLimit = limit != null ? (limit ~/ 5 + 5) : null;
 
-    records.addAll(await _searchFoodRecords(keywords, perTypeLimit));
-    records.addAll(await _searchMomentRecords(keywords, perTypeLimit));
-    records.addAll(await _searchTravelRecords(keywords, perTypeLimit));
-    records.addAll(await _searchGoalRecords(keywords, perTypeLimit));
-    records.addAll(await _searchEncounterRecords(keywords, perTypeLimit));
+    if (keywords.isEmpty) {
+      records.addAll(await _loadAllFoodRecords(perTypeLimit));
+      records.addAll(await _loadAllMomentRecords(perTypeLimit));
+      records.addAll(await _loadAllTravelRecords(perTypeLimit));
+      records.addAll(await _loadAllGoalRecords(perTypeLimit));
+      records.addAll(await _loadAllEncounterRecords(perTypeLimit));
+    } else {
+      records.addAll(await _searchFoodRecords(keywords, perTypeLimit));
+      records.addAll(await _searchMomentRecords(keywords, perTypeLimit));
+      records.addAll(await _searchTravelRecords(keywords, perTypeLimit));
+      records.addAll(await _searchGoalRecords(keywords, perTypeLimit));
+      records.addAll(await _searchEncounterRecords(keywords, perTypeLimit));
+    }
 
     records.sort((a, b) {
       if (a.isFavorite != b.isFavorite) {

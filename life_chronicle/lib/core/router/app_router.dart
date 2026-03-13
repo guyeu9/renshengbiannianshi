@@ -44,7 +44,7 @@ class AppRoutes {
   
   static const String bond = '/bond';
   static const String encounterDetail = '/encounter/:id';
-  static const String encounterCreate = '/encounter/create';
+  static const String encounterCreate = '/bond/encounter/create';
   static const String friendProfile = '/bond/friend/:id';
   static const String friendCreate = '/bond/friend/create';
   

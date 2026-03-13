@@ -65,9 +65,15 @@ class ContextBuilder {
     bool fullData = false,
   }) async {
     final buffer = StringBuffer();
+    final now = DateTime.now();
     
     buffer.writeln('你是人生编年史APP的AI史官，一个温暖、有洞察力的数字档案管理员。');
     buffer.writeln('你能够访问用户的人生记录数据，帮助用户回顾和探索他们的过去。');
+    buffer.writeln('');
+    
+    buffer.writeln('## 当前时间');
+    buffer.writeln('今天是 ${now.year}年${now.month}月${now.day}日（${_getWeekdayName(now.weekday)}）');
+    buffer.writeln('当前时间：${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}');
     buffer.writeln('');
     
     buffer.writeln('## 用户数据概览');
@@ -86,11 +92,20 @@ class ContextBuilder {
       buffer.writeln('');
     }
     
+    final queryType = _classifyQuery(userQuery);
+    final timeRange = queryType == QueryType.timeRange ? _extractTimeRange(userQuery) : null;
+    
+    if (timeRange != null) {
+      buffer.writeln('## 查询时间范围');
+      buffer.writeln('用户询问的时间范围：${_formatDateRange(timeRange['start']!, timeRange['end']!)}');
+      buffer.writeln('');
+    }
+    
     final records = preloadedRecords ?? await _retrieveRecordsForQuery(userQuery, fullData: fullData);
     
     if (records.isNotEmpty) {
-      buffer.writeln('## 相关记录');
-      buffer.writeln('以下是与你问题相关的用户真实记录（完整原始数据）：');
+      buffer.writeln('## 用户档案记录');
+      buffer.writeln('以下是用户的真实记录数据（完整原始数据）：');
       buffer.writeln('');
       
       final groupedRecords = _groupByType(records);
@@ -99,6 +114,24 @@ class ContextBuilder {
         for (final record in entry.value) {
           buffer.writeln(record.toPromptString());
         }
+        buffer.writeln('');
+      }
+    } else {
+      buffer.writeln('## 用户档案记录');
+      buffer.writeln('目前用户还没有任何记录。请友好地引导用户开始记录他们的人生故事。');
+      buffer.writeln('');
+    }
+    
+    if (timeRange != null) {
+      final timeRangeRecords = records.where((r) {
+        final recordDate = r.date;
+        return recordDate.isAfter(timeRange['start']!) && recordDate.isBefore(timeRange['end']!);
+      }).toList();
+      
+      if (timeRangeRecords.isEmpty) {
+        buffer.writeln('## 时间范围提示');
+        buffer.writeln('⚠️ 用户询问的时间范围内没有找到记录。');
+        buffer.writeln('请基于用户的其他记录数据，友好地告知用户这一情况，并建议其他探索方向。');
         buffer.writeln('');
       }
     }
@@ -148,6 +181,17 @@ class ContextBuilder {
     return buffer.toString();
   }
 
+  String _formatDateRange(DateTime start, DateTime end) {
+    final startStr = '${start.year}-${start.month.toString().padLeft(2, '0')}-${start.day.toString().padLeft(2, '0')}';
+    final endStr = '${end.year}-${end.month.toString().padLeft(2, '0')}-${end.day.toString().padLeft(2, '0')}';
+    return '$startStr 至 $endStr';
+  }
+
+  String _getWeekdayName(int weekday) {
+    const weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    return weekdays[weekday - 1];
+  }
+
   String? _detectQueryFocus(String query) {
     final lowerQuery = query.toLowerCase();
     
@@ -184,37 +228,48 @@ class ContextBuilder {
     }
     
     final startTime = DateTime.now();
+    
+    final baseRecords = await _retrieveAllRecords(fullData: fullData);
+    
     final queryType = _classifyQuery(query);
+    List<RecordContext> additionalRecords = [];
     
-    List<RecordContext> records;
-    
-    if (queryType == QueryType.query) {
-      records = await _semanticSearchWithFallback(query, fullData: fullData);
-    } else {
-      String? module;
-      DateTime? startDate;
-      DateTime? endDate;
-      
-      if (queryType == QueryType.summary) {
-        module = _extractModule(query);
-      } else if (queryType == QueryType.timeRange) {
-        final timeRange = _extractTimeRange(query);
-        if (timeRange != null) {
-          startDate = timeRange['start'];
-          endDate = timeRange['end'];
-        }
+    if (queryType == QueryType.timeRange) {
+      final timeRange = _extractTimeRange(query);
+      if (timeRange != null) {
+        additionalRecords = await _retriever.retrieveRecords(
+          queryType: QueryType.timeRange,
+          userQuery: query,
+          startDate: timeRange['start'],
+          endDate: timeRange['end'],
+          limit: fullData ? null : 50,
+          fullData: fullData,
+        );
       }
-      
-      records = await _retriever.retrieveRecords(
-        queryType: queryType,
+    } else if (queryType == QueryType.summary) {
+      final module = _extractModule(query);
+      if (module != 'all') {
+        additionalRecords = await _retriever.retrieveRecords(
+          queryType: QueryType.summary,
+          userQuery: query,
+          module: module,
+          limit: fullData ? null : 50,
+          fullData: fullData,
+        );
+      }
+    } else if (queryType == QueryType.onThisDay) {
+      additionalRecords = await _retriever.retrieveRecords(
+        queryType: QueryType.onThisDay,
         userQuery: query,
-        module: module,
-        startDate: startDate,
-        endDate: endDate,
-        limit: fullData ? 100 : 20,
+        limit: fullData ? null : 50,
         fullData: fullData,
       );
+    } else if (queryType == QueryType.query) {
+      final semanticRecords = await _semanticSearchWithFallback(query, fullData: fullData);
+      additionalRecords = semanticRecords;
     }
+    
+    final records = _mergeRecords(baseRecords, additionalRecords);
     
     _cache[cacheKey] = _CacheEntry(records, DateTime.now());
     
@@ -238,7 +293,7 @@ class ContextBuilder {
     }
     
     developer.log(
-      'AI史官上下文: ${records.length}条记录, 约${estimatedTokens}tokens, 耗时${retrievalTime.inMilliseconds}ms',
+      'AI史官上下文: ${records.length}条记录 (基础${baseRecords.length}+补充${additionalRecords.length}), 约${estimatedTokens}tokens, 耗时${retrievalTime.inMilliseconds}ms',
       name: 'ContextBuilder',
     );
     
@@ -414,6 +469,47 @@ class ContextBuilder {
     return grouped;
   }
 
+  Future<List<RecordContext>> _retrieveAllRecords({bool fullData = false}) async {
+    final cacheKey = 'all_records:full:$fullData';
+    final cached = _cache[cacheKey];
+    if (cached != null && !cached.isExpired) {
+      return cached.value;
+    }
+    
+    final records = await _retriever.retrieveRecords(
+      queryType: QueryType.summary,
+      userQuery: '',
+      module: 'all',
+      limit: fullData ? null : 50,
+      fullData: fullData,
+    );
+    
+    _cache[cacheKey] = _CacheEntry(records, DateTime.now());
+    return records;
+  }
+
+  List<RecordContext> _mergeRecords(
+    List<RecordContext> baseRecords,
+    List<RecordContext> additionalRecords,
+  ) {
+    final recordMap = <String, RecordContext>{};
+    
+    for (final record in baseRecords) {
+      recordMap['${record.type}_${record.id}'] = record;
+    }
+    
+    for (final record in additionalRecords) {
+      recordMap['${record.type}_${record.id}'] = record;
+    }
+    
+    return recordMap.values.toList()
+      ..sort((a, b) {
+        final favoriteCompare = (b.isFavorite ? 1 : 0) - (a.isFavorite ? 1 : 0);
+        if (favoriteCompare != 0) return favoriteCompare;
+        return b.date.compareTo(a.date);
+      });
+  }
+
   Future<List<RecordContext>> retrieveForQuickAction(String actionType, {bool fullData = false}) async {
     final cacheKey = 'quick:$actionType:full:$fullData';
     final cached = _cache[cacheKey];
@@ -421,7 +517,9 @@ class ContextBuilder {
       return cached.value;
     }
     
-    List<RecordContext> records;
+    final baseRecords = await _retrieveAllRecords(fullData: fullData);
+    
+    List<RecordContext> specificRecords;
     
     switch (actionType) {
       case 'mood_summary':
@@ -429,13 +527,13 @@ class ContextBuilder {
         final lastMonth = DateTime(now.year, now.month - 1);
         final start = DateTime(lastMonth.year, lastMonth.month, 1);
         final end = DateTime(now.year, now.month, 1);
-        records = await _retriever.retrieveRecords(
+        specificRecords = await _retriever.retrieveRecords(
           queryType: QueryType.timeRange,
           userQuery: '',
           module: 'moment',
           startDate: start,
           endDate: end,
-          limit: fullData ? 100 : 50,
+          limit: fullData ? null : 50,
           fullData: fullData,
         );
         break;
@@ -444,29 +542,31 @@ class ContextBuilder {
         final now = DateTime.now();
         final start = DateTime(now.year, 1, 1);
         final end = DateTime(now.year + 1, 1, 1);
-        records = await _retriever.retrieveRecords(
+        specificRecords = await _retriever.retrieveRecords(
           queryType: QueryType.timeRange,
           userQuery: '',
           module: 'goal',
           startDate: start,
           endDate: end,
-          limit: fullData ? 100 : 50,
+          limit: fullData ? null : 50,
           fullData: fullData,
         );
         break;
         
       case 'on_this_day':
-        records = await _retriever.retrieveRecords(
+        specificRecords = await _retriever.retrieveRecords(
           queryType: QueryType.onThisDay,
           userQuery: '',
-          limit: fullData ? 100 : 30,
+          limit: fullData ? null : 50,
           fullData: fullData,
         );
         break;
         
       default:
-        records = [];
+        specificRecords = [];
     }
+    
+    final records = _mergeRecords(baseRecords, specificRecords);
     
     _cache[cacheKey] = _CacheEntry(records, DateTime.now());
     return records;
