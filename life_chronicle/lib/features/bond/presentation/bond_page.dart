@@ -1926,6 +1926,7 @@ class _FriendMemorySliverState extends ConsumerState<_FriendMemorySliver> {
 
       final placeDisplay = place.isNotEmpty && address.isNotEmpty && !place.contains(address) ? '$place · $address' : (place.isNotEmpty ? place : address);
       return _FriendMemoryItem(
+        id: e.id,
         recordDate: e.recordDate,
         typeKey: 'encounter',
         date: '${e.recordDate.year}年 ${e.recordDate.month}月 ${e.recordDate.day}日',
@@ -1940,6 +1941,7 @@ class _FriendMemorySliverState extends ConsumerState<_FriendMemorySliver> {
         latitude: e.latitude,
         longitude: e.longitude,
         images: images,
+        isFavorite: e.isFavorite,
       );
     }).toList();
   }
@@ -1953,6 +1955,7 @@ class _FriendMemorySliverState extends ConsumerState<_FriendMemorySliver> {
       final title = _momentTitleFromContent(r.content);
       final body = _momentBodyFromContent(r.content);
       return _FriendMemoryItem(
+        id: r.id,
         recordDate: r.recordDate,
         typeKey: 'moment',
         date: _formatDateCN(r.recordDate),
@@ -1967,6 +1970,7 @@ class _FriendMemorySliverState extends ConsumerState<_FriendMemorySliver> {
         latitude: r.latitude,
         longitude: r.longitude,
         images: _decodeStringList(r.images),
+        isFavorite: r.isFavorite,
       );
     }).toList(growable: false);
   }
@@ -1977,6 +1981,7 @@ class _FriendMemorySliverState extends ConsumerState<_FriendMemorySliver> {
       final poiAddress = (r.poiAddress ?? r.city ?? '').trim();
       final place = poiName.isNotEmpty ? poiName : poiAddress;
       return _FriendMemoryItem(
+        id: r.id,
         recordDate: r.recordDate,
         typeKey: 'food',
         date: _formatDateCN(r.recordDate),
@@ -1991,6 +1996,7 @@ class _FriendMemorySliverState extends ConsumerState<_FriendMemorySliver> {
         latitude: r.latitude,
         longitude: r.longitude,
         images: _decodeStringList(r.images),
+        isFavorite: r.isFavorite,
       );
     }).toList(growable: false);
   }
@@ -2001,6 +2007,7 @@ class _FriendMemorySliverState extends ConsumerState<_FriendMemorySliver> {
       final poiAddress = (r.poiAddress ?? r.destination ?? '').trim();
       final place = poiName.isNotEmpty ? poiName : poiAddress;
       return _FriendMemoryItem(
+        id: r.id,
         recordDate: r.recordDate,
         typeKey: 'travel',
         date: _formatDateCN(r.recordDate),
@@ -2015,6 +2022,7 @@ class _FriendMemorySliverState extends ConsumerState<_FriendMemorySliver> {
         latitude: r.latitude,
         longitude: r.longitude,
         images: _decodeStringList(r.images),
+        isFavorite: r.isFavorite,
       );
     }).toList(growable: false);
   }
@@ -2183,6 +2191,7 @@ class _PillTab extends StatelessWidget {
 
 class _FriendMemoryItem {
   const _FriendMemoryItem({
+    required this.id,
     required this.recordDate,
     required this.typeKey,
     required this.date,
@@ -2197,8 +2206,10 @@ class _FriendMemoryItem {
     required this.latitude,
     required this.longitude,
     required this.images,
+    this.isFavorite = false,
   });
 
+  final String id;
   final DateTime recordDate;
   final String typeKey;
   final String date;
@@ -2213,6 +2224,45 @@ class _FriendMemoryItem {
   final double? latitude;
   final double? longitude;
   final List<String> images;
+  final bool isFavorite;
+
+  _FriendMemoryItem copyWith({
+    String? id,
+    DateTime? recordDate,
+    String? typeKey,
+    String? date,
+    String? typeLabel,
+    IconData? typeIcon,
+    String? title,
+    String? content,
+    String? place,
+    String? poiName,
+    String? poiAddress,
+    String? city,
+    double? latitude,
+    double? longitude,
+    List<String>? images,
+    bool? isFavorite,
+  }) {
+    return _FriendMemoryItem(
+      id: id ?? this.id,
+      recordDate: recordDate ?? this.recordDate,
+      typeKey: typeKey ?? this.typeKey,
+      date: date ?? this.date,
+      typeLabel: typeLabel ?? this.typeLabel,
+      typeIcon: typeIcon ?? this.typeIcon,
+      title: title ?? this.title,
+      content: content ?? this.content,
+      place: place ?? this.place,
+      poiName: poiName ?? this.poiName,
+      poiAddress: poiAddress ?? this.poiAddress,
+      city: city ?? this.city,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      images: images ?? this.images,
+      isFavorite: isFavorite ?? this.isFavorite,
+    );
+  }
 }
 
 class _TimelineEntry extends StatelessWidget {
@@ -2276,19 +2326,54 @@ class _TimelineEntry extends StatelessWidget {
 
   Widget _buildCard(BuildContext context) {
     if (item.images.isEmpty) {
-      return _NoImageMemoryCard(item: item);
+      return _NoImageMemoryCard(
+        item: item,
+        onTap: () => _navigateToDetail(context),
+        onFavoriteToggle: () => _toggleFavorite(context),
+      );
     } else if (item.images.length == 1) {
-      return _SingleImageMemoryCard(item: item);
+      return _SingleImageMemoryCard(
+        item: item,
+        onTap: () => _navigateToDetail(context),
+        onFavoriteToggle: () => _toggleFavorite(context),
+      );
     } else {
-      return _MultiImageMemoryCard(item: item);
+      return _MultiImageMemoryCard(
+        item: item,
+        onTap: () => _navigateToDetail(context),
+        onFavoriteToggle: () => _toggleFavorite(context),
+      );
     }
+  }
+
+  void _navigateToDetail(BuildContext context) {
+    switch (item.typeKey) {
+      case 'encounter':
+        RouteNavigation.goToEncounterDetail(context, item.id);
+        break;
+      case 'moment':
+        RouteNavigation.goToMomentDetail(context, item.id);
+        break;
+      case 'food':
+        RouteNavigation.goToFoodDetail(context, item.id);
+        break;
+      case 'travel':
+        RouteNavigation.goToTravelDetail(context, item.id);
+        break;
+    }
+  }
+
+  void _toggleFavorite(BuildContext context) {
+    debugPrint('切换收藏状态: ${item.id}, 当前: ${item.isFavorite}');
   }
 }
 
 class _SingleImageMemoryCard extends StatelessWidget {
-  const _SingleImageMemoryCard({required this.item});
+  const _SingleImageMemoryCard({required this.item, this.onTap, this.onFavoriteToggle});
 
   final _FriendMemoryItem item;
+  final VoidCallback? onTap;
+  final VoidCallback? onFavoriteToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -2297,7 +2382,7 @@ class _SingleImageMemoryCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(22),
       child: InkWell(
         borderRadius: BorderRadius.circular(22),
-        onTap: () {},
+        onTap: onTap ?? () => _navigateToDetail(context),
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(22),
@@ -2350,7 +2435,12 @@ class _SingleImageMemoryCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 8),
-                    Text(item.content, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B), height: 1.45)),
+                    Text(
+                      item.content,
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B), height: 1.45),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     const SizedBox(height: 12),
                     Row(
                       children: [
@@ -2375,13 +2465,22 @@ class _SingleImageMemoryCard extends StatelessWidget {
                                 const Icon(Icons.place, size: 16, color: Color(0xFF9CA3AF)),
                                 const SizedBox(width: 6),
                                 Expanded(
-                                  child: Text(item.place, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+                                  child: Text(
+                                    item.place,
+                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF)),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                               ],
                             ),
                           ),
                         ),
-                        IconButton(onPressed: () {}, icon: const Icon(Icons.favorite_border), color: const Color(0xFF9CA3AF)),
+                        IconButton(
+                          onPressed: onFavoriteToggle ?? () => _toggleFavorite(context),
+                          icon: Icon(item.isFavorite ? Icons.favorite : Icons.favorite_border),
+                          color: item.isFavorite ? const Color(0xFFF43F5E) : const Color(0xFF9CA3AF),
+                        ),
                       ],
                     ),
                   ],
@@ -2393,12 +2492,35 @@ class _SingleImageMemoryCard extends StatelessWidget {
       ),
     );
   }
+
+  void _navigateToDetail(BuildContext context) {
+    switch (item.typeKey) {
+      case 'encounter':
+        RouteNavigation.goToEncounterDetail(context, item.id);
+        break;
+      case 'moment':
+        RouteNavigation.goToMomentDetail(context, item.id);
+        break;
+      case 'food':
+        RouteNavigation.goToFoodDetail(context, item.id);
+        break;
+      case 'travel':
+        RouteNavigation.goToTravelDetail(context, item.id);
+        break;
+    }
+  }
+
+  void _toggleFavorite(BuildContext context) {
+    debugPrint('切换收藏状态: ${item.id}, 当前: ${item.isFavorite}');
+  }
 }
 
 class _MultiImageMemoryCard extends StatelessWidget {
-  const _MultiImageMemoryCard({required this.item});
+  const _MultiImageMemoryCard({required this.item, this.onTap, this.onFavoriteToggle});
 
   final _FriendMemoryItem item;
+  final VoidCallback? onTap;
+  final VoidCallback? onFavoriteToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -2411,7 +2533,7 @@ class _MultiImageMemoryCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(22),
       child: InkWell(
         borderRadius: BorderRadius.circular(22),
-        onTap: () {},
+        onTap: onTap ?? () => _navigateToDetail(context),
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(22),
@@ -2442,7 +2564,12 @@ class _MultiImageMemoryCard extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    Text(item.content, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B), height: 1.45)),
+                    Text(
+                      item.content,
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B), height: 1.45),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
               ),
@@ -2508,13 +2635,22 @@ class _MultiImageMemoryCard extends StatelessWidget {
                             const Icon(Icons.place, size: 16, color: Color(0xFF9CA3AF)),
                             const SizedBox(width: 6),
                             Expanded(
-                              child: Text(item.place, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+                              child: Text(
+                                item.place,
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF)),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           ],
                         ),
                       ),
                     ),
-                    IconButton(onPressed: () {}, icon: const Icon(Icons.favorite_border), color: const Color(0xFF9CA3AF)),
+                    IconButton(
+                      onPressed: onFavoriteToggle ?? () => _toggleFavorite(context),
+                      icon: Icon(item.isFavorite ? Icons.favorite : Icons.favorite_border),
+                      color: item.isFavorite ? const Color(0xFFF43F5E) : const Color(0xFF9CA3AF),
+                    ),
                   ],
                 ),
               ),
@@ -2524,12 +2660,35 @@ class _MultiImageMemoryCard extends StatelessWidget {
       ),
     );
   }
+
+  void _navigateToDetail(BuildContext context) {
+    switch (item.typeKey) {
+      case 'encounter':
+        RouteNavigation.goToEncounterDetail(context, item.id);
+        break;
+      case 'moment':
+        RouteNavigation.goToMomentDetail(context, item.id);
+        break;
+      case 'food':
+        RouteNavigation.goToFoodDetail(context, item.id);
+        break;
+      case 'travel':
+        RouteNavigation.goToTravelDetail(context, item.id);
+        break;
+    }
+  }
+
+  void _toggleFavorite(BuildContext context) {
+    debugPrint('切换收藏状态: ${item.id}, 当前: ${item.isFavorite}');
+  }
 }
 
 class _NoImageMemoryCard extends StatelessWidget {
-  const _NoImageMemoryCard({required this.item});
+  const _NoImageMemoryCard({required this.item, this.onTap, this.onFavoriteToggle});
 
   final _FriendMemoryItem item;
+  final VoidCallback? onTap;
+  final VoidCallback? onFavoriteToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -2538,7 +2697,7 @@ class _NoImageMemoryCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(22),
       child: InkWell(
         borderRadius: BorderRadius.circular(22),
-        onTap: () {},
+        onTap: onTap ?? () => _navigateToDetail(context),
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
@@ -2582,7 +2741,14 @@ class _NoImageMemoryCard extends StatelessWidget {
                           children: [
                             const Icon(Icons.place, size: 14, color: Color(0xFF9CA3AF)),
                             const SizedBox(width: 4),
-                            Text(item.place, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+                            Flexible(
+                              child: Text(
+                                item.place,
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF)),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -2590,12 +2756,34 @@ class _NoImageMemoryCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 8),
-              Text(item.content, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B), height: 1.45)),
+              Text(
+                item.content,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B), height: 1.45),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  void _navigateToDetail(BuildContext context) {
+    switch (item.typeKey) {
+      case 'encounter':
+        RouteNavigation.goToEncounterDetail(context, item.id);
+        break;
+      case 'moment':
+        RouteNavigation.goToMomentDetail(context, item.id);
+        break;
+      case 'food':
+        RouteNavigation.goToFoodDetail(context, item.id);
+        break;
+      case 'travel':
+        RouteNavigation.goToTravelDetail(context, item.id);
+        break;
+    }
   }
 }
 

@@ -46,29 +46,74 @@ final encounterTimelineProvider = StreamProvider<EncounterTimelineState>((ref) a
     final moments = combined.$3;
     final travels = combined.$4;
 
-    final allIds = <String>[
-      ...encounters.map((e) => e.id),
-      ...foods.map((f) => f.id),
-      ...moments.map((m) => m.id),
-      ...travels.map((t) => t.id),
-    ];
-
     final friendLinks = <String, List<String>>{};
-    for (final id in allIds) {
-      final links = await db.linkDao.listLinksForEntity(entityType: 'encounter', entityId: id);
-      friendLinks[id] = links.where((l) => l.targetType == 'friend').map((l) => l.targetId).toList();
+
+    // 批量查询 encounter 关联
+    if (encounters.isNotEmpty) {
+      final encounterIds = encounters.map((e) => e.id).toList();
+      final links = await db.linkDao.listLinksForEntities(
+        entityType: 'encounter',
+        entityIds: encounterIds,
+      );
+      for (final link in links) {
+        if (link.targetType == 'friend') {
+          (friendLinks[link.sourceId] ??= <String>[]).add(link.targetId);
+        }
+        if (link.sourceType == 'friend') {
+          (friendLinks[link.targetId] ??= <String>[]).add(link.sourceId);
+        }
+      }
     }
-    for (final id in foods.map((f) => f.id)) {
-      final links = await db.linkDao.listLinksForEntity(entityType: 'food', entityId: id);
-      friendLinks[id] = links.where((l) => l.targetType == 'friend').map((l) => l.targetId).toList();
+
+    // 批量查询 food 关联
+    if (foods.isNotEmpty) {
+      final foodIds = foods.map((f) => f.id).toList();
+      final links = await db.linkDao.listLinksForEntities(
+        entityType: 'food',
+        entityIds: foodIds,
+      );
+      for (final link in links) {
+        if (link.targetType == 'friend') {
+          (friendLinks[link.sourceId] ??= <String>[]).add(link.targetId);
+        }
+        if (link.sourceType == 'friend') {
+          (friendLinks[link.targetId] ??= <String>[]).add(link.sourceId);
+        }
+      }
     }
-    for (final id in moments.map((m) => m.id)) {
-      final links = await db.linkDao.listLinksForEntity(entityType: 'moment', entityId: id);
-      friendLinks[id] = links.where((l) => l.targetType == 'friend').map((l) => l.targetId).toList();
+
+    // 批量查询 moment 关联
+    if (moments.isNotEmpty) {
+      final momentIds = moments.map((m) => m.id).toList();
+      final links = await db.linkDao.listLinksForEntities(
+        entityType: 'moment',
+        entityIds: momentIds,
+      );
+      for (final link in links) {
+        if (link.targetType == 'friend') {
+          (friendLinks[link.sourceId] ??= <String>[]).add(link.targetId);
+        }
+        if (link.sourceType == 'friend') {
+          (friendLinks[link.targetId] ??= <String>[]).add(link.sourceId);
+        }
+      }
     }
-    for (final id in travels.map((t) => t.id)) {
-      final links = await db.linkDao.listLinksForEntity(entityType: 'travel', entityId: id);
-      friendLinks[id] = links.where((l) => l.targetType == 'friend').map((l) => l.targetId).toList();
+
+    // 批量查询 travel 关联
+    if (travels.isNotEmpty) {
+      final travelIds = travels.map((t) => t.id).toList();
+      final links = await db.linkDao.listLinksForEntities(
+        entityType: 'travel',
+        entityIds: travelIds,
+      );
+      for (final link in links) {
+        if (link.targetType == 'friend') {
+          (friendLinks[link.sourceId] ??= <String>[]).add(link.targetId);
+        }
+        if (link.sourceType == 'friend') {
+          (friendLinks[link.targetId] ??= <String>[]).add(link.sourceId);
+        }
+      }
     }
 
     yield EncounterTimelineState(
@@ -95,7 +140,8 @@ Stream<(T1, T2, T3, T4)> _combineLatest4<T1, T2, T3, T4>(
   var hasV2 = false;
   var hasV3 = false;
   var hasV4 = false;
-
+  var doneCount = 0;
+  final subscriptions = <StreamSubscription>[];
   final controller = StreamController<(T1, T2, T3, T4)>();
 
   void emit() {
@@ -104,10 +150,25 @@ Stream<(T1, T2, T3, T4)> _combineLatest4<T1, T2, T3, T4>(
     }
   }
 
-  s1.listen((v) { v1 = v; hasV1 = true; emit(); }, onError: controller.addError, onDone: controller.close);
-  s2.listen((v) { v2 = v; hasV2 = true; emit(); }, onError: controller.addError);
-  s3.listen((v) { v3 = v; hasV3 = true; emit(); }, onError: controller.addError);
-  s4.listen((v) { v4 = v; hasV4 = true; emit(); }, onError: controller.addError);
+  void onDone() {
+    doneCount++;
+    if (doneCount >= 4) {
+      controller.close();
+    }
+  }
+
+  subscriptions.addAll([
+    s1.listen((v) { v1 = v; hasV1 = true; emit(); }, onError: controller.addError, onDone: onDone),
+    s2.listen((v) { v2 = v; hasV2 = true; emit(); }, onError: controller.addError, onDone: onDone),
+    s3.listen((v) { v3 = v; hasV3 = true; emit(); }, onError: controller.addError, onDone: onDone),
+    s4.listen((v) { v4 = v; hasV4 = true; emit(); }, onError: controller.addError, onDone: onDone),
+  ]);
+
+  controller.onCancel = () {
+    for (final sub in subscriptions) {
+      sub.cancel();
+    }
+  };
 
   return controller.stream;
 }

@@ -117,6 +117,7 @@ class AiHistorianChatPage extends ConsumerStatefulWidget {
 
   bool get isModuleMode => moduleParams != null && moduleParams!.moduleType.isNotEmpty;
   bool get isDetailMode => moduleParams?.isDetailMode ?? false;
+  bool get isFriendMode => moduleParams?.isFriendMode ?? false;
 
   @override
   ConsumerState<AiHistorianChatPage> createState() => _AiHistorianChatPageState();
@@ -272,7 +273,7 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
           queryType: QueryType.summary,
           userQuery: '',
           module: moduleType,
-          fullData: widget.moduleParams?.fullData ?? false,
+          fullData: _fullData,
         );
       }
       
@@ -1085,7 +1086,13 @@ ${result.prompt}
                   onToggleSessions: () => setState(() => _showSessionDrawer = !_showSessionDrawer),
                   hasAiService: hasAiService,
                   fullData: _fullData,
-                  onToggleFullData: () => setState(() => _fullData = !_fullData),
+                  onToggleFullData: () async {
+                    setState(() => _fullData = !_fullData);
+                    // 切换全量数据后重新加载模块数据
+                    if (widget.isModuleMode) {
+                      await _loadModuleData();
+                    }
+                  },
                   onGoBack: () {
                     final sourceRoute = widget.moduleParams?.sourceRoute ?? AppRoutes.home;
                     context.go(sourceRoute);
@@ -1474,41 +1481,43 @@ class _AiChatTopBar extends StatelessWidget {
                   ],
                 ),
               ),
-              if (moduleParams == null) ...[
-                InkWell(
-                  onTap: onToggleFullData,
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: fullData ? AppTheme.primary.withValues(alpha: 0.15) : Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: fullData ? AppTheme.primary : Colors.grey.shade300,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          fullData ? Icons.dataset : Icons.dataset_outlined,
-                          size: 16,
-                          color: fullData ? AppTheme.primary : Colors.grey.shade600,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '全量数据',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: fullData ? AppTheme.primary : Colors.grey.shade600,
-                          ),
-                        ),
-                      ],
+              InkWell(
+                onTap: onToggleFullData,
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: fullData ? AppTheme.primary.withValues(alpha: 0.15) : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: fullData ? AppTheme.primary : Colors.grey.shade300,
                     ),
                   ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        fullData ? Icons.dataset : Icons.dataset_outlined,
+                        size: 16,
+                        color: fullData ? AppTheme.primary : Colors.grey.shade600,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        moduleParams != null 
+                            ? (fullData ? '全量数据' : '模块数据')
+                            : '全量数据',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: fullData ? AppTheme.primary : Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(width: 8),
+              ),
+              const SizedBox(width: 8),
+              if (moduleParams == null) ...[
                 IconButton(
                   onPressed: onAnalytics,
                   icon: const Icon(Icons.analytics, color: Color(0xFF475569)),

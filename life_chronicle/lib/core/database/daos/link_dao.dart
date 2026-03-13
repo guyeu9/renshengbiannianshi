@@ -1,5 +1,41 @@
 part of '../app_database.dart';
 
+/// 万物互联核心组件
+///
+/// ## 职责
+/// 管理所有实体关联的创建、删除和查询。
+///
+/// ## 自动处理的后续逻辑
+/// 当创建或删除关联时，会自动处理：
+/// 1. **朋友的 lastMeetDate 更新**：如果关联/取消关联的是朋友
+/// 2. **目标进度同步**：如果关联/取消关联的是目标
+/// 3. **关联日志记录**：所有关联变更都会记录到 link_logs 表
+///
+/// ## 使用规范
+/// - ✅ 所有关联操作都应通过此类进行
+/// - ❌ 不要直接操作 entity_links 表
+/// - ⚠️ 如果必须在其他地方删除关联，请确保手动调用后续处理方法
+///
+/// ## 示例
+/// ```dart
+/// // 创建关联
+/// await db.linkDao.createLink(
+///   sourceType: 'food',
+///   sourceId: foodId,
+///   targetType: 'friend',
+///   targetId: friendId,
+///   now: DateTime.now(),
+/// );
+///
+/// // 删除关联
+/// await db.linkDao.deleteLink(
+///   sourceType: 'food',
+///   sourceId: foodId,
+///   targetType: 'friend',
+///   targetId: friendId,
+///   now: DateTime.now(),
+/// );
+/// ```
 @DriftAccessor(tables: [EntityLinks, LinkLogs])
 class LinkDao extends DatabaseAccessor<AppDatabase> with _$LinkDaoMixin {
   LinkDao(super.db, {Uuid? uuid}) : _uuid = uuid ?? const Uuid();
@@ -80,6 +116,39 @@ class LinkDao extends DatabaseAccessor<AppDatabase> with _$LinkDaoMixin {
       default:
         return null;
     }
+  }
+
+  /// 收集实体关联的朋友和目标ID
+  ///
+  /// 用于在删除实体前收集受影响的关联，以便后续处理：
+  /// - 重新计算朋友的 lastMeetDate
+  /// - 同步目标进度
+  ///
+  /// 参数：
+  /// - [entityType] 实体类型
+  /// - [entityId] 实体ID
+  ///
+  /// 返回：AffectedEntities 对象，包含受影响的朋友ID和目标ID列表
+  Future<AffectedEntities> collectAffectedEntities({
+    required String entityType,
+    required String entityId,
+  }) async {
+    final links = await listLinksForEntity(entityType: entityType, entityId: entityId);
+
+    final friendIds = <String>{};
+    final goalIds = <String>{};
+
+    for (final link in links) {
+      if (link.sourceType == 'friend') friendIds.add(link.sourceId);
+      if (link.targetType == 'friend') friendIds.add(link.targetId);
+      if (link.sourceType == 'goal') goalIds.add(link.sourceId);
+      if (link.targetType == 'goal') goalIds.add(link.targetId);
+    }
+
+    return AffectedEntities(
+      friendIds: friendIds.toList(),
+      goalIds: goalIds.toList(),
+    );
   }
 
   /// 更新朋友的上次见面时间
@@ -212,6 +281,20 @@ class LinkDao extends DatabaseAccessor<AppDatabase> with _$LinkDaoMixin {
     }
   }
 
+  /// 创建实体关联
+  ///
+  /// 创建关联后会自动：
+  /// - 更新朋友的 lastMeetDate（如果关联的是朋友）
+  /// - 同步目标进度（如果关联的是目标）
+  /// - 记录关联创建日志
+  ///
+  /// 参数：
+  /// - [sourceType] 源实体类型（food/moment/travel/goal/encounter/friend）
+  /// - [sourceId] 源实体ID
+  /// - [targetType] 目标实体类型
+  /// - [targetId] 目标实体ID
+  /// - [linkType] 关联类型，默认为 'manual'
+  /// - [now] 当前时间
   Future<void> createLink({
     required String sourceType,
     required String sourceId,
@@ -288,6 +371,20 @@ class LinkDao extends DatabaseAccessor<AppDatabase> with _$LinkDaoMixin {
     );
   }
 
+  /// 删除实体关联
+  ///
+  /// 删除关联后会自动：
+  /// - 重新计算朋友的 lastMeetDate（如果关联的是朋友）
+  /// - 同步目标进度（如果关联的是目标）
+  /// - 记录关联删除日志
+  ///
+  /// 参数：
+  /// - [sourceType] 源实体类型
+  /// - [sourceId] 源实体ID
+  /// - [targetType] 目标实体类型
+  /// - [targetId] 目标实体ID
+  /// - [linkType] 关联类型（可选）
+  /// - [now] 当前时间
   Future<void> deleteLink({
     required String sourceType,
     required String sourceId,
@@ -510,6 +607,20 @@ class LinkDao extends DatabaseAccessor<AppDatabase> with _$LinkDaoMixin {
     );
   }
 
+  /// 删除实体的所有关联
+  ///
+  /// 删除关联后会自动：
+  /// - 重新计算朋友的 lastMeetDate（如果关联的是朋友）
+  /// - 同步目标进度（如果关联的是目标）
+  /// - 记录关联删除日志
+  ///
+  /// 此方法会同时删除双向关联：
+  /// - sourceType/sourceId 作为源的关联
+  /// - targetType/targetId 作为目标的关联
+  ///
+  /// 参数：
+  /// - [sourceType] 实体类型
+  /// - [sourceId] 实体ID
   Future<void> deleteLinksBySource(String sourceType, String sourceId) async {
     final now = DateTime.now();
     // 查询双向关联（source 和 target 方向都要处理）
@@ -685,4 +796,32 @@ class LinkDao extends DatabaseAccessor<AppDatabase> with _$LinkDaoMixin {
       );
     }
   }
+}
+
+/// 受影响的实体集合
+///
+/// 用于记录删除实体时受影响的朋友和目标ID
+class AffectedEntities {
+  /// 受影响的朋友ID列表
+  final List<String> friendIds;
+
+  /// 受影响的目标ID列表
+  final List<String> goalIds;
+
+  const AffectedEntities({
+    required this.friendIds,
+    required this.goalIds,
+  });
+
+  /// 是否有受影响的朋友
+  bool get hasFriends => friendIds.isNotEmpty;
+
+  /// 是否有受影响的目标
+  bool get hasGoals => goalIds.isNotEmpty;
+
+  /// 是否为空
+  bool get isEmpty => friendIds.isEmpty && goalIds.isEmpty;
+
+  /// 是否不为空
+  bool get isNotEmpty => !isEmpty;
 }
