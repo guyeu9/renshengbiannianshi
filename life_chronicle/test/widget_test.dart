@@ -11,6 +11,7 @@ import 'package:drift/native.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'package:life_chronicle/app/app.dart';
 import 'package:life_chronicle/core/database/app_database.dart';

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:life_chronicle/core/services/ai_service.dart';
 import 'package:life_chronicle/core/services/embedding_service.dart';
@@ -11,6 +12,20 @@ class OpenAiCompatibleService extends AiServiceBase {
       : _client = client ?? http.Client();
   
   final http.Client _client;
+  bool _disposed = false;
+
+  void dispose() {
+    if (!_disposed) {
+      _client.close();
+      _disposed = true;
+    }
+  }
+
+  void _checkDisposed() {
+    if (_disposed) {
+      throw StateError('OpenAiCompatibleService has been disposed');
+    }
+  }
 
   String _normalizeBaseUrl() {
     var base = provider.baseUrl.trim();
@@ -64,17 +79,35 @@ class OpenAiCompatibleService extends AiServiceBase {
       
       if (response.statusCode != 200) {
         await amapError('AI服务', 'API错误: ${response.statusCode} - ${response.body}');
-        throw Exception('AI API error: ${response.statusCode} - ${response.body}');
+        final errorBody = response.body.length > 200 ? '${response.body.substring(0, 200)}...' : response.body;
+        throw Exception('AI服务请求失败 (${response.statusCode}): $errorBody');
       }
       
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      final choices = data['choices'] as List?;
-      if (choices == null || choices.isEmpty) {
+      final data = jsonDecode(response.body);
+      if (data is! Map<String, dynamic>) {
+        await amapError('AI服务', 'AI返回格式错误');
+        throw Exception('AI服务返回格式错误');
+      }
+      final choices = data['choices'];
+      if (choices is! List || choices.isEmpty) {
         await amapError('AI服务', 'AI返回空响应');
-        throw Exception('No response from AI');
+        throw Exception('AI服务返回空响应，请检查模型配置');
       }
-      
-      final content = (choices.first as Map<String, dynamic>)['message']['content'] as String;
+      final firstChoice = choices.first;
+      if (firstChoice is! Map<String, dynamic>) {
+        await amapError('AI服务', 'AI返回格式错误');
+        throw Exception('AI服务返回格式错误');
+      }
+      final message = firstChoice['message'];
+      if (message is! Map<String, dynamic>) {
+        await amapError('AI服务', 'AI返回格式错误');
+        throw Exception('AI服务返回格式错误');
+      }
+      final content = message['content'];
+      if (content is! String) {
+        await amapError('AI服务', 'AI返回格式错误');
+        throw Exception('AI服务返回格式错误');
+      }
       await amapDebug('AI服务', '请求成功, 响应长度: ${content.length}');
       return content;
     } catch (e, stack) {
@@ -97,7 +130,8 @@ class OpenAiCompatibleService extends AiServiceBase {
     
     if (response.statusCode != 200) {
       final body = await response.stream.bytesToString();
-      throw Exception('AI API error: ${response.statusCode} - $body');
+      final errorBody = body.length > 200 ? '${body.substring(0, 200)}...' : body;
+      throw Exception('AI服务请求失败 (${response.statusCode}): $errorBody');
     }
     
     final stream = response.stream.transform(utf8.decoder);
@@ -151,6 +185,20 @@ class OpenAiCompatibleEmbeddingService extends EmbeddingServiceBase {
       : _client = client ?? http.Client();
   
   final http.Client _client;
+  bool _disposed = false;
+
+  void dispose() {
+    if (!_disposed) {
+      _client.close();
+      _disposed = true;
+    }
+  }
+
+  void _checkDisposed() {
+    if (_disposed) {
+      throw StateError('OpenAiCompatibleEmbeddingService has been disposed');
+    }
+  }
   
   static const List<String> _fallbackModels = [
     'Qwen3-Embedding-8B',

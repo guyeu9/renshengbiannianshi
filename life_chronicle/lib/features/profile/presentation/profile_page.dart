@@ -6283,7 +6283,8 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
       },
     );
     if (confirmed != true || selectedTagId == null) return;
-    final newTag = otherTags.firstWhere((t) => t.id == selectedTagId);
+    final newTag = otherTags.where((t) => t.id == selectedTagId).firstOrNull;
+    if (newTag == null) return;
     await _replaceTagInDatabase(module: module, oldTagName: oldTag.name, newTagName: newTag.name);
     final updatedTags = current.tags.where((t) => t.id != oldTag.id).toList(growable: false);
     await _saveConfig(_updateModule(current.copyWith(tags: updatedTags)));

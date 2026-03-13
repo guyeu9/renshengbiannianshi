@@ -28,7 +28,7 @@ class FoodFilterParams {
       identical(this, other) ||
       other is FoodFilterParams &&
           filterDateIndex == other.filterDateIndex &&
-          filterCustomRange == other.filterCustomRange &&
+          _dateTimeRangeEquals(filterCustomRange, other.filterCustomRange) &&
           _setEquals(filterRatings, other.filterRatings) &&
           _setEquals(filterCities, other.filterCities) &&
           _setEquals(filterFriendIds, other.filterFriendIds) &&
@@ -38,7 +38,9 @@ class FoodFilterParams {
   @override
   int get hashCode => Object.hash(
     filterDateIndex,
-    filterCustomRange,
+    filterCustomRange != null 
+        ? Object.hash(filterCustomRange!.start, filterCustomRange!.end) 
+        : null,
     Object.hashAll(filterRatings),
     Object.hashAll(filterCities),
     Object.hashAll(filterFriendIds),
@@ -49,6 +51,12 @@ class FoodFilterParams {
   static bool _setEquals<T>(Set<T> a, Set<T> b) {
     if (a.length != b.length) return false;
     return a.containsAll(b);
+  }
+
+  static bool _dateTimeRangeEquals(DateTimeRange? a, DateTimeRange? b) {
+    if (a == null && b == null) return true;
+    if (a == null || b == null) return false;
+    return a.start == b.start && a.end == b.end;
   }
 }
 

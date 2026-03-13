@@ -301,6 +301,8 @@ Stream<JournalDetailState?> _combineJournalStreams({
   required String recordId,
   required AppDatabase db,
 }) {
+  var requestVersion = 0;
+  
   return Rx.combineLatest6(
     recordStream,
     linksStream,
@@ -309,11 +311,18 @@ Stream<JournalDetailState?> _combineJournalStreams({
     goalsStream,
     allTravelsStream,
     (record, links, friends, foods, goals, allTravels) async {
+      final currentVersion = ++requestVersion;
+      
       if (record == null) return null;
 
       Trip? trip;
       if (record.tripId.isNotEmpty) {
         trip = await db.travelDao.findTripById(record.tripId);
+      }
+      
+      // 检查是否有更新的请求
+      if (currentVersion != requestVersion) {
+        return null;
       }
 
       final linkedFriendIds = <String>{};

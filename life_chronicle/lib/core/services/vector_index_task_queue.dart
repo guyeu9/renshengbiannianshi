@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'vector_index_service.dart';
@@ -140,6 +141,7 @@ class VectorIndexTaskQueue {
   }
 
   Future<void> _processTask(VectorIndexTask task) async {
+    debugPrint('向量索引任务开始: ${task.id}, 操作: ${task.action}, 实体: ${task.entityType}/${task.entityId}');
     try {
       _pendingTasks.removeWhere((t) => t.id == task.id);
       final updatedTask = task.copyWith(status: VectorIndexTaskStatus.processing);
@@ -147,10 +149,12 @@ class VectorIndexTaskQueue {
       await _saveTasks();
 
       await _executeTask(task);
+      debugPrint('向量索引任务成功: ${task.id}');
 
       _pendingTasks.removeWhere((t) => t.id == task.id);
       await _saveTasks();
     } catch (e) {
+      debugPrint('向量索引任务失败: ${task.id}, 错误: $e');
       await _handleTaskFailure(task);
     }
   }
