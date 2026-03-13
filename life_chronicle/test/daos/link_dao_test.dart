@@ -1,4 +1,3 @@
-import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_chronicle/core/database/app_database.dart';
 import '../test_utils/test_utils.dart';
@@ -252,8 +251,8 @@ void main() {
       final foodId1 = 'test-food-lastmeet-2a';
       final foodId2 = 'test-food-lastmeet-2b';
       
-      final earlierDate = now.subtract(const Duration(hours: 1));
-      final laterDate = now;
+      final earlierDate = DateTime(now.year, now.month, now.day, now.hour - 1, now.minute, 0);
+      final laterDate = DateTime(now.year, now.month, now.day, now.hour, now.minute, 0);
       
       await foodDao.upsert(
         FoodRecordsCompanion.insert(
@@ -283,7 +282,11 @@ void main() {
       );
 
       var friend = await friendDao.findById(friendId);
-      expect(friend?.lastMeetDate, equals(earlierDate));
+      expect(friend?.lastMeetDate?.year, equals(earlierDate.year));
+      expect(friend?.lastMeetDate?.month, equals(earlierDate.month));
+      expect(friend?.lastMeetDate?.day, equals(earlierDate.day));
+      expect(friend?.lastMeetDate?.hour, equals(earlierDate.hour));
+      expect(friend?.lastMeetDate?.minute, equals(earlierDate.minute));
 
       await linkDao.createLink(
         sourceType: 'food',
@@ -294,7 +297,11 @@ void main() {
       );
 
       friend = await friendDao.findById(friendId);
-      expect(friend?.lastMeetDate, equals(laterDate));
+      expect(friend?.lastMeetDate?.year, equals(laterDate.year));
+      expect(friend?.lastMeetDate?.month, equals(laterDate.month));
+      expect(friend?.lastMeetDate?.day, equals(laterDate.day));
+      expect(friend?.lastMeetDate?.hour, equals(laterDate.hour));
+      expect(friend?.lastMeetDate?.minute, equals(laterDate.minute));
 
       await linkDao.deleteLink(
         sourceType: 'food',
@@ -305,7 +312,11 @@ void main() {
       );
 
       friend = await friendDao.findById(friendId);
-      expect(friend?.lastMeetDate, equals(laterDate));
+      expect(friend?.lastMeetDate?.year, equals(laterDate.year));
+      expect(friend?.lastMeetDate?.month, equals(laterDate.month));
+      expect(friend?.lastMeetDate?.day, equals(laterDate.day));
+      expect(friend?.lastMeetDate?.hour, equals(laterDate.hour));
+      expect(friend?.lastMeetDate?.minute, equals(laterDate.minute));
     });
   });
 

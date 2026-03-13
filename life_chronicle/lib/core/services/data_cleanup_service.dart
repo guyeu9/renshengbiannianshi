@@ -56,35 +56,35 @@ class DataCleanupService {
     final result = CleanupResult();
     final cutoffDate = DateTime.now().subtract(Duration(days: retentionDays));
 
-    result.foodRecordsDeleted = await (db.delete(db.foodRecords))
-        .where((t) => t.isDeleted.equals(true))
-        .where((t) => t.updatedAt.isSmallerThanValue(cutoffDate))
-        .go();
+    result.foodRecordsDeleted = await (db.delete(db.foodRecords)
+          ..where((t) => t.isDeleted.equals(true))
+          ..where((t) => t.updatedAt.isSmallerThanValue(cutoffDate)))
+          .go();
 
-    result.momentRecordsDeleted = await (db.delete(db.momentRecords))
-        .where((t) => t.isDeleted.equals(true))
-        .where((t) => t.updatedAt.isSmallerThanValue(cutoffDate))
-        .go();
+    result.momentRecordsDeleted = await (db.delete(db.momentRecords)
+          ..where((t) => t.isDeleted.equals(true))
+          ..where((t) => t.updatedAt.isSmallerThanValue(cutoffDate)))
+          .go();
 
-    result.friendRecordsDeleted = await (db.delete(db.friendRecords))
-        .where((t) => t.isDeleted.equals(true))
-        .where((t) => t.updatedAt.isSmallerThanValue(cutoffDate))
-        .go();
+    result.friendRecordsDeleted = await (db.delete(db.friendRecords)
+          ..where((t) => t.isDeleted.equals(true))
+          ..where((t) => t.updatedAt.isSmallerThanValue(cutoffDate)))
+          .go();
 
-    result.travelRecordsDeleted = await (db.delete(db.travelRecords))
-        .where((t) => t.isDeleted.equals(true))
-        .where((t) => t.updatedAt.isSmallerThanValue(cutoffDate))
-        .go();
+    result.travelRecordsDeleted = await (db.delete(db.travelRecords)
+          ..where((t) => t.isDeleted.equals(true))
+          ..where((t) => t.updatedAt.isSmallerThanValue(cutoffDate)))
+          .go();
 
-    result.goalRecordsDeleted = await (db.delete(db.goalRecords))
-        .where((t) => t.isDeleted.equals(true))
-        .where((t) => t.updatedAt.isSmallerThanValue(cutoffDate))
-        .go();
+    result.goalRecordsDeleted = await (db.delete(db.goalRecords)
+          ..where((t) => t.isDeleted.equals(true))
+          ..where((t) => t.updatedAt.isSmallerThanValue(cutoffDate)))
+          .go();
 
-    result.chatSessionsDeleted = await (db.delete(db.chatSessions))
-        .where((t) => t.isDeleted.equals(true))
-        .where((t) => t.updatedAt.isSmallerThanValue(cutoffDate))
-        .go();
+    result.chatSessionsDeleted = await (db.delete(db.chatSessions)
+          ..where((t) => t.isDeleted.equals(true))
+          ..where((t) => t.updatedAt.isSmallerThanValue(cutoffDate)))
+          .go();
 
     return result;
   }
@@ -139,18 +139,18 @@ class DataCleanupService {
   Future<int> cleanupOldChangeLogs({int retentionDays = 90}) async {
     final cutoffDate = DateTime.now().subtract(Duration(days: retentionDays));
 
-    return await (db.delete(db.changeLogs))
-        .where((t) => t.timestamp.isSmallerThanValue(cutoffDate))
-        .where((t) => t.synced.equals(true))
-        .go();
+    return await (db.delete(db.changeLogs)
+          ..where((t) => t.timestamp.isSmallerThanValue(cutoffDate))
+          ..where((t) => t.synced.equals(true)))
+          .go();
   }
 
   Future<int> cleanupOldLinkLogs({int retentionDays = 90}) async {
     final cutoffDate = DateTime.now().subtract(Duration(days: retentionDays));
 
     return await (db.delete(db.linkLogs)
-        .where((t) => t.createdAt.isSmallerThanValue(cutoffDate)))
-        .go();
+          ..where((t) => t.createdAt.isSmallerThanValue(cutoffDate)))
+          .go();
   }
 
   Future<Map<String, dynamic>> getStorageStats() async {
