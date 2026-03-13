@@ -1265,10 +1265,11 @@ class _BondFriendDetailPage extends ConsumerWidget {
           place: f.poiName ?? f.city,
           images: _decodeStringList(f.images),
           mood: null,
+          isFavorite: f.isFavorite,
+          friendId: null,
         ));
       }
     }
-
     if (travelIds.isNotEmpty) {
       final travels = await (db.select(db.travelRecords)
             ..where((t) => t.isDeleted.equals(false))
@@ -1284,6 +1285,8 @@ class _BondFriendDetailPage extends ConsumerWidget {
           place: t.poiName ?? t.destination,
           images: _decodeStringList(t.images),
           mood: null,
+          isFavorite: false,
+          friendId: null,
         ));
       }
     }

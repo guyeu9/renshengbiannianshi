@@ -90,7 +90,7 @@ class ContextBuilder {
       }
       if (userProfile.birthday != null) {
         final age = _calculateAge(userProfile.birthday!);
-        buffer.writeln('- 出生日期：${_formatDate(userProfile.birthday!)}（${age}岁）');
+        buffer.writeln('- 出生日期：${_formatDate(userProfile.birthday!)}（$age岁）');
       }
       if (userProfile.heightCm != null) {
         buffer.writeln('- 身高：${userProfile.heightCm!.toInt()} cm');

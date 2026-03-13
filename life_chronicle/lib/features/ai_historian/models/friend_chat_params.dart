@@ -56,6 +56,7 @@ class FriendMemoryData {
   final List<String> images;
   final String? mood;
   final bool isFavorite;
+  final String? friendId;
 
   const FriendMemoryData({
     required this.id,
@@ -67,6 +68,7 @@ class FriendMemoryData {
     required this.images,
     this.mood,
     this.isFavorite = false,
+    this.friendId,
   });
 
   String get typeLabel {
