@@ -143,14 +143,21 @@ class OpenAiCompatibleService extends AiServiceBase {
         if (data == '[DONE]') break;
         
         try {
-          final json = jsonDecode(data) as Map<String, dynamic>;
-          final choices = json['choices'] as List?;
-          if (choices != null && choices.isNotEmpty) {
-            final delta = (choices.first as Map<String, dynamic>)['delta'] as Map<String, dynamic>?;
-            final content = delta?['content'] as String?;
-            if (content != null) {
-              fullContent += content;
-              onChunk(content);
+          final json = jsonDecode(data);
+          if (json is Map<String, dynamic>) {
+            final choices = json['choices'];
+            if (choices is List && choices.isNotEmpty) {
+              final firstChoice = choices.first;
+              if (firstChoice is Map<String, dynamic>) {
+                final delta = firstChoice['delta'];
+                if (delta is Map<String, dynamic>) {
+                  final content = delta['content'];
+                  if (content is String) {
+                    fullContent += content;
+                    onChunk(content);
+                  }
+                }
+              }
             }
           }
         } catch (e) {
@@ -174,9 +181,20 @@ class OpenAiCompatibleService extends AiServiceBase {
       throw Exception('Failed to fetch models: ${response.statusCode}');
     }
     
-    final data = jsonDecode(response.body) as Map<String, dynamic>;
-    final models = data['data'] as List?;
-    return models?.map((m) => (m as Map<String, dynamic>)['id'] as String).toList() ?? [];
+    final data = jsonDecode(response.body);
+    if (data is! Map<String, dynamic>) return [];
+    final models = data['data'];
+    if (models is! List) return [];
+    return models
+        .map((m) {
+          if (m is Map<String, dynamic>) {
+            final id = m['id'];
+            if (id is String) return id;
+          }
+          return null;
+        })
+        .whereType<String>()
+        .toList();
   }
 }
 
@@ -255,9 +273,15 @@ class OpenAiCompatibleEmbeddingService extends EmbeddingServiceBase {
       throw Exception('Embedding API error: ${response.statusCode}');
     }
     
-    final data = jsonDecode(response.body) as Map<String, dynamic>;
-    final embedding = ((data['data'] as List?)?.first as Map<String, dynamic>?)?['embedding'] as List?;
-    return embedding?.cast<double>() ?? [];
+    final data = jsonDecode(response.body);
+    if (data is! Map<String, dynamic>) return [];
+    final dataList = data['data'];
+    if (dataList is! List || dataList.isEmpty) return [];
+    final first = dataList.first;
+    if (first is! Map<String, dynamic>) return [];
+    final embedding = first['embedding'];
+    if (embedding is! List) return [];
+    return embedding.cast<double>();
   }
   
   @override
@@ -300,9 +324,19 @@ class OpenAiCompatibleEmbeddingService extends EmbeddingServiceBase {
       throw Exception('Embedding API error: ${response.statusCode}');
     }
     
-    final data = jsonDecode(response.body) as Map<String, dynamic>;
-    final embeddings = data['data'] as List?;
-    return embeddings?.map((e) => ((e as Map<String, dynamic>)['embedding'] as List).cast<double>()).toList() ?? [];
+    final data = jsonDecode(response.body);
+    if (data is! Map<String, dynamic>) return [];
+    final embeddings = data['data'];
+    if (embeddings is! List) return [];
+    return embeddings.map((e) {
+      if (e is Map<String, dynamic>) {
+        final emb = e['embedding'];
+        if (emb is List) {
+          return emb.cast<double>();
+        }
+      }
+      return <double>[];
+    }).toList();
   }
   
   @override

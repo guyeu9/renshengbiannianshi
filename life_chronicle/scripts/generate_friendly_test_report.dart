@@ -27,6 +27,8 @@ void main() {
   final skippedTestList = <Map<String, dynamic>>[];
   
   final testInfoMap = <int, Map<String, dynamic>>{};
+  final errorMap = <int, String>{};
+  final skipReasonMap = <int, String>{};
 
   final lines = testResultsJson.split('\n');
   for (final line in lines) {
@@ -42,6 +44,11 @@ void main() {
           if (test != null) {
             final testId = test['id'] as int?;
             if (testId != null) {
+              final metadata = test['metadata'] as Map<String, dynamic>?;
+              final skipReason = metadata?['skipReason'] as String?;
+              if (skipReason != null) {
+                skipReasonMap[testId] = skipReason;
+              }
               testInfoMap[testId] = {
                 'id': testId,
                 'name': test['name'] as String? ?? '未知测试',
@@ -51,6 +58,12 @@ void main() {
                 'column': test['column'] as int?,
               };
             }
+          }
+        } else if (type == 'error') {
+          final testId = jsonLine['testID'] as int?;
+          final error = jsonLine['error'] as String?;
+          if (testId != null && error != null) {
+            errorMap[testId] = error;
           }
         } else if (type == 'testDone') {
           final testId = jsonLine['testID'] as int?;
@@ -65,6 +78,8 @@ void main() {
                 ...testInfo,
                 'result': result,
                 'skipped': skipped,
+                'error': errorMap[testId] ?? '',
+                'skipReason': skipReasonMap[testId] ?? '',
               };
               tests.add(test);
               totalTests++;
@@ -639,6 +654,20 @@ Map<String, String> makeErrorFriendly(String error) {
   } else if (error.contains('StateError') || error.contains('Bad state')) {
     message = '状态错误';
     explanation = '组件或对象的状态不正确，请检查状态管理逻辑';
+  } else if (error.contains('Compilation failed') || error.contains('Error:')) {
+    message = '编译错误';
+    explanation = '代码有语法错误或类型错误，请检查代码是否正确';
+  } else if (error.contains('type \'') && error.contains('is not a subtype')) {
+    message = '类型错误';
+    explanation = '数据类型不匹配，请检查变量类型是否正确';
+  } else if (error.contains('Uncaught Error') || error.contains('Unhandled')) {
+    message = '未捕获的错误';
+    explanation = '代码抛出了异常但没有被捕获，请添加错误处理逻辑';
+  } else if (error.contains('Async callback') || error.contains('Future')) {
+    message = '异步错误';
+    explanation = '异步操作出现问题，请检查 Future 或 Stream 的处理逻辑';
+  } else if (error.isNotEmpty) {
+    message = error.length > 200 ? error.substring(0, 200) + '...' : error;
   }
 
   return {'message': message, 'explanation': explanation};
