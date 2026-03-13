@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_chronicle/core/database/app_database.dart';
@@ -207,6 +207,7 @@ void main() {
           id: friendId,
           name: 'Test Friend',
           createdAt: now,
+          updatedAt: now,
         ),
       );
 
@@ -217,8 +218,10 @@ void main() {
       await foodDao.upsert(
         FoodRecordsCompanion.insert(
           id: foodId,
-          name: 'Test Food',
+          title: 'Test Food',
+          recordDate: now,
           createdAt: now,
+          updatedAt: now,
         ),
       );
 
@@ -243,6 +246,7 @@ void main() {
           id: friendId,
           name: 'Test Friend 2',
           createdAt: now,
+          updatedAt: now,
         ),
       );
 
@@ -251,15 +255,19 @@ void main() {
       await foodDao.upsert(
         FoodRecordsCompanion.insert(
           id: foodId1,
-          name: 'Test Food 2a',
+          title: 'Test Food 2a',
+          recordDate: now,
           createdAt: now,
+          updatedAt: now,
         ),
       );
       await foodDao.upsert(
         FoodRecordsCompanion.insert(
           id: foodId2,
-          name: 'Test Food 2b',
+          title: 'Test Food 2b',
+          recordDate: now,
           createdAt: now,
+          updatedAt: now,
         ),
       );
 
@@ -310,7 +318,10 @@ void main() {
         GoalRecordsCompanion.insert(
           id: goalId,
           title: 'Test Goal',
+          level: 'task',
+          recordDate: now,
           createdAt: now,
+          updatedAt: now,
         ),
       );
 
@@ -321,8 +332,10 @@ void main() {
       await foodDao.upsert(
         FoodRecordsCompanion.insert(
           id: foodId,
-          name: 'Test Food for Goal',
+          title: 'Test Food for Goal',
+          recordDate: now,
           createdAt: now,
+          updatedAt: now,
         ),
       );
 
@@ -346,7 +359,10 @@ void main() {
         GoalRecordsCompanion.insert(
           id: goalId,
           title: 'Test Goal 2',
+          level: 'task',
+          recordDate: now,
           createdAt: now,
+          updatedAt: now,
         ),
       );
 
@@ -355,15 +371,19 @@ void main() {
       await foodDao.upsert(
         FoodRecordsCompanion.insert(
           id: foodId1,
-          name: 'Test Food 2a',
+          title: 'Test Food 2a',
+          recordDate: now,
           createdAt: now,
+          updatedAt: now,
         ),
       );
       await foodDao.upsert(
         FoodRecordsCompanion.insert(
           id: foodId2,
-          name: 'Test Food 2b',
+          title: 'Test Food 2b',
+          recordDate: now,
           createdAt: now,
+          updatedAt: now,
         ),
       );
 
@@ -409,6 +429,7 @@ void main() {
           id: friendId1,
           name: 'Test Friend 1',
           createdAt: now,
+          updatedAt: now,
         ),
       );
       await friendDao.upsert(
@@ -416,6 +437,7 @@ void main() {
           id: friendId2,
           name: 'Test Friend 2',
           createdAt: now,
+          updatedAt: now,
         ),
       );
 
@@ -423,8 +445,10 @@ void main() {
       await foodDao.upsert(
         FoodRecordsCompanion.insert(
           id: foodId,
-          name: 'Test Food',
+          title: 'Test Food',
+          recordDate: now,
           createdAt: now,
+          updatedAt: now,
         ),
       );
 
@@ -463,14 +487,20 @@ void main() {
         GoalRecordsCompanion.insert(
           id: goalId1,
           title: 'Test Goal 1',
+          level: 'task',
+          recordDate: now,
           createdAt: now,
+          updatedAt: now,
         ),
       );
       await goalDao.upsert(
         GoalRecordsCompanion.insert(
           id: goalId2,
           title: 'Test Goal 2',
+          level: 'task',
+          recordDate: now,
           createdAt: now,
+          updatedAt: now,
         ),
       );
 
@@ -478,8 +508,10 @@ void main() {
       await foodDao.upsert(
         FoodRecordsCompanion.insert(
           id: foodId,
-          name: 'Test Food for Goals',
+          title: 'Test Food for Goals',
+          recordDate: now,
           createdAt: now,
+          updatedAt: now,
         ),
       );
 
@@ -516,8 +548,10 @@ void main() {
       await foodDao.upsert(
         FoodRecordsCompanion.insert(
           id: foodId,
-          name: 'Test Food No Links',
+          title: 'Test Food No Links',
+          recordDate: now,
           createdAt: now,
+          updatedAt: now,
         ),
       );
 
@@ -541,13 +575,17 @@ void main() {
           id: friendId,
           name: 'Test Friend Both',
           createdAt: now,
+          updatedAt: now,
         ),
       );
       await goalDao.upsert(
         GoalRecordsCompanion.insert(
           id: goalId,
           title: 'Test Goal Both',
+          level: 'task',
+          recordDate: now,
           createdAt: now,
+          updatedAt: now,
         ),
       );
 
@@ -555,8 +593,10 @@ void main() {
       await foodDao.upsert(
         FoodRecordsCompanion.insert(
           id: foodId,
-          name: 'Test Food Both',
+          title: 'Test Food Both',
+          recordDate: now,
           createdAt: now,
+          updatedAt: now,
         ),
       );
 
@@ -597,6 +637,7 @@ void main() {
           id: friendId,
           name: 'Test Friend Delete Source',
           createdAt: now,
+          updatedAt: now,
         ),
       );
 
@@ -604,8 +645,10 @@ void main() {
       await foodDao.upsert(
         FoodRecordsCompanion.insert(
           id: foodId,
-          name: 'Test Food Delete Source',
+          title: 'Test Food Delete Source',
+          recordDate: now,
           createdAt: now,
+          updatedAt: now,
         ),
       );
 
@@ -634,7 +677,10 @@ void main() {
         GoalRecordsCompanion.insert(
           id: goalId,
           title: 'Test Goal Delete Source',
+          level: 'task',
+          recordDate: now,
           createdAt: now,
+          updatedAt: now,
         ),
       );
 
@@ -642,8 +688,10 @@ void main() {
       await foodDao.upsert(
         FoodRecordsCompanion.insert(
           id: foodId,
-          name: 'Test Food Delete Source Goal',
+          title: 'Test Food Delete Source Goal',
+          recordDate: now,
           createdAt: now,
+          updatedAt: now,
         ),
       );
 
@@ -673,8 +721,10 @@ void main() {
       await foodDao.upsert(
         FoodRecordsCompanion.insert(
           id: foodId,
-          name: 'Test Food Source',
+          title: 'Test Food Source',
+          recordDate: now,
           createdAt: now,
+          updatedAt: now,
         ),
       );
 
@@ -684,6 +734,7 @@ void main() {
           id: friendId,
           name: 'Test Friend',
           createdAt: now,
+          updatedAt: now,
         ),
       );
 
@@ -711,8 +762,10 @@ void main() {
       await foodDao.upsert(
         FoodRecordsCompanion.insert(
           id: foodId,
-          name: 'Test Food Target',
+          title: 'Test Food Target',
+          recordDate: now,
           createdAt: now,
+          updatedAt: now,
         ),
       );
 
@@ -722,6 +775,7 @@ void main() {
           id: friendId,
           name: 'Test Friend 2',
           createdAt: now,
+          updatedAt: now,
         ),
       );
 
