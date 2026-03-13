@@ -69,6 +69,7 @@ class OpenAiCompatibleService extends AiServiceBase {
     required String systemPrompt,
     required List<ChatMessage> messages,
   }) async {
+    _checkDisposed();
     await amapDebug('AI服务', '发送请求: model=${provider.modelName}, messages=${messages.length}');
     try {
       final response = await _client.post(
@@ -122,6 +123,7 @@ class OpenAiCompatibleService extends AiServiceBase {
     required List<ChatMessage> messages,
     required void Function(String chunk) onChunk,
   }) async {
+    _checkDisposed();
     final request = http.Request('POST', Uri.parse(getChatEndpoint()));
     request.headers.addAll(getHeaders());
     request.body = jsonEncode(buildRequestBody(systemPrompt, messages, stream: true));
@@ -286,6 +288,7 @@ class OpenAiCompatibleEmbeddingService extends EmbeddingServiceBase {
   
   @override
   Future<List<double>> embed(String text) async {
+    _checkDisposed();
     final originalModel = provider.modelName ?? 'Qwen3-Embedding-8B';
     List<String> modelsToTry = [originalModel];
     
