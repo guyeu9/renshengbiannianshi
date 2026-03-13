@@ -95,7 +95,7 @@ class DeleteService {
         await db.embeddingDao.deleteByEntity('goal', goalId);
       }
 
-      (db.update(db.goalRecords))
+      await (db.update(db.goalRecords))
           .where((t) => t.id.isIn(allGoalIds))
           .write(GoalRecordsCompanion(
             isDeleted: const Value(true),
@@ -137,7 +137,7 @@ class DeleteService {
         await db.embeddingDao.deleteByEntity('goal', id);
       }
 
-      (db.update(db.goalRecords))
+      await (db.update(db.goalRecords))
           .where((t) => t.id.isIn(allIds))
           .write(GoalRecordsCompanion(
             isDeleted: const Value(true),
@@ -195,7 +195,7 @@ class DeleteService {
         await db.embeddingDao.deleteByEntity('travel', recordId);
       }
 
-      (db.update(db.travelRecords))
+      await (db.update(db.travelRecords))
           .where((t) => t.tripId.equals(tripId))
           .write(TravelRecordsCompanion(
             isDeleted: const Value(true),
