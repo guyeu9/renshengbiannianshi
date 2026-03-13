@@ -2030,7 +2030,7 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
         preferredSize: const Size.fromHeight(56),
         child: ClipRect(
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+            filter: ui.ImageFilter.blur(sigmaX: 14, sigmaY: 14),
             child: Container(
               decoration: BoxDecoration(
                 color: const Color(0xFFF6F8F8).withValues(alpha: 0.92),
@@ -3120,7 +3120,7 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
         preferredSize: const Size.fromHeight(56),
         child: ClipRect(
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+            filter: ui.ImageFilter.blur(sigmaX: 14, sigmaY: 14),
             child: Container(
               decoration: BoxDecoration(
                 color: const Color(0xFFF6F8F8).withValues(alpha: 0.90),
@@ -3544,7 +3544,7 @@ class _FrostedCircleIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return ClipOval(
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        filter: ui.ImageFilter.blur(sigmaX: 14, sigmaY: 14),
         child: Material(
           color: Colors.white.withValues(alpha: 0.12),
           child: InkWell(
@@ -5831,7 +5831,7 @@ class _JournalDetailPageState extends ConsumerState<JournalDetailPage>
       await Future.delayed(const Duration(milliseconds: 20));
 
       final image = await boundary.toImage(pixelRatio: 3.0);
-      final byteData = await image.toByteData(format: ImageByteFormat.png);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       if (byteData == null) return;
 
       final pngBytes = byteData.buffer.asUint8List();
