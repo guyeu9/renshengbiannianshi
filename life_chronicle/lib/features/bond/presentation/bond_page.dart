@@ -2920,7 +2920,10 @@ class _FriendCreatePageState extends ConsumerState<FriendCreatePage> {
     final tag = (result ?? '').replaceAll('#', '').trim();
     if (tag.isEmpty) return;
     if (_selectedTags.contains(tag)) return;
-    await syncTagToModuleConfig('bond', tag);
+    final synced = await syncTagToModuleConfig('bond', tag);
+    if (synced) {
+      ref.read(moduleManagementRevisionProvider.notifier).state += 1;
+    }
     setState(() => _selectedTags.add(tag));
   }
 

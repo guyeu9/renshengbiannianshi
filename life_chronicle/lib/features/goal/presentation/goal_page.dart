@@ -5252,7 +5252,10 @@ class _GoalCreatePageState extends ConsumerState<GoalCreatePage> {
     }
 
     if (_selectedGoalType.isNotEmpty) {
-      await syncTagToModuleConfig('goal', _selectedGoalType);
+      final synced = await syncTagToModuleConfig('goal', _selectedGoalType);
+      if (synced) {
+        ref.read(moduleManagementRevisionProvider.notifier).state += 1;
+      }
     }
 
     final db = ref.read(appDatabaseProvider);

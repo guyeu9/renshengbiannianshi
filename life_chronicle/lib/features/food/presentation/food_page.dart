@@ -3407,7 +3407,10 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
                           final v = controller.text.trim();
                           if (v.isEmpty) return;
                           if (localTags.contains(v)) return;
-                          await syncTagToModuleConfig('food', v);
+                          final synced = await syncTagToModuleConfig('food', v);
+                          if (synced) {
+                            ref.read(moduleManagementRevisionProvider.notifier).state += 1;
+                          }
                           setState(() {
                             localTags.add(v);
                             _selectedTags.add(v);
