@@ -24,6 +24,7 @@ import '../../../core/utils/tag_color_utils.dart';
 import '../../../core/widgets/app_image.dart';
 import '../../../core/widgets/ai_parse_button.dart';
 import '../../../core/utils/image_save_util.dart';
+import '../../ai_historian/services/context_builder.dart';
 
 class FoodPage extends StatefulWidget {
   const FoodPage({super.key});
@@ -3937,6 +3938,8 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
     for (final id in goalIds) {
       await db.linkDao.syncGoalProgress(goalId: id, now: now);
     }
+
+    ContextBuilder.clearCache();
 
     if (!mounted) return;
     if (widget.popWithResultOnPublish) {

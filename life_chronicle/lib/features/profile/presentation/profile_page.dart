@@ -5558,6 +5558,7 @@ class _PersonalProfilePageState extends ConsumerState<PersonalProfilePage> {
 
   DateTime? _birthday;
   String _relationshipStatus = '单身汪';
+  String _gender = '保密';
 
   @override
   void initState() {
@@ -5600,6 +5601,7 @@ class _PersonalProfilePageState extends ConsumerState<PersonalProfilePage> {
     final heightText = _formatNumber(row?.heightCm);
     final weightText = _formatNumber(row?.weightKg);
     final statusText = (row?.relationshipStatus ?? '').trim();
+    final genderText = (row?.gender ?? '').trim();
 
     if (!mounted) return;
     setState(() {
@@ -5609,6 +5611,9 @@ class _PersonalProfilePageState extends ConsumerState<PersonalProfilePage> {
       if (weightText != null) _weightController.text = weightText;
       if (['单身汪', '有对象', '已婚'].contains(statusText)) {
         _relationshipStatus = statusText;
+      }
+      if (['男', '女', '保密'].contains(genderText)) {
+        _gender = genderText;
       }
     });
   }
@@ -5658,6 +5663,7 @@ class _PersonalProfilePageState extends ConsumerState<PersonalProfilePage> {
             heightCm: Value(height),
             weightKg: Value(weight),
             relationshipStatus: Value(_relationshipStatus),
+            gender: Value(_gender),
             createdAt: Value(existed?.createdAt ?? now),
             updatedAt: Value(now),
           ),
@@ -5796,6 +5802,27 @@ class _PersonalProfilePageState extends ConsumerState<PersonalProfilePage> {
                     onChanged: (value) {
                       if (value == null) return;
                       setState(() => _relationshipStatus = value);
+                    },
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('性别', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    value: _gender,
+                    items: const [
+                      DropdownMenuItem(value: '保密', child: Text('保密')),
+                      DropdownMenuItem(value: '男', child: Text('男')),
+                      DropdownMenuItem(value: '女', child: Text('女')),
+                    ],
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setState(() => _gender = value);
                     },
                     decoration: InputDecoration(
                       filled: true,

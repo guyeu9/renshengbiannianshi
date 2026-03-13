@@ -27,6 +27,7 @@ import '../../../core/widgets/app_image.dart';
 import '../../../core/router/route_navigation.dart';
 import '../providers/goal_detail_provider.dart';
 import '../../travel/presentation/travel_page.dart';
+import '../../ai_historian/services/context_builder.dart';
 
 class _GoalTypeOption {
   const _GoalTypeOption({
@@ -2460,6 +2461,7 @@ class _GoalBreakdownMaintenancePageState extends ConsumerState<GoalBreakdownMain
         updatedAt: Value(now),
       ),
     );
+    ContextBuilder.clearCache();
     if (!mounted) return;
     Navigator.of(context).maybePop();
   }
@@ -2492,6 +2494,7 @@ class _GoalBreakdownMaintenancePageState extends ConsumerState<GoalBreakdownMain
               targetQuarter: Value(result.quarter),
             ),
           );
+      ContextBuilder.clearCache();
       return;
     }
     await (db.update(db.goalRecords)..where((t) => t.id.equals(stage.id))).write(
@@ -2501,6 +2504,7 @@ class _GoalBreakdownMaintenancePageState extends ConsumerState<GoalBreakdownMain
         updatedAt: Value(now),
       ),
     );
+    ContextBuilder.clearCache();
   }
 
   Future<void> _deleteStage(GoalRecord stage) async {
@@ -2549,6 +2553,7 @@ class _GoalBreakdownMaintenancePageState extends ConsumerState<GoalBreakdownMain
             updatedAt: now,
           ),
         );
+    ContextBuilder.clearCache();
   }
 
   Future<void> _deleteTask(GoalRecord task) async {

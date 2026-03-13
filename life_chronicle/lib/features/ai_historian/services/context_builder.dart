@@ -10,7 +10,7 @@ class _CacheEntry<T> {
   
   const _CacheEntry(this.value, this.timestamp);
   
-  bool get isExpired => DateTime.now().difference(timestamp).inMinutes > 5;
+  bool get isExpired => DateTime.now().difference(timestamp).inSeconds > 30;
 }
 
 class ContextLog {
@@ -45,6 +45,7 @@ class ContextLog {
 
 class ContextBuilder {
   final RecordRetriever _retriever;
+  final AppDatabase _db;
   final VectorIndexService? Function()? _vectorServiceGetter;
   
   static final Map<String, _CacheEntry<List<RecordContext>>> _cache = {};
@@ -54,7 +55,8 @@ class ContextBuilder {
   List<ContextLog> get logs => List.unmodifiable(_logs);
   
   ContextBuilder(AppDatabase db, {VectorIndexService? Function()? vectorServiceGetter})
-      : _retriever = RecordRetriever(db),
+      : _db = db,
+        _retriever = RecordRetriever(db),
         _vectorServiceGetter = vectorServiceGetter;
 
   Future<String> buildSystemPrompt({
@@ -75,6 +77,32 @@ class ContextBuilder {
     buffer.writeln('今天是 ${now.year}年${now.month}月${now.day}日（${_getWeekdayName(now.weekday)}）');
     buffer.writeln('当前时间：${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}');
     buffer.writeln('');
+    
+    final userProfile = await _loadUserProfile();
+    if (userProfile != null) {
+      buffer.writeln('## 用户个人资料');
+      buffer.writeln('以下是用户的基本信息，请在回答时参考这些信息以提供更个性化的服务：');
+      if (userProfile.displayName.isNotEmpty) {
+        buffer.writeln('- 用户名：${userProfile.displayName}');
+      }
+      if (userProfile.gender != null && userProfile.gender!.isNotEmpty && userProfile.gender != '保密') {
+        buffer.writeln('- 性别：${userProfile.gender}');
+      }
+      if (userProfile.birthday != null) {
+        final age = _calculateAge(userProfile.birthday!);
+        buffer.writeln('- 出生日期：${_formatDate(userProfile.birthday!)}（${age}岁）');
+      }
+      if (userProfile.heightCm != null) {
+        buffer.writeln('- 身高：${userProfile.heightCm!.toInt()} cm');
+      }
+      if (userProfile.weightKg != null) {
+        buffer.writeln('- 体重：${userProfile.weightKg!.toInt()} kg');
+      }
+      if (userProfile.relationshipStatus != null && userProfile.relationshipStatus!.isNotEmpty) {
+        buffer.writeln('- 感情状态：${userProfile.relationshipStatus}');
+      }
+      buffer.writeln('');
+    }
     
     buffer.writeln('## 用户数据概览');
     buffer.writeln('- 美食记录：${recordStats['food'] ?? 0} 条');
@@ -271,16 +299,18 @@ class ContextBuilder {
     
     final records = _mergeRecords(baseRecords, additionalRecords);
     
-    _cache[cacheKey] = _CacheEntry(records, DateTime.now());
+    final recordsWithLinks = await _retriever.loadLinkedRecords(records);
+    
+    _cache[cacheKey] = _CacheEntry(recordsWithLinks, DateTime.now());
     
     final retrievalTime = DateTime.now().difference(startTime);
     final queryFocus = _detectQueryFocus(query);
-    final estimatedTokens = _estimateTokens(records);
+    final estimatedTokens = _estimateTokens(recordsWithLinks);
     
     final log = ContextLog(
       timestamp: startTime,
       query: query,
-      recordCount: records.length,
+      recordCount: recordsWithLinks.length,
       estimatedTokens: estimatedTokens,
       retrievalTime: retrievalTime,
       fullData: fullData,
@@ -293,11 +323,11 @@ class ContextBuilder {
     }
     
     developer.log(
-      'AI史官上下文: ${records.length}条记录 (基础${baseRecords.length}+补充${additionalRecords.length}), 约${estimatedTokens}tokens, 耗时${retrievalTime.inMilliseconds}ms',
+      'AI史官上下文: ${recordsWithLinks.length}条记录 (基础${baseRecords.length}+补充${additionalRecords.length}+关联), 约${estimatedTokens}tokens, 耗时${retrievalTime.inMilliseconds}ms',
       name: 'ContextBuilder',
     );
     
-    return records;
+    return recordsWithLinks;
   }
 
   int _estimateTokens(List<RecordContext> records) {
@@ -476,13 +506,15 @@ class ContextBuilder {
       return cached.value;
     }
     
-    final records = await _retriever.retrieveRecords(
+    var records = await _retriever.retrieveRecords(
       queryType: QueryType.summary,
       userQuery: '',
       module: 'all',
       limit: fullData ? 1000 : 50,
       fullData: fullData,
     );
+    
+    records = await _retriever.loadLinkedRecords(records);
     
     _cache[cacheKey] = _CacheEntry(records, DateTime.now());
     return records;
@@ -578,5 +610,22 @@ class ContextBuilder {
   
   static void clearExpiredCache() {
     _cache.removeWhere((key, entry) => entry.isExpired);
+  }
+  
+  Future<UserProfile?> _loadUserProfile() async {
+    return await (_db.select(_db.userProfiles)..where((t) => t.id.equals('me'))).getSingleOrNull();
+  }
+  
+  int _calculateAge(DateTime birthday) {
+    final now = DateTime.now();
+    int age = now.year - birthday.year;
+    if (now.month < birthday.month || (now.month == birthday.month && now.day < birthday.day)) {
+      age--;
+    }
+    return age;
+  }
+  
+  String _formatDate(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 }

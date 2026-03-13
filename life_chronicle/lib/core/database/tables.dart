@@ -253,6 +253,7 @@ class UserProfiles extends Table {
   RealColumn get heightCm => real().nullable()();
   RealColumn get weightKg => real().nullable()();
   TextColumn get relationshipStatus => text().nullable()();
+  TextColumn get gender => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 

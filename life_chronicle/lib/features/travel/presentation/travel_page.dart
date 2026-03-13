@@ -25,6 +25,7 @@ import '../../../core/utils/image_save_util.dart';
 import '../../../core/widgets/app_image.dart';
 import '../../../core/router/route_navigation.dart';
 import '../providers/travel_detail_provider.dart';
+import '../../ai_historian/services/context_builder.dart';
 
 class TravelPage extends StatefulWidget {
   const TravelPage({super.key});
@@ -1993,6 +1994,8 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
       ));
     }
 
+    ContextBuilder.clearCache();
+
     if (!mounted) return;
     Navigator.of(context).pop();
   }
@@ -3006,6 +3009,8 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
       );
     }
 
+    ContextBuilder.clearCache();
+
     if (!mounted) return;
     Navigator.of(context).pop();
   }
@@ -3093,6 +3098,8 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
         now: now,
       );
     }
+
+    ContextBuilder.clearCache();
 
     if (!mounted) return;
     Navigator.of(context).pop();

@@ -23,6 +23,7 @@ import '../../../core/widgets/custom_bottom_sheet.dart';
 import '../../../core/widgets/app_image.dart';
 import '../../../core/router/route_navigation.dart';
 import '../providers/moment_detail_provider.dart';
+import '../../ai_historian/services/context_builder.dart';
 
 List<String> _parseMomentImages(String? raw) {
   if (raw == null || raw.trim().isEmpty) return const [];
@@ -1975,6 +1976,8 @@ class _MomentCreatePageState extends ConsumerState<MomentCreatePage> {
         now: now,
       );
     }
+
+    ContextBuilder.clearCache();
 
     if (!mounted) return;
     Navigator.of(context).pop();

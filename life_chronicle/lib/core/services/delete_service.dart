@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import '../database/app_database.dart';
 import 'backup/change_log_recorder.dart';
+import '../../features/ai_historian/services/context_builder.dart';
 
 class DeleteService {
   final AppDatabase db;
@@ -28,6 +29,8 @@ class DeleteService {
         entityId: id,
       );
     });
+    
+    ContextBuilder.clearCache();
   }
 
   Future<void> hardDeleteMoment(String id) async {
@@ -48,6 +51,8 @@ class DeleteService {
         entityId: id,
       );
     });
+    
+    ContextBuilder.clearCache();
   }
 
   Future<void> softDeleteMoment(String id) async {
@@ -70,6 +75,8 @@ class DeleteService {
         entityId: id,
       );
     });
+    
+    ContextBuilder.clearCache();
   }
 
   Future<void> deleteGoal(String id) async {
@@ -108,6 +115,8 @@ class DeleteService {
         );
       }
     });
+    
+    ContextBuilder.clearCache();
   }
 
   Future<void> deleteGoalStage(String stageId) async {
@@ -149,6 +158,8 @@ class DeleteService {
         );
       }
     });
+    
+    ContextBuilder.clearCache();
   }
 
   Future<void> deleteTravel(String id) async {
@@ -171,6 +182,8 @@ class DeleteService {
         entityId: id,
       );
     });
+    
+    ContextBuilder.clearCache();
   }
 
   Future<void> deleteTrip(String tripId) async {
@@ -206,6 +219,8 @@ class DeleteService {
         );
       }
     });
+    
+    ContextBuilder.clearCache();
   }
 
   Future<void> hardDeleteTravelJournal(String id) async {
@@ -224,6 +239,8 @@ class DeleteService {
         entityId: id,
       );
     });
+    
+    ContextBuilder.clearCache();
   }
 
   Future<void> deleteFriend(String id) async {
@@ -249,6 +266,8 @@ class DeleteService {
         entityId: id,
       );
     });
+    
+    ContextBuilder.clearCache();
   }
 
   Future<void> deleteChatSession(String id) async {

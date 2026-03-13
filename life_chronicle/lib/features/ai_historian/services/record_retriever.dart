@@ -1211,4 +1211,63 @@ class RecordRetriever {
         return null;
     }
   }
+
+  Future<List<RecordContext>> loadLinkedRecords(List<RecordContext> records) async {
+    if (records.isEmpty) return records;
+    
+    final linkedIds = <String, Set<String>>{
+      'food': {},
+      'moment': {},
+      'travel': {},
+      'goal': {},
+      'encounter': {},
+    };
+    
+    final typeMapping = {
+      'food': 'food',
+      '美食': 'food',
+      'moment': 'moment',
+      '小确幸': 'moment',
+      'travel': 'travel',
+      '旅行': 'travel',
+      'goal': 'goal',
+      '目标': 'goal',
+      'encounter': 'encounter',
+      '相遇': 'encounter',
+    };
+    
+    for (final record in records) {
+      if (record.links == null) continue;
+      for (final link in record.links!) {
+        final targetType = typeMapping[link.targetType] ?? link.targetType;
+        if (linkedIds.containsKey(targetType)) {
+          linkedIds[targetType]!.add(link.targetId);
+        }
+      }
+    }
+    
+    final existingIds = <String, Set<String>>{};
+    for (final record in records) {
+      final normalizedType = typeMapping[record.type] ?? record.type;
+      (existingIds[normalizedType] ??= {}).add(record.id);
+    }
+    
+    final linkedRecords = <RecordContext>[];
+    
+    for (final entry in linkedIds.entries) {
+      final type = entry.key;
+      final ids = entry.value;
+      
+      for (final id in ids) {
+        if (existingIds[type]?.contains(id) == true) continue;
+        
+        final record = await fetchRecordById(type, id);
+        if (record != null) {
+          linkedRecords.add(record);
+        }
+      }
+    }
+    
+    return [...records, ...linkedRecords];
+  }
 }

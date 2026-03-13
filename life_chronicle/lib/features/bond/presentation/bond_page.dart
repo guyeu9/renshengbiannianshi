@@ -18,6 +18,7 @@ import '../../../core/widgets/custom_bottom_sheet.dart';
 import '../../../core/router/route_navigation.dart';
 import '../../travel/presentation/travel_page.dart' show TravelItem;
 import '../../ai_historian/models/friend_chat_params.dart';
+import '../../ai_historian/services/context_builder.dart';
 import '../providers/encounter_timeline_provider.dart';
 import 'bond_filter_components.dart';
 
@@ -3004,6 +3005,8 @@ class _FriendCreatePageState extends ConsumerState<FriendCreatePage> {
         updatedAt: now,
       ),
     );
+
+    ContextBuilder.clearCache();
 
     if (!mounted) return;
     Navigator.of(context).pop();
