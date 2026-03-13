@@ -115,7 +115,7 @@ class AiHistorianChatPage extends ConsumerStatefulWidget {
     this.moduleParams,
   });
 
-  bool get isModuleMode => moduleParams != null;
+  bool get isModuleMode => moduleParams != null && moduleParams!.moduleType.isNotEmpty;
   bool get isDetailMode => moduleParams?.isDetailMode ?? false;
 
   @override
@@ -146,17 +146,26 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
   @override
   void initState() {
     super.initState();
+    _initializeDataAndSession();
+    _loadUserAvatar();
+  }
+
+  Future<void> _initializeDataAndSession() async {
+    // 先加载数据，确保统计数据在欢迎消息生成前已准备好
     if (widget.isModuleMode) {
       if (widget.moduleParams?.isFriendMode ?? false) {
-        _loadFriendData();
+        await _loadFriendData();
       } else {
-        _loadModuleData();
+        await _loadModuleData();
       }
     } else {
-      _loadRecordStats();
+      await _loadRecordStats();
     }
-    _initializeSession();
-    _loadUserAvatar();
+    
+    // 数据加载完成后再初始化会话（会生成欢迎消息）
+    if (mounted) {
+      await _initializeSession();
+    }
   }
 
   Future<void> _loadFriendData() async {
@@ -235,6 +244,12 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
   }
 
   Future<void> _loadModuleData() async {
+    // 添加防御性检查
+    if (widget.moduleParams == null || widget.moduleParams!.moduleType.isEmpty) {
+      debugPrint('_loadModuleData: moduleParams 无效，跳过加载');
+      return;
+    }
+    
     try {
       final moduleType = widget.moduleParams!.moduleType;
       final config = getModuleConfig(moduleType);
@@ -246,7 +261,7 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
       final db = ref.read(appDatabaseProvider);
       final retriever = RecordRetriever(db);
       
-      if (widget.isDetailMode && widget.moduleParams!.recordIds != null) {
+      if (widget.isDetailMode && widget.moduleParams!.recordIds != null && widget.moduleParams!.recordIds!.isNotEmpty) {
         final recordId = widget.moduleParams!.recordIds!.first;
         final record = await retriever.fetchRecordById(moduleType, recordId);
         if (record != null) {
@@ -257,7 +272,7 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
           queryType: QueryType.summary,
           userQuery: '',
           module: moduleType,
-          fullData: widget.moduleParams!.fullData,
+          fullData: widget.moduleParams?.fullData ?? false,
         );
       }
       
@@ -311,7 +326,10 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
           }
         }
       }
-    } catch (_) {}
+    } catch (e, stackTrace) {
+      debugPrint('加载用户头像失败: $e');
+      await FileLogger.instance.logWithLevel('AI史官', '加载用户头像失败: $e\n$stackTrace', LogLevel.error);
+    }
   }
 
   ImageProvider _avatarProvider() {
@@ -336,7 +354,7 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
     try {
       final db = ref.read(appDatabaseProvider);
       
-      final moduleType = widget.isModuleMode ? widget.moduleParams!.moduleType : null;
+      final moduleType = widget.isModuleMode ? widget.moduleParams?.moduleType : null;
       final sessions = await db.chatDao.getActiveSessionsByModuleType(moduleType);
 
       if (sessions.isEmpty) {
@@ -373,7 +391,7 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
       await db.chatDao.upsertSession(ChatSessionsCompanion(
         id: Value(sessionId),
         title: const Value('新对话'),
-        moduleType: Value(widget.isModuleMode ? widget.moduleParams!.moduleType : null),
+        moduleType: Value(widget.isModuleMode ? widget.moduleParams?.moduleType : null),
         createdAt: Value(now),
         updatedAt: Value(now),
         lastMessageAt: Value(now),
@@ -543,13 +561,40 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
       };
       _totalRecords = foodCount + momentCount + travelCount + goalCount + encounterCount;
     });
+    
+    // 更新欢迎消息以反映正确的统计数据
+    _updateWelcomeMessage();
+  }
+
+  void _updateWelcomeMessage() {
+    if (_messages.isEmpty) return;
+    final welcomeIndex = _messages.indexWhere((m) => m.id.startsWith('welcome_'));
+    if (welcomeIndex == -1) return;
+    
+    final now = DateTime.now();
+    String content;
+    
+    if (widget.isModuleMode && widget.moduleParams != null) {
+      final moduleName = widget.moduleParams!.moduleName;
+      if (widget.isDetailMode) {
+        content = '你好！我是你的AI史官。我已加载这条$moduleName记录的详细信息，让我帮你分析它吧！';
+      } else {
+        content = '你好！我是你的AI史官。我已加载你的$moduleName档案，共$_totalRecords条记录。让我帮你深入分析你的$moduleName数据吧！';
+      }
+    } else {
+      content = '你好！我是你的 AI 史官。我已经阅读了你的人生档案，包含 $_totalRecords 条记录。今天你想回顾哪段记忆？';
+    }
+    
+    setState(() {
+      _messages[welcomeIndex] = _messages[welcomeIndex].copyWith(content: content);
+    });
   }
 
   void _addWelcomeMessage() {
     final now = DateTime.now();
     String content;
     
-    if (widget.isModuleMode) {
+    if (widget.isModuleMode && widget.moduleParams != null) {
       final moduleName = widget.moduleParams!.moduleName;
       if (widget.isDetailMode) {
         content = '你好！我是你的AI史官。我已加载这条$moduleName记录的详细信息，让我帮你分析它吧！';
@@ -1137,6 +1182,8 @@ ${result.prompt}
             enabled: hasAiService && _isInitialized,
             quickActions: _quickActions,
             moduleParams: widget.moduleParams,
+            recordStats: _recordStats,
+            totalRecords: _totalRecords,
           ),
         ],
       ),
@@ -1493,6 +1540,8 @@ class _AiChatInputBar extends StatelessWidget {
     required this.enabled,
     this.quickActions,
     this.moduleParams,
+    required this.recordStats,
+    required this.totalRecords,
   });
 
   final TextEditingController controller;
@@ -1503,6 +1552,8 @@ class _AiChatInputBar extends StatelessWidget {
   final bool enabled;
   final List<QuickActionConfig>? quickActions;
   final ModuleChatParams? moduleParams;
+  final Map<String, int> recordStats;
+  final int totalRecords;
 
   List<Widget> _buildSuggestionChips() {
     if (quickActions != null && quickActions!.isNotEmpty) {
@@ -1518,7 +1569,7 @@ class _AiChatInputBar extends StatelessWidget {
         );
       }).toList();
     }
-    
+
     return [
       _SuggestionChip(
         icon: Icons.mood,
@@ -1541,6 +1592,38 @@ class _AiChatInputBar extends StatelessWidget {
         onTap: enabled ? () => onQuickMessageWithContext('on_this_day', '那年今天我做了什么？') : null,
       ),
     ];
+  }
+
+  String _buildDataSourceText() {
+    if (!enabled) return '请先配置 AI 服务';
+
+    if (moduleParams != null && moduleParams!.moduleType.isNotEmpty) {
+      return '已接入：${moduleParams!.moduleName}模块数据';
+    }
+
+    // 构建详细的全量数据统计文本
+    final stats = <String>[];
+    if (recordStats['food'] != null && recordStats['food']! > 0) {
+      stats.add('美食${recordStats['food']}条');
+    }
+    if (recordStats['travel'] != null && recordStats['travel']! > 0) {
+      stats.add('旅行${recordStats['travel']}条');
+    }
+    if (recordStats['moment'] != null && recordStats['moment']! > 0) {
+      stats.add('小确幸${recordStats['moment']}条');
+    }
+    if (recordStats['goal'] != null && recordStats['goal']! > 0) {
+      stats.add('目标${recordStats['goal']}条');
+    }
+    if (recordStats['encounter'] != null && recordStats['encounter']! > 0) {
+      stats.add('相遇${recordStats['encounter']}条');
+    }
+
+    if (stats.isEmpty) {
+      return '已接入：全量数据（暂无记录）';
+    }
+
+    return '已接入全量数据：共${totalRecords}条（${stats.join('、')}）';
   }
 
   @override
@@ -1584,11 +1667,7 @@ class _AiChatInputBar extends StatelessWidget {
                       Icon(Icons.dataset_linked, size: 14, color: enabled ? AppTheme.primary : const Color(0xFF94A3B8)),
                       const SizedBox(width: 6),
                       Text(
-                        enabled 
-                            ? (moduleParams != null 
-                                ? '已接入：${moduleParams!.moduleName}模块数据' 
-                                : '已接入：美食、旅行、小确幸等全量数据')
-                            : '请先配置 AI 服务',
+                        _buildDataSourceText(),
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,

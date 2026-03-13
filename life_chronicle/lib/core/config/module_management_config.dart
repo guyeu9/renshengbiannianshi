@@ -317,7 +317,9 @@ Future<ModuleManagementConfig> loadModuleManagementConfig() async {
     if (file != null) {
       await file.writeAsString(jsonEncode(fallback.toJson()));
     }
-  } catch (_) {}
+  } catch (e) {
+    debugPrint('保存默认模块配置失败: $e');
+  }
   debugPrint('⚠️ 使用默认模块配置作为回退');
   return fallback;
 }

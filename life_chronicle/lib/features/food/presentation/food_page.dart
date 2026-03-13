@@ -698,7 +698,9 @@ class _FoodRecordBody extends ConsumerWidget {
     try {
       final decoded = jsonDecode(raw);
       if (decoded is List) return decoded.whereType<String>().toList(growable: false);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('解码字符串列表失败: $e');
+    }
     return const [];
   }
 
@@ -910,7 +912,9 @@ class _FoodRecordCard extends StatelessWidget {
     try {
       final decoded = jsonDecode(raw);
       if (decoded is List) return decoded.whereType<String>().toList(growable: false);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('解码字符串列表失败: $e');
+    }
     return const [];
   }
 }
@@ -1045,7 +1049,9 @@ class _FoodWishlistBody extends ConsumerWidget {
     try {
       final decoded = jsonDecode(raw);
       if (decoded is List) return decoded.whereType<String>().toList(growable: false);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('解码字符串列表失败: $e');
+    }
     return const [];
   }
 
@@ -1264,7 +1270,9 @@ class _FoodWishlistRecordCard extends ConsumerWidget {
     try {
       final decoded = jsonDecode(raw);
       if (decoded is List) return decoded.whereType<String>().toList(growable: false);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('解码字符串列表失败: $e');
+    }
     return const [];
   }
 }
@@ -2043,7 +2051,9 @@ class FoodDetailPage extends ConsumerWidget {
       if (decoded is List) {
         return decoded.whereType<String>().toList(growable: false);
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('解码字符串列表失败: $e');
+    }
     return const [];
   }
 
@@ -2054,7 +2064,9 @@ class FoodDetailPage extends ConsumerWidget {
       if (decoded is List) {
         return decoded.whereType<String>().toList(growable: false);
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('解析字符串列表失败: $e');
+    }
     return const [];
   }
 
@@ -2079,7 +2091,8 @@ class FoodDetailPage extends ConsumerWidget {
       final file = File('${dir.path}/food_detail_${DateTime.now().millisecondsSinceEpoch}.png');
       await file.writeAsBytes(bytes);
       await Share.shareXFiles([XFile(file.path)]);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('分享长图失败: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('导出失败，请稍后重试')));
       }
@@ -3931,7 +3944,9 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
       if (decoded is List) {
         return decoded.whereType<String>().toList(growable: false);
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('解码字符串列表失败: $e');
+    }
     return const [];
   }
 

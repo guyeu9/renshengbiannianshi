@@ -166,8 +166,7 @@ class RouteNavigation {
 
   static void goToAiHistorian(BuildContext context, {ModuleChatParams? moduleParams}) {
     final currentRoute = GoRouterState.of(context).matchedLocation;
-    final params = moduleParams?.copyWith(sourceRoute: currentRoute) ?? 
-        ModuleChatParams(moduleType: '', moduleName: '', sourceRoute: currentRoute);
+    final params = moduleParams?.copyWith(sourceRoute: currentRoute);
     context.go(AppRoutes.aiHistorian, extra: params);
   }
 

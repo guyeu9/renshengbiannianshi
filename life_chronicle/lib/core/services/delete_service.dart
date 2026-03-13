@@ -275,15 +275,7 @@ class DeleteService {
   }
 
   Future<void> _deleteLinksForEntity(String entityType, String entityId) async {
-    await (db.delete(db.entityLinks)
-          ..where((t) => t.sourceType.equals(entityType))
-          ..where((t) => t.sourceId.equals(entityId)))
-        .go();
-
-    await (db.delete(db.entityLinks)
-          ..where((t) => t.targetType.equals(entityType))
-          ..where((t) => t.targetId.equals(entityId)))
-        .go();
+    await db.linkDao.deleteLinksBySource(entityType, entityId);
   }
 
   Future<List<String>> _getAllDescendantGoalIds(String parentId) async {

@@ -60,6 +60,15 @@ dev_dependencies:
   coverage: ^1.11.0
   integration_test:
     sdk: flutter
+  flutter_launcher_icons: ^0.9.3
+
+flutter_icons:
+  android: true
+  ios: true
+  macos: true
+  web: true
+  windows: true
+  image_path: "assets/images/app_icon.png"
  
 dependency_overrides:
   amap_flutter_base:

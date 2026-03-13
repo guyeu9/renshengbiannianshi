@@ -1812,7 +1812,8 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
     DateTime? end;
     try {
       start = DateTime(startYear, startMonth, startDay);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('日期解析失败: $e');
       start = null;
     }
     if (numbers.length >= 5) {
@@ -1821,7 +1822,8 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
       final endDay = numbers.length >= 6 ? numbers[5] : numbers[4];
       try {
         end = DateTime(endYear, endMonth, endDay);
-      } catch (_) {
+      } catch (e) {
+        debugPrint('日期解析失败: $e');
         end = null;
       }
     }
@@ -2021,7 +2023,8 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
           try {
             final cleanHex = hex.replaceFirst('#', '');
             return Color(int.parse('FF$cleanHex', radix: 16));
-          } catch (_) {
+          } catch (e) {
+            debugPrint('颜色解析失败: $e');
             return const Color(0xFFF1F5F9);
           }
         }
@@ -3111,7 +3114,8 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
           try {
             final cleanHex = hex.replaceFirst('#', '');
             return Color(int.parse('FF$cleanHex', radix: 16));
-          } catch (_) {
+          } catch (e) {
+            debugPrint('颜色解析失败: $e');
             return const Color(0xFFF1F5F9);
           }
         }
@@ -4860,7 +4864,9 @@ List<String> _decodeStringList(String? raw) {
     if (decoded is List) {
       return decoded.map((e) => e.toString()).toList();
     }
-  } catch (_) {}
+  } catch (e) {
+    debugPrint('JSON解析失败: $e');
+  }
   
   // 兼容历史数据：逗号分隔格式
   if (trimmed.contains(',') && !trimmed.startsWith('[')) {

@@ -332,7 +332,8 @@ class RecordRetriever {
       if (decoded is String) {
         return decoded.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('解析标签JSON失败，使用逗号分隔解析: $e');
       return tagsJson.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
     }
     return [];
@@ -345,7 +346,9 @@ class RecordRetriever {
       if (decoded is List) {
         return decoded.map((e) => e.toString()).toList();
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('解析图片JSON失败: $e');
+    }
     return [];
   }
 

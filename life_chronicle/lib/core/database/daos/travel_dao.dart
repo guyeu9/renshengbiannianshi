@@ -33,17 +33,31 @@ class TravelDao extends DatabaseAccessor<AppDatabase> with _$TravelDaoMixin {
   }
 
   Future<void> softDeleteById(String id, {required DateTime now}) async {
+    // 先查询受影响的关联（双向查询）
+    final links = await db.linkDao.listLinksForEntity(entityType: 'travel', entityId: id);
+
+    // 收集受影响的朋友ID和目标ID
+    final affectedFriendIds = <String>{};
+    final affectedGoalIds = <String>{};
+    for (final link in links) {
+      if (link.sourceType == 'friend') affectedFriendIds.add(link.sourceId);
+      if (link.targetType == 'friend') affectedFriendIds.add(link.targetId);
+      if (link.sourceType == 'goal') affectedGoalIds.add(link.sourceId);
+      if (link.targetType == 'goal') affectedGoalIds.add(link.targetId);
+    }
+
     await transaction(() async {
+      // 删除双向关联
       await (delete(db.entityLinks)
             ..where((t) => t.sourceType.equals('travel'))
             ..where((t) => t.sourceId.equals(id)))
           .go();
-
       await (delete(db.entityLinks)
             ..where((t) => t.targetType.equals('travel'))
             ..where((t) => t.targetId.equals(id)))
           .go();
 
+      // 软删除记录
       await (update(db.travelRecords)..where((t) => t.id.equals(id))).write(
         TravelRecordsCompanion(
           isDeleted: const Value(true),
@@ -63,6 +77,16 @@ class TravelDao extends DatabaseAccessor<AppDatabase> with _$TravelDaoMixin {
         );
       }
     });
+
+    // 重新计算受影响朋友的 lastMeetDate
+    for (final friendId in affectedFriendIds) {
+      await db.linkDao.recalculateFriendLastMeetDate(friendId: friendId, now: now);
+    }
+
+    // 同步受影响目标的进度
+    for (final goalId in affectedGoalIds) {
+      await db.linkDao.syncGoalProgress(goalId: goalId, now: now);
+    }
   }
 
   Future<void> updateFavorite(String id, {required bool isFavorite, required DateTime now}) async {
@@ -172,12 +196,26 @@ class TravelDao extends DatabaseAccessor<AppDatabase> with _$TravelDaoMixin {
   }
 
   Future<void> softDeleteTripById(String tripId, {required DateTime now}) async {
-    await transaction(() async {
-      final travelRecords = await (select(db.travelRecords)
-            ..where((t) => t.tripId.equals(tripId))
-            ..where((t) => t.isDeleted.equals(false)))
-          .get();
+    // 先查询该旅行下的所有记录
+    final travelRecords = await (select(db.travelRecords)
+          ..where((t) => t.tripId.equals(tripId))
+          ..where((t) => t.isDeleted.equals(false)))
+        .get();
 
+    // 收集所有受影响的朋友ID和目标ID
+    final affectedFriendIds = <String>{};
+    final affectedGoalIds = <String>{};
+    for (final record in travelRecords) {
+      final links = await db.linkDao.listLinksForEntity(entityType: 'travel', entityId: record.id);
+      for (final link in links) {
+        if (link.sourceType == 'friend') affectedFriendIds.add(link.sourceId);
+        if (link.targetType == 'friend') affectedFriendIds.add(link.targetId);
+        if (link.sourceType == 'goal') affectedGoalIds.add(link.sourceId);
+        if (link.targetType == 'goal') affectedGoalIds.add(link.targetId);
+      }
+    }
+
+    await transaction(() async {
       await (update(db.travelRecords)
             ..where((t) => t.tripId.equals(tripId)))
           .write(
@@ -188,11 +226,11 @@ class TravelDao extends DatabaseAccessor<AppDatabase> with _$TravelDaoMixin {
           );
 
       for (final record in travelRecords) {
+        // 删除双向关联
         await (delete(db.entityLinks)
               ..where((t) => t.sourceType.equals('travel'))
               ..where((t) => t.sourceId.equals(record.id)))
             .go();
-
         await (delete(db.entityLinks)
               ..where((t) => t.targetType.equals('travel'))
               ..where((t) => t.targetId.equals(record.id)))
@@ -211,6 +249,16 @@ class TravelDao extends DatabaseAccessor<AppDatabase> with _$TravelDaoMixin {
         }
       }
     });
+
+    // 重新计算受影响朋友的 lastMeetDate
+    for (final friendId in affectedFriendIds) {
+      await db.linkDao.recalculateFriendLastMeetDate(friendId: friendId, now: now);
+    }
+
+    // 同步受影响目标的进度
+    for (final goalId in affectedGoalIds) {
+      await db.linkDao.syncGoalProgress(goalId: goalId, now: now);
+    }
   }
 
   Stream<List<TravelRecord>> watchTripsOnly() {

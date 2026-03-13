@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class TagColorUtils {
@@ -14,7 +15,8 @@ class TagColorUtils {
     try {
       final cleanHex = hex.replaceFirst('#', '');
       return Color(int.parse('FF$cleanHex', radix: 16));
-    } catch (_) {
+    } catch (e) {
+      debugPrint('解析颜色值失败: $e');
       return defaultBackgroundColor;
     }
   }

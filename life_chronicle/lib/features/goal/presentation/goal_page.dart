@@ -961,7 +961,9 @@ class _TaskItemState extends State<_TaskItem> with SingleTickerProviderStateMixi
       if (hasVibrator == true) {
         await Vibration.vibrate(duration: 50, amplitude: 128);
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('震动触发失败: $e');
+    }
   }
 
   @override
@@ -1087,7 +1089,9 @@ class _AnnualGoalSummaryPageState extends ConsumerState<AnnualGoalSummaryPage> {
             final List<dynamic> imageList = jsonDecode(existing.images!);
             _reviewImages.clear();
             _reviewImages.addAll(imageList.cast<String>());
-          } catch (_) {}
+          } catch (e) {
+            debugPrint('解析年度回顾图片列表失败: $e');
+          }
         }
         _existingReviewId = existing.id;
       });
@@ -1192,7 +1196,8 @@ class _AnnualGoalSummaryPageState extends ConsumerState<AnnualGoalSummaryPage> {
       final file = File('${dir.path}/goal_summary_${DateTime.now().millisecondsSinceEpoch}.png');
       await file.writeAsBytes(bytes);
       await Share.shareXFiles([XFile(file.path)]);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('导出目标摘要图片失败: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('导出失败，请稍后重试')));
       }
@@ -1627,7 +1632,9 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
       if (hasVibrator == true) {
         await Vibration.vibrate(duration: 50, amplitude: 128);
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('庆祝震动触发失败: $e');
+    }
   }
 
   void _showActionMenu() async {
@@ -4233,7 +4240,9 @@ class _DayTaskTileState extends State<_DayTaskTile> with SingleTickerProviderSta
       if (hasVibrator == true) {
         await Vibration.vibrate(duration: 50, amplitude: 128);
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('震动触发失败: $e');
+    }
   }
 
   @override

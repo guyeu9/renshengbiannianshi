@@ -838,7 +838,9 @@ class _EncounterTimelineState extends ConsumerState<_EncounterTimeline> {
       if (decoded is List) {
         return decoded.map((e) => e.toString()).where((e) => e.trim().isNotEmpty).toList(growable: false);
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('解析标签JSON失败: $e');
+    }
     return const <String>[];
   }
 
@@ -855,7 +857,9 @@ class _EncounterTimelineState extends ConsumerState<_EncounterTimeline> {
             final jsonStr = line.substring(3).trim();
             final list = jsonDecode(jsonStr) as List;
             images = list.map((e) => e.toString()).toList();
-          } catch (_) {}
+          } catch (e) {
+            debugPrint('解析图片JSON失败: $e');
+          }
         }
       }
     }
@@ -1343,7 +1347,9 @@ class _BondFriendDetailPage extends ConsumerWidget {
       if (decoded is List) {
         return decoded.map((e) => e.toString()).where((e) => e.trim().isNotEmpty).toList(growable: false);
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('解析字符串列表JSON失败: $e');
+    }
     return const <String>[];
   }
 
@@ -1848,7 +1854,9 @@ class _FriendMemorySliverState extends ConsumerState<_FriendMemorySliver> {
       if (decoded is List) {
         return decoded.map((e) => e.toString()).where((e) => e.trim().isNotEmpty).toList(growable: false);
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('解析字符串列表JSON失败: $e');
+    }
     return const <String>[];
   }
 
@@ -1909,7 +1917,9 @@ class _FriendMemorySliverState extends ConsumerState<_FriendMemorySliver> {
               final jsonStr = line.substring(3).trim();
               final list = jsonDecode(jsonStr) as List;
               images = list.map((e) => e.toString()).toList();
-            } catch (_) {}
+            } catch (e) {
+              debugPrint('解析图片JSON失败: $e');
+            }
           }
         }
       }
@@ -2333,7 +2343,12 @@ class _SingleImageMemoryCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(item.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                    Text(
+                      item.title,
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     const SizedBox(height: 8),
                     Text(item.content, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B), height: 1.45)),
                     const SizedBox(height: 12),
@@ -2414,7 +2429,12 @@ class _MultiImageMemoryCard extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: Text(item.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                          child: Text(
+                            item.title,
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                         Icon(item.typeIcon, size: 16, color: const Color(0xFF9CA3AF)),
                         const SizedBox(width: 4),
@@ -2532,7 +2552,12 @@ class _NoImageMemoryCard extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: Text(item.title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                    child: Text(
+                      item.title,
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   if (item.place.isNotEmpty)
                     InkWell(
@@ -2806,7 +2831,8 @@ class _FriendCreatePageState extends ConsumerState<FriendCreatePage> {
           try {
             final cleanHex = hex.replaceFirst('#', '');
             return Color(int.parse('FF$cleanHex', radix: 16));
-          } catch (_) {
+          } catch (e) {
+            debugPrint('解析颜色值失败: $e');
             return const Color(0xFFF3F4F6);
           }
         }
@@ -3177,7 +3203,9 @@ List<String> _parseTags(String? raw) {
     if (decoded is List) {
       return decoded.map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList(growable: false);
     }
-  } catch (_) {}
+  } catch (e) {
+    debugPrint('解析标签JSON失败，使用分隔符解析: $e');
+  }
   return value
       .split(RegExp(r'[，,;；/|]'))
       .map((e) => e.trim())

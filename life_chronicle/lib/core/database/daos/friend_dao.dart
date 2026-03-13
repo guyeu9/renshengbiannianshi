@@ -16,13 +16,21 @@ class FriendDao extends DatabaseAccessor<AppDatabase> with _$FriendDaoMixin {
   }
 
   Future<void> softDeleteById(String id, {required DateTime now}) async {
-    await transaction(() async {
-      final links = await (select(db.entityLinks)
-            ..where((t) =>
-                (t.sourceType.equals('friend') & t.sourceId.equals(id)) |
-                (t.targetType.equals('friend') & t.targetId.equals(id))))
-          .get();
+    // 先查询受影响的关联（双向查询）
+    final links = await (select(db.entityLinks)
+          ..where((t) =>
+              (t.sourceType.equals('friend') & t.sourceId.equals(id)) |
+              (t.targetType.equals('friend') & t.targetId.equals(id))))
+        .get();
 
+    // 收集受影响的目标ID
+    final affectedGoalIds = <String>{};
+    for (final link in links) {
+      if (link.sourceType == 'goal') affectedGoalIds.add(link.sourceId);
+      if (link.targetType == 'goal') affectedGoalIds.add(link.targetId);
+    }
+
+    await transaction(() async {
       for (final link in links) {
         await into(db.linkLogs).insert(
           LinkLogsCompanion.insert(
@@ -38,12 +46,14 @@ class FriendDao extends DatabaseAccessor<AppDatabase> with _$FriendDaoMixin {
         );
       }
 
+      // 删除双向关联
       await (delete(db.entityLinks)
             ..where((t) =>
                 (t.sourceType.equals('friend') & t.sourceId.equals(id)) |
                 (t.targetType.equals('friend') & t.targetId.equals(id))))
           .go();
 
+      // 软删除记录
       await (update(db.friendRecords)..where((t) => t.id.equals(id))).write(
         FriendRecordsCompanion(
           isDeleted: const Value(true),
@@ -56,6 +66,11 @@ class FriendDao extends DatabaseAccessor<AppDatabase> with _$FriendDaoMixin {
         entityId: id,
       );
     });
+
+    // 同步受影响目标的进度
+    for (final goalId in affectedGoalIds) {
+      await db.linkDao.syncGoalProgress(goalId: goalId, now: now);
+    }
   }
 
   Future<FriendRecord?> findById(String id) {

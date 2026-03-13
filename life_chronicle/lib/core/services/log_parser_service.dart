@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import '../models/log_entry.dart';
 import 'file_logger.dart' hide LogLevel;
 
@@ -46,7 +47,8 @@ class LogParserService {
     DateTime timestamp;
     try {
       timestamp = DateTime.parse(timestampStr);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('时间戳解析失败: $e, 使用当前时间代替');
       timestamp = DateTime.now();
     }
 
@@ -77,7 +79,9 @@ class LogParserService {
       try {
         data = jsonDecode(dataMatch.group(1)!) as Map<String, dynamic>;
         message = message.substring(0, dataMatch.start).trim();
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('日志数据JSON解析失败: $e');
+      }
     }
 
     final stackMatch = RegExp(r'堆栈: (.+)$').firstMatch(message);

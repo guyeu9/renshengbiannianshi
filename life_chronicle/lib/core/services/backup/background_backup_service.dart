@@ -69,7 +69,9 @@ void callbackDispatcher() {
       if (db != null) {
         try {
           await db.close();
-        } catch (_) {}
+        } catch (closeError) {
+          debugPrint('关闭数据库失败: $closeError');
+        }
       }
       return Future.value(false);
     }

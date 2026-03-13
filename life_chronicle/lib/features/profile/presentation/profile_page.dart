@@ -284,7 +284,9 @@ Future<List<ChronicleRecord>> loadChronicleRecords() async {
           .map((e) => ChronicleRecord.fromJson(Map<String, dynamic>.from(e)))
           .toList(growable: false);
     }
-  } catch (_) {}
+  } catch (e) {
+    debugPrint('加载编年史记录失败: $e');
+  }
   await file.writeAsString('[]');
   return const <ChronicleRecord>[];
 }
@@ -652,7 +654,9 @@ class _HeaderState extends ConsumerState<_Header> {
           return path;
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('加载头像路径失败: $e');
+    }
     return null;
   }
 
@@ -1511,7 +1515,9 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
       if (decoded is List) {
         return decoded.map((e) => e.toString()).toList();
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('解析图片路径JSON失败: $e');
+    }
     return const [];
   }
 
@@ -2028,7 +2034,8 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
             );
             imageCount++;
           }
-        } catch (_) {
+        } catch (e) {
+          debugPrint('处理图片失败: $e');
           imageWidgets.add(
             pw.Container(
               height: 120,
@@ -3403,7 +3410,9 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
       if (decoded is List) {
         return decoded.whereType<String>().toList(growable: false);
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('解析字符串列表失败: $e');
+    }
     return const [];
   }
 
@@ -5863,7 +5872,9 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
       if (decoded is List) {
         return decoded.whereType<String>().toList(growable: false);
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('解析字符串列表失败: $e');
+    }
     return const [];
   }
 
@@ -5893,7 +5904,8 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
         } else {
           tags = [raw];
         }
-      } catch (_) {
+      } catch (e) {
+        debugPrint('解析小确幸标签失败: $e');
         tags = [raw];
       }
       for (final tag in tags) {
@@ -6171,7 +6183,8 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
       }
       buffer.write(hex.replaceFirst('#', ''));
       return Color(int.parse(buffer.toString(), radix: 16));
-    } catch (_) {
+    } catch (e) {
+      debugPrint('解析颜色值失败: $e');
       return const Color(0xFF6B7280);
     }
   }
@@ -8529,7 +8542,8 @@ class AnnualReportRecord {
     if (review.content != null && review.content!.isNotEmpty) {
       try {
         content = AnnualReportContent.fromJson(jsonDecode(review.content!));
-      } catch (_) {
+      } catch (e) {
+        debugPrint('解析年度报告内容失败: $e');
         content = AnnualReportContent(
           opening: review.content!,
           foodChapter: '',
@@ -8546,7 +8560,8 @@ class AnnualReportRecord {
     if (review.stats != null && review.stats!.isNotEmpty) {
       try {
         stats = YearStatistics.fromJson(jsonDecode(review.stats!));
-      } catch (_) {
+      } catch (e) {
+        debugPrint('解析年度统计失败: $e');
         stats = YearStatistics(
           year: review.year,
           totalRecords: 0,
@@ -8573,7 +8588,8 @@ class AnnualReportRecord {
     if (review.keywords != null && review.keywords!.isNotEmpty) {
       try {
         keywordsList = List<String>.from(jsonDecode(review.keywords!));
-      } catch (_) {
+      } catch (e) {
+        debugPrint('解析年度报告关键词失败: $e');
         keywordsList = content?.keywords ?? [];
       }
     } else {
@@ -9112,9 +9128,9 @@ class HelpFeedbackPage extends StatelessWidget {
             return _buildInfoRow('版本', version);
           },
         ),
-        _buildInfoRow('开发者', '人生编年史团队'),
-        _buildInfoRow('联系邮箱', 'support@chronicle.life'),
-        _buildInfoRow('官方网站', 'www.chronicle.life'),
+        _buildInfoRow('开发者', '苏留哲'),
+        _buildInfoRow('联系邮箱', '暂无'),
+        _buildInfoRow('官方网站', '暂无'),
         const SizedBox(height: 20),
         ElevatedButton(
           onPressed: () => _checkForUpdate(context),

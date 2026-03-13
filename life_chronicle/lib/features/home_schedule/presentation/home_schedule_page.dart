@@ -95,7 +95,9 @@ class _GlassHeaderState extends State<_GlassHeader> {
           return path;
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('加载头像配置失败: $e');
+    }
     return null;
   }
 

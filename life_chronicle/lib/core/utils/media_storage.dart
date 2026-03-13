@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -218,7 +218,9 @@ Future<void> _generateThumbnail(
   } catch (e) {
     try {
       await File(sourcePath).copy(targetPath);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('缩略图后备复制失败: $e');
+    }
   }
 }
 

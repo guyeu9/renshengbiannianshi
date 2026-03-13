@@ -37,12 +37,25 @@ class MomentDao extends DatabaseAccessor<AppDatabase> with _$MomentDaoMixin {
   }
 
   Future<void> deleteById(String id) async {
+    // 先查询受影响的关联（双向查询）
+    final links = await db.linkDao.listLinksForEntity(entityType: 'moment', entityId: id);
+
+    // 收集受影响的朋友ID和目标ID
+    final affectedFriendIds = <String>{};
+    final affectedGoalIds = <String>{};
+    for (final link in links) {
+      if (link.sourceType == 'friend') affectedFriendIds.add(link.sourceId);
+      if (link.targetType == 'friend') affectedFriendIds.add(link.targetId);
+      if (link.sourceType == 'goal') affectedGoalIds.add(link.sourceId);
+      if (link.targetType == 'goal') affectedGoalIds.add(link.targetId);
+    }
+
     await transaction(() async {
+      // 删除双向关联
       await (delete(db.entityLinks)
             ..where((t) => t.sourceType.equals('moment'))
             ..where((t) => t.sourceId.equals(id)))
           .go();
-
       await (delete(db.entityLinks)
             ..where((t) => t.targetType.equals('moment'))
             ..where((t) => t.targetId.equals(id)))
@@ -67,20 +80,44 @@ class MomentDao extends DatabaseAccessor<AppDatabase> with _$MomentDaoMixin {
         );
       }
     });
+
+    // 重新计算受影响朋友的 lastMeetDate
+    for (final friendId in affectedFriendIds) {
+      await db.linkDao.recalculateFriendLastMeetDate(friendId: friendId, now: DateTime.now());
+    }
+
+    // 同步受影响目标的进度
+    for (final goalId in affectedGoalIds) {
+      await db.linkDao.syncGoalProgress(goalId: goalId, now: DateTime.now());
+    }
   }
 
   Future<void> softDeleteById(String id, {required DateTime now}) async {
+    // 先查询受影响的关联（双向查询）
+    final links = await db.linkDao.listLinksForEntity(entityType: 'moment', entityId: id);
+
+    // 收集受影响的朋友ID和目标ID
+    final affectedFriendIds = <String>{};
+    final affectedGoalIds = <String>{};
+    for (final link in links) {
+      if (link.sourceType == 'friend') affectedFriendIds.add(link.sourceId);
+      if (link.targetType == 'friend') affectedFriendIds.add(link.targetId);
+      if (link.sourceType == 'goal') affectedGoalIds.add(link.sourceId);
+      if (link.targetType == 'goal') affectedGoalIds.add(link.targetId);
+    }
+
     await transaction(() async {
+      // 删除双向关联
       await (delete(db.entityLinks)
             ..where((t) => t.sourceType.equals('moment'))
             ..where((t) => t.sourceId.equals(id)))
           .go();
-
       await (delete(db.entityLinks)
             ..where((t) => t.targetType.equals('moment'))
             ..where((t) => t.targetId.equals(id)))
           .go();
 
+      // 软删除记录
       await (update(db.momentRecords)..where((t) => t.id.equals(id))).write(
         MomentRecordsCompanion(
           isDeleted: const Value(true),
@@ -100,6 +137,16 @@ class MomentDao extends DatabaseAccessor<AppDatabase> with _$MomentDaoMixin {
         );
       }
     });
+
+    // 重新计算受影响朋友的 lastMeetDate
+    for (final friendId in affectedFriendIds) {
+      await db.linkDao.recalculateFriendLastMeetDate(friendId: friendId, now: now);
+    }
+
+    // 同步受影响目标的进度
+    for (final goalId in affectedGoalIds) {
+      await db.linkDao.syncGoalProgress(goalId: goalId, now: now);
+    }
   }
 
   Future<MomentRecord?> findById(String id) {

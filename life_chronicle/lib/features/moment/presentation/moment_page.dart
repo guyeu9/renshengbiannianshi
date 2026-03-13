@@ -30,7 +30,9 @@ List<String> _parseMomentImages(String? raw) {
     if (decoded is List) {
       return decoded.whereType<String>().toList(growable: false);
     }
-  } catch (_) {}
+  } catch (e) {
+    debugPrint('解析动态图片失败: $e');
+  }
   return const [];
 }
 
@@ -71,7 +73,9 @@ List<String> _parseSceneTags(String? raw) {
       if (decoded is List) {
         return decoded.whereType<String>().map((e) => e.trim()).where((e) => e.isNotEmpty).toList(growable: false);
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('解析场景标签失败: $e');
+    }
   }
   final parts = value.split(RegExp(r'[,\s，、/]+')).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
   return parts;
@@ -1401,7 +1405,9 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
       if (decoded is List) {
         return decoded.whereType<String>().toList(growable: false);
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('解析图片列表失败: $e');
+    }
     return const [];
   }
 

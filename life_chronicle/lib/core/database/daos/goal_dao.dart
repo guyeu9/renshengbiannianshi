@@ -33,12 +33,22 @@ class GoalDao extends DatabaseAccessor<AppDatabase> with _$GoalDaoMixin {
   }
 
   Future<void> softDeleteById(String id, {required DateTime now}) async {
+    // 先查询受影响的关联（双向查询）
+    final links = await db.linkDao.listLinksForEntity(entityType: 'goal', entityId: id);
+
+    // 收集受影响的朋友ID
+    final affectedFriendIds = <String>{};
+    for (final link in links) {
+      if (link.sourceType == 'friend') affectedFriendIds.add(link.sourceId);
+      if (link.targetType == 'friend') affectedFriendIds.add(link.targetId);
+    }
+
     await transaction(() async {
+      // 删除双向关联
       await (delete(db.entityLinks)
             ..where((t) => t.sourceType.equals('goal'))
             ..where((t) => t.sourceId.equals(id)))
           .go();
-
       await (delete(db.entityLinks)
             ..where((t) => t.targetType.equals('goal'))
             ..where((t) => t.targetId.equals(id)))
@@ -48,6 +58,7 @@ class GoalDao extends DatabaseAccessor<AppDatabase> with _$GoalDaoMixin {
 
       await (delete(db.goalPostponements)..where((t) => t.goalId.equals(id))).go();
 
+      // 软删除记录
       await (update(db.goalRecords)..where((t) => t.id.equals(id))).write(
         GoalRecordsCompanion(
           isDeleted: const Value(true),
@@ -67,6 +78,11 @@ class GoalDao extends DatabaseAccessor<AppDatabase> with _$GoalDaoMixin {
         );
       }
     });
+
+    // 重新计算受影响朋友的 lastMeetDate
+    for (final friendId in affectedFriendIds) {
+      await db.linkDao.recalculateFriendLastMeetDate(friendId: friendId, now: now);
+    }
   }
 
   Future<void> updateFavorite(String id, {required bool isFavorite, required DateTime now}) async {

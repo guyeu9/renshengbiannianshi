@@ -449,7 +449,9 @@ class _EncounterCreatePageState extends ConsumerState<EncounterCreatePage> {
           if (decoded is List) {
             _imageUrls.addAll(decoded.whereType<String>());
           }
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('解析图片JSON失败: $e');
+        }
       }
     }
 
@@ -1036,7 +1038,8 @@ class _EncounterDetailPageState extends ConsumerState<EncounterDetailPage> {
       final file = File('${dir.path}/encounter_detail_${DateTime.now().millisecondsSinceEpoch}.png');
       await file.writeAsBytes(bytes);
       await Share.shareXFiles([XFile(file.path)]);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('分享导出失败: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('导出失败，请稍后重试')));
       }
@@ -1531,7 +1534,9 @@ _EncounterNoteData _parseEncounterNote(String? note) {
         if (decoded is List) {
           result.images.addAll(decoded.whereType<String>());
         }
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('解析图片JSON失败: $e');
+      }
     }
   }
   return result;

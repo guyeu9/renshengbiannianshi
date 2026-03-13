@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:life_chronicle/core/errors/app_error.dart';
 import 'package:life_chronicle/core/errors/error_handler.dart';
@@ -18,11 +20,18 @@ class ErrorBoundary extends StatefulWidget {
 
 class _ErrorBoundaryState extends State<ErrorBoundary> {
   AppError? _error;
+  StreamSubscription<AppError>? _errorSubscription;
 
   @override
   void initState() {
     super.initState();
-    ErrorHandler.instance.errorStream.listen(_handleError);
+    _errorSubscription = ErrorHandler.instance.errorStream.listen(_handleError);
+  }
+
+  @override
+  void dispose() {
+    _errorSubscription?.cancel();
+    super.dispose();
   }
 
   void _handleError(AppError error) {

@@ -119,7 +119,9 @@ class OpenAiCompatibleService extends AiServiceBase {
               onChunk(content);
             }
           }
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('解析流式响应行失败: $e');
+        }
       }
     }
     

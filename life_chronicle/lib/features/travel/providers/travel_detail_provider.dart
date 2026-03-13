@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:life_chronicle/core/database/app_database.dart';
 import 'package:life_chronicle/core/database/database_providers.dart';
@@ -98,8 +99,10 @@ class TravelDetailState {
       if (decoded is List) {
         return decoded.map((e) => e.toString()).toList(growable: false);
       }
-    } catch (_) {}
-    
+    } catch (e) {
+      debugPrint('JSON解析失败: $e');
+    }
+
     // 兼容历史数据：逗号分隔格式
     if (trimmed.contains(',') && !trimmed.startsWith('[')) {
       return trimmed.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList(growable: false);
@@ -253,7 +256,9 @@ class JournalDetailState {
       if (decoded is List) {
         return decoded.map((e) => e.toString()).toList(growable: false);
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('JSON解析失败: $e');
+    }
     return const [];
   }
 }
@@ -369,7 +374,9 @@ class TravelTimelineState {
       if (decoded is List) {
         return decoded.map((e) => e.toString()).toList(growable: false);
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('JSON解析失败: $e');
+    }
     return const [];
   }
 }

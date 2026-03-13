@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:drift/drift.dart';
@@ -976,7 +977,9 @@ class BackupService {
               }
             }
           }
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('解析变更字段失败: $e');
+        }
       }
     }
     
@@ -1073,7 +1076,9 @@ class BackupService {
         final manifestString = await File(localManifestPath).readAsString();
         existingManifest = jsonDecode(manifestString) as Map<String, dynamic>;
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('读取远程备份清单失败: $e');
+    }
     
     final newBackup = {
       'type': type,
