@@ -242,7 +242,7 @@ class ContextBuilder {
           userQuery: query,
           startDate: timeRange['start'],
           endDate: timeRange['end'],
-          limit: fullData ? null : 50,
+          limit: fullData ? 1000 : 50,
           fullData: fullData,
         );
       }
@@ -253,7 +253,7 @@ class ContextBuilder {
           queryType: QueryType.summary,
           userQuery: query,
           module: module,
-          limit: fullData ? null : 50,
+          limit: fullData ? 1000 : 50,
           fullData: fullData,
         );
       }
@@ -261,7 +261,7 @@ class ContextBuilder {
       additionalRecords = await _retriever.retrieveRecords(
         queryType: QueryType.onThisDay,
         userQuery: query,
-        limit: fullData ? null : 50,
+        limit: fullData ? 1000 : 50,
         fullData: fullData,
       );
     } else if (queryType == QueryType.query) {
@@ -480,7 +480,7 @@ class ContextBuilder {
       queryType: QueryType.summary,
       userQuery: '',
       module: 'all',
-      limit: fullData ? null : 50,
+      limit: fullData ? 1000 : 50,
       fullData: fullData,
     );
     
@@ -533,7 +533,7 @@ class ContextBuilder {
           module: 'moment',
           startDate: start,
           endDate: end,
-          limit: fullData ? null : 50,
+          limit: fullData ? 1000 : 50,
           fullData: fullData,
         );
         break;
@@ -548,7 +548,7 @@ class ContextBuilder {
           module: 'goal',
           startDate: start,
           endDate: end,
-          limit: fullData ? null : 50,
+          limit: fullData ? 1000 : 50,
           fullData: fullData,
         );
         break;
@@ -557,7 +557,7 @@ class ContextBuilder {
         specificRecords = await _retriever.retrieveRecords(
           queryType: QueryType.onThisDay,
           userQuery: '',
-          limit: fullData ? null : 50,
+          limit: fullData ? 1000 : 50,
           fullData: fullData,
         );
         break;
