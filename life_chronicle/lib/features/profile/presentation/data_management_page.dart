@@ -19,6 +19,7 @@ import '../../../core/services/data_statistics_service.dart';
 import '../../../core/services/excel_export_service.dart';
 import '../../../core/services/markdown_export_service.dart';
 import '../../../core/services/pdf_export_service.dart';
+import '../../../core/utils/file_export_manager.dart';
 
 enum ExportFormat {
   excel,
@@ -363,37 +364,12 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
       setState(() => _isBackingUp = false);
       
       if (!mounted) return;
-      final shouldShare = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('备份成功'),
-          content: Text(
-            '备份文件已保存\n\n'
-            '路径: $finalZipPath\n'
-            '大小: ${(fileSize / 1024 / 1024).toStringAsFixed(2)} MB\n'
-            '记录数: $recordCount\n'
-            '媒体文件: $mediaCount\n\n'
-            '是否分享到其他应用？',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('关闭'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('分享'),
-            ),
-          ],
-        ),
+      await FileExportManager.instance.exportFileWithOptions(
+        context,
+        sourcePath: finalZipPath,
+        fileName: fileName,
+        subject: '人生编年史备份 $fileName',
       );
-      
-      if (shouldShare == true && mounted) {
-        await Share.shareXFiles(
-          [XFile(finalZipPath)],
-          subject: '人生编年史备份 $fileName',
-        );
-      }
     } catch (e) {
       if (logId != null) {
         await db.backupLogDao.updateStatus(
@@ -557,30 +533,12 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
       setState(() => _isExporting = false);
       
       if (!mounted) return;
-      final shouldShare = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('导出成功'),
-          content: Text('文件已保存到应用内部\n\n是否分享到其他应用？\n\n文件大小: ${(jsonString.length / 1024).toStringAsFixed(1)} KB'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('关闭'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('分享'),
-            ),
-          ],
-        ),
+      await FileExportManager.instance.exportFileWithOptions(
+        context,
+        sourcePath: filePath,
+        fileName: fileName,
+        subject: '人生编年史数据导出 $fileName',
       );
-      
-      if (shouldShare == true && mounted) {
-        await Share.shareXFiles(
-          [XFile(filePath)],
-          subject: '人生编年史数据导出 $fileName',
-        );
-      }
     } catch (e) {
       _showSnackBar('JSON 导出失败: $e', isError: true);
     } finally {
@@ -623,27 +581,12 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
       setState(() => _isExporting = false);
       
       if (!mounted) return;
-      final shouldShare = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('导出成功'),
-          content: const Text('Excel文件已生成\n\n是否分享到其他应用？'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('关闭'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('分享'),
-            ),
-          ],
-        ),
+      await FileExportManager.instance.exportFileWithOptions(
+        context,
+        sourcePath: filePath,
+        fileName: path.basename(filePath),
+        subject: '人生编年史数据导出',
       );
-      
-      if (shouldShare == true && mounted) {
-        await service.shareExcel(filePath);
-      }
     } catch (e) {
       _showSnackBar('Excel导出失败: $e', isError: true);
     } finally {
@@ -684,27 +627,12 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
       setState(() => _isExporting = false);
       
       if (!mounted) return;
-      final shouldShare = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('导出成功'),
-          content: const Text('PDF文件已生成\n\n是否分享到其他应用？'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('关闭'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('分享'),
-            ),
-          ],
-        ),
+      await FileExportManager.instance.exportFileWithOptions(
+        context,
+        sourcePath: filePath,
+        fileName: path.basename(filePath),
+        subject: '人生编年史PDF导出',
       );
-      
-      if (shouldShare == true && mounted) {
-        await service.sharePdf(filePath);
-      }
     } catch (e) {
       _showSnackBar('PDF导出失败: $e', isError: true);
     } finally {
@@ -742,27 +670,12 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
       setState(() => _isExporting = false);
       
       if (!mounted) return;
-      final shouldShare = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('导出成功'),
-          content: const Text('Markdown文件已生成\n\n是否分享到其他应用？\n\n提示：您可以将此文件导入到飞书文档、WPS云文档、腾讯文档等任意支持Markdown的云文档平台。'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('关闭'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('分享'),
-            ),
-          ],
-        ),
+      await FileExportManager.instance.exportFileWithOptions(
+        context,
+        sourcePath: filePath,
+        fileName: path.basename(filePath),
+        subject: '人生编年史Markdown导出',
       );
-      
-      if (shouldShare == true && mounted) {
-        await service.shareMarkdown(filePath);
-      }
     } catch (e) {
       _showSnackBar('Markdown导出失败: $e', isError: true);
     } finally {

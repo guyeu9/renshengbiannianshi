@@ -26,6 +26,7 @@ import '../../../core/database/database_providers.dart';
 import '../../../core/providers/ai_provider.dart';
 import '../../../core/services/ai_service.dart' as ai_service;
 import '../../../core/utils/media_storage.dart';
+import '../../../core/utils/permission_manager.dart';
 import '../../../core/utils/icon_utils.dart';
 import '../../../core/config/module_management_config.dart';
 import '../../../app/app_theme.dart';
@@ -624,6 +625,11 @@ class _HeaderState extends ConsumerState<_Header> {
   }
 
   Future<void> _pickAvatar() async {
+    // 检查并申请相册权限
+    final hasPermission = await PermissionManager.instance
+        .requestPhotoPermissionWithDialog(context);
+    if (!hasPermission) return;
+
     final picker = ImagePicker();
     final file = await picker.pickImage(source: ImageSource.gallery);
     if (file == null) return;

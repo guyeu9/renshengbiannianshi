@@ -1,10 +1,12 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:saver_gallery/saver_gallery.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:http/http.dart' as http;
+import 'permission_manager.dart';
 
 class ImageSaveUtil {
   static Future<bool> saveImageToGallery(String imagePath) async {
@@ -58,6 +60,35 @@ class ImageSaveUtil {
     }
   }
 
+  /// 保存图片到用户选择的目录
+  static Future<bool> saveImageToDownloads(
+    BuildContext context,
+    String imagePath, {
+    String? fileName,
+  }) async {
+    try {
+      // 申请权限
+      final hasPermission = await PermissionManager.instance
+          .requestExportPermissionWithDialog(context);
+      if (!hasPermission) return false;
+
+      final result = await FilePicker.platform.saveFile(
+        dialogTitle: '保存图片',
+        fileName: fileName ?? 'image_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        type: FileType.image,
+      );
+
+      if (result != null) {
+        await File(imagePath).copy(result);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('保存图片到下载目录失败: $e');
+      return false;
+    }
+  }
+
   static void showImageOptions(
     BuildContext context,
     String imagePath, {
@@ -95,6 +126,24 @@ class ImageSaveUtil {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(success ? '保存成功' : '保存失败'),
+                    ),
+                  );
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.download),
+              title: const Text('保存到下载文件夹'),
+              onTap: () async {
+                Navigator.pop(ctx);
+                final success = await saveImageToDownloads(
+                  context,
+                  imagePath,
+                );
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(success ? '已保存到下载文件夹' : '保存失败'),
                     ),
                   );
                 }

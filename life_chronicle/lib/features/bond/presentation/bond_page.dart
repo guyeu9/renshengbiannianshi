@@ -11,6 +11,7 @@ import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/services/delete_service.dart';
 import '../../../core/utils/media_storage.dart';
+import '../../../core/utils/permission_manager.dart';
 import '../../../core/widgets/app_image.dart';
 import '../../../core/widgets/ai_parse_button.dart';
 import '../../../core/widgets/custom_bottom_sheet.dart';
@@ -2848,6 +2849,11 @@ class _FriendCreatePageState extends ConsumerState<FriendCreatePage> {
   }
 
   Future<void> _pickAvatar() async {
+    // 检查并申请相册权限
+    final hasPermission = await PermissionManager.instance
+        .requestPhotoPermissionWithDialog(context);
+    if (!hasPermission) return;
+
     final picker = ImagePicker();
     final file = await picker.pickImage(source: ImageSource.gallery);
     if (file == null) return;

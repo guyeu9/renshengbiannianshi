@@ -15,6 +15,7 @@ import '../../../core/database/database_providers.dart';
 import '../../../core/providers/uuid_provider.dart';
 import '../../../core/utils/image_save_util.dart';
 import '../../../core/utils/media_storage.dart';
+import '../../../core/utils/permission_manager.dart';
 import '../../../core/widgets/app_image.dart';
 import '../../../core/router/route_navigation.dart';
 import '../providers/encounter_detail_provider.dart';
@@ -515,6 +516,11 @@ class _EncounterCreatePageState extends ConsumerState<EncounterCreatePage> {
   }
 
   Future<void> _addPlaceholderImage() async {
+    // 检查并申请相册权限
+    final hasPermission = await PermissionManager.instance
+        .requestPhotoPermissionWithDialog(context);
+    if (!hasPermission) return;
+
     final picker = ImagePicker();
     final files = await picker.pickMultiImage();
     if (files.isEmpty) return;

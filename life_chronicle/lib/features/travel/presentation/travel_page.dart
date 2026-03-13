@@ -18,6 +18,7 @@ import '../../../core/database/database_providers.dart';
 import '../../../core/providers/uuid_provider.dart';
 import '../../../core/services/delete_service.dart';
 import '../../../core/utils/media_storage.dart';
+import '../../../core/utils/permission_manager.dart';
 import '../../../core/widgets/ai_parse_button.dart';
 import '../../../core/widgets/custom_bottom_sheet.dart';
 import '../../../core/utils/image_save_util.dart';
@@ -2676,6 +2677,11 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
   }
 
   Future<void> _pickImages() async {
+    // 检查并申请相册权限
+    final hasPermission = await PermissionManager.instance
+        .requestPhotoPermissionWithDialog(context);
+    if (!hasPermission) return;
+
     final picker = ImagePicker();
     final files = await picker.pickMultiImage();
     if (files.isEmpty) return;

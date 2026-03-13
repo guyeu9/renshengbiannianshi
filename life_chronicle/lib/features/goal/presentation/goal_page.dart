@@ -19,6 +19,7 @@ import '../../../core/database/database_providers.dart';
 import '../../../core/providers/uuid_provider.dart';
 import '../../../core/services/delete_service.dart';
 import '../../../core/utils/media_storage.dart';
+import '../../../core/utils/permission_manager.dart';
 import '../../../core/utils/icon_utils.dart';
 import '../../../core/utils/tag_color_utils.dart';
 import '../../../core/widgets/ai_parse_button.dart';
@@ -1172,6 +1173,11 @@ class _AnnualGoalSummaryPageState extends ConsumerState<AnnualGoalSummaryPage> {
   }
 
   Future<void> _pickReviewImages() async {
+    // 检查并申请相册权限
+    final hasPermission = await PermissionManager.instance
+        .requestPhotoPermissionWithDialog(context);
+    if (!hasPermission) return;
+
     final picker = ImagePicker();
     final files = await picker.pickMultiImage();
     if (files.isEmpty) return;
