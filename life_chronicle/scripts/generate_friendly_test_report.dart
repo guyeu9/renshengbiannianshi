@@ -667,7 +667,7 @@ Map<String, String> makeErrorFriendly(String error) {
     message = '异步错误';
     explanation = '异步操作出现问题，请检查 Future 或 Stream 的处理逻辑';
   } else if (error.isNotEmpty) {
-    message = error.length > 200 ? error.substring(0, 200) + '...' : error;
+    message = error.length > 200 ? '${error.substring(0, 200)}...' : error;
   }
 
   return {'message': message, 'explanation': explanation};

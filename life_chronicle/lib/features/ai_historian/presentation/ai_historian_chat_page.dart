@@ -572,7 +572,6 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
     final welcomeIndex = _messages.indexWhere((m) => m.id.startsWith('welcome_'));
     if (welcomeIndex == -1) return;
     
-    final now = DateTime.now();
     String content;
     
     if (widget.isModuleMode && widget.moduleParams != null) {
@@ -1632,7 +1631,7 @@ class _AiChatInputBar extends StatelessWidget {
       return '已接入：全量数据（暂无记录）';
     }
 
-    return '已接入全量数据：共${totalRecords}条（${stats.join('、')}）';
+    return '已接入全量数据：共$totalRecords条（${stats.join('、')}）';
   }
 
   @override
