@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/travel/presentation/travel_page.dart';
 import '../../features/ai_historian/models/module_chat_params.dart';
 import '../../features/ai_historian/models/friend_chat_params.dart';
-import '../../features/profile/presentation/profile_page.dart' show ChronicleRecord;
+import '../../features/profile/presentation/profile_page.dart' show ChronicleRecord, AnnualReportRecord;
 import '../../core/widgets/amap_location_page.dart';
 import '../../core/database/app_database.dart';
 import 'app_router.dart';
@@ -104,8 +104,16 @@ class RouteNavigation {
     context.go(AppRoutes.chronicleManage);
   }
 
+  static void goToAnnualReportList(BuildContext context) {
+    context.go(AppRoutes.annualReportList);
+  }
+
   static void goToYearReport(BuildContext context) {
-    context.go(AppRoutes.yearReport);
+    context.push(AppRoutes.yearReport);
+  }
+
+  static void goToAnnualReportDetail(BuildContext context, AnnualReportRecord report) {
+    context.push('/profile/annual-report/${report.id}', extra: report);
   }
 
   static void goToDataManagement(BuildContext context) {

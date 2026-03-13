@@ -53,7 +53,9 @@ class AppRoutes {
   static const String chronicleGenerateConfig = '/profile/chronicle-config';
   static const String favoritesCenter = '/profile/favorites';
   static const String chronicleManage = '/profile/chronicle-manage';
+  static const String annualReportList = '/profile/annual-reports';
   static const String yearReport = '/profile/year-report';
+  static const String annualReportDetail = '/profile/annual-report/:id';
   static const String dataManagement = '/profile/data-management';
   static const String moduleManagement = '/profile/module-management';
   static const String universalLink = '/profile/universal-link';
@@ -308,10 +310,30 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const ChronicleManagePage(),
           ),
           GoRoute(
+            path: 'annual-reports',
+            name: 'annualReportList',
+            parentNavigatorKey: _rootNavigatorKey,
+            builder: (context, state) => const AnnualReportListPage(),
+          ),
+          GoRoute(
             path: 'year-report',
             name: 'yearReport',
             parentNavigatorKey: _rootNavigatorKey,
             builder: (context, state) => const YearReportPage(),
+          ),
+          GoRoute(
+            path: 'annual-report/:id',
+            name: 'annualReportDetail',
+            parentNavigatorKey: _rootNavigatorKey,
+            builder: (context, state) {
+              final report = state.extra as AnnualReportRecord?;
+              return YearReportPage(
+                initialReport: report?.content,
+                initialStats: report?.stats,
+                reportId: report?.id,
+                createdAt: report?.createdAt,
+              );
+            },
           ),
           GoRoute(
             path: 'data-management',

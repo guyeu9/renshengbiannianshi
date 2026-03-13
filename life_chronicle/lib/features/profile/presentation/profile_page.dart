@@ -17,6 +17,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:go_router/go_router.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/router/route_navigation.dart';
@@ -465,7 +466,7 @@ class ProfilePage extends ConsumerWidget {
                                 iconColor: _iconRed,
                                 title: '年度报告',
                                 subtitle: '回顾过往精彩',
-                                onTap: () => RouteNavigation.goToYearReport(context),
+                                onTap: () => RouteNavigation.goToAnnualReportList(context),
                               ),
                             ),
                           ],
@@ -6702,7 +6703,7 @@ class _AnnualReportListPageState extends ConsumerState<AnnualReportListPage> {
   }
 
   void _viewReport(AnnualReportRecord report) {
-    RouteNavigation.goToYearReport(context);
+    RouteNavigation.goToAnnualReportDetail(context, report);
   }
 
   Future<void> _deleteReport(AnnualReportRecord report) async {
@@ -7866,48 +7867,103 @@ $encountersText
     return Scaffold(
       backgroundColor: surface,
       appBar: AppBar(
-        title: Text('年度报告', style: TextStyle(color: textMain, fontWeight: FontWeight.w700)),
+        title: Text(_isViewMode ? '报告详情' : '年度报告', style: TextStyle(color: textMain, fontWeight: FontWeight.w700)),
         backgroundColor: surface,
         elevation: 0,
         iconTheme: IconThemeData(color: textMain),
+        actions: _isViewMode
+            ? [
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    if (value == 'rename') {
+                      _showRenameDialog();
+                    } else if (value == 'delete') {
+                      _showDeleteConfirm();
+                    }
+                  },
+                  itemBuilder: (ctx) => [
+                    const PopupMenuItem(value: 'rename', child: Text('重命名')),
+                    const PopupMenuItem(value: 'delete', child: Text('删除')),
+                  ],
+                ),
+              ]
+            : null,
       ),
       body: _loadingYears
           ? const Center(child: CircularProgressIndicator())
-          : _selectedYear == null
-              ? const Center(child: Text('暂无数据'))
-              : _loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: surface,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade200),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<int>(
-                            value: _selectedYear,
-                            isExpanded: true,
-                            items: _availableYears.map((y) => DropdownMenuItem(value: y, child: Text('$y 年'))).toList(),
-                            onChanged: (v) {
-                              if (v != null && v != _selectedYear) {
-                                setState(() {
-                                  _selectedYear = v;
-                                  _statistics = null;
-                                  _finalReport = null;
-                                  _moduleReports = {};
-                                });
-                                _loadStatistics();
-                              }
-                            },
-                          ),
+          : _isViewMode
+              ? _buildViewModeBody(primary, surface, textMain, textMuted)
+              : _buildGenerateModeBody(primary, surface, textMain, textMuted),
+    );
+  }
+
+  Widget _buildViewModeBody(Color primary, Color surface, Color textMain, Color textMuted) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_statistics != null) ...[
+            _buildStatsCard(_statistics!),
+            const SizedBox(height: 24),
+            if (_finalReport != null) ...[
+              _buildReportPreview(_finalReport!),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _exportPdf,
+                      icon: const Icon(Icons.picture_as_pdf),
+                      label: const Text('导出PDF'),
+                      style: ElevatedButton.styleFrom(backgroundColor: primary, foregroundColor: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGenerateModeBody(Color primary, Color surface, Color textMain, Color textMuted) {
+    return _selectedYear == null
+        ? const Center(child: Text('暂无数据'))
+        : _loading
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<int>(
+                          value: _selectedYear,
+                          isExpanded: true,
+                          items: _availableYears.map((y) => DropdownMenuItem(value: y, child: Text('$y 年'))).toList(),
+                          onChanged: (v) {
+                            if (v != null && v != _selectedYear) {
+                              setState(() {
+                                _selectedYear = v;
+                                _statistics = null;
+                                _finalReport = null;
+                                _moduleReports = {};
+                              });
+                              _loadStatistics();
+                            }
+                          },
                         ),
                       ),
+                    ),
                   const SizedBox(height: 24),
                   if (_statistics != null) ...[
                     _buildStatsCard(_statistics!),
@@ -7928,6 +7984,23 @@ $encountersText
                     ] else if (_finalReport != null) ...[
                       _buildReportPreview(_finalReport!),
                       const SizedBox(height: 24),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: surface,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: TextField(
+                          controller: _titleController,
+                          decoration: const InputDecoration(
+                            hintText: '报告标题（默认为"{年份}年度报告"）',
+                            border: InputBorder.none,
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                       Row(
                         children: [
                           Expanded(
@@ -7941,9 +8014,9 @@ $encountersText
                           const SizedBox(width: 12),
                           Expanded(
                             child: ElevatedButton.icon(
-                              onPressed: _exportPdf,
-                              icon: const Icon(Icons.picture_as_pdf),
-                              label: const Text('导出PDF'),
+                              onPressed: _saveReport,
+                              icon: const Icon(Icons.save),
+                              label: const Text('保存报告'),
                               style: ElevatedButton.styleFrom(backgroundColor: primary, foregroundColor: Colors.white),
                             ),
                           ),
@@ -7966,8 +8039,107 @@ $encountersText
                   ],
                 ],
               ),
-            ),
+            );
+  }
+
+  Future<void> _saveReport() async {
+    if (_finalReport == null || _statistics == null || _selectedYear == null) return;
+    
+    final title = _titleController.text.trim().isEmpty 
+        ? '$_selectedYear年度报告' 
+        : _titleController.text.trim();
+    
+    final db = ref.read(appDatabaseProvider);
+    final uuid = const Uuid().v4();
+    
+    await db.annualReviewDao.upsert(
+      AnnualReviewsCompanion(
+        id: Value(uuid),
+        year: Value(_selectedYear!),
+        title: Value(title),
+        content: Value(jsonEncode(_finalReport!.toJson())),
+        stats: Value(jsonEncode(_statistics!.toJson())),
+        keywords: Value(jsonEncode(_finalReport!.keywords)),
+        createdAt: Value(DateTime.now()),
+        updatedAt: Value(DateTime.now()),
+      ),
     );
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('报告已保存')),
+      );
+      context.pop();
+    }
+  }
+
+  Future<void> _showRenameDialog() async {
+    if (widget.reportId == null) return;
+    
+    final controller = TextEditingController(text: widget.initialStats != null ? '${widget.initialStats!.year}年度报告' : '');
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('重命名报告'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: '请输入报告标题',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirmed == true && controller.text.trim().isNotEmpty) {
+      final db = ref.read(appDatabaseProvider);
+      await db.annualReviewDao.updateTitle(widget.reportId!, controller.text.trim());
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('报告已重命名')),
+        );
+        context.pop();
+      }
+    }
+  }
+
+  Future<void> _showDeleteConfirm() async {
+    if (widget.reportId == null) return;
+    
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('删除报告'),
+        content: const Text('确定要删除这份报告吗？此操作不可撤销。'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: const Color(0xFFEF4444)),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirmed == true) {
+      final db = ref.read(appDatabaseProvider);
+      await db.annualReviewDao.deleteById(widget.reportId!);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('报告已删除')),
+        );
+        context.pop();
+      }
+    }
   }
 
   Widget _buildStatsCard(YearStatistics stats) {

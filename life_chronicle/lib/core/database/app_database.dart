@@ -44,7 +44,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 27;
+  int get schemaVersion => 28;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -251,6 +251,14 @@ class AppDatabase extends _$AppDatabase {
             }
             if (!await columnExists('annual_reviews', 'keywords')) {
               await customStatement('ALTER TABLE annual_reviews ADD COLUMN keywords TEXT');
+            }
+          }
+
+          if (from < 28) {
+            await ensureTable(chatSessions);
+            await ensureTable(chatMessages);
+            if (!await columnExists('chat_sessions', 'module_type')) {
+              await customStatement('ALTER TABLE chat_sessions ADD COLUMN module_type TEXT');
             }
           }
 
