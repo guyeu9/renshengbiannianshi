@@ -1,5 +1,4 @@
 import 'package:drift/drift.dart' hide isNotNull, isNull;
-import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_chronicle/core/database/app_database.dart';
 import '../test_utils/test_utils.dart';
@@ -252,11 +251,15 @@ void main() {
 
       final foodId1 = 'test-food-lastmeet-2a';
       final foodId2 = 'test-food-lastmeet-2b';
+      
+      final earlierDate = now.subtract(const Duration(hours: 1));
+      final laterDate = now;
+      
       await foodDao.upsert(
         FoodRecordsCompanion.insert(
           id: foodId1,
           title: 'Test Food 2a',
-          recordDate: now,
+          recordDate: earlierDate,
           createdAt: now,
           updatedAt: now,
         ),
@@ -265,7 +268,7 @@ void main() {
         FoodRecordsCompanion.insert(
           id: foodId2,
           title: 'Test Food 2b',
-          recordDate: now,
+          recordDate: laterDate,
           createdAt: now,
           updatedAt: now,
         ),
@@ -280,32 +283,29 @@ void main() {
       );
 
       var friend = await friendDao.findById(friendId);
-      final initialLastMeet = friend?.lastMeetDate;
-
-      await Future.delayed(const Duration(milliseconds: 10));
-      final laterNow = DateTime.now();
+      expect(friend?.lastMeetDate, equals(earlierDate));
 
       await linkDao.createLink(
         sourceType: 'food',
         sourceId: foodId2,
         targetType: 'friend',
         targetId: friendId,
-        now: laterNow,
+        now: now,
       );
 
       friend = await friendDao.findById(friendId);
-      expect(friend?.lastMeetDate?.isAfter(initialLastMeet!), isTrue);
+      expect(friend?.lastMeetDate, equals(laterDate));
 
       await linkDao.deleteLink(
         sourceType: 'food',
         sourceId: foodId1,
         targetType: 'friend',
         targetId: friendId,
-        now: laterNow,
+        now: now,
       );
 
       friend = await friendDao.findById(friendId);
-      expect(friend?.lastMeetDate, equals(friend?.lastMeetDate));
+      expect(friend?.lastMeetDate, equals(laterDate));
     });
   });
 
