@@ -9,6 +9,7 @@ import 'package:uuid/uuid.dart';
 import '../../../core/config/module_management_config.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
+import '../../../core/services/delete_service.dart';
 import '../../../core/utils/media_storage.dart';
 import '../../../core/widgets/app_image.dart';
 import '../../../core/widgets/ai_parse_button.dart';
@@ -1430,21 +1431,18 @@ class _BondFriendDetailPage extends ConsumerWidget {
           );
           if (confirmed != true) return;
 
-          final now = DateTime.now();
-          await db.transaction(() async {
-            final links = await db.linkDao.listLinksForEntity(entityType: 'friend', entityId: friendId);
-            for (final link in links) {
-              await db.linkDao.deleteLink(
-                sourceType: link.sourceType,
-                sourceId: link.sourceId,
-                targetType: link.targetType,
-                targetId: link.targetId,
-                linkType: link.linkType,
-                now: now,
+          final db = ref.read(appDatabaseProvider);
+          final deleteService = DeleteService(db);
+          try {
+            await deleteService.deleteFriend(friendId);
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('删除失败: $e'), backgroundColor: Colors.red),
               );
             }
-            await db.friendDao.softDeleteById(friendId, now: now);
-          });
+            return;
+          }
 
           if (!context.mounted) return;
           Navigator.of(context).pop();

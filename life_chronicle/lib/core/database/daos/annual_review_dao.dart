@@ -4,6 +4,8 @@ part of '../app_database.dart';
 class AnnualReviewDao extends DatabaseAccessor<AppDatabase> with _$AnnualReviewDaoMixin {
   AnnualReviewDao(super.db);
 
+  late final ChangeLogRecorder _changeLogRecorder = ChangeLogRecorder(db);
+
   Future<void> upsert(AnnualReviewsCompanion entry) async {
     await into(db.annualReviews).insertOnConflictUpdate(entry);
   }
@@ -19,7 +21,16 @@ class AnnualReviewDao extends DatabaseAccessor<AppDatabase> with _$AnnualReviewD
   }
 
   Future<void> deleteByYear(int year) async {
-    await (delete(db.annualReviews)..where((t) => t.year.equals(year))).go();
+    await transaction(() async {
+      final reports = await (select(db.annualReviews)..where((t) => t.year.equals(year))).get();
+      for (final report in reports) {
+        await _changeLogRecorder.recordDelete(
+          entityType: 'annual_reviews',
+          entityId: report.id,
+        );
+      }
+      await (delete(db.annualReviews)..where((t) => t.year.equals(year))).go();
+    });
   }
 
   Future<List<AnnualReview>> listAll() {
@@ -50,6 +61,12 @@ class AnnualReviewDao extends DatabaseAccessor<AppDatabase> with _$AnnualReviewD
   }
 
   Future<void> deleteById(String id) async {
-    await (delete(db.annualReviews)..where((t) => t.id.equals(id))).go();
+    await transaction(() async {
+      await _changeLogRecorder.recordDelete(
+        entityType: 'annual_reviews',
+        entityId: id,
+      );
+      await (delete(db.annualReviews)..where((t) => t.id.equals(id))).go();
+    });
   }
 }

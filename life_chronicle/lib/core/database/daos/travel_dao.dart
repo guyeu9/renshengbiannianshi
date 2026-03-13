@@ -34,22 +34,36 @@ class TravelDao extends DatabaseAccessor<AppDatabase> with _$TravelDaoMixin {
   }
 
   Future<void> softDeleteById(String id, {required DateTime now}) async {
-    await (update(db.travelRecords)..where((t) => t.id.equals(id))).write(
-      TravelRecordsCompanion(
-        isDeleted: const Value(true),
-        updatedAt: Value(now),
-      ),
-    );
-    await _changeLogRecorder.recordDelete(
-      entityType: 'travel_records',
-      entityId: id,
-    );
-    if (db.vectorIndexManager != null) {
-      await db.vectorIndexManager!.recordDelete(
-        entityType: 'travel',
+    await transaction(() async {
+      await (delete(db.entityLinks)
+            ..where((t) => t.sourceType.equals('travel'))
+            ..where((t) => t.sourceId.equals(id)))
+          .go();
+
+      await (delete(db.entityLinks)
+            ..where((t) => t.targetType.equals('travel'))
+            ..where((t) => t.targetId.equals(id)))
+          .go();
+
+      await (update(db.travelRecords)..where((t) => t.id.equals(id))).write(
+        TravelRecordsCompanion(
+          isDeleted: const Value(true),
+          updatedAt: Value(now),
+        ),
+      );
+
+      await _changeLogRecorder.recordDelete(
+        entityType: 'travel_records',
         entityId: id,
       );
-    }
+
+      if (db.vectorIndexManager != null) {
+        await db.vectorIndexManager!.recordDelete(
+          entityType: 'travel',
+          entityId: id,
+        );
+      }
+    });
   }
 
   Future<void> updateFavorite(String id, {required bool isFavorite, required DateTime now}) async {
@@ -159,59 +173,45 @@ class TravelDao extends DatabaseAccessor<AppDatabase> with _$TravelDaoMixin {
   }
 
   Future<void> softDeleteTripById(String tripId, {required DateTime now}) async {
-    final travelRecords = await (select(db.travelRecords)
-          ..where((t) => t.tripId.equals(tripId))
-          ..where((t) => t.isDeleted.equals(false)))
-        .get();
-
-    await (update(db.travelRecords)
-          ..where((t) => t.tripId.equals(tripId)))
-        .write(
-          TravelRecordsCompanion(
-            isDeleted: const Value(true),
-            updatedAt: Value(now),
-          ),
-        );
-
-    for (final record in travelRecords) {
-      final links = await (select(db.entityLinks)
-            ..where((t) => t.sourceType.equals('travel') & t.sourceId.equals(record.id))
-            ..where((t) => t.targetType.equals('travel') & t.targetId.equals(record.id)))
+    await transaction(() async {
+      final travelRecords = await (select(db.travelRecords)
+            ..where((t) => t.tripId.equals(tripId))
+            ..where((t) => t.isDeleted.equals(false)))
           .get();
 
-      for (final link in links) {
-        await into(db.linkLogs).insert(
-          LinkLogsCompanion.insert(
-            id: _uuid.v4(),
-            sourceType: link.sourceType,
-            sourceId: link.sourceId,
-            targetType: link.targetType,
-            targetId: link.targetId,
-            action: 'delete',
-            linkType: Value(link.linkType),
-            createdAt: now,
-          ),
-        );
-      }
+      await (update(db.travelRecords)
+            ..where((t) => t.tripId.equals(tripId)))
+          .write(
+            TravelRecordsCompanion(
+              isDeleted: const Value(true),
+              updatedAt: Value(now),
+            ),
+          );
 
-      await (delete(db.entityLinks)
-            ..where((t) => t.sourceType.equals('travel') & t.sourceId.equals(record.id))
-            ..where((t) => t.targetType.equals('travel') & t.targetId.equals(record.id)))
-          .go();
-    }
+      for (final record in travelRecords) {
+        await (delete(db.entityLinks)
+              ..where((t) => t.sourceType.equals('travel'))
+              ..where((t) => t.sourceId.equals(record.id)))
+            .go();
 
-    for (final record in travelRecords) {
-      await _changeLogRecorder.recordDelete(
-        entityType: 'travel_records',
-        entityId: record.id,
-      );
-      if (db.vectorIndexManager != null) {
-        await db.vectorIndexManager!.recordDelete(
-          entityType: 'travel',
+        await (delete(db.entityLinks)
+              ..where((t) => t.targetType.equals('travel'))
+              ..where((t) => t.targetId.equals(record.id)))
+            .go();
+
+        await _changeLogRecorder.recordDelete(
+          entityType: 'travel_records',
           entityId: record.id,
         );
+
+        if (db.vectorIndexManager != null) {
+          await db.vectorIndexManager!.recordDelete(
+            entityType: 'travel',
+            entityId: record.id,
+          );
+        }
       }
-    }
+    });
   }
 
   Stream<List<TravelRecord>> watchTripsOnly() {

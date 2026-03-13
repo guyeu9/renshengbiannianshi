@@ -13,6 +13,7 @@ import '../../../core/config/module_management_config.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/providers/uuid_provider.dart';
+import '../../../core/services/delete_service.dart';
 import '../../../core/utils/image_save_util.dart';
 import '../../../core/utils/media_storage.dart';
 import '../../../core/utils/tag_color_utils.dart';
@@ -942,20 +943,18 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
             );
           },
           onDelete: () async {
-            final now = DateTime.now();
-            final linkDao = LinkDao(db);
-            final links = await linkDao.listLinksForEntity(entityType: 'moment', entityId: record.id);
-            for (final link in links) {
-              await linkDao.deleteLink(
-                sourceType: link.sourceType,
-                sourceId: link.sourceId,
-                targetType: link.targetType,
-                targetId: link.targetId,
-                linkType: link.linkType,
-                now: now,
-              );
+            final db = ref.read(appDatabaseProvider);
+            final deleteService = DeleteService(db);
+            try {
+              await deleteService.hardDeleteMoment(record.id);
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('删除失败: $e'), backgroundColor: Colors.red),
+                );
+              }
+              return;
             }
-            await db.momentDao.deleteById(record.id);
             if (!context.mounted) return;
             Navigator.of(context).pop();
           },

@@ -200,6 +200,7 @@ class BackupService {
     exportData['ai_providers'] = await _exportAiProviders();
     exportData['checklist_items'] = await _exportChecklistItems();
     exportData['annual_reviews'] = await _exportAnnualReviews();
+    exportData['deleted_records'] = await _exportDeletedRecords();
     exportData['exported_at'] = DateTime.now().toIso8601String();
     exportData['schema_version'] = db.schemaVersion;
 
@@ -207,22 +208,30 @@ class BackupService {
   }
 
   Future<List<Map<String, dynamic>>> _exportFoodRecords() async {
-    final records = await (db.select(db.foodRecords)).get();
+    final records = await (db.select(db.foodRecords)
+          ..where((t) => t.isDeleted.equals(false)))
+        .get();
     return records.map((r) => r.toJson()).toList();
   }
 
   Future<List<Map<String, dynamic>>> _exportMomentRecords() async {
-    final records = await (db.select(db.momentRecords)).get();
+    final records = await (db.select(db.momentRecords)
+          ..where((t) => t.isDeleted.equals(false)))
+        .get();
     return records.map((r) => r.toJson()).toList();
   }
 
   Future<List<Map<String, dynamic>>> _exportFriendRecords() async {
-    final records = await (db.select(db.friendRecords)).get();
+    final records = await (db.select(db.friendRecords)
+          ..where((t) => t.isDeleted.equals(false)))
+        .get();
     return records.map((r) => r.toJson()).toList();
   }
 
   Future<List<Map<String, dynamic>>> _exportTravelRecords() async {
-    final records = await (db.select(db.travelRecords)).get();
+    final records = await (db.select(db.travelRecords)
+          ..where((t) => t.isDeleted.equals(false)))
+        .get();
     return records.map((r) => r.toJson()).toList();
   }
 
@@ -232,7 +241,9 @@ class BackupService {
   }
 
   Future<List<Map<String, dynamic>>> _exportGoalRecords() async {
-    final records = await (db.select(db.goalRecords)).get();
+    final records = await (db.select(db.goalRecords)
+          ..where((t) => t.isDeleted.equals(false)))
+        .get();
     return records.map((r) => r.toJson()).toList();
   }
 
@@ -274,6 +285,67 @@ class BackupService {
   Future<List<Map<String, dynamic>>> _exportGoalReviews() async {
     final records = await (db.select(db.goalReviews)).get();
     return records.map((r) => r.toJson()).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> _exportDeletedRecords() async {
+    final deletedRecords = <Map<String, dynamic>>[];
+
+    final foodDeleted = await (db.select(db.foodRecords)
+          ..where((t) => t.isDeleted.equals(true)))
+        .get();
+    for (final record in foodDeleted) {
+      deletedRecords.add({
+        'entity_type': 'food_records',
+        'entity_id': record.id,
+        'deleted_at': record.updatedAt.toIso8601String(),
+      });
+    }
+
+    final momentDeleted = await (db.select(db.momentRecords)
+          ..where((t) => t.isDeleted.equals(true)))
+        .get();
+    for (final record in momentDeleted) {
+      deletedRecords.add({
+        'entity_type': 'moment_records',
+        'entity_id': record.id,
+        'deleted_at': record.updatedAt.toIso8601String(),
+      });
+    }
+
+    final friendDeleted = await (db.select(db.friendRecords)
+          ..where((t) => t.isDeleted.equals(true)))
+        .get();
+    for (final record in friendDeleted) {
+      deletedRecords.add({
+        'entity_type': 'friend_records',
+        'entity_id': record.id,
+        'deleted_at': record.updatedAt.toIso8601String(),
+      });
+    }
+
+    final travelDeleted = await (db.select(db.travelRecords)
+          ..where((t) => t.isDeleted.equals(true)))
+        .get();
+    for (final record in travelDeleted) {
+      deletedRecords.add({
+        'entity_type': 'travel_records',
+        'entity_id': record.id,
+        'deleted_at': record.updatedAt.toIso8601String(),
+      });
+    }
+
+    final goalDeleted = await (db.select(db.goalRecords)
+          ..where((t) => t.isDeleted.equals(true)))
+        .get();
+    for (final record in goalDeleted) {
+      deletedRecords.add({
+        'entity_type': 'goal_records',
+        'entity_id': record.id,
+        'deleted_at': record.updatedAt.toIso8601String(),
+      });
+    }
+
+    return deletedRecords;
   }
 
   Future<List<Map<String, dynamic>>> _exportAnnualReviews() async {
@@ -355,6 +427,90 @@ class BackupService {
     }
     if (data.containsKey('annual_reviews')) {
       await _importAnnualReviews(List<Map<String, dynamic>>.from(data['annual_reviews']), merge: merge);
+    }
+    if (data.containsKey('deleted_records')) {
+      await _syncDeletedRecords(List<Map<String, dynamic>>.from(data['deleted_records']));
+    }
+  }
+
+  Future<void> _syncDeletedRecords(List<Map<String, dynamic>> deletedRecords) async {
+    for (final record in deletedRecords) {
+      final entityType = record['entity_type'] as String;
+      final entityId = record['entity_id'] as String;
+      final deletedAt = DateTime.parse(record['deleted_at'] as String);
+
+      switch (entityType) {
+        case 'food_records':
+          final existing = await (db.select(db.foodRecords)
+                ..where((t) => t.id.equals(entityId))
+                ..limit(1))
+              .getSingleOrNull();
+          if (existing != null && !existing.isDeleted) {
+            await (db.update(db.foodRecords)..where((t) => t.id.equals(entityId))).write(
+              FoodRecordsCompanion(
+                isDeleted: const Value(true),
+                updatedAt: Value(deletedAt),
+              ),
+            );
+          }
+          break;
+        case 'moment_records':
+          final existing = await (db.select(db.momentRecords)
+                ..where((t) => t.id.equals(entityId))
+                ..limit(1))
+              .getSingleOrNull();
+          if (existing != null && !existing.isDeleted) {
+            await (db.update(db.momentRecords)..where((t) => t.id.equals(entityId))).write(
+              MomentRecordsCompanion(
+                isDeleted: const Value(true),
+                updatedAt: Value(deletedAt),
+              ),
+            );
+          }
+          break;
+        case 'friend_records':
+          final existing = await (db.select(db.friendRecords)
+                ..where((t) => t.id.equals(entityId))
+                ..limit(1))
+              .getSingleOrNull();
+          if (existing != null && !existing.isDeleted) {
+            await (db.update(db.friendRecords)..where((t) => t.id.equals(entityId))).write(
+              FriendRecordsCompanion(
+                isDeleted: const Value(true),
+                updatedAt: Value(deletedAt),
+              ),
+            );
+          }
+          break;
+        case 'travel_records':
+          final existing = await (db.select(db.travelRecords)
+                ..where((t) => t.id.equals(entityId))
+                ..limit(1))
+              .getSingleOrNull();
+          if (existing != null && !existing.isDeleted) {
+            await (db.update(db.travelRecords)..where((t) => t.id.equals(entityId))).write(
+              TravelRecordsCompanion(
+                isDeleted: const Value(true),
+                updatedAt: Value(deletedAt),
+              ),
+            );
+          }
+          break;
+        case 'goal_records':
+          final existing = await (db.select(db.goalRecords)
+                ..where((t) => t.id.equals(entityId))
+                ..limit(1))
+              .getSingleOrNull();
+          if (existing != null && !existing.isDeleted) {
+            await (db.update(db.goalRecords)..where((t) => t.id.equals(entityId))).write(
+              GoalRecordsCompanion(
+                isDeleted: const Value(true),
+                updatedAt: Value(deletedAt),
+              ),
+            );
+          }
+          break;
+      }
     }
   }
 

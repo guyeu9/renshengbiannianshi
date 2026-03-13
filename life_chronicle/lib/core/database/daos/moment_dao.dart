@@ -38,42 +38,68 @@ class MomentDao extends DatabaseAccessor<AppDatabase> with _$MomentDaoMixin {
 
   Future<void> deleteById(String id) async {
     await transaction(() async {
-      final timelineDeleted = await (delete(db.timelineEvents)
+      await (delete(db.entityLinks)
+            ..where((t) => t.sourceType.equals('moment'))
+            ..where((t) => t.sourceId.equals(id)))
+          .go();
+
+      await (delete(db.entityLinks)
+            ..where((t) => t.targetType.equals('moment'))
+            ..where((t) => t.targetId.equals(id)))
+          .go();
+
+      await (delete(db.timelineEvents)
             ..where((t) => t.id.equals(id))
             ..where((t) => t.eventType.equals('moment')))
           .go();
-      final momentDeleted = await (delete(db.momentRecords)..where((t) => t.id.equals(id))).go();
-      debugPrint('Moment $id deleted: timeline=$timelineDeleted, moment=$momentDeleted');
-    });
-    await _changeLogRecorder.recordDelete(
-      entityType: 'moment_records',
-      entityId: id,
-    );
-    if (db.vectorIndexManager != null) {
-      await db.vectorIndexManager!.recordDelete(
-        entityType: 'moment',
+
+      await (delete(db.momentRecords)..where((t) => t.id.equals(id))).go();
+
+      await _changeLogRecorder.recordDelete(
+        entityType: 'moment_records',
         entityId: id,
       );
-    }
+
+      if (db.vectorIndexManager != null) {
+        await db.vectorIndexManager!.recordDelete(
+          entityType: 'moment',
+          entityId: id,
+        );
+      }
+    });
   }
 
   Future<void> softDeleteById(String id, {required DateTime now}) async {
-    await (update(db.momentRecords)..where((t) => t.id.equals(id))).write(
-      MomentRecordsCompanion(
-        isDeleted: const Value(true),
-        updatedAt: Value(now),
-      ),
-    );
-    await _changeLogRecorder.recordDelete(
-      entityType: 'moment_records',
-      entityId: id,
-    );
-    if (db.vectorIndexManager != null) {
-      await db.vectorIndexManager!.recordDelete(
-        entityType: 'moment',
+    await transaction(() async {
+      await (delete(db.entityLinks)
+            ..where((t) => t.sourceType.equals('moment'))
+            ..where((t) => t.sourceId.equals(id)))
+          .go();
+
+      await (delete(db.entityLinks)
+            ..where((t) => t.targetType.equals('moment'))
+            ..where((t) => t.targetId.equals(id)))
+          .go();
+
+      await (update(db.momentRecords)..where((t) => t.id.equals(id))).write(
+        MomentRecordsCompanion(
+          isDeleted: const Value(true),
+          updatedAt: Value(now),
+        ),
+      );
+
+      await _changeLogRecorder.recordDelete(
+        entityType: 'moment_records',
         entityId: id,
       );
-    }
+
+      if (db.vectorIndexManager != null) {
+        await db.vectorIndexManager!.recordDelete(
+          entityType: 'moment',
+          entityId: id,
+        );
+      }
+    });
   }
 
   Future<MomentRecord?> findById(String id) {

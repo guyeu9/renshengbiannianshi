@@ -17,6 +17,7 @@ import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/router/route_navigation.dart';
+import '../../../core/services/delete_service.dart';
 import '../../../core/utils/media_storage.dart';
 import '../../../core/utils/tag_color_utils.dart';
 import '../../../core/widgets/app_image.dart';
@@ -1349,20 +1350,18 @@ class FoodDetailPage extends ConsumerWidget {
           },
           onShare: () {},
           onDelete: () async {
-            final now = DateTime.now();
-            final linkDao = LinkDao(db);
-            final links = await linkDao.listLinksForEntity(entityType: 'food', entityId: record.id);
-            for (final link in links) {
-              await linkDao.deleteLink(
-                sourceType: link.sourceType,
-                sourceId: link.sourceId,
-                targetType: link.targetType,
-                targetId: link.targetId,
-                linkType: link.linkType,
-                now: now,
-              );
+            final db = ref.read(appDatabaseProvider);
+            final deleteService = DeleteService(db);
+            try {
+              await deleteService.deleteFood(record.id);
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('删除失败: $e'), backgroundColor: Colors.red),
+                );
+              }
+              return;
             }
-            await db.foodDao.softDeleteById(record.id, now: now);
             if (!context.mounted) return;
             Navigator.of(context).pop();
           },

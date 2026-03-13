@@ -17,6 +17,7 @@ import '../../../core/config/module_management_config.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/providers/uuid_provider.dart';
+import '../../../core/services/delete_service.dart';
 import '../../../core/utils/media_storage.dart';
 import '../../../core/utils/icon_utils.dart';
 import '../../../core/utils/tag_color_utils.dart';
@@ -1697,39 +1698,17 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
     if (!mounted) return;
 
     final db = ref.read(appDatabaseProvider);
-    final now = DateTime.now();
+    final deleteService = DeleteService(db);
 
-    await (db.update(db.goalRecords)..where((t) => t.id.equals(widget.record.id))).write(
-      GoalRecordsCompanion(
-        isDeleted: const Value(true),
-        updatedAt: Value(now),
-      ),
-    );
-
-    final children = await (db.select(db.goalRecords)
-          ..where((t) => t.parentId.equals(widget.record.id))
-          ..where((t) => t.isDeleted.equals(false)))
-        .get();
-
-    for (final child in children) {
-      await (db.update(db.goalRecords)..where((t) => t.id.equals(child.id))).write(
-        GoalRecordsCompanion(
-          isDeleted: const Value(true),
-          updatedAt: Value(now),
-        ),
-      );
-      final grandchildren = await (db.select(db.goalRecords)
-            ..where((t) => t.parentId.equals(child.id))
-            ..where((t) => t.isDeleted.equals(false)))
-          .get();
-      for (final grandchild in grandchildren) {
-        await (db.update(db.goalRecords)..where((t) => t.id.equals(grandchild.id))).write(
-          GoalRecordsCompanion(
-            isDeleted: const Value(true),
-            updatedAt: Value(now),
-          ),
+    try {
+      await deleteService.deleteGoal(widget.record.id);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('删除失败: $e'), backgroundColor: Colors.red),
         );
       }
+      return;
     }
 
     if (!mounted) return;
@@ -2525,19 +2504,16 @@ class _GoalBreakdownMaintenancePageState extends ConsumerState<GoalBreakdownMain
     );
     if (confirmed != true) return;
     final db = ref.read(appDatabaseProvider);
-    final now = DateTime.now();
-    await (db.update(db.goalRecords)..where((t) => t.id.equals(stage.id))).write(
-      GoalRecordsCompanion(
-        isDeleted: const Value(true),
-        updatedAt: Value(now),
-      ),
-    );
-    await (db.update(db.goalRecords)..where((t) => t.parentId.equals(stage.id))).write(
-      GoalRecordsCompanion(
-        isDeleted: const Value(true),
-        updatedAt: Value(now),
-      ),
-    );
+    final deleteService = DeleteService(db);
+    try {
+      await deleteService.deleteGoalStage(stage.id);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('删除失败: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   Future<void> _addTask(GoalRecord stage) async {
@@ -2564,13 +2540,16 @@ class _GoalBreakdownMaintenancePageState extends ConsumerState<GoalBreakdownMain
 
   Future<void> _deleteTask(GoalRecord task) async {
     final db = ref.read(appDatabaseProvider);
-    final now = DateTime.now();
-    await (db.update(db.goalRecords)..where((t) => t.id.equals(task.id))).write(
-      GoalRecordsCompanion(
-        isDeleted: const Value(true),
-        updatedAt: Value(now),
-      ),
-    );
+    final deleteService = DeleteService(db);
+    try {
+      await deleteService.deleteGoal(task.id);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('删除失败: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   @override

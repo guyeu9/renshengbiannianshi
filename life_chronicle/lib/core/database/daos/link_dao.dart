@@ -73,11 +73,12 @@ class LinkDao extends DatabaseAccessor<AppDatabase> with _$LinkDaoMixin {
           createdAt: now,
         ),
       );
+
+      await _changeLogRecorder.recordInsert(
+        entityType: 'entity_links',
+        entityId: linkId,
+      );
     });
-    await _changeLogRecorder.recordInsert(
-      entityType: 'entity_links',
-      entityId: linkId,
-    );
     await _syncGoalsAfterLinkChange(
       sourceType: sourceType,
       sourceId: sourceId,
@@ -125,13 +126,14 @@ class LinkDao extends DatabaseAccessor<AppDatabase> with _$LinkDaoMixin {
           createdAt: now,
         ),
       );
+
+      for (final linkId in linkIds) {
+        await _changeLogRecorder.recordDelete(
+          entityType: 'entity_links',
+          entityId: linkId,
+        );
+      }
     });
-    for (final linkId in linkIds) {
-      await _changeLogRecorder.recordDelete(
-        entityType: 'entity_links',
-        entityId: linkId,
-      );
-    }
     await _syncGoalsAfterLinkChange(
       sourceType: sourceType,
       sourceId: sourceId,
@@ -326,14 +328,14 @@ class LinkDao extends DatabaseAccessor<AppDatabase> with _$LinkDaoMixin {
           ),
         );
       }
-    });
 
-    for (final linkId in linkIds) {
-      await _changeLogRecorder.recordDelete(
-        entityType: 'entity_links',
-        entityId: linkId,
-      );
-    }
+      for (final linkId in linkIds) {
+        await _changeLogRecorder.recordDelete(
+          entityType: 'entity_links',
+          entityId: linkId,
+        );
+      }
+    });
 
     for (final link in existingLinks) {
       await _syncGoalsAfterLinkChange(

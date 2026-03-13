@@ -33,22 +33,40 @@ class GoalDao extends DatabaseAccessor<AppDatabase> with _$GoalDaoMixin {
   }
 
   Future<void> softDeleteById(String id, {required DateTime now}) async {
-    await (update(db.goalRecords)..where((t) => t.id.equals(id))).write(
-      GoalRecordsCompanion(
-        isDeleted: const Value(true),
-        updatedAt: Value(now),
-      ),
-    );
-    await _changeLogRecorder.recordDelete(
-      entityType: 'goal_records',
-      entityId: id,
-    );
-    if (db.vectorIndexManager != null) {
-      await db.vectorIndexManager!.recordDelete(
-        entityType: 'goal',
+    await transaction(() async {
+      await (delete(db.entityLinks)
+            ..where((t) => t.sourceType.equals('goal'))
+            ..where((t) => t.sourceId.equals(id)))
+          .go();
+
+      await (delete(db.entityLinks)
+            ..where((t) => t.targetType.equals('goal'))
+            ..where((t) => t.targetId.equals(id)))
+          .go();
+
+      await (delete(db.goalReviews)..where((t) => t.goalId.equals(id))).go();
+
+      await (delete(db.goalPostponements)..where((t) => t.goalId.equals(id))).go();
+
+      await (update(db.goalRecords)..where((t) => t.id.equals(id))).write(
+        GoalRecordsCompanion(
+          isDeleted: const Value(true),
+          updatedAt: Value(now),
+        ),
+      );
+
+      await _changeLogRecorder.recordDelete(
+        entityType: 'goal_records',
         entityId: id,
       );
-    }
+
+      if (db.vectorIndexManager != null) {
+        await db.vectorIndexManager!.recordDelete(
+          entityType: 'goal',
+          entityId: id,
+        );
+      }
+    });
   }
 
   Future<void> updateFavorite(String id, {required bool isFavorite, required DateTime now}) async {

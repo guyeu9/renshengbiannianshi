@@ -5,6 +5,7 @@ class FriendDao extends DatabaseAccessor<AppDatabase> with _$FriendDaoMixin {
   FriendDao(super.db);
 
   late final ChangeLogRecorder _changeLogRecorder = ChangeLogRecorder(db);
+  final Uuid _uuid = const Uuid();
 
   Future<void> upsert(FriendRecordsCompanion entry) async {
     await into(db.friendRecords).insertOnConflictUpdate(entry);
@@ -15,28 +16,46 @@ class FriendDao extends DatabaseAccessor<AppDatabase> with _$FriendDaoMixin {
   }
 
   Future<void> softDeleteById(String id, {required DateTime now}) async {
-    final linkDao = LinkDao(db);
-    final links = await linkDao.listLinksForEntity(entityType: 'friend', entityId: id);
-    for (final link in links) {
-      await linkDao.deleteLink(
-        sourceType: link.sourceType,
-        sourceId: link.sourceId,
-        targetType: link.targetType,
-        targetId: link.targetId,
-        linkType: link.linkType,
-        now: now,
+    await transaction(() async {
+      final links = await (select(db.entityLinks)
+            ..where((t) =>
+                (t.sourceType.equals('friend') & t.sourceId.equals(id)) |
+                (t.targetType.equals('friend') & t.targetId.equals(id))))
+          .get();
+
+      for (final link in links) {
+        await into(db.linkLogs).insert(
+          LinkLogsCompanion.insert(
+            id: _uuid.v4(),
+            sourceType: link.sourceType,
+            sourceId: link.sourceId,
+            targetType: link.targetType,
+            targetId: link.targetId,
+            action: 'delete',
+            linkType: Value(link.linkType),
+            createdAt: now,
+          ),
+        );
+      }
+
+      await (delete(db.entityLinks)
+            ..where((t) =>
+                (t.sourceType.equals('friend') & t.sourceId.equals(id)) |
+                (t.targetType.equals('friend') & t.targetId.equals(id))))
+          .go();
+
+      await (update(db.friendRecords)..where((t) => t.id.equals(id))).write(
+        FriendRecordsCompanion(
+          isDeleted: const Value(true),
+          updatedAt: Value(now),
+        ),
       );
-    }
-    await (update(db.friendRecords)..where((t) => t.id.equals(id))).write(
-      FriendRecordsCompanion(
-        isDeleted: const Value(true),
-        updatedAt: Value(now),
-      ),
-    );
-    await _changeLogRecorder.recordDelete(
-      entityType: 'friend_records',
-      entityId: id,
-    );
+
+      await _changeLogRecorder.recordDelete(
+        entityType: 'friend_records',
+        entityId: id,
+      );
+    });
   }
 
   Future<FriendRecord?> findById(String id) {

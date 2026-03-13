@@ -26,22 +26,36 @@ class FoodDao extends DatabaseAccessor<AppDatabase> with _$FoodDaoMixin {
   }
 
   Future<void> softDeleteById(String id, {required DateTime now}) async {
-    await (update(db.foodRecords)..where((t) => t.id.equals(id))).write(
-      FoodRecordsCompanion(
-        isDeleted: const Value(true),
-        updatedAt: Value(now),
-      ),
-    );
-    await _changeLogRecorder.recordDelete(
-      entityType: 'food_records',
-      entityId: id,
-    );
-    if (db.vectorIndexManager != null) {
-      await db.vectorIndexManager!.recordDelete(
-        entityType: 'food',
+    await transaction(() async {
+      await (delete(db.entityLinks)
+            ..where((t) => t.sourceType.equals('food'))
+            ..where((t) => t.sourceId.equals(id)))
+          .go();
+
+      await (delete(db.entityLinks)
+            ..where((t) => t.targetType.equals('food'))
+            ..where((t) => t.targetId.equals(id)))
+          .go();
+
+      await (update(db.foodRecords)..where((t) => t.id.equals(id))).write(
+        FoodRecordsCompanion(
+          isDeleted: const Value(true),
+          updatedAt: Value(now),
+        ),
+      );
+
+      await _changeLogRecorder.recordDelete(
+        entityType: 'food_records',
         entityId: id,
       );
-    }
+
+      if (db.vectorIndexManager != null) {
+        await db.vectorIndexManager!.recordDelete(
+          entityType: 'food',
+          entityId: id,
+        );
+      }
+    });
   }
 
   Future<void> updateFavorite(String id, {required bool isFavorite, required DateTime now}) async {

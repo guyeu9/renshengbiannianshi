@@ -16,6 +16,7 @@ import '../../../core/config/module_management_config.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/providers/uuid_provider.dart';
+import '../../../core/services/delete_service.dart';
 import '../../../core/utils/media_storage.dart';
 import '../../../core/widgets/ai_parse_button.dart';
 import '../../../core/widgets/custom_bottom_sheet.dart';
@@ -6242,23 +6243,18 @@ class _JournalDetailPageState extends ConsumerState<JournalDetailPage>
 
   Future<void> _deleteJournal(TravelRecord record) async {
     final db = ref.read(appDatabaseProvider);
-    final now = DateTime.now();
+    final deleteService = DeleteService(db);
 
-    final linkDao = LinkDao(db);
-    final links = await linkDao.listLinksForEntity(entityType: 'travel', entityId: record.id);
-    for (final link in links) {
-      await linkDao.deleteLink(
-        sourceType: link.sourceType,
-        sourceId: link.sourceId,
-        targetType: link.targetType,
-        targetId: link.targetId,
-        linkType: link.linkType,
-        now: now,
-      );
+    try {
+      await deleteService.hardDeleteTravelJournal(record.id);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('删除失败: $e'), backgroundColor: Colors.red),
+        );
+      }
+      return;
     }
-
-    await (db.delete(db.travelRecords)..where((t) => t.id.equals(record.id))).go();
-    await (db.delete(db.timelineEvents)..where((t) => t.id.equals(record.id))).go();
 
     if (mounted) {
       Navigator.of(context).pop();

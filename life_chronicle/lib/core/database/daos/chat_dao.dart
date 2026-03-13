@@ -4,6 +4,8 @@ part of '../app_database.dart';
 class ChatDao extends DatabaseAccessor<AppDatabase> with _$ChatDaoMixin {
   ChatDao(super.db);
 
+  late final ChangeLogRecorder _changeLogRecorder = ChangeLogRecorder(db);
+
   Future<void> upsertSession(ChatSessionsCompanion entry) async {
     await into(db.chatSessions).insertOnConflictUpdate(entry);
   }
@@ -13,12 +15,21 @@ class ChatDao extends DatabaseAccessor<AppDatabase> with _$ChatDaoMixin {
   }
 
   Future<void> softDeleteSession(String id, {required DateTime now}) async {
-    await (update(db.chatSessions)..where((t) => t.id.equals(id))).write(
-      ChatSessionsCompanion(
-        isDeleted: const Value(true),
-        updatedAt: Value(now),
-      ),
-    );
+    await transaction(() async {
+      await (delete(db.chatMessages)..where((t) => t.sessionId.equals(id))).go();
+
+      await (update(db.chatSessions)..where((t) => t.id.equals(id))).write(
+        ChatSessionsCompanion(
+          isDeleted: const Value(true),
+          updatedAt: Value(now),
+        ),
+      );
+
+      await _changeLogRecorder.recordDelete(
+        entityType: 'chat_sessions',
+        entityId: id,
+      );
+    });
   }
 
   Future<void> updateSessionTitle(String id, String title, {required DateTime now}) async {
