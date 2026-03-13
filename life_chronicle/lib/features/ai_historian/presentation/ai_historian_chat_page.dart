@@ -730,8 +730,19 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
         final config = getModuleConfig('friend');
         final modulePrompt = config?.modulePrompt ?? '';
         
+        final now = DateTime.now();
+        final weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+        final weekdayName = weekdays[now.weekday - 1];
+        
         systemPrompt = '''
 $modulePrompt
+
+## 当前时间
+
+今天是 ${now.year}年${now.month}月${now.day}日（$weekdayName）
+当前时间：${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}
+
+当用户询问"上个月"、"去年"、"一年前"等相对时间时，请基于当前日期进行计算。
 
 ${result.prompt}
 
@@ -899,8 +910,19 @@ $text
         final config = getModuleConfig('friend');
         final modulePrompt = config?.modulePrompt ?? '';
         
+        final now = DateTime.now();
+        final weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+        final weekdayName = weekdays[now.weekday - 1];
+        
         systemPrompt = '''
 $modulePrompt
+
+## 当前时间
+
+今天是 ${now.year}年${now.month}月${now.day}日（$weekdayName）
+当前时间：${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}
+
+当用户询问"上个月"、"去年"、"一年前"等相对时间时，请基于当前日期进行计算。
 
 ${result.prompt}
 
