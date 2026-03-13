@@ -1,6 +1,3 @@
-import 'package:drift/drift.dart';
-import 'package:flutter/foundation.dart';
-
 import '../database/app_database.dart';
 import 'data_consistency_checker.dart';
 
@@ -55,40 +52,37 @@ class DataCleanupService {
 
   Future<CleanupResult> cleanupSoftDeletedData({int retentionDays = 30}) async {
     final result = CleanupResult();
-    final cutoffDate =
-        DateTime.now().subtract(Duration(days: retentionDays));
+    final cutoffDate = DateTime.now().subtract(Duration(days: retentionDays));
 
-    await db.transaction(() async {
-      result.foodRecordsDeleted = await (db.delete(db.foodRecords))
-          .where((t) => t.isDeleted.equals(true))
-          .where((t) => t.updatedAt.isSmallerThanValue(cutoffDate))
-          .go();
+    result.foodRecordsDeleted = await (db.delete(db.foodRecords))
+        .where((t) => t.isDeleted.equals(true))
+        .where((t) => t.updatedAt.isSmallerThanValue(cutoffDate))
+        .go();
 
-      result.momentRecordsDeleted = await (db.delete(db.momentRecords))
-          .where((t) => t.isDeleted.equals(true))
-          .where((t) => t.updatedAt.isSmallerThanValue(cutoffDate))
-          .go();
+    result.momentRecordsDeleted = await (db.delete(db.momentRecords))
+        .where((t) => t.isDeleted.equals(true))
+        .where((t) => t.updatedAt.isSmallerThanValue(cutoffDate))
+        .go();
 
-      result.friendRecordsDeleted = await (db.delete(db.friendRecords))
-          .where((t) => t.isDeleted.equals(true))
-          .where((t) => t.updatedAt.isSmallerThanValue(cutoffDate))
-          .go();
+    result.friendRecordsDeleted = await (db.delete(db.friendRecords))
+        .where((t) => t.isDeleted.equals(true))
+        .where((t) => t.updatedAt.isSmallerThanValue(cutoffDate))
+        .go();
 
-      result.travelRecordsDeleted = await (db.delete(db.travelRecords))
-          .where((t) => t.isDeleted.equals(true))
-          .where((t) => t.updatedAt.isSmallerThanValue(cutoffDate))
-          .go();
+    result.travelRecordsDeleted = await (db.delete(db.travelRecords))
+        .where((t) => t.isDeleted.equals(true))
+        .where((t) => t.updatedAt.isSmallerThanValue(cutoffDate))
+        .go();
 
-      result.goalRecordsDeleted = await (db.delete(db.goalRecords))
-          .where((t) => t.isDeleted.equals(true))
-          .where((t) => t.updatedAt.isSmallerThanValue(cutoffDate))
-          .go();
+    result.goalRecordsDeleted = await (db.delete(db.goalRecords))
+        .where((t) => t.isDeleted.equals(true))
+        .where((t) => t.updatedAt.isSmallerThanValue(cutoffDate))
+        .go();
 
-      result.chatSessionsDeleted = await (db.delete(db.chatSessions))
-          .where((t) => t.isDeleted.equals(true))
-          .where((t) => t.updatedAt.isSmallerThanValue(cutoffDate))
-          .go();
-    });
+    result.chatSessionsDeleted = await (db.delete(db.chatSessions))
+        .where((t) => t.isDeleted.equals(true))
+        .where((t) => t.updatedAt.isSmallerThanValue(cutoffDate))
+        .go();
 
     return result;
   }
@@ -113,8 +107,7 @@ class DataCleanupService {
       result.orphanedReviewsRemoved++;
     }
 
-    final orphanedPostponements =
-        await checker.checkOrphanedGoalPostponements();
+    final orphanedPostponements = await checker.checkOrphanedGoalPostponements();
     for (final issue in orphanedPostponements) {
       await (db.delete(db.goalPostponements)
             ..where((t) => t.id.equals(issue.entityId)))
@@ -142,8 +135,7 @@ class DataCleanupService {
   }
 
   Future<int> cleanupOldChangeLogs({int retentionDays = 90}) async {
-    final cutoffDate =
-        DateTime.now().subtract(Duration(days: retentionDays));
+    final cutoffDate = DateTime.now().subtract(Duration(days: retentionDays));
 
     return await (db.delete(db.changeLogs))
         .where((t) => t.timestamp.isSmallerThanValue(cutoffDate))
@@ -152,8 +144,7 @@ class DataCleanupService {
   }
 
   Future<int> cleanupOldLinkLogs({int retentionDays = 90}) async {
-    final cutoffDate =
-        DateTime.now().subtract(Duration(days: retentionDays));
+    final cutoffDate = DateTime.now().subtract(Duration(days: retentionDays));
 
     return await (db.delete(db.linkLogs)
         .where((t) => t.createdAt.isSmallerThanValue(cutoffDate)))

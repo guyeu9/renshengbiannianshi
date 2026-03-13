@@ -5,7 +5,6 @@ class TravelDao extends DatabaseAccessor<AppDatabase> with _$TravelDaoMixin {
   TravelDao(super.db);
 
   late final ChangeLogRecorder _changeLogRecorder = ChangeLogRecorder(db);
-  late final Uuid _uuid = const Uuid();
 
   Future<void> upsert(TravelRecordsCompanion entry) async {
     await into(db.travelRecords).insertOnConflictUpdate(entry);

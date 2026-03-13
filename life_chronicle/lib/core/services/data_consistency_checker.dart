@@ -1,4 +1,3 @@
-import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 
 import '../database/app_database.dart';
@@ -240,7 +239,7 @@ class DataConsistencyChecker {
             entityType: issue.entityType,
             entityId: issue.entityId,
             action: 'delete',
-            changedAt: DateTime.now(),
+            timestamp: DateTime.now(),
           ),
         );
         break;
