@@ -13,6 +13,7 @@ import '../../features/goal/presentation/goal_page.dart';
 import '../../features/bond/presentation/bond_page.dart';
 import '../../features/bond/presentation/encounter_pages.dart';
 import '../../features/profile/presentation/profile_page.dart';
+import '../../features/profile/presentation/reminder_settings_page.dart';
 import '../../features/profile/presentation/ai_model_management_page.dart';
 import '../../features/profile/presentation/data_management_page.dart';
 import '../../features/profile/presentation/backup_log_page.dart';
