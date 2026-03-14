@@ -170,15 +170,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 },
               ),
               GoRoute(
-                path: 'journal/:id',
-                name: 'journalDetail',
-                parentNavigatorKey: _rootNavigatorKey,
-                builder: (context, state) {
-                  final id = state.pathParameters['id']!;
-                  return JournalDetailPage(recordId: id);
-                },
-              ),
-              GoRoute(
                 path: 'journal/create',
                 name: 'journalCreate',
                 parentNavigatorKey: _rootNavigatorKey,
@@ -189,6 +180,15 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                     initialTripTitle: extra?['initialTripTitle'],
                     initialRecord: extra?['initialRecord'],
                   );
+                },
+              ),
+              GoRoute(
+                path: 'journal/:id',
+                name: 'journalDetail',
+                parentNavigatorKey: _rootNavigatorKey,
+                builder: (context, state) {
+                  final id = state.pathParameters['id']!;
+                  return JournalDetailPage(recordId: id);
                 },
               ),
               GoRoute(
