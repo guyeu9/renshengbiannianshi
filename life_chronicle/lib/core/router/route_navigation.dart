@@ -209,6 +209,14 @@ class RouteNavigation {
     context.go(AppRoutes.aiHistorian, extra: params);
   }
 
+  static void goToFlashback(BuildContext context) {
+    context.go(AppRoutes.flashback);
+  }
+
+  static void goToReminderList(BuildContext context) {
+    context.go(AppRoutes.reminderList);
+  }
+
   static Future<AmapLocationPickResult?> openMapPicker(
     BuildContext context, {
     required String initialPoiName,

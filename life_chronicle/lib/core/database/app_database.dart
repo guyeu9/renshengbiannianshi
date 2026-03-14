@@ -24,10 +24,11 @@ part 'daos/embedding_dao.dart';
 part 'daos/travel_dao.dart';
 part 'daos/goal_dao.dart';
 part 'daos/chat_dao.dart';
+part 'daos/reminder_dao.dart';
 
 @DriftDatabase(
-  tables: [FoodRecords, MomentRecords, FriendRecords, TravelRecords, Trips, GoalRecords, TimelineEvents, EntityLinks, LinkLogs, UserProfiles, AiProviders, ChangeLogs, SyncState, ChecklistItems, GoalPostponements, GoalReviews, BackupLogs, AnnualReviews, RecordEmbeddings, ChatSessions, ChatMessages],
-  daos: [FoodDao, MomentDao, FriendDao, LinkDao, AiProviderDao, ChangeLogDao, SyncStateDao, ChecklistDao, GoalPostponementDao, GoalReviewDao, BackupLogDao, AnnualReviewDao, EmbeddingDao, TravelDao, GoalDao, ChatDao],
+  tables: [FoodRecords, MomentRecords, FriendRecords, TravelRecords, Trips, GoalRecords, TimelineEvents, EntityLinks, LinkLogs, UserProfiles, AiProviders, ChangeLogs, SyncState, ChecklistItems, GoalPostponements, GoalReviews, BackupLogs, AnnualReviews, RecordEmbeddings, ChatSessions, ChatMessages, ReminderRecords],
+  daos: [FoodDao, MomentDao, FriendDao, LinkDao, AiProviderDao, ChangeLogDao, SyncStateDao, ChecklistDao, GoalPostponementDao, GoalReviewDao, BackupLogDao, AnnualReviewDao, EmbeddingDao, TravelDao, GoalDao, ChatDao, ReminderDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(dbconn.openConnection());
@@ -43,7 +44,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 29;
+  int get schemaVersion => 30;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -263,6 +264,10 @@ class AppDatabase extends _$AppDatabase {
 
           if (from < 29) {
             await ensureColumn(table: userProfiles, column: userProfiles.gender);
+          }
+
+          if (from < 30) {
+            await ensureTable(reminderRecords);
           }
 
           // 修复历史数据：将逗号分隔的images字段转换为JSON数组格式

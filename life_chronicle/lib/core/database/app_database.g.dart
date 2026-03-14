@@ -12233,6 +12233,571 @@ class ChatMessagesCompanion extends UpdateCompanion<ChatMessage> {
   }
 }
 
+class $ReminderRecordsTable extends ReminderRecords
+    with TableInfo<$ReminderRecordsTable, ReminderRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ReminderRecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  @override
+  late final GeneratedColumn<String> type = GeneratedColumn<String>(
+      'type', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+      'title', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _contentMeta =
+      const VerificationMeta('content');
+  @override
+  late final GeneratedColumn<String> content = GeneratedColumn<String>(
+      'content', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _relatedEntityTypeMeta =
+      const VerificationMeta('relatedEntityType');
+  @override
+  late final GeneratedColumn<String> relatedEntityType =
+      GeneratedColumn<String>('related_entity_type', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _relatedEntityIdMeta =
+      const VerificationMeta('relatedEntityId');
+  @override
+  late final GeneratedColumn<String> relatedEntityId = GeneratedColumn<String>(
+      'related_entity_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _scheduledAtMeta =
+      const VerificationMeta('scheduledAt');
+  @override
+  late final GeneratedColumn<DateTime> scheduledAt = GeneratedColumn<DateTime>(
+      'scheduled_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _triggeredAtMeta =
+      const VerificationMeta('triggeredAt');
+  @override
+  late final GeneratedColumn<DateTime> triggeredAt = GeneratedColumn<DateTime>(
+      'triggered_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _isReadMeta = const VerificationMeta('isRead');
+  @override
+  late final GeneratedColumn<bool> isRead = GeneratedColumn<bool>(
+      'is_read', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_read" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _isHandledMeta =
+      const VerificationMeta('isHandled');
+  @override
+  late final GeneratedColumn<bool> isHandled = GeneratedColumn<bool>(
+      'is_handled', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_handled" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        type,
+        title,
+        content,
+        relatedEntityType,
+        relatedEntityId,
+        scheduledAt,
+        triggeredAt,
+        isRead,
+        isHandled,
+        createdAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'reminder_records';
+  @override
+  VerificationContext validateIntegrity(Insertable<ReminderRecord> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('type')) {
+      context.handle(
+          _typeMeta, type.isAcceptableOrUnknown(data['type']!, _typeMeta));
+    } else if (isInserting) {
+      context.missing(_typeMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+          _titleMeta, title.isAcceptableOrUnknown(data['title']!, _titleMeta));
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('content')) {
+      context.handle(_contentMeta,
+          content.isAcceptableOrUnknown(data['content']!, _contentMeta));
+    }
+    if (data.containsKey('related_entity_type')) {
+      context.handle(
+          _relatedEntityTypeMeta,
+          relatedEntityType.isAcceptableOrUnknown(
+              data['related_entity_type']!, _relatedEntityTypeMeta));
+    }
+    if (data.containsKey('related_entity_id')) {
+      context.handle(
+          _relatedEntityIdMeta,
+          relatedEntityId.isAcceptableOrUnknown(
+              data['related_entity_id']!, _relatedEntityIdMeta));
+    }
+    if (data.containsKey('scheduled_at')) {
+      context.handle(
+          _scheduledAtMeta,
+          scheduledAt.isAcceptableOrUnknown(
+              data['scheduled_at']!, _scheduledAtMeta));
+    } else if (isInserting) {
+      context.missing(_scheduledAtMeta);
+    }
+    if (data.containsKey('triggered_at')) {
+      context.handle(
+          _triggeredAtMeta,
+          triggeredAt.isAcceptableOrUnknown(
+              data['triggered_at']!, _triggeredAtMeta));
+    }
+    if (data.containsKey('is_read')) {
+      context.handle(_isReadMeta,
+          isRead.isAcceptableOrUnknown(data['is_read']!, _isReadMeta));
+    }
+    if (data.containsKey('is_handled')) {
+      context.handle(_isHandledMeta,
+          isHandled.isAcceptableOrUnknown(data['is_handled']!, _isHandledMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ReminderRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ReminderRecord(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      type: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}type'])!,
+      title: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}title'])!,
+      content: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}content']),
+      relatedEntityType: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}related_entity_type']),
+      relatedEntityId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}related_entity_id']),
+      scheduledAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}scheduled_at'])!,
+      triggeredAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}triggered_at']),
+      isRead: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_read'])!,
+      isHandled: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_handled'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+    );
+  }
+
+  @override
+  $ReminderRecordsTable createAlias(String alias) {
+    return $ReminderRecordsTable(attachedDatabase, alias);
+  }
+}
+
+class ReminderRecord extends DataClass implements Insertable<ReminderRecord> {
+  final String id;
+  final String type;
+  final String title;
+  final String? content;
+  final String? relatedEntityType;
+  final String? relatedEntityId;
+  final DateTime scheduledAt;
+  final DateTime? triggeredAt;
+  final bool isRead;
+  final bool isHandled;
+  final DateTime createdAt;
+  const ReminderRecord(
+      {required this.id,
+      required this.type,
+      required this.title,
+      this.content,
+      this.relatedEntityType,
+      this.relatedEntityId,
+      required this.scheduledAt,
+      this.triggeredAt,
+      required this.isRead,
+      required this.isHandled,
+      required this.createdAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['type'] = Variable<String>(type);
+    map['title'] = Variable<String>(title);
+    if (!nullToAbsent || content != null) {
+      map['content'] = Variable<String>(content);
+    }
+    if (!nullToAbsent || relatedEntityType != null) {
+      map['related_entity_type'] = Variable<String>(relatedEntityType);
+    }
+    if (!nullToAbsent || relatedEntityId != null) {
+      map['related_entity_id'] = Variable<String>(relatedEntityId);
+    }
+    map['scheduled_at'] = Variable<DateTime>(scheduledAt);
+    if (!nullToAbsent || triggeredAt != null) {
+      map['triggered_at'] = Variable<DateTime>(triggeredAt);
+    }
+    map['is_read'] = Variable<bool>(isRead);
+    map['is_handled'] = Variable<bool>(isHandled);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  ReminderRecordsCompanion toCompanion(bool nullToAbsent) {
+    return ReminderRecordsCompanion(
+      id: Value(id),
+      type: Value(type),
+      title: Value(title),
+      content: content == null && nullToAbsent
+          ? const Value.absent()
+          : Value(content),
+      relatedEntityType: relatedEntityType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(relatedEntityType),
+      relatedEntityId: relatedEntityId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(relatedEntityId),
+      scheduledAt: Value(scheduledAt),
+      triggeredAt: triggeredAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(triggeredAt),
+      isRead: Value(isRead),
+      isHandled: Value(isHandled),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory ReminderRecord.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ReminderRecord(
+      id: serializer.fromJson<String>(json['id']),
+      type: serializer.fromJson<String>(json['type']),
+      title: serializer.fromJson<String>(json['title']),
+      content: serializer.fromJson<String?>(json['content']),
+      relatedEntityType:
+          serializer.fromJson<String?>(json['relatedEntityType']),
+      relatedEntityId: serializer.fromJson<String?>(json['relatedEntityId']),
+      scheduledAt: serializer.fromJson<DateTime>(json['scheduledAt']),
+      triggeredAt: serializer.fromJson<DateTime?>(json['triggeredAt']),
+      isRead: serializer.fromJson<bool>(json['isRead']),
+      isHandled: serializer.fromJson<bool>(json['isHandled']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'type': serializer.toJson<String>(type),
+      'title': serializer.toJson<String>(title),
+      'content': serializer.toJson<String?>(content),
+      'relatedEntityType': serializer.toJson<String?>(relatedEntityType),
+      'relatedEntityId': serializer.toJson<String?>(relatedEntityId),
+      'scheduledAt': serializer.toJson<DateTime>(scheduledAt),
+      'triggeredAt': serializer.toJson<DateTime?>(triggeredAt),
+      'isRead': serializer.toJson<bool>(isRead),
+      'isHandled': serializer.toJson<bool>(isHandled),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  ReminderRecord copyWith(
+          {String? id,
+          String? type,
+          String? title,
+          Value<String?> content = const Value.absent(),
+          Value<String?> relatedEntityType = const Value.absent(),
+          Value<String?> relatedEntityId = const Value.absent(),
+          DateTime? scheduledAt,
+          Value<DateTime?> triggeredAt = const Value.absent(),
+          bool? isRead,
+          bool? isHandled,
+          DateTime? createdAt}) =>
+      ReminderRecord(
+        id: id ?? this.id,
+        type: type ?? this.type,
+        title: title ?? this.title,
+        content: content.present ? content.value : this.content,
+        relatedEntityType: relatedEntityType.present
+            ? relatedEntityType.value
+            : this.relatedEntityType,
+        relatedEntityId: relatedEntityId.present
+            ? relatedEntityId.value
+            : this.relatedEntityId,
+        scheduledAt: scheduledAt ?? this.scheduledAt,
+        triggeredAt: triggeredAt.present ? triggeredAt.value : this.triggeredAt,
+        isRead: isRead ?? this.isRead,
+        isHandled: isHandled ?? this.isHandled,
+        createdAt: createdAt ?? this.createdAt,
+      );
+  ReminderRecord copyWithCompanion(ReminderRecordsCompanion data) {
+    return ReminderRecord(
+      id: data.id.present ? data.id.value : this.id,
+      type: data.type.present ? data.type.value : this.type,
+      title: data.title.present ? data.title.value : this.title,
+      content: data.content.present ? data.content.value : this.content,
+      relatedEntityType: data.relatedEntityType.present
+          ? data.relatedEntityType.value
+          : this.relatedEntityType,
+      relatedEntityId: data.relatedEntityId.present
+          ? data.relatedEntityId.value
+          : this.relatedEntityId,
+      scheduledAt:
+          data.scheduledAt.present ? data.scheduledAt.value : this.scheduledAt,
+      triggeredAt:
+          data.triggeredAt.present ? data.triggeredAt.value : this.triggeredAt,
+      isRead: data.isRead.present ? data.isRead.value : this.isRead,
+      isHandled: data.isHandled.present ? data.isHandled.value : this.isHandled,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReminderRecord(')
+          ..write('id: $id, ')
+          ..write('type: $type, ')
+          ..write('title: $title, ')
+          ..write('content: $content, ')
+          ..write('relatedEntityType: $relatedEntityType, ')
+          ..write('relatedEntityId: $relatedEntityId, ')
+          ..write('scheduledAt: $scheduledAt, ')
+          ..write('triggeredAt: $triggeredAt, ')
+          ..write('isRead: $isRead, ')
+          ..write('isHandled: $isHandled, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, type, title, content, relatedEntityType,
+      relatedEntityId, scheduledAt, triggeredAt, isRead, isHandled, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ReminderRecord &&
+          other.id == this.id &&
+          other.type == this.type &&
+          other.title == this.title &&
+          other.content == this.content &&
+          other.relatedEntityType == this.relatedEntityType &&
+          other.relatedEntityId == this.relatedEntityId &&
+          other.scheduledAt == this.scheduledAt &&
+          other.triggeredAt == this.triggeredAt &&
+          other.isRead == this.isRead &&
+          other.isHandled == this.isHandled &&
+          other.createdAt == this.createdAt);
+}
+
+class ReminderRecordsCompanion extends UpdateCompanion<ReminderRecord> {
+  final Value<String> id;
+  final Value<String> type;
+  final Value<String> title;
+  final Value<String?> content;
+  final Value<String?> relatedEntityType;
+  final Value<String?> relatedEntityId;
+  final Value<DateTime> scheduledAt;
+  final Value<DateTime?> triggeredAt;
+  final Value<bool> isRead;
+  final Value<bool> isHandled;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const ReminderRecordsCompanion({
+    this.id = const Value.absent(),
+    this.type = const Value.absent(),
+    this.title = const Value.absent(),
+    this.content = const Value.absent(),
+    this.relatedEntityType = const Value.absent(),
+    this.relatedEntityId = const Value.absent(),
+    this.scheduledAt = const Value.absent(),
+    this.triggeredAt = const Value.absent(),
+    this.isRead = const Value.absent(),
+    this.isHandled = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ReminderRecordsCompanion.insert({
+    required String id,
+    required String type,
+    required String title,
+    this.content = const Value.absent(),
+    this.relatedEntityType = const Value.absent(),
+    this.relatedEntityId = const Value.absent(),
+    required DateTime scheduledAt,
+    this.triggeredAt = const Value.absent(),
+    this.isRead = const Value.absent(),
+    this.isHandled = const Value.absent(),
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        type = Value(type),
+        title = Value(title),
+        scheduledAt = Value(scheduledAt),
+        createdAt = Value(createdAt);
+  static Insertable<ReminderRecord> custom({
+    Expression<String>? id,
+    Expression<String>? type,
+    Expression<String>? title,
+    Expression<String>? content,
+    Expression<String>? relatedEntityType,
+    Expression<String>? relatedEntityId,
+    Expression<DateTime>? scheduledAt,
+    Expression<DateTime>? triggeredAt,
+    Expression<bool>? isRead,
+    Expression<bool>? isHandled,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (type != null) 'type': type,
+      if (title != null) 'title': title,
+      if (content != null) 'content': content,
+      if (relatedEntityType != null) 'related_entity_type': relatedEntityType,
+      if (relatedEntityId != null) 'related_entity_id': relatedEntityId,
+      if (scheduledAt != null) 'scheduled_at': scheduledAt,
+      if (triggeredAt != null) 'triggered_at': triggeredAt,
+      if (isRead != null) 'is_read': isRead,
+      if (isHandled != null) 'is_handled': isHandled,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ReminderRecordsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? type,
+      Value<String>? title,
+      Value<String?>? content,
+      Value<String?>? relatedEntityType,
+      Value<String?>? relatedEntityId,
+      Value<DateTime>? scheduledAt,
+      Value<DateTime?>? triggeredAt,
+      Value<bool>? isRead,
+      Value<bool>? isHandled,
+      Value<DateTime>? createdAt,
+      Value<int>? rowid}) {
+    return ReminderRecordsCompanion(
+      id: id ?? this.id,
+      type: type ?? this.type,
+      title: title ?? this.title,
+      content: content ?? this.content,
+      relatedEntityType: relatedEntityType ?? this.relatedEntityType,
+      relatedEntityId: relatedEntityId ?? this.relatedEntityId,
+      scheduledAt: scheduledAt ?? this.scheduledAt,
+      triggeredAt: triggeredAt ?? this.triggeredAt,
+      isRead: isRead ?? this.isRead,
+      isHandled: isHandled ?? this.isHandled,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (type.present) {
+      map['type'] = Variable<String>(type.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (content.present) {
+      map['content'] = Variable<String>(content.value);
+    }
+    if (relatedEntityType.present) {
+      map['related_entity_type'] = Variable<String>(relatedEntityType.value);
+    }
+    if (relatedEntityId.present) {
+      map['related_entity_id'] = Variable<String>(relatedEntityId.value);
+    }
+    if (scheduledAt.present) {
+      map['scheduled_at'] = Variable<DateTime>(scheduledAt.value);
+    }
+    if (triggeredAt.present) {
+      map['triggered_at'] = Variable<DateTime>(triggeredAt.value);
+    }
+    if (isRead.present) {
+      map['is_read'] = Variable<bool>(isRead.value);
+    }
+    if (isHandled.present) {
+      map['is_handled'] = Variable<bool>(isHandled.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReminderRecordsCompanion(')
+          ..write('id: $id, ')
+          ..write('type: $type, ')
+          ..write('title: $title, ')
+          ..write('content: $content, ')
+          ..write('relatedEntityType: $relatedEntityType, ')
+          ..write('relatedEntityId: $relatedEntityId, ')
+          ..write('scheduledAt: $scheduledAt, ')
+          ..write('triggeredAt: $triggeredAt, ')
+          ..write('isRead: $isRead, ')
+          ..write('isHandled: $isHandled, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -12259,6 +12824,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $RecordEmbeddingsTable(this);
   late final $ChatSessionsTable chatSessions = $ChatSessionsTable(this);
   late final $ChatMessagesTable chatMessages = $ChatMessagesTable(this);
+  late final $ReminderRecordsTable reminderRecords =
+      $ReminderRecordsTable(this);
   late final FoodDao foodDao = FoodDao(this as AppDatabase);
   late final MomentDao momentDao = MomentDao(this as AppDatabase);
   late final FriendDao friendDao = FriendDao(this as AppDatabase);
@@ -12277,6 +12844,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final TravelDao travelDao = TravelDao(this as AppDatabase);
   late final GoalDao goalDao = GoalDao(this as AppDatabase);
   late final ChatDao chatDao = ChatDao(this as AppDatabase);
+  late final ReminderDao reminderDao = ReminderDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -12302,7 +12870,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         annualReviews,
         recordEmbeddings,
         chatSessions,
-        chatMessages
+        chatMessages,
+        reminderRecords
       ];
 }
 
@@ -17971,6 +18540,274 @@ typedef $$ChatMessagesTableProcessedTableManager = ProcessedTableManager<
     ),
     ChatMessage,
     PrefetchHooks Function()>;
+typedef $$ReminderRecordsTableCreateCompanionBuilder = ReminderRecordsCompanion
+    Function({
+  required String id,
+  required String type,
+  required String title,
+  Value<String?> content,
+  Value<String?> relatedEntityType,
+  Value<String?> relatedEntityId,
+  required DateTime scheduledAt,
+  Value<DateTime?> triggeredAt,
+  Value<bool> isRead,
+  Value<bool> isHandled,
+  required DateTime createdAt,
+  Value<int> rowid,
+});
+typedef $$ReminderRecordsTableUpdateCompanionBuilder = ReminderRecordsCompanion
+    Function({
+  Value<String> id,
+  Value<String> type,
+  Value<String> title,
+  Value<String?> content,
+  Value<String?> relatedEntityType,
+  Value<String?> relatedEntityId,
+  Value<DateTime> scheduledAt,
+  Value<DateTime?> triggeredAt,
+  Value<bool> isRead,
+  Value<bool> isHandled,
+  Value<DateTime> createdAt,
+  Value<int> rowid,
+});
+
+class $$ReminderRecordsTableFilterComposer
+    extends Composer<_$AppDatabase, $ReminderRecordsTable> {
+  $$ReminderRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get type => $composableBuilder(
+      column: $table.type, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get title => $composableBuilder(
+      column: $table.title, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get content => $composableBuilder(
+      column: $table.content, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get relatedEntityType => $composableBuilder(
+      column: $table.relatedEntityType,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get relatedEntityId => $composableBuilder(
+      column: $table.relatedEntityId,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get scheduledAt => $composableBuilder(
+      column: $table.scheduledAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get triggeredAt => $composableBuilder(
+      column: $table.triggeredAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isRead => $composableBuilder(
+      column: $table.isRead, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isHandled => $composableBuilder(
+      column: $table.isHandled, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$ReminderRecordsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ReminderRecordsTable> {
+  $$ReminderRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get type => $composableBuilder(
+      column: $table.type, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get title => $composableBuilder(
+      column: $table.title, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get content => $composableBuilder(
+      column: $table.content, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get relatedEntityType => $composableBuilder(
+      column: $table.relatedEntityType,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get relatedEntityId => $composableBuilder(
+      column: $table.relatedEntityId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get scheduledAt => $composableBuilder(
+      column: $table.scheduledAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get triggeredAt => $composableBuilder(
+      column: $table.triggeredAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isRead => $composableBuilder(
+      column: $table.isRead, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isHandled => $composableBuilder(
+      column: $table.isHandled, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$ReminderRecordsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ReminderRecordsTable> {
+  $$ReminderRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get content =>
+      $composableBuilder(column: $table.content, builder: (column) => column);
+
+  GeneratedColumn<String> get relatedEntityType => $composableBuilder(
+      column: $table.relatedEntityType, builder: (column) => column);
+
+  GeneratedColumn<String> get relatedEntityId => $composableBuilder(
+      column: $table.relatedEntityId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get scheduledAt => $composableBuilder(
+      column: $table.scheduledAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get triggeredAt => $composableBuilder(
+      column: $table.triggeredAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isRead =>
+      $composableBuilder(column: $table.isRead, builder: (column) => column);
+
+  GeneratedColumn<bool> get isHandled =>
+      $composableBuilder(column: $table.isHandled, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$ReminderRecordsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $ReminderRecordsTable,
+    ReminderRecord,
+    $$ReminderRecordsTableFilterComposer,
+    $$ReminderRecordsTableOrderingComposer,
+    $$ReminderRecordsTableAnnotationComposer,
+    $$ReminderRecordsTableCreateCompanionBuilder,
+    $$ReminderRecordsTableUpdateCompanionBuilder,
+    (
+      ReminderRecord,
+      BaseReferences<_$AppDatabase, $ReminderRecordsTable, ReminderRecord>
+    ),
+    ReminderRecord,
+    PrefetchHooks Function()> {
+  $$ReminderRecordsTableTableManager(
+      _$AppDatabase db, $ReminderRecordsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ReminderRecordsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ReminderRecordsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ReminderRecordsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> type = const Value.absent(),
+            Value<String> title = const Value.absent(),
+            Value<String?> content = const Value.absent(),
+            Value<String?> relatedEntityType = const Value.absent(),
+            Value<String?> relatedEntityId = const Value.absent(),
+            Value<DateTime> scheduledAt = const Value.absent(),
+            Value<DateTime?> triggeredAt = const Value.absent(),
+            Value<bool> isRead = const Value.absent(),
+            Value<bool> isHandled = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ReminderRecordsCompanion(
+            id: id,
+            type: type,
+            title: title,
+            content: content,
+            relatedEntityType: relatedEntityType,
+            relatedEntityId: relatedEntityId,
+            scheduledAt: scheduledAt,
+            triggeredAt: triggeredAt,
+            isRead: isRead,
+            isHandled: isHandled,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String type,
+            required String title,
+            Value<String?> content = const Value.absent(),
+            Value<String?> relatedEntityType = const Value.absent(),
+            Value<String?> relatedEntityId = const Value.absent(),
+            required DateTime scheduledAt,
+            Value<DateTime?> triggeredAt = const Value.absent(),
+            Value<bool> isRead = const Value.absent(),
+            Value<bool> isHandled = const Value.absent(),
+            required DateTime createdAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ReminderRecordsCompanion.insert(
+            id: id,
+            type: type,
+            title: title,
+            content: content,
+            relatedEntityType: relatedEntityType,
+            relatedEntityId: relatedEntityId,
+            scheduledAt: scheduledAt,
+            triggeredAt: triggeredAt,
+            isRead: isRead,
+            isHandled: isHandled,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$ReminderRecordsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $ReminderRecordsTable,
+    ReminderRecord,
+    $$ReminderRecordsTableFilterComposer,
+    $$ReminderRecordsTableOrderingComposer,
+    $$ReminderRecordsTableAnnotationComposer,
+    $$ReminderRecordsTableCreateCompanionBuilder,
+    $$ReminderRecordsTableUpdateCompanionBuilder,
+    (
+      ReminderRecord,
+      BaseReferences<_$AppDatabase, $ReminderRecordsTable, ReminderRecord>
+    ),
+    ReminderRecord,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -18017,6 +18854,8 @@ class $AppDatabaseManager {
       $$ChatSessionsTableTableManager(_db, _db.chatSessions);
   $$ChatMessagesTableTableManager get chatMessages =>
       $$ChatMessagesTableTableManager(_db, _db.chatMessages);
+  $$ReminderRecordsTableTableManager get reminderRecords =>
+      $$ReminderRecordsTableTableManager(_db, _db.reminderRecords);
 }
 
 mixin _$FoodDaoMixin on DatabaseAccessor<AppDatabase> {
@@ -18229,4 +19068,17 @@ class ChatDaoManager {
       $$ChatSessionsTableTableManager(_db.attachedDatabase, _db.chatSessions);
   $$ChatMessagesTableTableManager get chatMessages =>
       $$ChatMessagesTableTableManager(_db.attachedDatabase, _db.chatMessages);
+}
+
+mixin _$ReminderDaoMixin on DatabaseAccessor<AppDatabase> {
+  $ReminderRecordsTable get reminderRecords => attachedDatabase.reminderRecords;
+  ReminderDaoManager get managers => ReminderDaoManager(this);
+}
+
+class ReminderDaoManager {
+  final _$ReminderDaoMixin _db;
+  ReminderDaoManager(this._db);
+  $$ReminderRecordsTableTableManager get reminderRecords =>
+      $$ReminderRecordsTableTableManager(
+          _db.attachedDatabase, _db.reminderRecords);
 }

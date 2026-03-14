@@ -17,6 +17,8 @@ import '../../../core/utils/icon_utils.dart';
 import '../../../core/router/route_navigation.dart';
 import '../../../core/router/app_router.dart';
 import '../../travel/presentation/travel_page.dart' show TravelItem;
+import '../providers/flashback_provider.dart';
+import '../providers/reminder_provider.dart';
 
 class HomeSchedulePage extends StatefulWidget {
   const HomeSchedulePage({super.key});
@@ -241,10 +243,22 @@ class _GlassHeaderState extends State<_GlassHeader> {
                     child: const Text('AI史官'),
                   ),
                   const SizedBox(width: 4),
-                  _HeaderIconButton(
-                    icon: Icons.notifications,
-                    showDot: true,
-                    onTap: () {},
+                  Consumer(
+                    builder: (context, ref, _) {
+                      final hasUnreadAsync = ref.watch(hasUnreadRemindersProvider);
+                      return hasUnreadAsync.maybeWhen(
+                        data: (hasUnread) => _HeaderIconButton(
+                          icon: Icons.notifications,
+                          showDot: hasUnread,
+                          onTap: () => context.go(AppRoutes.reminderList),
+                        ),
+                        orElse: () => _HeaderIconButton(
+                          icon: Icons.notifications,
+                          showDot: false,
+                          onTap: () => context.go(AppRoutes.reminderList),
+                        ),
+                      );
+                    },
                   ),
                   _HeaderIconButton(
                     icon: Icons.settings,
@@ -307,11 +321,13 @@ class _HeaderIconButton extends StatelessWidget {
   }
 }
 
-class _FlashbackSection extends StatelessWidget {
+class _FlashbackSection extends ConsumerWidget {
   const _FlashbackSection();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final flashbackAsync = ref.watch(flashbackItemsProvider);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -328,7 +344,7 @@ class _FlashbackSection extends StatelessWidget {
                 ),
               ),
               TextButton(
-                onPressed: () {},
+                onPressed: () => context.go(AppRoutes.flashback),
                 style: TextButton.styleFrom(
                   padding: EdgeInsets.zero,
                   minimumSize: const Size(0, 0),
@@ -344,34 +360,40 @@ class _FlashbackSection extends StatelessWidget {
         const SizedBox(height: 10),
         SizedBox(
           height: 208,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 0),
-            itemBuilder: (context, index) {
-              const items = [
-                _FlashbackItem(
-                  year: '2020年',
-                  title: '京都之旅',
-                  imageUrl:
-                      'https://lh3.googleusercontent.com/aida-public/AB6AXuAsJBzDdfeS11TyD-1cqHJq_9G-Vw7SIu91Xqg9sf-Z8rWwTdxLbyxmT0V4m-h499LovcoZM7UquYeAkDvq8PzCzti_Gd9KPvABltL36GorEihS00Q1WQfZbbs2qKP725v6TeXBbbnXyw24x7sVbBhia3-IOfmck4ef0sx6MIGhWezXCTHiwHRq-3ys196RVyQcOl8SBzUfWvQCjkNcZcKY7LrbNWKdt0Ch3LsRMXiEbZW_KlrfAqXMx6O-hXkk65qGX5dRuxMmA96M',
-                ),
-                _FlashbackItem(
-                  year: '2021年',
-                  title: '毕业聚餐',
-                  imageUrl:
-                      'https://lh3.googleusercontent.com/aida-public/AB6AXuAX_r4kxgvpQYvypR_RF0YAJZAw52PhW6TR5_IJrx5xuClBJjvG60Be4hZ29hlgNDYNTxst1hIGyftAKGVU_ZeXhXRMpzZ-dWMCWPWDmJKrGwskGz5aAyp6ILOVKbGO7eOoEXtriK3It1UaJ88ITU_XSbXD_xMjr9DMB4OhDbvOe-xTRup_sRthPrG37YiL9gosZWDelVEFDPIIwMrhV5YpuW92cyP4tMEr9u5HkHiOUIkX8x9FZBICQFiiAv2s-ASTnbykZxt3Vf0O',
-                ),
-                _FlashbackItem(
-                  year: '2018年',
-                  title: '瑞士滑雪',
-                  imageUrl:
-                      'https://lh3.googleusercontent.com/aida-public/AB6AXuA5lNkMZP8lzhAYUfC_VTKiokDBAuZngbPVBMBYzPENVfmKvfs62McJJ8qPhRz63_3ieVJYb36HMkb_-GLgQkJXUoz8cAUVuKXGKCLIqcuLI1Vn1cRcqSefVw2OR_z0ypFw035yhhwHlSBpxKs03a_IIg3bVM_cWzSfmZSwjKe5VEecoMpRaY0IRHXqDPIaKlpg_lUMzWAX-saGXwxlUjRtRRyqCqtozDLt053M7STJOBL0uMNNQDOmn1T-Q2GFsMc2vWJAZOKJRcqZ',
-                ),
-              ];
-              return items[index];
+          child: flashbackAsync.when(
+            data: (items) {
+              if (items.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.history, size: 40, color: Colors.grey[400]),
+                      const SizedBox(height: 8),
+                      Text(
+                        '暂无历史记录',
+                        style: TextStyle(color: Colors.grey[500], fontSize: 13),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              final displayItems = items.take(5).toList();
+              return ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 0),
+                itemCount: displayItems.length,
+                itemBuilder: (context, index) {
+                  final item = displayItems[index];
+                  return _FlashbackItemCard(item: item);
+                },
+                separatorBuilder: (_, __) => const SizedBox(width: 16),
+              );
             },
-            separatorBuilder: (_, __) => const SizedBox(width: 16),
-            itemCount: 3,
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (_, __) => Center(
+              child: Text('加载失败', style: TextStyle(color: Colors.grey[500])),
+            ),
           ),
         ),
       ],
@@ -379,62 +401,136 @@ class _FlashbackSection extends StatelessWidget {
   }
 }
 
-class _FlashbackItem extends StatelessWidget {
-  const _FlashbackItem({
-    required this.year,
-    required this.title,
-    required this.imageUrl,
-  });
+class _FlashbackItemCard extends StatelessWidget {
+  final FlashbackItem item;
 
-  final String year;
-  final String title;
-  final String imageUrl;
+  const _FlashbackItemCard({required this.item});
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: SizedBox(
-        width: 160,
-        height: 208,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.network(imageUrl, fit: BoxFit.cover),
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Color(0x99000000)],
+    return GestureDetector(
+      onTap: () => _navigateToDetail(context),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: SizedBox(
+          width: 160,
+          height: 208,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (item.imageUrl != null)
+                Image.network(item.imageUrl!, fit: BoxFit.cover)
+              else
+                Container(
+                  color: _getTypeColor(item.type),
+                  child: Center(
+                    child: Icon(_getTypeIcon(item.type), color: Colors.white, size: 48),
+                  ),
+                ),
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, Color(0x99000000)],
+                  ),
                 ),
               ),
-            ),
-            Positioned(
-              left: 12,
-              bottom: 12,
-              right: 12,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    year,
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w300, color: Colors.white),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    title,
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+              Positioned(
+                left: 12,
+                bottom: 12,
+                right: 12,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            item.yearLabel,
+                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: Colors.white),
+                          ),
+                        ),
+                        if (item.isFavorite) ...[
+                          const SizedBox(width: 4),
+                          const Icon(Icons.star, color: Colors.amber, size: 12),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      item.title,
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  void _navigateToDetail(BuildContext context) {
+    switch (item.type) {
+      case 'food':
+        RouteNavigation.goToFoodDetail(context, item.recordId);
+        break;
+      case 'moment':
+        RouteNavigation.goToMomentDetail(context, item.recordId);
+        break;
+      case 'travel':
+        RouteNavigation.goToTravelDetail(context, item.recordId);
+        break;
+      case 'goal':
+        RouteNavigation.goToGoalDetail(context, item.recordId);
+        break;
+      case 'encounter':
+        RouteNavigation.goToEncounterDetail(context, item.recordId);
+        break;
+    }
+  }
+
+  Color _getTypeColor(String type) {
+    switch (type) {
+      case 'food':
+        return Colors.orange;
+      case 'moment':
+        return const Color(0xFF4ADE80);
+      case 'travel':
+        return Colors.purple;
+      case 'goal':
+        return const Color(0xFFA855F7);
+      case 'encounter':
+        return Colors.pink;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getTypeIcon(String type) {
+    switch (type) {
+      case 'food':
+        return Icons.restaurant;
+      case 'moment':
+        return Icons.auto_awesome;
+      case 'travel':
+        return Icons.airplanemode_active;
+      case 'goal':
+        return Icons.outlined_flag;
+      case 'encounter':
+        return Icons.people;
+      default:
+        return Icons.event;
+    }
   }
 }
 

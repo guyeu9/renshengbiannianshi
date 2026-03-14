@@ -436,3 +436,27 @@ class ChatMessages extends Table {
         {timestamp},
       ];
 }
+
+class ReminderRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get type => text()();
+  TextColumn get title => text()();
+  TextColumn get content => text().nullable()();
+  TextColumn get relatedEntityType => text().nullable()();
+  TextColumn get relatedEntityId => text().nullable()();
+  DateTimeColumn get scheduledAt => dateTime()();
+  DateTimeColumn get triggeredAt => dateTime().nullable()();
+  BoolColumn get isRead => boolean().withDefault(const Constant(false))();
+  BoolColumn get isHandled => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+
+  List<Set<Column>> get keys => [
+        {type},
+        {isRead},
+        {isHandled},
+        {scheduledAt},
+      ];
+}

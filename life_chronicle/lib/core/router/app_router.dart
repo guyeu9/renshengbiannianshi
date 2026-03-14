@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/app_shell.dart';
 import '../../features/home_schedule/presentation/home_schedule_page.dart';
+import '../../features/home_schedule/presentation/flashback_page.dart';
+import '../../features/home_schedule/presentation/reminder_list_page.dart';
 import '../../features/food/presentation/food_page.dart';
 import '../../features/moment/presentation/moment_page.dart';
 import '../../features/travel/presentation/travel_page.dart';
@@ -71,6 +73,9 @@ class AppRoutes {
   static const String systemLog = '/profile/system-log';
   
   static const String aiHistorian = '/ai-historian';
+  
+  static const String flashback = '/flashback';
+  static const String reminderList = '/reminders';
 }
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -457,6 +462,16 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           final params = state.extra as ModuleChatParams?;
           return AiHistorianChatPage(moduleParams: params);
         },
+      ),
+      GoRoute(
+        path: AppRoutes.flashback,
+        name: 'flashback',
+        builder: (context, state) => const FlashbackPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.reminderList,
+        name: 'reminderList',
+        builder: (context, state) => const ReminderListPage(),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(
