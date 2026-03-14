@@ -170,17 +170,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 },
               ),
               GoRoute(
-                path: ':id',
-                name: 'travelDetail',
-                parentNavigatorKey: _rootNavigatorKey,
-                builder: (context, state) {
-                  final extra = state.extra as Map<String, dynamic>?;
-                  return TravelDetailPage(
-                    item: extra?['item'],
-                  );
-                },
-              ),
-              GoRoute(
                 path: 'journal/:id',
                 name: 'journalDetail',
                 parentNavigatorKey: _rootNavigatorKey,
@@ -202,6 +191,17 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                   );
                 },
               ),
+              GoRoute(
+                path: ':id',
+                name: 'travelDetail',
+                parentNavigatorKey: _rootNavigatorKey,
+                builder: (context, state) {
+                  final extra = state.extra as Map<String, dynamic>?;
+                  return TravelDetailPage(
+                    item: extra?['item'],
+                  );
+                },
+              ),
             ],
           ),
           GoRoute(
@@ -216,15 +216,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) {
                   final extra = state.extra as Map<String, dynamic>?;
                   return GoalCreatePage(goal: extra?['goal']);
-                },
-              ),
-              GoRoute(
-                path: ':id',
-                name: 'goalDetail',
-                parentNavigatorKey: _rootNavigatorKey,
-                builder: (context, state) {
-                  final extra = state.extra as Map<String, dynamic>?;
-                  return GoalDetailPage(record: extra?['record']);
                 },
               ),
               GoRoute(
@@ -266,6 +257,15 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                   final extra = state.extra as Map<String, dynamic>?;
                   final goalId = extra?['goalId'] as String?;
                   return _GoalPostponeWrapper(goalId: goalId);
+                },
+              ),
+              GoRoute(
+                path: ':id',
+                name: 'goalDetail',
+                parentNavigatorKey: _rootNavigatorKey,
+                builder: (context, state) {
+                  final extra = state.extra as Map<String, dynamic>?;
+                  return GoalDetailPage(record: extra?['record']);
                 },
               ),
             ],

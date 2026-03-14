@@ -2168,17 +2168,13 @@ class _ImageGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     if (images.isEmpty) return const SizedBox.shrink();
 
-    switch (images.length) {
-      case 1:
-        return _buildSingleImage(context, images[0]);
-      case 2:
-        return _buildTwoImages(context, images);
-      case 3:
-        return _buildThreeImages(context, images);
-      case 4:
-        return _buildFourImages(context, images);
-      default:
-        return _buildFivePlusImages(context, images);
+    if (images.length == 1) {
+      return _buildSingleImage(context, images[0]);
+    } else if (images.length == 2) {
+      return _buildTwoImages(context, images);
+    } else {
+      // 3张及以上使用网格布局
+      return _buildGridImages(context, images);
     }
   }
 
@@ -2241,231 +2237,32 @@ class _ImageGrid extends StatelessWidget {
     );
   }
 
-  Widget _buildThreeImages(BuildContext context, List<String> images) {
-    return Column(
-      children: [
-        GestureDetector(
-          onTap: () => _openPreview(context, 0),
-          onLongPress: () => ImageSaveUtil.showImageOptions(
-            context,
-            images[0],
-            isNetwork: false,
-            onView: () => _openPreview(context, 0),
-          ),
-          child: ClipRRect(
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(20),
-              topRight: Radius.circular(20),
-            ),
-            child: AspectRatio(
-              aspectRatio: 16 / 9,
-              child: AppImage(source: images[0], fit: BoxFit.cover),
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: () => _openPreview(context, 1),
-                onLongPress: () => ImageSaveUtil.showImageOptions(
-                  context,
-                  images[1],
-                  isNetwork: false,
-                  onView: () => _openPreview(context, 1),
-                ),
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(20),
-                  ),
-                  child: AspectRatio(
-                    aspectRatio: 1,
-                    child: AppImage(source: images[1], fit: BoxFit.cover),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: GestureDetector(
-                onTap: () => _openPreview(context, 2),
-                onLongPress: () => ImageSaveUtil.showImageOptions(
-                  context,
-                  images[2],
-                  isNetwork: false,
-                  onView: () => _openPreview(context, 2),
-                ),
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.only(
-                    bottomRight: Radius.circular(20),
-                  ),
-                  child: AspectRatio(
-                    aspectRatio: 1,
-                    child: AppImage(source: images[2], fit: BoxFit.cover),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFourImages(BuildContext context, List<String> images) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: GridView.count(
-        crossAxisCount: 2,
+  Widget _buildGridImages(BuildContext context, List<String> images) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
         mainAxisSpacing: 8,
         crossAxisSpacing: 8,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        children: [
-          for (var i = 0; i < 4; i++)
-            GestureDetector(
-              onTap: () => _openPreview(context, i),
-              onLongPress: () => ImageSaveUtil.showImageOptions(
-                context,
-                images[i],
-                isNetwork: false,
-                onView: () => _openPreview(context, i),
-              ),
-              child: ClipRRect(
-                borderRadius: i == 0
-                    ? const BorderRadius.only(topLeft: Radius.circular(16))
-                    : i == 1
-                        ? const BorderRadius.only(topRight: Radius.circular(16))
-                        : i == 2
-                            ? const BorderRadius.only(bottomLeft: Radius.circular(16))
-                            : const BorderRadius.only(bottomRight: Radius.circular(16)),
-                child: AppImage(source: images[i], fit: BoxFit.cover),
-              ),
-            ),
-        ],
+        childAspectRatio: 1,
       ),
-    );
-  }
-
-  Widget _buildFivePlusImages(BuildContext context, List<String> images) {
-    final moreCount = images.length - 5;
-    return Column(
-      children: [
-        GestureDetector(
-          onTap: () => _openPreview(context, 0),
+      itemCount: images.length,
+      itemBuilder: (context, index) {
+        return GestureDetector(
+          onTap: () => _openPreview(context, index),
           onLongPress: () => ImageSaveUtil.showImageOptions(
             context,
-            images[0],
+            images[index],
             isNetwork: false,
-            onView: () => _openPreview(context, 0),
+            onView: () => _openPreview(context, index),
           ),
           child: ClipRRect(
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(20),
-              topRight: Radius.circular(20),
-            ),
-            child: AspectRatio(
-              aspectRatio: 16 / 9,
-              child: AppImage(source: images[0], fit: BoxFit.cover),
-            ),
+            borderRadius: BorderRadius.circular(12),
+            child: AppImage(source: images[index], fit: BoxFit.cover),
           ),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: () => _openPreview(context, 1),
-                onLongPress: () => ImageSaveUtil.showImageOptions(
-                  context,
-                  images[1],
-                  isNetwork: false,
-                  onView: () => _openPreview(context, 1),
-                ),
-                child: AspectRatio(
-                  aspectRatio: 1,
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.only(
-                      bottomLeft: Radius.circular(20),
-                    ),
-                    child: AppImage(source: images[1], fit: BoxFit.cover),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: GestureDetector(
-                onTap: () => _openPreview(context, 2),
-                onLongPress: () => ImageSaveUtil.showImageOptions(
-                  context,
-                  images[2],
-                  isNetwork: false,
-                  onView: () => _openPreview(context, 2),
-                ),
-                child: AspectRatio(
-                  aspectRatio: 1,
-                  child: AppImage(source: images[2], fit: BoxFit.cover),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: GestureDetector(
-                onTap: () => _openPreview(context, 3),
-                onLongPress: () => ImageSaveUtil.showImageOptions(
-                  context,
-                  images[3],
-                  isNetwork: false,
-                  onView: () => _openPreview(context, 3),
-                ),
-                child: AspectRatio(
-                  aspectRatio: 1,
-                  child: AppImage(source: images[3], fit: BoxFit.cover),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: GestureDetector(
-                onTap: () => _openPreview(context, 4),
-                onLongPress: () => ImageSaveUtil.showImageOptions(
-                  context,
-                  images[4],
-                  isNetwork: false,
-                  onView: () => _openPreview(context, 4),
-                ),
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.only(
-                    bottomRight: Radius.circular(20),
-                  ),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      AppImage(source: images[4], fit: BoxFit.cover),
-                      if (moreCount > 0)
-                        Container(
-                          color: Colors.black.withValues(alpha: 0.50),
-                          child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text('+$moreCount', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white)),
-                                const SizedBox(height: 4),
-                                const Text('查看更多', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white70)),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
+        );
+      },
     );
   }
 }
