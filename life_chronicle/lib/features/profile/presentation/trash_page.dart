@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../../../app/app_theme.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/services/restore_service.dart';
 
