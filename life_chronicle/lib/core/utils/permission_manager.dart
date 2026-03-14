@@ -165,6 +165,11 @@ class PermissionManager {
       return true;
     }
 
+    // 检查 context 是否仍然有效
+    if (!context.mounted) {
+      return false;
+    }
+
     // 显示权限说明
     final shouldProceed = await showPermissionExplanation(
       context,
@@ -201,6 +206,11 @@ class PermissionManager {
     // 检查是否已有权限
     if (await checkManageExternalStorage()) {
       return true;
+    }
+
+    // 检查 context 是否仍然有效
+    if (!context.mounted) {
+      return false;
     }
 
     // 显示权限说明
