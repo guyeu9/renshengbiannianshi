@@ -199,46 +199,15 @@ class PermissionManager {
     return granted;
   }
 
-  /// 申请文件导出所需的全套权限
+  /// 申请文件导出权限
   /// 
-  /// 包含权限说明弹窗和权限申请流程
+  /// 注意：file_picker.saveFile 使用 SAF (Storage Access Framework)
+  /// SAF 不需要额外的存储权限，系统会自动处理
+  /// 
+  /// 此方法保留用于向后兼容，但始终返回 true
   Future<bool> requestExportPermissionWithDialog(BuildContext context) async {
-    // 检查是否已有权限
-    if (await checkManageExternalStorage()) {
-      return true;
-    }
-
-    // 检查 context 是否仍然有效
-    if (!context.mounted) {
-      return false;
-    }
-
-    // 显示权限说明
-    final shouldProceed = await showPermissionExplanation(
-      context,
-      title: '需要存储权限',
-      content: '为了将文件导出到下载目录，需要访问设备存储。导出的文件仅保存在您选择的位置。',
-      confirmText: '去授权',
-      cancelText: '取消',
-    );
-
-    if (!shouldProceed) {
-      return false;
-    }
-
-    // 申请权限
-    final granted = await requestManageExternalStorage();
-
-    if (!granted && context.mounted) {
-      // 权限被拒绝，显示引导
-      await showPermissionDeniedDialog(
-        context,
-        title: '权限被拒绝',
-        content: '无法导出到下载目录。如需使用此功能，请在设置中开启"所有文件访问权限"。',
-        settingText: '去设置',
-      );
-    }
-
-    return granted;
+    // SAF 不需要额外权限，直接返回 true
+    debugPrint('FileExportManager: 使用 SAF 保存文件，不需要额外权限');
+    return true;
   }
 }

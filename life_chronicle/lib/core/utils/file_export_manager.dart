@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'permission_manager.dart';
 
 /// 文件导出管理器
 /// 
@@ -20,7 +20,7 @@ class FileExportManager {
   /// 导出完成后显示底部菜单，提供以下选项：
   /// - 保存到下载文件夹
   /// - 分享到其他应用
-  /// - 在文件管理器中打开
+  /// - 选择保存位置
   /// 
   /// [context] BuildContext
   /// [sourcePath] 源文件路径
@@ -37,7 +37,7 @@ class FileExportManager {
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => _ExportOptionsSheet(
+      builder: (sheetContext) => _ExportOptionsSheet(
         sourcePath: sourcePath,
         fileName: fileName,
         subject: subject,
@@ -50,25 +50,77 @@ class FileExportManager {
   /// 使用 file_picker 让用户选择保存位置
   /// 
   /// 返回保存后的文件路径，失败返回 null
-  Future<String?> saveFileToSelectedLocation({
+  Future<String?> saveFileToSelectedLocation(
+    BuildContext context, {
     required String sourcePath,
     required String fileName,
     String? dialogTitle,
   }) async {
     try {
+      debugPrint('===== FileExportManager.saveFileToSelectedLocation =====');
+      debugPrint('sourcePath: $sourcePath');
+      debugPrint('fileName: $fileName');
+      debugPrint('dialogTitle: $dialogTitle');
+
+      // 检查源文件是否存在
+      final sourceFile = File(sourcePath);
+      if (!await sourceFile.exists()) {
+        debugPrint('错误: 源文件不存在: $sourcePath');
+        if (context.mounted) {
+          _showErrorSnackBar(context, '源文件不存在，无法保存');
+        }
+        return null;
+      }
+
+      debugPrint('调用 FilePicker.platform.saveFile...');
+      
       final result = await FilePicker.platform.saveFile(
         dialogTitle: dialogTitle ?? '保存文件',
         fileName: fileName,
-        type: FileType.any,
       );
 
+      debugPrint('FilePicker.platform.saveFile 返回结果: $result');
+
       if (result != null) {
-        await File(sourcePath).copy(result);
+        debugPrint('用户选择了保存位置: $result');
+        
+        // 复制文件到用户选择的位置
+        await sourceFile.copy(result);
+        
+        debugPrint('文件复制成功');
+        
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('文件已保存'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
         return result;
+      } else {
+        debugPrint('用户取消了保存操作');
+        return null;
+      }
+    } on PlatformException catch (e) {
+      debugPrint('保存文件 PlatformException: ${e.code} - ${e.message}');
+      debugPrint('详细信息: ${e.details}');
+      
+      if (context.mounted) {
+        String errorMessage = '保存失败';
+        if (e.message != null && e.message!.isNotEmpty) {
+          errorMessage = '保存失败: ${e.message}';
+        }
+        _showErrorSnackBar(context, errorMessage);
       }
       return null;
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('保存文件失败: $e');
+      debugPrint('堆栈跟踪: $stackTrace');
+      
+      if (context.mounted) {
+        _showErrorSnackBar(context, '保存失败: $e');
+      }
       return null;
     }
   }
@@ -82,6 +134,9 @@ class FileExportManager {
     String? text,
   }) async {
     try {
+      debugPrint('===== FileExportManager.shareFile =====');
+      debugPrint('filePath: $filePath');
+      
       await Share.shareXFiles(
         [XFile(filePath)],
         subject: subject,
@@ -94,7 +149,7 @@ class FileExportManager {
 
   /// 导出并自动保存到下载目录
   /// 
-  /// 先申请权限，然后保存到下载目录
+  /// 使用 SAF 让用户选择保存位置
   /// 
   /// [context] BuildContext
   /// [sourcePath] 源文件路径
@@ -108,28 +163,19 @@ class FileExportManager {
     VoidCallback? onSuccess,
     VoidCallback? onError,
   }) async {
-    // 申请权限
-    final hasPermission = await PermissionManager.instance
-        .requestExportPermissionWithDialog(context);
+    debugPrint('===== FileExportManager.exportToDownloads =====');
+    debugPrint('sourcePath: $sourcePath');
+    debugPrint('fileName: $fileName');
 
-    if (!hasPermission) {
-      onError?.call();
-      return;
-    }
-
-    // 让用户选择保存位置
+    // 使用 SAF 让用户选择保存位置（不需要额外权限）
     final savedPath = await saveFileToSelectedLocation(
+      context,
       sourcePath: sourcePath,
       fileName: fileName,
       dialogTitle: '保存到下载目录',
     );
 
     if (savedPath != null) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('文件已保存到: $savedPath')),
-        );
-      }
       onSuccess?.call();
     } else {
       onError?.call();
@@ -171,6 +217,17 @@ class FileExportManager {
     } catch (e) {
       debugPrint('清理临时文件失败: $e');
     }
+  }
+
+  /// 显示错误提示
+  void _showErrorSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 4),
+      ),
+    );
   }
 }
 
@@ -249,16 +306,11 @@ class _ExportOptionsSheet extends StatelessWidget {
             subtitle: '自定义保存路径',
             onTap: () async {
               Navigator.pop(context);
-              final savedPath = await FileExportManager.instance
-                  .saveFileToSelectedLocation(
+              await FileExportManager.instance.saveFileToSelectedLocation(
+                context,
                 sourcePath: sourcePath,
                 fileName: fileName,
               );
-              if (savedPath != null && context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('文件已保存')),
-                );
-              }
             },
           ),
         ],

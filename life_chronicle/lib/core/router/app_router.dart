@@ -18,6 +18,8 @@ import '../../features/profile/presentation/amap_log_page.dart';
 import '../../features/profile/presentation/system_log_page.dart';
 import '../../features/ai_historian/presentation/ai_historian_chat_page.dart';
 import '../../features/ai_historian/models/module_chat_params.dart';
+import '../database/database_providers.dart';
+import '../database/app_database.dart';
 import 'route_observer.dart';
 
 class AppRoutes {
@@ -41,6 +43,8 @@ class AppRoutes {
   static const String goalCreate = '/goal/create';
   static const String annualGoalSummary = '/goal/annual-summary';
   static const String goalAllLinks = '/goal/links/:id';
+  static const String goalBreakdown = '/goal/breakdown';
+  static const String goalPostpone = '/goal/postpone';
   
   static const String bond = '/bond';
   static const String encounterDetail = '/encounter/:id';
@@ -228,6 +232,26 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) {
                   final id = state.pathParameters['id']!;
                   return GoalAllLinksPage(goalId: id);
+                },
+              ),
+              GoRoute(
+                path: 'breakdown',
+                name: 'goalBreakdown',
+                parentNavigatorKey: _rootNavigatorKey,
+                builder: (context, state) {
+                  final extra = state.extra as Map<String, dynamic>?;
+                  final goalId = extra?['goalId'] as String?;
+                  return _GoalBreakdownWrapper(goalId: goalId);
+                },
+              ),
+              GoRoute(
+                path: 'postpone',
+                name: 'goalPostpone',
+                parentNavigatorKey: _rootNavigatorKey,
+                builder: (context, state) {
+                  final extra = state.extra as Map<String, dynamic>?;
+                  final goalId = extra?['goalId'] as String?;
+                  return _GoalPostponeWrapper(goalId: goalId);
                 },
               ),
             ],
@@ -461,4 +485,90 @@ extension GoRouterExtension on BuildContext {
   void goToEncounterDetail(String id) => go('${AppRoutes.bond}/encounter/$id');
   
   void goToAiHistorian() => go(AppRoutes.aiHistorian);
+}
+
+class _GoalBreakdownWrapper extends ConsumerWidget {
+  const _GoalBreakdownWrapper({this.goalId});
+
+  final String? goalId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (goalId == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('目标拆解维护')),
+        body: const Center(child: Text('目标ID无效')),
+      );
+    }
+
+    final db = ref.watch(appDatabaseProvider);
+    return StreamBuilder<GoalRecord?>(
+      stream: (db.select(db.goalRecords)
+            ..where((t) => t.id.equals(goalId!))
+            ..limit(1))
+          .watch()
+          .map((rows) => rows.isNotEmpty ? rows.first : null),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('目标拆解维护')),
+            body: const Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final goal = snapshot.data;
+        if (goal == null) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('目标拆解维护')),
+            body: const Center(child: Text('目标不存在')),
+          );
+        }
+
+        return GoalBreakdownMaintenancePage(goal: goal);
+      },
+    );
+  }
+}
+
+class _GoalPostponeWrapper extends ConsumerWidget {
+  const _GoalPostponeWrapper({this.goalId});
+
+  final String? goalId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (goalId == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('顺延计划')),
+        body: const Center(child: Text('目标ID无效')),
+      );
+    }
+
+    final db = ref.watch(appDatabaseProvider);
+    return StreamBuilder<GoalRecord?>(
+      stream: (db.select(db.goalRecords)
+            ..where((t) => t.id.equals(goalId!))
+            ..limit(1))
+          .watch()
+          .map((rows) => rows.isNotEmpty ? rows.first : null),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('顺延计划')),
+            body: const Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final goal = snapshot.data;
+        if (goal == null) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('顺延计划')),
+            body: const Center(child: Text('目标不存在')),
+          );
+        }
+
+        return GoalPostponePage(goal: goal);
+      },
+    );
+  }
 }

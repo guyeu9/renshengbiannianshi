@@ -223,6 +223,9 @@ class RecordRetriever {
     if (module == 'all' || module == 'encounter' || module == 'bond') {
       records.addAll(await _loadAllEncounterRecords());
     }
+    if (module == 'bond') {
+      records.addAll(await _loadAllFriendRecords());
+    }
     
     records.sort((a, b) {
       final favoriteCompare = (b.isFavorite ? 1 : 0) - (a.isFavorite ? 1 : 0);
@@ -650,6 +653,75 @@ class RecordRetriever {
         'poiAddress': e.poiAddress,
       },
     )).toList();
+  }
+
+  Future<List<RecordContext>> _loadAllFriendRecords() async {
+    final friends = await (_db.select(_db.friendRecords)
+          ..where((t) => t.isDeleted.equals(false))
+          ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+        .get();
+
+    if (friends.isEmpty) return [];
+
+    final friendIds = friends.map((f) => f.id).toList();
+    final linksByFriendId = await _batchLoadLinks('friend', friendIds);
+
+    return friends.map((f) {
+      final buffer = StringBuffer();
+      buffer.writeln('姓名：${f.name}');
+      if (f.groupName != null && f.groupName!.isNotEmpty) {
+        buffer.writeln('分组：${f.groupName}');
+      }
+      if (f.birthday != null) {
+        buffer.writeln('生日：${_formatDate(f.birthday!)}');
+      }
+      if (f.contact != null && f.contact!.isNotEmpty) {
+        buffer.writeln('联系方式：${f.contact}');
+      }
+      if (f.meetDate != null) {
+        final knownDays = DateTime.now().difference(f.meetDate!).inDays;
+        buffer.writeln('认识日期：${_formatDate(f.meetDate!)}（已认识$knownDays天）');
+      }
+      if (f.meetWay != null && f.meetWay!.isNotEmpty) {
+        buffer.writeln('认识途径：${f.meetWay}');
+      }
+      if (f.lastMeetDate != null) {
+        final daysSinceLastMeet = DateTime.now().difference(f.lastMeetDate!).inDays;
+        buffer.writeln('最后见面：${_formatDate(f.lastMeetDate!)}（${daysSinceLastMeet}天前）');
+      }
+      if (f.contactFrequency != null && f.contactFrequency!.isNotEmpty) {
+        buffer.writeln('联系频率：${f.contactFrequency}');
+      }
+      if (f.impressionTags != null && f.impressionTags!.isNotEmpty) {
+        final tags = _parseTags(f.impressionTags);
+        buffer.writeln('印象标签：${tags.join('、')}');
+      }
+      buffer.writeln('是否收藏：${f.isFavorite ? "是" : "否"}');
+
+      return RecordContext(
+        type: '朋友',
+        id: f.id,
+        title: f.name,
+        content: buffer.toString(),
+        date: f.createdAt,
+        tags: _parseTags(f.impressionTags),
+        isFavorite: f.isFavorite,
+        links: linksByFriendId[f.id]?.isNotEmpty == true ? linksByFriendId[f.id] : null,
+        extra: {
+          'groupName': f.groupName,
+          'birthday': f.birthday,
+          'contact': f.contact,
+          'meetDate': f.meetDate,
+          'meetWay': f.meetWay,
+          'lastMeetDate': f.lastMeetDate,
+          'contactFrequency': f.contactFrequency,
+        },
+      );
+    }).toList();
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 
   Future<List<RecordContext>> _loadFoodByTimeRange(DateTime start, DateTime end, int? limit) async {

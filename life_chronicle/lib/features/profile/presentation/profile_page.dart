@@ -27,6 +27,7 @@ import '../../../core/providers/ai_provider.dart';
 import '../../../core/services/ai_service.dart' as ai_service;
 import '../../../core/utils/media_storage.dart';
 import '../../../core/utils/permission_manager.dart';
+import '../../../core/utils/file_export_manager.dart';
 import '../../../core/utils/icon_utils.dart';
 import '../../../core/config/module_management_config.dart';
 import '../../../app/app_theme.dart';
@@ -3391,8 +3392,11 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
       await file.writeAsBytes(await pdf.save());
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('PDF已保存到: ${file.path}')),
+        await FileExportManager.instance.exportFileWithOptions(
+          context,
+          sourcePath: file.path,
+          fileName: '收藏导出_${DateTime.now().millisecondsSinceEpoch}.pdf',
+          subject: '我的收藏',
         );
       }
       
@@ -7850,7 +7854,12 @@ $encountersText
 
       if (!mounted) return;
 
-      await Share.shareXFiles([XFile(file.path)], text: '${stats.year}年度报告');
+      await FileExportManager.instance.exportFileWithOptions(
+        context,
+        sourcePath: file.path,
+        fileName: 'annual_report_${stats.year}.pdf',
+        subject: '${stats.year}年度报告',
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

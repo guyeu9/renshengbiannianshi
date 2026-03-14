@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../core/models/log_entry.dart';
 import '../../../core/providers/log_providers.dart';
+import '../../../core/utils/file_export_manager.dart';
 
 class SystemLogPage extends ConsumerStatefulWidget {
   const SystemLogPage({super.key});
@@ -82,7 +83,12 @@ class _SystemLogPageState extends ConsumerState<SystemLogPage> {
       await file.writeAsString(content);
 
       if (mounted) {
-        await Share.shareXFiles([XFile(file.path)], subject: '系统日志导出');
+        await FileExportManager.instance.exportFileWithOptions(
+          context,
+          sourcePath: file.path,
+          fileName: fileName,
+          subject: '系统日志导出',
+        );
       }
     } catch (e) {
       if (mounted) {

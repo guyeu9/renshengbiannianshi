@@ -1,5 +1,6 @@
 import 'dart:developer' as developer;
 
+import 'package:drift/drift.dart';
 import 'package:life_chronicle/core/database/app_database.dart';
 import 'package:life_chronicle/core/services/vector_index_service.dart';
 import 'record_retriever.dart';
@@ -101,6 +102,17 @@ class ContextBuilder {
       if (userProfile.relationshipStatus != null && userProfile.relationshipStatus!.isNotEmpty) {
         buffer.writeln('- 感情状态：${userProfile.relationshipStatus}');
       }
+      buffer.writeln('');
+    }
+    
+    final usageTimeRange = await _loadUsageTimeRange();
+    if (usageTimeRange != null) {
+      buffer.writeln('## 用户使用时间范围');
+      buffer.writeln('- 开始记录时间：${_formatDate(usageTimeRange.firstRecordDate)}');
+      buffer.writeln('- 最近记录时间：${_formatDate(usageTimeRange.lastRecordDate)}');
+      buffer.writeln('- 记录时间跨度：${usageTimeRange.usageDays}天');
+      buffer.writeln('');
+      buffer.writeln('⚠️ 重要提示：用户从${_formatDate(usageTimeRange.firstRecordDate)}开始使用本APP记录人生。在此之前的时间段没有数据是正常的，请不要误以为用户那段时间没有生活。分析历史数据时，请以${_formatDate(usageTimeRange.firstRecordDate)}为起点。');
       buffer.writeln('');
     }
     
@@ -616,6 +628,89 @@ class ContextBuilder {
     return await (_db.select(_db.userProfiles)..where((t) => t.id.equals('me'))).getSingleOrNull();
   }
   
+  Future<_UsageTimeRange?> _loadUsageTimeRange() async {
+    DateTime? earliestDate;
+    DateTime? latestDate;
+    
+    final foodRecord = await (_db.select(_db.foodRecords)
+          ..where((t) => t.isDeleted.equals(false))
+          ..orderBy([(t) => OrderingTerm.asc(t.recordDate)])
+          ..limit(1))
+        .getSingleOrNull();
+    if (foodRecord != null) {
+      earliestDate = foodRecord.recordDate;
+      latestDate = foodRecord.recordDate;
+    }
+    
+    final momentRecord = await (_db.select(_db.momentRecords)
+          ..where((t) => t.isDeleted.equals(false))
+          ..orderBy([(t) => OrderingTerm.asc(t.recordDate)])
+          ..limit(1))
+        .getSingleOrNull();
+    if (momentRecord != null) {
+      if (earliestDate == null || momentRecord.recordDate.isBefore(earliestDate)) {
+        earliestDate = momentRecord.recordDate;
+      }
+      if (latestDate == null || momentRecord.recordDate.isAfter(latestDate)) {
+        latestDate = momentRecord.recordDate;
+      }
+    }
+    
+    final travelRecord = await (_db.select(_db.travelRecords)
+          ..where((t) => t.isDeleted.equals(false))
+          ..orderBy([(t) => OrderingTerm.asc(t.recordDate)])
+          ..limit(1))
+        .getSingleOrNull();
+    if (travelRecord != null) {
+      if (earliestDate == null || travelRecord.recordDate.isBefore(earliestDate)) {
+        earliestDate = travelRecord.recordDate;
+      }
+      if (latestDate == null || travelRecord.recordDate.isAfter(latestDate)) {
+        latestDate = travelRecord.recordDate;
+      }
+    }
+    
+    final goalRecord = await (_db.select(_db.goalRecords)
+          ..where((t) => t.isDeleted.equals(false))
+          ..orderBy([(t) => OrderingTerm.asc(t.recordDate)])
+          ..limit(1))
+        .getSingleOrNull();
+    if (goalRecord != null) {
+      if (earliestDate == null || goalRecord.recordDate.isBefore(earliestDate)) {
+        earliestDate = goalRecord.recordDate;
+      }
+      if (latestDate == null || goalRecord.recordDate.isAfter(latestDate)) {
+        latestDate = goalRecord.recordDate;
+      }
+    }
+    
+    final encounterRecord = await (_db.select(_db.timelineEvents)
+          ..where((t) => t.eventType.equals('encounter') & t.isDeleted.equals(false))
+          ..orderBy([(t) => OrderingTerm.asc(t.recordDate)])
+          ..limit(1))
+        .getSingleOrNull();
+    if (encounterRecord != null) {
+      if (earliestDate == null || encounterRecord.recordDate.isBefore(earliestDate)) {
+        earliestDate = encounterRecord.recordDate;
+      }
+      if (latestDate == null || encounterRecord.recordDate.isAfter(latestDate)) {
+        latestDate = encounterRecord.recordDate;
+      }
+    }
+    
+    if (earliestDate == null || latestDate == null) {
+      return null;
+    }
+    
+    final usageDays = latestDate.difference(earliestDate).inDays + 1;
+    
+    return _UsageTimeRange(
+      firstRecordDate: earliestDate,
+      lastRecordDate: latestDate,
+      usageDays: usageDays,
+    );
+  }
+  
   int _calculateAge(DateTime birthday) {
     final now = DateTime.now();
     int age = now.year - birthday.year;
@@ -628,4 +723,16 @@ class ContextBuilder {
   String _formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
+}
+
+class _UsageTimeRange {
+  final DateTime firstRecordDate;
+  final DateTime lastRecordDate;
+  final int usageDays;
+  
+  const _UsageTimeRange({
+    required this.firstRecordDate,
+    required this.lastRecordDate,
+    required this.usageDays,
+  });
 }
