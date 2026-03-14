@@ -687,7 +687,7 @@ class RecordRetriever {
       }
       if (f.lastMeetDate != null) {
         final daysSinceLastMeet = DateTime.now().difference(f.lastMeetDate!).inDays;
-        buffer.writeln('最后见面：${_formatDate(f.lastMeetDate!)}（${daysSinceLastMeet}天前）');
+        buffer.writeln('最后见面：${_formatDate(f.lastMeetDate!)}（$daysSinceLastMeet天前）');
       }
       if (f.contactFrequency != null && f.contactFrequency!.isNotEmpty) {
         buffer.writeln('联系频率：${f.contactFrequency}');

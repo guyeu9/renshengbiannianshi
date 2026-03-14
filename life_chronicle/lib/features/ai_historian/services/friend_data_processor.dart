@@ -339,7 +339,7 @@ class FriendDataProcessor {
     }
     if (friend.lastMeetDate != null) {
       final daysSinceLastMeet = DateTime.now().difference(friend.lastMeetDate!).inDays;
-      buffer.writeln('- 最后见面：${_formatDate(friend.lastMeetDate!)}（${daysSinceLastMeet}天前）');
+      buffer.writeln('- 最后见面：${_formatDate(friend.lastMeetDate!)}（$daysSinceLastMeet天前）');
     }
     if (friend.contactFrequency != null && friend.contactFrequency!.isNotEmpty) {
       buffer.writeln('- 联系频率：${friend.contactFrequency}');
@@ -390,7 +390,7 @@ class FriendDataProcessor {
     }
     if (friend.lastMeetDate != null) {
       final daysSinceLastMeet = DateTime.now().difference(friend.lastMeetDate!).inDays;
-      buffer.writeln('- 最后见面：${_formatDate(friend.lastMeetDate!)}（${daysSinceLastMeet}天前）');
+      buffer.writeln('- 最后见面：${_formatDate(friend.lastMeetDate!)}（$daysSinceLastMeet天前）');
     }
     if (friend.contactFrequency != null && friend.contactFrequency!.isNotEmpty) {
       buffer.writeln('- 联系频率：${friend.contactFrequency}');

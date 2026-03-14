@@ -852,34 +852,52 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                     
                     const Text('导出格式', style: TextStyle(fontWeight: FontWeight.w500)),
                     const SizedBox(height: 8),
-                    Row(
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
                       children: [
-                        Radio<ExportFormat>(
-                          value: ExportFormat.excel,
-                          groupValue: _exportFormat,
-                          onChanged: (v) => setDialogState(() => _exportFormat = v!),
+                        ChoiceChip(
+                          label: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.table_chart, color: Colors.green, size: 18),
+                              SizedBox(width: 4),
+                              Text('Excel'),
+                            ],
+                          ),
+                          selected: _exportFormat == ExportFormat.excel,
+                          onSelected: (selected) {
+                            if (selected) setDialogState(() => _exportFormat = ExportFormat.excel);
+                          },
                         ),
-                        const Icon(Icons.table_chart, color: Colors.green, size: 20),
-                        const SizedBox(width: 4),
-                        const Text('Excel'),
-                        const SizedBox(width: 16),
-                        Radio<ExportFormat>(
-                          value: ExportFormat.pdf,
-                          groupValue: _exportFormat,
-                          onChanged: (v) => setDialogState(() => _exportFormat = v!),
+                        ChoiceChip(
+                          label: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.picture_as_pdf, color: Colors.red, size: 18),
+                              SizedBox(width: 4),
+                              Text('PDF'),
+                            ],
+                          ),
+                          selected: _exportFormat == ExportFormat.pdf,
+                          onSelected: (selected) {
+                            if (selected) setDialogState(() => _exportFormat = ExportFormat.pdf);
+                          },
                         ),
-                        const Icon(Icons.picture_as_pdf, color: Colors.red, size: 20),
-                        const SizedBox(width: 4),
-                        const Text('PDF'),
-                        const SizedBox(width: 16),
-                        Radio<ExportFormat>(
-                          value: ExportFormat.markdown,
-                          groupValue: _exportFormat,
-                          onChanged: (v) => setDialogState(() => _exportFormat = v!),
+                        ChoiceChip(
+                          label: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.description, color: Colors.blue, size: 18),
+                              SizedBox(width: 4),
+                              Text('Markdown'),
+                            ],
+                          ),
+                          selected: _exportFormat == ExportFormat.markdown,
+                          onSelected: (selected) {
+                            if (selected) setDialogState(() => _exportFormat = ExportFormat.markdown);
+                          },
                         ),
-                        const Icon(Icons.description, color: Colors.blue, size: 20),
-                        const SizedBox(width: 4),
-                        const Text('Markdown'),
                       ],
                     ),
                     
