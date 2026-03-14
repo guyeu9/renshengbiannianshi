@@ -45,7 +45,7 @@ class RouteNavigation {
   }
 
   static void goToJournalCreate(BuildContext context, {String? initialTripId, String? initialTripTitle, TravelRecord? initialRecord}) {
-    context.go('/travel/journal/create', extra: {'initialTripId': initialTripId, 'initialTripTitle': initialTripTitle, 'initialRecord': initialRecord});
+    context.go(AppRoutes.journalCreate, extra: {'initialTripId': initialTripId, 'initialTripTitle': initialTripTitle, 'initialRecord': initialRecord});
   }
 
   static void goToGoalDetail(BuildContext context, String id, {GoalRecord? record}) {

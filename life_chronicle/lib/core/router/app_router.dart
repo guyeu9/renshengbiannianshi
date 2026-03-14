@@ -37,6 +37,7 @@ class AppRoutes {
   static const String travelDetail = '/travel/:id';
   static const String travelCreate = '/travel/create';
   static const String journalDetail = '/travel/journal/:id';
+  static const String journalCreate = '/travel/journal/create';
   
   static const String goal = '/goal';
   static const String goalDetail = '/goal/:id';
@@ -186,6 +187,19 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) {
                   final id = state.pathParameters['id']!;
                   return JournalDetailPage(recordId: id);
+                },
+              ),
+              GoRoute(
+                path: 'journal/create',
+                name: 'journalCreate',
+                parentNavigatorKey: _rootNavigatorKey,
+                builder: (context, state) {
+                  final extra = state.extra as Map<String, dynamic>?;
+                  return TravelJournalCreatePage(
+                    initialTripId: extra?['initialTripId'],
+                    initialTripTitle: extra?['initialTripTitle'],
+                    initialRecord: extra?['initialRecord'],
+                  );
                 },
               ),
             ],

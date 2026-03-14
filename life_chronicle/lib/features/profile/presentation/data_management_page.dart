@@ -19,6 +19,7 @@ import '../../../core/services/excel_export_service.dart';
 import '../../../core/services/markdown_export_service.dart';
 import '../../../core/services/pdf_export_service.dart';
 import '../../../core/utils/file_export_manager.dart';
+import 'trash_page.dart';
 
 enum ExportFormat {
   excel,
@@ -2174,6 +2175,19 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
               textMuted,
               '从本地文件恢复',
               _isRestoring ? null : _restoreFromLocal,
+            ),
+            _buildRecoveryCard(
+              isDark,
+              surfaceColor,
+              textMain,
+              textMuted,
+              Icons.delete_outline,
+              Colors.orange,
+              '回收站',
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (ctx) => const TrashPage()),
+              ),
             ),
           ],
         ),

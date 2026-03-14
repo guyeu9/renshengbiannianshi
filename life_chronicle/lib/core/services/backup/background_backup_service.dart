@@ -4,6 +4,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'webdav_config_service.dart';
 import 'backup_service.dart';
+import '../data_cleanup_service.dart';
 import '../../database/app_database.dart';
 import '../../database/db_connection_io.dart' as dbconn;
 
@@ -52,9 +53,20 @@ void callbackDispatcher() {
         encryptionPassword: encryptionPassword,
       );
       
+      final cleanupService = DataCleanupService(db);
+      final softDeleteResult = await cleanupService.cleanupSoftDeletedData(retentionDays: 30);
+      final orphanResult = await cleanupService.cleanupOrphanedData();
+      await cleanupService.cleanupOldChangeLogs(retentionDays: 90);
+      await cleanupService.cleanupOldLinkLogs(retentionDays: 90);
+      
+      final totalCleaned = softDeleteResult.totalFixed + orphanResult.totalFixed;
+      if (totalCleaned > 0) {
+        debugPrint('数据清理完成: 清理了 $totalCleaned 条记录');
+      }
+      
       await _showNotification(
         title: '备份成功',
-        body: '自动备份已完成',
+        body: '自动备份已完成${totalCleaned > 0 ? "，清理了$totalCleaned条过期数据" : ""}',
       );
       
       await db.close();
