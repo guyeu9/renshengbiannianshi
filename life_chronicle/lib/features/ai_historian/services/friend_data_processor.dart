@@ -321,34 +321,44 @@ class FriendDataProcessor {
 
     buffer.writeln('## 朋友基本信息');
     buffer.writeln('- 姓名：${friend.name}');
+    buffer.writeln('- 是否收藏：${friend.isFavorite ? "是" : "否"}');
+    if (friend.groupName != null && friend.groupName!.isNotEmpty) {
+      buffer.writeln('- 分组：${friend.groupName}');
+    }
+    if (friend.birthday != null) {
+      buffer.writeln('- 生日：${_formatBirthday(friend.birthday!)}');
+    }
+    if (friend.contact != null && friend.contact!.isNotEmpty) {
+      buffer.writeln('- 联系方式：${friend.contact}');
+    }
     if (friend.meetDate != null) {
       buffer.writeln('- 认识日期：${_formatDate(friend.meetDate!)}（已认识${stats.knownDays}天）');
     }
     if (friend.meetWay != null && friend.meetWay!.isNotEmpty) {
       buffer.writeln('- 认识途径：${friend.meetWay}');
     }
-    buffer.writeln('');
-
-    buffer.writeln('## 数据概览');
-    buffer.writeln('- 总回忆数：${allMemories.length}条');
-    buffer.writeln('- 本次分析：${filteredMemories.length}条（已筛选重要回忆）');
-    buffer.writeln('');
-
-    buffer.writeln('## 统计摘要');
-    buffer.writeln('- 类型分布：${_formatTypeDistribution(stats.byType)}');
-    buffer.writeln('- 年份分布：${_formatYearDistribution(stats.byYear)}');
-    if (stats.topPlaces.isNotEmpty) {
-      buffer.writeln('- 高频地点：${stats.topPlaces.take(5).map((p) => p.name).join('、')}');
+    if (friend.lastMeetDate != null) {
+      final daysSinceLastMeet = DateTime.now().difference(friend.lastMeetDate!).inDays;
+      buffer.writeln('- 最后见面：${_formatDate(friend.lastMeetDate!)}（${daysSinceLastMeet}天前）');
+    }
+    if (friend.contactFrequency != null && friend.contactFrequency!.isNotEmpty) {
+      buffer.writeln('- 联系频率：${friend.contactFrequency}');
+    }
+    if (friend.impressionTags != null && friend.impressionTags!.isNotEmpty) {
+      buffer.writeln('- 印象标签：${friend.impressionTags!.split(',').join('、')}');
     }
     buffer.writeln('');
 
-    buffer.writeln('## 重要回忆详情');
+    buffer.writeln('## 共同回忆（共${filteredMemories.length}条，筛选自全部${allMemories.length}条）');
     for (final m in filteredMemories) {
       buffer.writeln('');
       buffer.writeln('【${_formatDate(m.date)}】${m.typeLabel}');
       buffer.writeln('标题：${m.title}');
       if (m.content != null && m.content!.isNotEmpty) {
         buffer.writeln('内容：${m.content}');
+      }
+      if (m.place != null && m.place!.isNotEmpty) {
+        buffer.writeln('地点：${m.place}');
       }
     }
 
@@ -364,15 +374,29 @@ class FriendDataProcessor {
 
     buffer.writeln('## 朋友基本信息');
     buffer.writeln('- 姓名：${friend.name}');
+    buffer.writeln('- 是否收藏：${friend.isFavorite ? "是" : "否"}');
+    if (friend.groupName != null && friend.groupName!.isNotEmpty) {
+      buffer.writeln('- 分组：${friend.groupName}');
+    }
+    if (friend.birthday != null) {
+      buffer.writeln('- 生日：${_formatBirthday(friend.birthday!)}');
+    }
+    if (friend.contact != null && friend.contact!.isNotEmpty) {
+      buffer.writeln('- 联系方式：${friend.contact}');
+    }
     buffer.writeln('- 认识日期：${_formatDate(friend.meetDate!)}（已认识${data.stats.knownDays}天）');
     if (friend.meetWay != null && friend.meetWay!.isNotEmpty) {
       buffer.writeln('- 认识途径：${friend.meetWay}');
     }
+    if (friend.lastMeetDate != null) {
+      final daysSinceLastMeet = DateTime.now().difference(friend.lastMeetDate!).inDays;
+      buffer.writeln('- 最后见面：${_formatDate(friend.lastMeetDate!)}（${daysSinceLastMeet}天前）');
+    }
+    if (friend.contactFrequency != null && friend.contactFrequency!.isNotEmpty) {
+      buffer.writeln('- 联系频率：${friend.contactFrequency}');
+    }
     if (friend.impressionTags != null && friend.impressionTags!.isNotEmpty) {
       buffer.writeln('- 印象标签：${friend.impressionTags!.split(',').join('、')}');
-    }
-    if (friend.birthday != null) {
-      buffer.writeln('- 生日：${_formatBirthday(friend.birthday!)}');
     }
     buffer.writeln('');
 
