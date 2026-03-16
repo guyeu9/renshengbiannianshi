@@ -2425,6 +2425,8 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
   final Set<String> _linkedTravelIds = {};
   final Set<String> _linkedGoalIds = {};
 
+  DateTime _recordDate = DateTime.now();
+
   @override
   void initState() {
     super.initState();
@@ -2448,6 +2450,7 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
       }
       _latitude = record.latitude;
       _longitude = record.longitude;
+      _recordDate = record.recordDate;
       _imageUrls
         ..clear()
         ..addAll(_decodeStringList(record.images));
@@ -2491,6 +2494,37 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
     _priceController.dispose();
     _linkController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickDateTime() async {
+    final now = DateTime.now();
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _recordDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(now.year + 10),
+    );
+    if (!mounted || date == null) return;
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_recordDate),
+    );
+    if (!mounted || time == null) return;
+
+    setState(() {
+      _recordDate = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time.hour,
+        time.minute,
+      );
+    });
+  }
+
+  String get _formattedDateTime {
+    return '${_recordDate.year}-${_recordDate.month.toString().padLeft(2, '0')}-${_recordDate.day.toString().padLeft(2, '0')} ${_recordDate.hour.toString().padLeft(2, '0')}:${_recordDate.minute.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -2715,6 +2749,29 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
                 borderSide: BorderSide(color: _primary.withValues(alpha: 0.60)),
               ),
               contentPadding: const EdgeInsets.all(14),
+            ),
+          ),
+          const SizedBox(height: 14),
+          InkWell(
+            onTap: _pickDateTime,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF9FAFB),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.event, size: 20, color: _primary),
+                  const SizedBox(width: 10),
+                  const Text('记录时间', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF6B7280))),
+                  const Spacer(),
+                  Text(_formattedDateTime, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.chevron_right, size: 18, color: Color(0xFF9CA3AF)),
+                ],
+              ),
             ),
           ),
         ],
@@ -3639,7 +3696,7 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
     final now = DateTime.now();
     final existing = widget.initialRecord;
     final foodId = existing?.id ?? uuid.v4();
-    final recordDate = existing?.recordDate ?? DateTime(now.year, now.month, now.day);
+    final recordDate = _recordDate;
     final createdAt = existing?.createdAt ?? now;
     final isFavorite = existing?.isFavorite ?? false;
 
