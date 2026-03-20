@@ -501,7 +501,7 @@ class _FriendArchiveList extends ConsumerWidget {
         }
         return SingleChildScrollView(
           key: const ValueKey('friend_archives'),
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 140),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

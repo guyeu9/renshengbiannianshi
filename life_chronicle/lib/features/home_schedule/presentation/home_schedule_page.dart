@@ -328,6 +328,42 @@ class _FlashbackSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final flashbackAsync = ref.watch(flashbackItemsProvider);
 
+    return flashbackAsync.when(
+      data: (items) {
+        if (items.isEmpty) {
+          return _buildEmptyState();
+        }
+        return _buildDataState(context, items);
+      },
+      loading: () => _buildLoadingState(),
+      error: (_, __) => _buildErrorState(),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        children: [
+          const Icon(Icons.history_edu, color: AppTheme.primary, size: 22),
+          const SizedBox(width: 6),
+          const Expanded(
+            child: Text(
+              '那年今日',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
+            ),
+          ),
+          Text(
+            '未来的今天，会有故事发生',
+            style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDataState(BuildContext context, List<FlashbackItem> items) {
+    final displayItems = items.take(5).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -360,43 +396,66 @@ class _FlashbackSection extends ConsumerWidget {
         const SizedBox(height: 10),
         SizedBox(
           height: 208,
-          child: flashbackAsync.when(
-            data: (items) {
-              if (items.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.history, size: 40, color: Colors.grey[400]),
-                      const SizedBox(height: 8),
-                      Text(
-                        '暂无历史记录',
-                        style: TextStyle(color: Colors.grey[500], fontSize: 13),
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              final displayItems = items.take(5).toList();
-              return ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 0),
-                itemCount: displayItems.length,
-                itemBuilder: (context, index) {
-                  final item = displayItems[index];
-                  return _FlashbackItemCard(item: item);
-                },
-                separatorBuilder: (_, __) => const SizedBox(width: 16),
-              );
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 0),
+            itemCount: displayItems.length,
+            itemBuilder: (context, index) {
+              final item = displayItems[index];
+              return _FlashbackItemCard(item: item);
             },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, __) => Center(
-              child: Text('加载失败', style: TextStyle(color: Colors.grey[500])),
-            ),
+            separatorBuilder: (_, __) => const SizedBox(width: 16),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        children: [
+          const Icon(Icons.history_edu, color: AppTheme.primary, size: 22),
+          const SizedBox(width: 6),
+          const Expanded(
+            child: Text(
+              '那年今日',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
+            ),
+          ),
+          SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: Colors.grey[400],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        children: [
+          const Icon(Icons.history_edu, color: AppTheme.primary, size: 22),
+          const SizedBox(width: 6),
+          const Expanded(
+            child: Text(
+              '那年今日',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
+            ),
+          ),
+          Text(
+            '加载失败',
+            style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+          ),
+        ],
+      ),
     );
   }
 }
