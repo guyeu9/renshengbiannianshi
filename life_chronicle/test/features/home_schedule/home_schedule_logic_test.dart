@@ -39,6 +39,10 @@ bool _isCompletedDailyGoalForTest(GoalRecord record) {
   return record.level == 'daily' && record.isCompleted && !record.isDeleted;
 }
 
+bool _shouldShowFoodCalendarIconForTest(FoodRecord record) {
+  return !record.isWishlist;
+}
+
 DateTime? _foodTimelineTimeForTest(FoodRecord record) {
   return record.recordDate;
 }
@@ -133,6 +137,38 @@ void main() {
       );
 
       expect(_foodTimelineTimeForTest(food), recordDate);
+    });
+
+    test('首页月历美食图标应过滤心愿清单', () {
+      final baseTime = DateTime(2026, 3, 1, 8, 30);
+      final tastedFood = FoodRecord(
+        id: 'food-1',
+        title: '已打卡早餐',
+        content: null,
+        images: null,
+        tags: null,
+        rating: null,
+        pricePerPerson: null,
+        link: null,
+        latitude: null,
+        longitude: null,
+        poiName: null,
+        poiAddress: null,
+        city: null,
+        country: null,
+        mood: null,
+        isWishlist: false,
+        isFavorite: false,
+        wishlistDone: false,
+        recordDate: baseTime,
+        createdAt: baseTime,
+        updatedAt: baseTime,
+        isDeleted: false,
+      );
+      final wishlistFood = tastedFood.copyWith(id: 'food-2', isWishlist: true);
+
+      expect(_shouldShowFoodCalendarIconForTest(tastedFood), isTrue);
+      expect(_shouldShowFoodCalendarIconForTest(wishlistFood), isFalse);
     });
 
     test('目标日程副标题展示完成时间', () {

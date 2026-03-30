@@ -948,6 +948,7 @@ class _CalendarGrid extends StatelessWidget {
 
     if (foodModule.showOnCalendar) {
       for (final record in foods) {
+        if (record.isWishlist) continue;
         final date = record.recordDate;
         if (date.year == year && date.month == month) {
           addIcon(date.day, IconUtils.fromName(foodModule.iconName));
