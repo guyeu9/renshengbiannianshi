@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:drift/drift.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_chronicle/core/database/app_database.dart';
 import 'package:life_chronicle/features/travel/providers/travel_detail_provider.dart';
@@ -12,6 +13,7 @@ void main() {
     late List<ChecklistItem> testChecklistItems;
     late List<FriendRecord> testLinkedFriends;
     late List<FoodRecord> testLinkedFoods;
+    late List<EntityLink> testEntityLinks;
     late Set<String> testAllTravelIds;
 
     setUp(() {
@@ -131,6 +133,27 @@ void main() {
         ),
       ];
 
+      testEntityLinks = [
+        EntityLink(
+          id: 'link-1',
+          sourceType: 'travel',
+          sourceId: 'journal-1',
+          targetType: 'friend',
+          targetId: 'friend-1',
+          linkType: 'association',
+          createdAt: now,
+        ),
+        EntityLink(
+          id: 'link-2',
+          sourceType: 'food',
+          sourceId: 'food-1',
+          targetType: 'travel',
+          targetId: 'journal-2',
+          linkType: 'association',
+          createdAt: now,
+        ),
+      ];
+
       testAllTravelIds = {'travel-1', 'journal-1', 'journal-2'};
 
       state = TravelDetailState(
@@ -140,6 +163,7 @@ void main() {
         checklistItems: testChecklistItems,
         linkedFriends: testLinkedFriends,
         linkedFoods: testLinkedFoods,
+        entityLinks: testEntityLinks,
         allTravelIds: testAllTravelIds,
       );
     });
@@ -151,6 +175,7 @@ void main() {
       expect(state.checklistItems, equals(testChecklistItems));
       expect(state.linkedFriends, equals(testLinkedFriends));
       expect(state.linkedFoods, equals(testLinkedFoods));
+      expect(state.entityLinks, equals(testEntityLinks));
       expect(state.allTravelIds, equals(testAllTravelIds));
     });
 
@@ -167,6 +192,7 @@ void main() {
           checklistItems: testChecklistItems,
           linkedFriends: testLinkedFriends,
           linkedFoods: testLinkedFoods,
+          entityLinks: testEntityLinks,
           allTravelIds: testAllTravelIds,
         );
         expect(noRecordState.title, equals('成都 7 日游'));
@@ -180,6 +206,7 @@ void main() {
           checklistItems: const [],
           linkedFriends: const [],
           linkedFoods: const [],
+          entityLinks: const [],
           allTravelIds: const {},
         );
         expect(emptyState.title, equals(''));
@@ -199,6 +226,7 @@ void main() {
           checklistItems: testChecklistItems,
           linkedFriends: testLinkedFriends,
           linkedFoods: testLinkedFoods,
+          entityLinks: testEntityLinks,
           allTravelIds: testAllTravelIds,
         );
         expect(noRecordState.place, equals(''));
@@ -226,6 +254,7 @@ void main() {
           checklistItems: testChecklistItems,
           linkedFriends: testLinkedFriends,
           linkedFoods: testLinkedFoods,
+          entityLinks: testEntityLinks,
           allTravelIds: testAllTravelIds,
         );
         expect(sameDayState.durationDays, equals(1));
@@ -245,6 +274,25 @@ void main() {
         expect(state.cover, equals('image1.jpg'));
       });
 
+      test('should fallback to journal image when record has no image', () {
+        final noCoverRecord = testRecord.copyWith(images: const Value(null));
+        final journalsWithImage = [
+          testJournals.first.copyWith(images: Value(jsonEncode(['journal-cover.jpg']))),
+          testJournals.last,
+        ];
+        final fallbackState = TravelDetailState(
+          record: noCoverRecord,
+          trip: testTrip,
+          journals: journalsWithImage,
+          checklistItems: testChecklistItems,
+          linkedFriends: testLinkedFriends,
+          linkedFoods: testLinkedFoods,
+          entityLinks: testEntityLinks,
+          allTravelIds: testAllTravelIds,
+        );
+        expect(fallbackState.cover, equals('journal-cover.jpg'));
+      });
+
       test('should return empty string when record is null', () {
         final noRecordState = TravelDetailState(
           record: null,
@@ -253,10 +301,48 @@ void main() {
           checklistItems: testChecklistItems,
           linkedFriends: testLinkedFriends,
           linkedFoods: testLinkedFoods,
+          entityLinks: testEntityLinks,
           allTravelIds: testAllTravelIds,
         );
         expect(noRecordState.cover, equals(''));
       });
+
+      test('should parse history cover image from comma separated string', () {
+        final historyRecord = testRecord.copyWith(images: Value('old1.jpg, old2.jpg'));
+        final historyState = TravelDetailState(
+          record: historyRecord,
+          trip: testTrip,
+          journals: testJournals,
+          checklistItems: testChecklistItems,
+          linkedFriends: testLinkedFriends,
+          linkedFoods: testLinkedFoods,
+          entityLinks: testEntityLinks,
+          allTravelIds: testAllTravelIds,
+        );
+        expect(historyState.cover, equals('old1.jpg'));
+      });
+
+    test('should calculate duration days by natural date boundary', () {
+      final timedTrip = Trip(
+        id: 'trip-timed',
+        name: '跨午夜旅行',
+        startDate: DateTime(2024, 1, 1, 23, 30),
+        endDate: DateTime(2024, 1, 2, 0, 30),
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      final timedState = TravelDetailState(
+        record: testRecord,
+        trip: timedTrip,
+        journals: testJournals,
+        checklistItems: testChecklistItems,
+        linkedFriends: testLinkedFriends,
+        linkedFoods: testLinkedFoods,
+        entityLinks: testEntityLinks,
+        allTravelIds: testAllTravelIds,
+      );
+      expect(timedState.durationDays, equals(2));
+    });
     });
 
     group('tags', () {
@@ -300,9 +386,15 @@ void main() {
           checklistItems: testChecklistItems,
           linkedFriends: testLinkedFriends,
           linkedFoods: testLinkedFoods,
+          entityLinks: testEntityLinks,
           allTravelIds: testAllTravelIds,
         );
         expect(noRecordState.recordId, equals(''));
+      });
+
+      test('should expose entity links for timeline rendering', () {
+        expect(state.entityLinks, hasLength(2));
+        expect(state.entityLinks.map((link) => link.id), containsAll(['link-1', 'link-2']));
       });
     });
   });
@@ -432,6 +524,32 @@ void main() {
 
     test('images should parse correctly', () {
       expect(state.images, equals(['journal1.jpg', 'journal2.jpg']));
+    });
+
+    test('images should support comma separated history format', () {
+      final historyJournal = testJournal.copyWith(images: const Value('old-a.jpg, old-b.jpg'));
+      final historyState = JournalDetailState(
+        record: historyJournal,
+        trip: testTrip,
+        linkedFriends: testLinkedFriends,
+        linkedFoods: testLinkedFoods,
+        linkedGoals: testLinkedGoals,
+        linkedTravels: testLinkedTravels,
+      );
+      expect(historyState.images, equals(['old-a.jpg', 'old-b.jpg']));
+    });
+
+    test('images should support single path history format', () {
+      final historyJournal = testJournal.copyWith(images: const Value('single-history.jpg'));
+      final historyState = JournalDetailState(
+        record: historyJournal,
+        trip: testTrip,
+        linkedFriends: testLinkedFriends,
+        linkedFoods: testLinkedFoods,
+        linkedGoals: testLinkedGoals,
+        linkedTravels: testLinkedTravels,
+      );
+      expect(historyState.images, equals(['single-history.jpg']));
     });
 
     test('tags should parse correctly', () {

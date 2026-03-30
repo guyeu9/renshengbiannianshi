@@ -20,6 +20,41 @@ import '../../travel/presentation/travel_page.dart' show TravelItem;
 import '../providers/flashback_provider.dart';
 import '../providers/reminder_provider.dart';
 
+List<String> _parseMomentTags(String? raw) {
+  if (raw == null || raw.trim().isEmpty) return const [];
+  final value = raw.trim();
+  if (value.startsWith('[')) {
+    try {
+      final decoded = jsonDecode(value);
+      if (decoded is List) {
+        return decoded.whereType<String>().map((e) => e.trim()).where((e) => e.isNotEmpty).toList(growable: false);
+      }
+    } catch (_) {}
+  }
+  return value
+      .split(RegExp(r'[,\s，、/]+'))
+      .map((e) => e.trim())
+      .where((e) => e.isNotEmpty)
+      .toList(growable: false);
+}
+
+ModuleTag? _matchMomentTag(ModuleConfig momentModule, String? rawTags) {
+  final tags = _parseMomentTags(rawTags);
+  if (tags.isEmpty) return null;
+  for (final tagName in tags) {
+    for (final tag in momentModule.tags) {
+      if (tag.name == tagName) {
+        return tag;
+      }
+    }
+  }
+  return null;
+}
+
+bool _isCompletedDailyGoal(GoalRecord record) {
+  return record.level == 'daily' && record.isCompleted && !record.isDeleted;
+}
+
 class HomeSchedulePage extends StatefulWidget {
   const HomeSchedulePage({super.key});
 
@@ -730,53 +765,60 @@ class _CalendarCardState extends ConsumerState<_CalendarCard> {
                   stream: db.watchTravelRecordsByRange(monthStart, monthEnd),
                   builder: (context, travelSnapshot) {
                     final travels = travelSnapshot.data ?? const <TravelRecord>[];
-                    return StreamBuilder<List<TimelineEvent>>(
-                      stream: db.watchEventsForMonth(_focusMonth),
-                      builder: (context, snapshot) {
-                        final events = snapshot.data ?? [];
-                        return Container(
-                          padding: const EdgeInsets.all(18),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Color(0x1A2BCDEE),
-                                blurRadius: 20,
-                                offset: Offset(0, 4),
+                    return StreamBuilder<List<GoalRecord>>(
+                      stream: db.goalDao.watchByRecordDateRange(monthStart, monthEnd),
+                      builder: (context, goalSnapshot) {
+                        final goals = goalSnapshot.data ?? const <GoalRecord>[];
+                        return StreamBuilder<List<TimelineEvent>>(
+                          stream: db.watchEventsForMonth(_focusMonth),
+                          builder: (context, snapshot) {
+                            final events = snapshot.data ?? [];
+                            return Container(
+                              padding: const EdgeInsets.all(18),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Color(0x1A2BCDEE),
+                                    blurRadius: 20,
+                                    offset: Offset(0, 4),
+                                  ),
+                                  BoxShadow(
+                                    color: Color(0x0A000000),
+                                    blurRadius: 10,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
                               ),
-                              BoxShadow(
-                                color: Color(0x0A000000),
-                                blurRadius: 10,
-                                offset: Offset(0, 2),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _CalendarHeader(
+                                    month: _focusMonth.month,
+                                    year: _focusMonth.year,
+                                    onPrev: _goPrevMonth,
+                                    onNext: _goNextMonth,
+                                    onPick: _openMonthPicker,
+                                  ),
+                                  const SizedBox(height: 14),
+                                  const _WeekdayRow(),
+                                  const SizedBox(height: 10),
+                                  _CalendarGrid(
+                                    focusMonth: _focusMonth,
+                                    selectedDay: widget.selectedDay,
+                                    onSelectDay: widget.onSelectDay,
+                                    events: events,
+                                    foods: foods,
+                                    moments: moments,
+                                    travels: travels,
+                                    goals: goals,
+                                    config: config,
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _CalendarHeader(
-                                month: _focusMonth.month,
-                                year: _focusMonth.year,
-                                onPrev: _goPrevMonth,
-                                onNext: _goNextMonth,
-                                onPick: _openMonthPicker,
-                              ),
-                              const SizedBox(height: 14),
-                              const _WeekdayRow(),
-                              const SizedBox(height: 10),
-                              _CalendarGrid(
-                                focusMonth: _focusMonth,
-                                selectedDay: widget.selectedDay,
-                                onSelectDay: widget.onSelectDay,
-                                events: events,
-                                foods: foods,
-                                moments: moments,
-                                travels: travels,
-                                config: config,
-                              ),
-                            ],
-                          ),
+                            );
+                          },
                         );
                       },
                     );
@@ -867,6 +909,7 @@ class _CalendarGrid extends StatelessWidget {
     required this.foods,
     required this.moments,
     required this.travels,
+    required this.goals,
     required this.config,
   });
 
@@ -877,6 +920,7 @@ class _CalendarGrid extends StatelessWidget {
   final List<FoodRecord> foods;
   final List<MomentRecord> moments;
   final List<TravelRecord> travels;
+  final List<GoalRecord> goals;
   final ModuleManagementConfig config;
 
   List<_CalendarCellData> _buildCells() {
@@ -920,13 +964,20 @@ class _CalendarGrid extends StatelessWidget {
       }
     }
 
-    if (goalModule.showOnCalendar || bondModule.showOnCalendar) {
+    if (goalModule.showOnCalendar) {
+      for (final record in goals) {
+        if (!_isCompletedDailyGoal(record)) continue;
+        final date = record.recordDate;
+        if (date.year == year && date.month == month) {
+          addIcon(date.day, IconUtils.fromName(goalModule.iconName));
+        }
+      }
+    }
+
+    if (bondModule.showOnCalendar) {
       for (final event in events) {
         final date = event.recordDate;
         if (date.year != year || date.month != month) continue;
-        if (event.eventType == 'goal' && goalModule.showOnCalendar) {
-          addIcon(date.day, IconUtils.fromName(goalModule.iconName));
-        }
         if (event.eventType == 'encounter' && bondModule.showOnCalendar) {
           addIcon(date.day, IconUtils.fromName(bondModule.iconName));
         }
@@ -937,16 +988,7 @@ class _CalendarGrid extends StatelessWidget {
       for (final record in moments) {
         final date = record.recordDate;
         if (date.year != year || date.month != month) continue;
-        final tagName = (record.tags ?? '').trim();
-        ModuleTag? match;
-        if (tagName.isNotEmpty) {
-          for (final tag in momentModule.tags) {
-            if (tag.name == tagName) {
-              match = tag;
-              break;
-            }
-          }
-        }
+        final match = _matchMomentTag(momentModule, record.tags);
         if (match != null && !match.showOnCalendar) {
           continue;
         }
@@ -1314,98 +1356,114 @@ class _EventStream extends ConsumerWidget {
                   stream: db.momentDao.watchByRecordDateRange(dayStart, dayEnd),
                   builder: (context, momentSnapshot) {
                     final moments = momentSnapshot.data ?? const <MomentRecord>[];
-                    
-                    final momentMap = <String, MomentRecord>{};
-                    for (final m in moments) {
-                      momentMap[m.id] = m;
-                    }
-                    
-                    final items = <({DateTime? time, String title, String? subtitle, String type, String? id, VoidCallback? onTap})>[
-                      for (final e in events)
-                        (
-                          time: e.startAt,
-                          title: e.title,
-                          subtitle: e.note,
-                          type: e.eventType,
-                          id: e.id,
-                          onTap: () {
-                            switch (e.eventType) {
-                              case 'goal':
-                                _openGoalDetail(context, ref, e.id);
-                                break;
-                              case 'encounter':
-                                _openEncounterDetail(context, e.id);
-                                break;
-                              case 'travel':
-                                _openTravelDetail(context, ref, e.id);
-                                break;
-                              case 'moment':
-                                _openMomentDetail(context, e.id);
-                                break;
-                              default:
-                                break;
-                            }
-                          },
-                        ),
-                      for (final f in foods)
-                        (
-                          time: f.createdAt,
-                          title: f.title,
-                          subtitle: (f.poiName ?? '').trim().isNotEmpty
-                              ? (f.poiName ?? '').trim()
-                              : ((f.content ?? '').trim().isNotEmpty ? (f.content ?? '').trim() : null),
-                          type: 'food',
-                          id: null,
-                          onTap: () {
-                            RouteNavigation.goToFoodDetail(context, f.id);
-                          },
-                        ),
-                    ];
+                    return StreamBuilder<List<GoalRecord>>(
+                      stream: db.goalDao.watchByRecordDateRange(dayStart, dayEnd),
+                      builder: (context, goalSnapshot) {
+                        final completedGoals = (goalSnapshot.data ?? const <GoalRecord>[])
+                            .where(_isCompletedDailyGoal)
+                            .toList(growable: false);
+                        final momentMap = <String, MomentRecord>{};
+                        for (final m in moments) {
+                          momentMap[m.id] = m;
+                        }
 
-                    items.sort((a, b) {
-                      final at = a.time;
-                      final bt = b.time;
-                      if (at == null && bt == null) return 0;
-                      if (at == null) return 1;
-                      if (bt == null) return -1;
-                      return at.compareTo(bt);
-                    });
-
-                    final momentModule = config.moduleOf('moment');
-
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: RichText(
-                            text: TextSpan(
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.textMain),
-                              children: [
-                                const TextSpan(text: '日程记录'),
-                                TextSpan(
-                                  text: '  ${items.length}个记录',
-                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF9CA3AF)),
-                                ),
-                              ],
+                        final nonGoalEvents = events.where((e) => e.eventType != 'goal');
+                        final items = <({DateTime? time, String title, String? subtitle, String type, String? id, VoidCallback? onTap})>[
+                          for (final e in nonGoalEvents)
+                            (
+                              time: e.startAt,
+                              title: e.title,
+                              subtitle: e.note,
+                              type: e.eventType,
+                              id: e.id,
+                              onTap: () {
+                                switch (e.eventType) {
+                                  case 'encounter':
+                                    _openEncounterDetail(context, e.id);
+                                    break;
+                                  case 'travel':
+                                    _openTravelDetail(context, ref, e.id);
+                                    break;
+                                  case 'moment':
+                                    _openMomentDetail(context, e.id);
+                                    break;
+                                  default:
+                                    break;
+                                }
+                              },
                             ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        if (items.isEmpty)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 20),
-                            child: Center(
-                              child: Text(
-                                '${selectedDay.month}月${selectedDay.day}日 暂无日程',
-                                style: const TextStyle(color: AppTheme.textMuted),
+                          for (final goal in completedGoals)
+                            (
+                              time: goal.completedAt ?? goal.recordDate,
+                              title: goal.title,
+                              subtitle: _goalTimelineSubtitle(goal),
+                              type: 'goal',
+                              id: goal.id,
+                              onTap: () {
+                                _openGoalDetail(context, ref, goal.id);
+                              },
+                            ),
+                          for (final f in foods)
+                            (
+                              time: f.recordDate,
+                              title: f.title,
+                              subtitle: (f.poiName ?? '').trim().isNotEmpty
+                                  ? (f.poiName ?? '').trim()
+                                  : ((f.content ?? '').trim().isNotEmpty ? (f.content ?? '').trim() : null),
+                              type: 'food',
+                              id: null,
+                              onTap: () {
+                                RouteNavigation.goToFoodDetail(context, f.id);
+                              },
+                            ),
+                        ];
+
+                        items.sort((a, b) {
+                          final at = a.time;
+                          final bt = b.time;
+                          if (at == null && bt == null) return 0;
+                          if (at == null) return 1;
+                          if (bt == null) return -1;
+                          return at.compareTo(bt);
+                        });
+
+                        final momentModule = config.moduleOf('moment');
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              child: RichText(
+                                text: TextSpan(
+                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.textMain),
+                                  children: [
+                                    const TextSpan(text: '日程记录'),
+                                    TextSpan(
+                                      text: '  ${items.length}个记录',
+                                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF9CA3AF)),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                          )
-                        else
-                          for (var i = 0; i < items.length; i++)
-                            _buildTimelineItem(items[i], i, items.length, momentModule, momentMap),
-                      ],
+                            const SizedBox(height: 12),
+                            if (items.isEmpty)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 20),
+                                child: Center(
+                                  child: Text(
+                                    '${selectedDay.month}月${selectedDay.day}日 暂无日程',
+                                    style: const TextStyle(color: AppTheme.textMuted),
+                                  ),
+                                ),
+                              )
+                            else
+                              for (var i = 0; i < items.length; i++)
+                                _buildTimelineItem(items[i], i, items.length, momentModule, momentMap),
+                          ],
+                        );
+                      },
                     );
                   },
                 );
@@ -1430,16 +1488,7 @@ class _EventStream extends ConsumerWidget {
     if (item.type == 'moment' && item.id != null) {
       final moment = momentMap[item.id!];
       if (moment != null) {
-        final tagName = (moment.tags ?? '').trim();
-        ModuleTag? match;
-        if (tagName.isNotEmpty) {
-          for (final tag in momentModule.tags) {
-            if (tag.name == tagName) {
-              match = tag;
-              break;
-            }
-          }
-        }
+        final match = _matchMomentTag(momentModule, moment.tags);
         final iconName = match?.iconName ?? momentModule.iconName;
         icon = IconUtils.fromName(iconName);
         color = const Color(0xFF4ADE80);
@@ -1464,6 +1513,12 @@ class _EventStream extends ConsumerWidget {
   String _formatTime(DateTime? time) {
     if (time == null) return '--:--';
     return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+  }
+
+  String? _goalTimelineSubtitle(GoalRecord goal) {
+    if (goal.completedAt == null) return null;
+    final completedAt = goal.completedAt!;
+    return '完成于 ${completedAt.hour.toString().padLeft(2, '0')}:${completedAt.minute.toString().padLeft(2, '0')}';
   }
 
   IconData _getIconForType(String type) {

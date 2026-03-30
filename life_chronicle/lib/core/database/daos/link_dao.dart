@@ -465,6 +465,21 @@ class LinkDao extends DatabaseAccessor<AppDatabase> with _$LinkDaoMixin {
     return query.watch();
   }
 
+  Stream<List<EntityLink>> watchLinksForEntities({
+    required String entityType,
+    required List<String> entityIds,
+  }) {
+    if (entityIds.isEmpty) return Stream.value(const []);
+    final query = select(db.entityLinks)
+      ..where(
+        (t) =>
+            (t.sourceType.equals(entityType) & t.sourceId.isIn(entityIds)) |
+            (t.targetType.equals(entityType) & t.targetId.isIn(entityIds)),
+      )
+      ..orderBy([(t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc)]);
+    return query.watch();
+  }
+
   Future<List<EntityLink>> listLinksForEntity({
     required String entityType,
     required String entityId,

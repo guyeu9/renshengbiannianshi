@@ -14,6 +14,7 @@ class TravelDetailState {
     required this.checklistItems,
     required this.linkedFriends,
     required this.linkedFoods,
+    required this.entityLinks,
     required this.allTravelIds,
   });
 
@@ -23,6 +24,7 @@ class TravelDetailState {
   final List<ChecklistItem> checklistItems;
   final List<FriendRecord> linkedFriends;
   final List<FoodRecord> linkedFoods;
+  final List<EntityLink> entityLinks;
   final Set<String> allTravelIds;
 
   String get title => record?.title ?? trip?.name ?? '';
@@ -43,7 +45,7 @@ class TravelDetailState {
   int get durationDays => _durationDays(headerStart, headerEnd);
   String get durationLabel => _formatDurationLabel(durationDays);
   String get dateLabel => _formatDateDotRange(headerStart, headerEnd);
-  String get cover => _pickCoverImage(record);
+  String get cover => _pickCoverImage(record, journals);
   String get tripId => trip?.id ?? record?.tripId ?? '';
   String get tripTitle => trip?.name ?? title;
   String get recordId => record?.id ?? '';
@@ -65,7 +67,9 @@ class TravelDetailState {
   bool get wishlistDone => record?.wishlistDone ?? false;
 
   static int _durationDays(DateTime start, DateTime end) {
-    final diff = end.difference(start).inDays;
+    final normalizedStart = DateTime(start.year, start.month, start.day);
+    final normalizedEnd = DateTime(end.year, end.month, end.day);
+    final diff = normalizedEnd.difference(normalizedStart).inDays;
     return diff < 1 ? 1 : diff + 1;
   }
 
@@ -82,10 +86,15 @@ class TravelDetailState {
     return startStr;
   }
 
-  static String _pickCoverImage(TravelRecord? record) {
-    if (record == null) return '';
-    final images = _decodeStringList(record.images);
-    if (images.isNotEmpty) return images.first;
+  static String _pickCoverImage(TravelRecord? record, List<TravelRecord> journals) {
+    if (record != null) {
+      final images = _decodeStringList(record.images);
+      if (images.isNotEmpty) return images.first;
+    }
+    for (final journal in journals) {
+      final images = _decodeStringList(journal.images);
+      if (images.isNotEmpty) return images.first;
+    }
     return '';
   }
 
@@ -187,14 +196,17 @@ Stream<TravelDetailState> _combineStreams({
 
       final linkedFriendIds = <String>{};
       final linkedFoodIds = <String>{};
+      final entityLinks = <EntityLink>[];
       for (final link in links) {
         if (link.sourceType == 'travel' && allTravelIds.contains(link.sourceId)) {
+          entityLinks.add(link);
           if (link.targetType == 'friend') {
             linkedFriendIds.add(link.targetId);
           } else if (link.targetType == 'food') {
             linkedFoodIds.add(link.targetId);
           }
         } else if (link.targetType == 'travel' && allTravelIds.contains(link.targetId)) {
+          entityLinks.add(link);
           if (link.sourceType == 'friend') {
             linkedFriendIds.add(link.sourceId);
           } else if (link.sourceType == 'food') {
@@ -213,6 +225,7 @@ Stream<TravelDetailState> _combineStreams({
         checklistItems: checklistItems,
         linkedFriends: linkedFriends,
         linkedFoods: linkedFoods,
+        entityLinks: entityLinks,
         allTravelIds: allTravelIds,
       );
     },
@@ -251,15 +264,19 @@ class JournalDetailState {
 
   static List<String> _decodeStringList(String? json) {
     if (json == null || json.trim().isEmpty) return const [];
+    final trimmed = json.trim();
     try {
-      final decoded = jsonDecode(json);
+      final decoded = jsonDecode(trimmed);
       if (decoded is List) {
         return decoded.map((e) => e.toString()).toList(growable: false);
       }
     } catch (e) {
       debugPrint('JSON解析失败: $e');
     }
-    return const [];
+    if (trimmed.contains(',') && !trimmed.startsWith('[')) {
+      return trimmed.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList(growable: false);
+    }
+    return [trimmed];
   }
 }
 
@@ -273,7 +290,7 @@ final journalDetailProvider = StreamProvider.family.autoDispose<JournalDetailSta
         ..limit(1))
       .watchSingleOrNull();
 
-  final linksStream = db.select(db.entityLinks).watch();
+  final linksStream = db.linkDao.watchLinksForEntity(entityType: 'travel', entityId: recordId);
   final friendsStream = db.friendDao.watchAllActive();
   final foodsStream = db.foodDao.watchAllActive();
   final goalsStream = db.goalDao.watchAllActive();
@@ -378,15 +395,19 @@ class TravelTimelineState {
 
   static List<String> _decodeStringList(String? json) {
     if (json == null || json.trim().isEmpty) return const [];
+    final trimmed = json.trim();
     try {
-      final decoded = jsonDecode(json);
+      final decoded = jsonDecode(trimmed);
       if (decoded is List) {
         return decoded.map((e) => e.toString()).toList(growable: false);
       }
     } catch (e) {
       debugPrint('JSON解析失败: $e');
     }
-    return const [];
+    if (trimmed.contains(',') && !trimmed.startsWith('[')) {
+      return trimmed.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList(growable: false);
+    }
+    return [trimmed];
   }
 }
 
@@ -394,11 +415,13 @@ final travelTimelineProvider = StreamProvider.family.autoDispose<TravelTimelineS
   final db = ref.watch(appDatabaseProvider);
 
   final recordsStream = db.travelDao.watchAllActive();
-  final linksStream = db.select(db.entityLinks).watch();
   final friendsStream = db.friendDao.watchAllActive();
   final foodsStream = db.foodDao.watchAllActive();
 
-  return _combineTimelineStreams(
+  return recordsStream.switchMap((records) {
+    final travelIds = records.where((r) => !r.isDeleted).map((r) => r.id).toSet().toList(growable: false);
+    final linksStream = db.linkDao.watchLinksForEntities(entityType: 'travel', entityIds: travelIds);
+    return _combineTimelineStreams(
     recordsStream: recordsStream,
     linksStream: linksStream,
     friendsStream: friendsStream,
@@ -407,6 +430,7 @@ final travelTimelineProvider = StreamProvider.family.autoDispose<TravelTimelineS
     searchQuery: params.searchQuery,
     filterFriendIds: params.filterFriendIds,
   );
+  });
 });
 
 Stream<TravelTimelineState> _combineTimelineStreams({

@@ -998,12 +998,8 @@ class TravelItem {
   });
 
   factory TravelItem.fromRecord(TravelRecord record) {
-    final images = record.images;
-    String? imageUrl;
-    if (images != null && images.isNotEmpty) {
-      final imageList = images.split(',');
-      imageUrl = imageList.first.trim();
-    }
+    final imageList = _decodeStringList(record.images);
+    final imageUrl = imageList.isNotEmpty ? imageList.first : null;
     return TravelItem(
       travelId: record.id,
       tripId: record.tripId,
@@ -1056,10 +1052,9 @@ class TravelDetailPage extends ConsumerWidget {
         final tagList = state.tags;
         final journals = state.journals;
         final checklistItems = state.checklistItems;
-        final linkedFriends = state.linkedFriends;
         final friends = state.linkedFriends;
         final foods = state.linkedFoods;
-        final links = <EntityLink>[];
+        final links = state.entityLinks;
 
         return Scaffold(
           backgroundColor: const Color(0xFFF6F8F8),
@@ -1291,11 +1286,11 @@ class TravelDetailPage extends ConsumerWidget {
                                 );
                               },
                             ),
-                          if (checklistItems.isNotEmpty || linkedFriends.isNotEmpty)
+                          if (checklistItems.isNotEmpty || friends.isNotEmpty)
                             const SizedBox(height: 14),
-                          if (linkedFriends.isNotEmpty)
+                          if (friends.isNotEmpty)
                             _CompanionAvatars(
-                              friends: linkedFriends,
+                              friends: friends,
                               onTap: (friend) {
                                 RouteNavigation.goToFriendProfile(context, friend.id);
                               },
@@ -1304,6 +1299,7 @@ class TravelDetailPage extends ConsumerWidget {
                       ),
                       _TravelTimeline(
                         trip: trip,
+                        tripStart: state.headerStart,
                         journals: journals,
                         friends: friends,
                         foods: foods,
@@ -3621,6 +3617,7 @@ class _PrimaryPillButton extends StatelessWidget {
 class _TravelTimeline extends StatelessWidget {
   const _TravelTimeline({
     required this.trip,
+    required this.tripStart,
     required this.journals,
     required this.friends,
     required this.foods,
@@ -3628,6 +3625,7 @@ class _TravelTimeline extends StatelessWidget {
   });
 
   final Trip? trip;
+  final DateTime? tripStart;
   final List<TravelRecord> journals;
   final List<FriendRecord> friends;
   final List<FoodRecord> foods;
@@ -3687,7 +3685,7 @@ class _TravelTimeline extends StatelessWidget {
           children: [
             for (int i = 0; i < days.length; i++) ...[
               _TimelineDayBlock(
-                dayTitle: '第${i + 1}天',
+                dayTitle: _buildDayTitle(days[i], i),
                 daySubTitle: _formatDaySubTitle(days[i]),
                 isActive: hasActiveDay ? _isSameDay(days[i], today) : i == 0,
                 items: _buildDayItems(
@@ -3740,6 +3738,20 @@ class _TravelTimeline extends StatelessWidget {
       }
     }
     return items;
+  }
+
+  String _buildDayTitle(DateTime day, int index) {
+    if (tripStart == null) {
+      return '第${index + 1}天';
+    }
+    final normalizedTripStart = DateTime(tripStart!.year, tripStart!.month, tripStart!.day);
+    final normalizedDay = DateTime(day.year, day.month, day.day);
+    final diff = normalizedDay.difference(normalizedTripStart).inDays;
+    final actualDay = diff + 1;
+    if (actualDay <= 0) {
+      return '${_formatDateRange(normalizedDay, normalizedDay, normalizedDay)} · 提前记录';
+    }
+    return '第${actualDay}天';
   }
 }
 
@@ -4693,12 +4705,13 @@ List<_TravelOnTheRoadEntry> _buildTravelEntries({
 
   return records.map((record) {
     final trip = tripById[record.tripId];
+    final relatedRecords = records.where((candidate) => candidate.tripId == record.tripId);
     final startDate = trip?.startDate ?? record.planDate ?? record.recordDate;
     final endDate = trip?.endDate ?? record.planDate ?? record.recordDate;
     final dateRange = _formatDateRange(startDate, endDate, record.recordDate);
     final durationDays = _durationDays(startDate, endDate);
     final place = _travelPlace(record, trip);
-    final imageUrl = _pickCoverImage(record);
+    final imageUrl = _pickCoverImageWithFallback(record, relatedRecords);
     final companionIds = friendIdsByTravel[record.id] ?? const <String>{};
     final companions = [
       for (final id in companionIds)
@@ -4717,17 +4730,16 @@ List<_TravelOnTheRoadEntry> _buildTravelEntries({
       place: place,
       imageUrl: imageUrl,
       companions: companions,
-      item: _buildTravelItem(record, trip),
+      item: _buildTravelItem(record, trip, imageUrl),
       foodCount: foodCount,
     );
   }).toList(growable: false);
 }
 
-TravelItem _buildTravelItem(TravelRecord record, Trip? trip) {
+TravelItem _buildTravelItem(TravelRecord record, Trip? trip, String imageUrl) {
   final date = _formatDateCN(trip?.startDate ?? record.recordDate);
   final title = _travelTitle(record, trip);
   final subtitle = _travelSubtitle(record, trip);
-  final imageUrl = _pickCoverImage(record);
   return TravelItem(
     date: date,
     title: title,
@@ -4791,6 +4803,17 @@ String _travelPlace(TravelRecord record, Trip? trip) {
 String _pickCoverImage(TravelRecord record) {
   final images = _decodeStringList(record.images);
   return images.isNotEmpty ? images.first : '';
+}
+
+String _pickCoverImageWithFallback(TravelRecord record, Iterable<TravelRecord> relatedRecords) {
+  final primary = _pickCoverImage(record);
+  if (primary.isNotEmpty) return primary;
+  for (final related in relatedRecords) {
+    if (related.id == record.id) continue;
+    final fallback = _pickCoverImage(related);
+    if (fallback.isNotEmpty) return fallback;
+  }
+  return '';
 }
 
 String _pickFoodCoverImage(FoodRecord record) {
@@ -4859,8 +4882,10 @@ String _weekdayLabel(int weekday) {
 
 int _durationDays(DateTime? start, DateTime? end) {
   if (start == null && end == null) return 1;
-  final startDate = start ?? end!;
-  final endDate = end ?? startDate;
+  final resolvedStart = start ?? end!;
+  final resolvedEnd = end ?? resolvedStart;
+  final startDate = DateTime(resolvedStart.year, resolvedStart.month, resolvedStart.day);
+  final endDate = DateTime(resolvedEnd.year, resolvedEnd.month, resolvedEnd.day);
   final diff = endDate.difference(startDate).inDays;
   return diff.abs() + 1;
 }
