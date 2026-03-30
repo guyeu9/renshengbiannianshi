@@ -3751,7 +3751,7 @@ class _TravelTimeline extends StatelessWidget {
     if (actualDay <= 0) {
       return '${_formatDateRange(normalizedDay, normalizedDay, normalizedDay)} · 提前记录';
     }
-    return '第${actualDay}天';
+    return '第$actualDay天';
   }
 }
 
