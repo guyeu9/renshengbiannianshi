@@ -4012,10 +4012,16 @@ Widget _buildWechatStyleImages(BuildContext context, List<String> images, Travel
       onTap: navigateToDetail,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10),
-        child: SizedBox(
-          width: double.infinity,
-          height: 180,
-          child: _buildLocalImage(images.first, fit: BoxFit.cover),
+        child: Container(
+          color: const Color(0xFFF8FAFC),
+          child: SmartImage(
+            source: images.first,
+            borderRadius: 10,
+            mode: SmartImageDisplayMode.contain,
+            maxHeight: 240,
+            images: images,
+            initialIndex: 0,
+          ),
         ),
       ),
     );
@@ -4053,7 +4059,7 @@ Widget _buildWechatStyleImages(BuildContext context, List<String> images, Travel
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    _buildLocalImage(displayImages[index], fit: BoxFit.cover),
+                    _buildJournalGridImage(displayImages[index]),
                     if (showOverlay)
                       Container(
                         color: Colors.black.withValues(alpha: 0.5),
@@ -4586,6 +4592,13 @@ class _PhotoAddGridItem extends StatelessWidget {
 
 Widget _buildLocalImage(String path, {BoxFit fit = BoxFit.cover}) {
   return AppImage(source: path, fit: fit);
+}
+
+Widget _buildJournalGridImage(String path) {
+  return Container(
+    color: const Color(0xFFF8FAFC),
+    child: AppImage(source: path, fit: BoxFit.contain),
+  );
 }
 
 Future<List<String>> _persistPickedImages(List<XFile> files, String folder) async {
@@ -6165,7 +6178,7 @@ class _JournalDetailPageState extends ConsumerState<JournalDetailPage>
                   borderRadius: BorderRadius.circular(16),
                   child: AspectRatio(
                     aspectRatio: 1,
-                    child: _buildLocalImage(img, fit: BoxFit.cover),
+                    child: _buildJournalGridImage(img),
                   ),
                 ),
               ),
@@ -6206,7 +6219,7 @@ class _JournalDetailPageState extends ConsumerState<JournalDetailPage>
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: _buildLocalImage(images[index], fit: BoxFit.cover),
+                  child: _buildJournalGridImage(images[index]),
                 ),
               ),
             );

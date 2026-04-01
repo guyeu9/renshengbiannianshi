@@ -556,4 +556,46 @@ void main() {
       expect(state.tags, equals(['古街', '文化']));
     });
   });
+
+  group('resolveTravelDetailTripId', () {
+    test('优先使用记录自身的 tripId，避免详情页依赖脏的路由参数', () {
+      final record = TravelRecord(
+        id: 'travel-1',
+        tripId: 'trip-real',
+        title: '藏兵洞',
+        isDeleted: false,
+        isFavorite: false,
+        isWishlist: false,
+        wishlistDone: false,
+        isJournal: false,
+        recordDate: DateTime(2024, 3, 22),
+        createdAt: DateTime(2024, 3, 22),
+        updatedAt: DateTime(2024, 3, 22),
+      );
+
+      final resolved = resolveTravelDetailTripId(record, 'trip-stale');
+
+      expect(resolved, 'trip-real');
+    });
+
+    test('当记录缺少 tripId 时回退到路由参数中的 tripId', () {
+      final record = TravelRecord(
+        id: 'travel-1',
+        tripId: '',
+        title: '藏兵洞',
+        isDeleted: false,
+        isFavorite: false,
+        isWishlist: false,
+        wishlistDone: false,
+        isJournal: false,
+        recordDate: DateTime(2024, 3, 22),
+        createdAt: DateTime(2024, 3, 22),
+        updatedAt: DateTime(2024, 3, 22),
+      );
+
+      final resolved = resolveTravelDetailTripId(record, 'trip-fallback');
+
+      expect(resolved, 'trip-fallback');
+    });
+  });
 }

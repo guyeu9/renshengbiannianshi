@@ -130,34 +130,57 @@ final travelDetailProvider = StreamProvider.family.autoDispose<TravelDetailState
   final db = ref.watch(appDatabaseProvider);
 
   final recordStream = db.travelDao.watchById(params.travelId);
-
-  final tripStream = db.travelDao.watchTripById(params.tripId);
-
-  final allRecordsStream = (db.select(db.travelRecords)
-        ..where((t) => t.isDeleted.equals(false))
-        ..where((t) => t.tripId.equals(params.tripId)))
-      .watch();
-
-  final checklistStream = db.checklistDao.watchByTripId(params.tripId);
-
-  final linksStream = db.select(db.entityLinks).watch();
-
   final friendsStream = db.friendDao.watchAllActive();
-
   final foodsStream = db.foodDao.watchAllActive();
 
-  return _combineStreams(
-    recordStream: recordStream,
-    tripStream: tripStream,
-    allRecordsStream: allRecordsStream,
-    checklistStream: checklistStream,
-    linksStream: linksStream,
-    friendsStream: friendsStream,
-    foodsStream: foodsStream,
-    travelId: params.travelId,
-    tripId: params.tripId,
-  );
+  return recordStream.switchMap((record) {
+    final effectiveTripId = resolveTravelDetailTripId(record, params.tripId);
+    final tripStream = effectiveTripId.isEmpty ? Stream.value(null) : db.travelDao.watchTripById(effectiveTripId);
+    final allRecordsStream = effectiveTripId.isEmpty
+        ? Stream.value(record == null ? const <TravelRecord>[] : <TravelRecord>[record])
+        : (db.select(db.travelRecords)
+              ..where((t) => t.isDeleted.equals(false))
+              ..where((t) => t.tripId.equals(effectiveTripId)))
+            .watch();
+    final checklistStream = effectiveTripId.isEmpty
+        ? Stream.value(const <ChecklistItem>[])
+        : db.checklistDao.watchByTripId(effectiveTripId);
+    final linksStream = allRecordsStream.switchMap((records) {
+      final travelIds = <String>{};
+      if (record != null) {
+        travelIds.add(record.id);
+      }
+      for (final item in records) {
+        travelIds.add(item.id);
+      }
+      if (travelIds.isEmpty) {
+        return Stream.value(const <EntityLink>[]);
+      }
+      return db.linkDao.watchLinksForEntities(entityType: 'travel', entityIds: travelIds.toList(growable: false));
+    });
+
+    return _combineStreams(
+      recordStream: Stream.value(record),
+      tripStream: tripStream,
+      allRecordsStream: allRecordsStream,
+      checklistStream: checklistStream,
+      linksStream: linksStream,
+      friendsStream: friendsStream,
+      foodsStream: foodsStream,
+      travelId: params.travelId,
+      tripId: effectiveTripId,
+    );
+  });
 });
+
+@visibleForTesting
+String resolveTravelDetailTripId(TravelRecord? record, String fallbackTripId) {
+  final recordTripId = (record?.tripId ?? '').trim();
+  if (recordTripId.isNotEmpty) {
+    return recordTripId;
+  }
+  return fallbackTripId.trim();
+}
 
 Stream<TravelDetailState> _combineStreams({
   required Stream<TravelRecord?> recordStream,
