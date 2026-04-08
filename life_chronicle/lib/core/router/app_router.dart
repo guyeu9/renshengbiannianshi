@@ -202,9 +202,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 name: 'travelDetail',
                 parentNavigatorKey: _rootNavigatorKey,
                 builder: (context, state) {
+                  final id = state.pathParameters['id']!;
                   final extra = state.extra as Map<String, dynamic>?;
+                  final item = extra?['item'] as TravelItem?;
                   return TravelDetailPage(
-                    item: extra?['item'],
+                    travelId: id,
+                    item: item,
                   );
                 },
               ),

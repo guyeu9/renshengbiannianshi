@@ -33,7 +33,7 @@ class RouteNavigation {
   }
 
   static void goToTravelDetail(BuildContext context, String id, {TravelItem? item}) {
-    context.go('${AppRoutes.travel}/$id', extra: {'item': item});
+    context.push('${AppRoutes.travel}/$id', extra: {'item': item});
   }
 
   static void goToTravelCreate(BuildContext context, {TravelRecord? initialRecord}) {

@@ -1021,14 +1021,17 @@ class TravelItem {
 }
 
 class TravelDetailPage extends ConsumerWidget {
-  const TravelDetailPage({super.key, required this.item});
+  const TravelDetailPage({super.key, required this.travelId, this.item});
 
-  final TravelItem item;
+  final String travelId;
+  final TravelItem? item;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final db = ref.watch(appDatabaseProvider);
-    final stateAsync = ref.watch(travelDetailProvider((travelId: item.travelId, tripId: item.tripId)));
+    final effectiveTravelId = item?.travelId ?? travelId;
+    final effectiveTripId = item?.tripId ?? '';
+    final stateAsync = ref.watch(travelDetailProvider((travelId: effectiveTravelId, tripId: effectiveTripId)));
 
     return stateAsync.when(
       loading: () => Scaffold(
@@ -1042,13 +1045,13 @@ class TravelDetailPage extends ConsumerWidget {
       data: (state) {
         final record = state.record;
         final trip = state.trip;
-        final title = state.title.isNotEmpty ? state.title : item.title;
-        final place = state.place.isNotEmpty ? state.place : item.subtitle;
+        final title = state.title.isNotEmpty ? state.title : item?.title ?? '';
+        final place = state.place.isNotEmpty ? state.place : item?.subtitle ?? '';
         final durationLabel = state.durationLabel;
         final dateLabel = state.dateLabel;
-        final cover = state.cover.isNotEmpty ? state.cover : item.imageUrl;
+        final cover = state.cover.isNotEmpty ? state.cover : item?.imageUrl ?? '';
         final tripId = state.tripId;
-        final tripTitle = state.tripTitle.isNotEmpty ? state.tripTitle : item.title;
+        final tripTitle = state.tripTitle.isNotEmpty ? state.tripTitle : item?.title ?? '';
         final tagList = state.tags;
         final journals = state.journals;
         final checklistItems = state.checklistItems;
