@@ -6655,7 +6655,7 @@ class _AnnualReportListPageState extends ConsumerState<AnnualReportListPage> {
         actions: [
           TextButton(
             onPressed: () {
-              RouteNavigation.goToYearReport(context);
+              RouteNavigation.pushToYearReport(context);
             },
             style: TextButton.styleFrom(foregroundColor: primary, textStyle: const TextStyle(fontWeight: FontWeight.w900)),
             child: const Text('生成报告'),
@@ -6753,7 +6753,7 @@ class _AnnualReportListPageState extends ConsumerState<AnnualReportListPage> {
   }
 
   void _viewReport(AnnualReportRecord report) {
-    RouteNavigation.goToAnnualReportDetail(context, report);
+    RouteNavigation.pushToAnnualReportDetail(context, report);
   }
 
   Future<void> _deleteReport(AnnualReportRecord report) async {

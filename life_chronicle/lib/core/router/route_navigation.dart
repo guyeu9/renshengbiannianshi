@@ -40,12 +40,12 @@ class RouteNavigation {
     context.go(AppRoutes.travelCreate, extra: {'initialRecord': initialRecord});
   }
 
-  static void goToJournalDetail(BuildContext context, String id) {
-    context.go('/travel/journal/$id');
+  static void pushToJournalDetail(BuildContext context, String id) {
+    context.push('/travel/journal/$id');
   }
 
-  static void goToJournalCreate(BuildContext context, {String? initialTripId, String? initialTripTitle, TravelRecord? initialRecord}) {
-    context.go(AppRoutes.journalCreate, extra: {'initialTripId': initialTripId, 'initialTripTitle': initialTripTitle, 'initialRecord': initialRecord});
+  static void pushToJournalCreate(BuildContext context, {String? initialTripId, String? initialTripTitle, TravelRecord? initialRecord}) {
+    context.push(AppRoutes.journalCreate, extra: {'initialTripId': initialTripId, 'initialTripTitle': initialTripTitle, 'initialRecord': initialRecord});
   }
 
   static void goToGoalDetail(BuildContext context, String id, {GoalRecord? record}) {
@@ -108,11 +108,11 @@ class RouteNavigation {
     context.go(AppRoutes.annualReportList);
   }
 
-  static void goToYearReport(BuildContext context) {
+  static void pushToYearReport(BuildContext context) {
     context.push(AppRoutes.yearReport);
   }
 
-  static void goToAnnualReportDetail(BuildContext context, AnnualReportRecord report) {
+  static void pushToAnnualReportDetail(BuildContext context, AnnualReportRecord report) {
     context.push('/profile/annual-report/${report.id}', extra: report);
   }
 

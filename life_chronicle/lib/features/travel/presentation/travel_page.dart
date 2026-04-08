@@ -1061,7 +1061,7 @@ class TravelDetailPage extends ConsumerWidget {
           floatingActionButton: FloatingActionButton(
             backgroundColor: const Color(0xFF2BCDEE),
             foregroundColor: Colors.white,
-            onPressed: () => RouteNavigation.goToJournalCreate(context, initialTripId: tripId, initialTripTitle: tripTitle),
+            onPressed: () => RouteNavigation.pushToJournalCreate(context, initialTripId: tripId, initialTripTitle: tripTitle),
             child: const Icon(Icons.add, size: 28),
           ),
           body: CustomScrollView(
@@ -1153,7 +1153,7 @@ class TravelDetailPage extends ConsumerWidget {
                               const SizedBox(width: 10),
                               _FrostedCircleIconButton(
                                 icon: Icons.add,
-                                onTap: () => RouteNavigation.goToJournalCreate(context, initialTripId: tripId, initialTripTitle: tripTitle),
+                                onTap: () => RouteNavigation.pushToJournalCreate(context, initialTripId: tripId, initialTripTitle: tripTitle),
                               ),
                               const SizedBox(width: 10),
                               _PrimaryPillButton(
@@ -3928,7 +3928,7 @@ class _TimelineJournalCard extends StatelessWidget {
     final timeLabel = '${record.recordDate.year}-${record.recordDate.month.toString().padLeft(2, '0')}-${record.recordDate.day.toString().padLeft(2, '0')} ${record.recordDate.hour.toString().padLeft(2, '0')}:${record.recordDate.minute.toString().padLeft(2, '0')}';
     return GestureDetector(
       onTap: () {
-        RouteNavigation.goToJournalDetail(context, record.id);
+        RouteNavigation.pushToJournalDetail(context, record.id);
       },
       child: Container(
         padding: const EdgeInsets.all(12),
@@ -4004,7 +4004,7 @@ Widget _buildWechatStyleImages(BuildContext context, List<String> images, Travel
   if (images.isEmpty) return const SizedBox.shrink();
 
   void navigateToDetail() {
-    RouteNavigation.goToJournalDetail(context, record.id);
+    RouteNavigation.pushToJournalDetail(context, record.id);
   }
 
   if (images.length == 1) {
@@ -6120,7 +6120,7 @@ class _JournalDetailPageState extends ConsumerState<JournalDetailPage>
                       icon: Icons.edit,
                       label: '编辑',
                       onTap: () {
-                        RouteNavigation.goToJournalCreate(context, initialTripId: record.tripId, initialRecord: record);
+                        RouteNavigation.pushToJournalCreate(context, initialTripId: record.tripId, initialRecord: record);
                       },
                     ),
                     _BottomDivider(),

@@ -737,20 +737,33 @@ class _SmartImageState extends State<SmartImage> {
       },
       child: ClipRRect(
         borderRadius: BorderRadius.circular(widget.borderRadius),
+        child: _buildConstrainedImage(aspectRatio),
+      ),
+    );
+  }
+
+  Widget _buildConstrainedImage(double aspectRatio) {
+    final image = AppImage(
+      source: widget.source,
+      fit: widget.mode == SmartImageDisplayMode.contain
+          ? BoxFit.contain
+          : BoxFit.cover,
+      heroTag: widget.heroTag,
+    );
+
+    if (widget.maxHeight > 0) {
+      return ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: widget.maxHeight),
         child: AspectRatio(
           aspectRatio: aspectRatio,
-          child: Container(
-            constraints: BoxConstraints(maxHeight: widget.maxHeight),
-            child: AppImage(
-              source: widget.source,
-              fit: widget.mode == SmartImageDisplayMode.contain 
-                  ? BoxFit.contain 
-                  : BoxFit.cover,
-              heroTag: widget.heroTag,
-            ),
-          ),
+          child: image,
         ),
-      ),
+      );
+    }
+
+    return AspectRatio(
+      aspectRatio: aspectRatio,
+      child: image,
     );
   }
 }
