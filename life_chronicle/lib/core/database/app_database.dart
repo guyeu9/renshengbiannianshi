@@ -44,7 +44,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 30;
+  int get schemaVersion => 31;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -207,6 +207,8 @@ class AppDatabase extends _$AppDatabase {
 
           await ensureColumn(table: goalRecords, column: goalRecords.isFavorite);
           await ensureColumn(table: timelineEvents, column: timelineEvents.isFavorite);
+
+          await ensureColumn(table: timelineEvents, column: timelineEvents.isJournal);
 
           if (await columnExists('moment_records', 'scene_tag')) {
             await customStatement(

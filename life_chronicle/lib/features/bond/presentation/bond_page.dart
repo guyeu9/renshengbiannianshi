@@ -694,6 +694,7 @@ class _EncounterTimelineItem {
     required this.images,
     required this.linkedFriendIds,
     this.isFavorite = false,
+    this.isJournal = false,
   });
 
   final String id;
@@ -708,6 +709,7 @@ class _EncounterTimelineItem {
   final List<String> images;
   final List<String> linkedFriendIds;
   final bool isFavorite;
+  final bool isJournal;
 
   IconData get typeIcon {
     switch (type) {
@@ -935,6 +937,7 @@ class _EncounterTimelineState extends ConsumerState<_EncounterTimeline> {
       images: _decodeStringList(record.images),
       linkedFriendIds: friendIds,
       isFavorite: record.isFavorite,
+      isJournal: record.isJournal,
     );
   }
 
@@ -1164,15 +1167,19 @@ class _EncounterItemRow extends ConsumerWidget {
         RouteNavigation.goToMomentDetail(context, item.id);
         break;
       case 'travel':
-        RouteNavigation.goToTravelDetail(context, item.id, item: TravelItem(
-          travelId: item.id,
-          tripId: '',
-          recordDate: item.recordDate,
-          date: '${item.recordDate.year}年${item.recordDate.month}月${item.recordDate.day}日',
-          title: item.title,
-          subtitle: item.content,
-          imageUrl: item.images.isNotEmpty ? item.images.first : '',
-        ));
+        if (item.isJournal) {
+          RouteNavigation.pushToJournalDetail(context, item.id);
+        } else {
+          RouteNavigation.goToTravelDetail(context, item.id, item: TravelItem(
+            travelId: item.id,
+            tripId: '',
+            recordDate: item.recordDate,
+            date: '${item.recordDate.year}年${item.recordDate.month}月${item.recordDate.day}日',
+            title: item.title,
+            subtitle: item.content,
+            imageUrl: item.images.isNotEmpty ? item.images.first : '',
+          ));
+        }
         break;
     }
   }
@@ -2028,6 +2035,7 @@ class _FriendMemorySliverState extends ConsumerState<_FriendMemorySliver> {
         longitude: r.longitude,
         images: _decodeStringList(r.images),
         isFavorite: r.isFavorite,
+        isJournal: r.isJournal,
       );
     }).toList(growable: false);
   }
@@ -2212,6 +2220,7 @@ class _FriendMemoryItem {
     required this.longitude,
     required this.images,
     this.isFavorite = false,
+    this.isJournal = false,
   });
 
   final String id;
@@ -2230,6 +2239,7 @@ class _FriendMemoryItem {
   final double? longitude;
   final List<String> images;
   final bool isFavorite;
+  final bool isJournal;
 
   _FriendMemoryItem copyWith({
     String? id,
@@ -2363,7 +2373,11 @@ class _TimelineEntry extends StatelessWidget {
         RouteNavigation.goToFoodDetail(context, item.id);
         break;
       case 'travel':
-        RouteNavigation.goToTravelDetail(context, item.id);
+        if (item.isJournal) {
+          RouteNavigation.pushToJournalDetail(context, item.id);
+        } else {
+          RouteNavigation.goToTravelDetail(context, item.id);
+        }
         break;
     }
   }
@@ -2510,7 +2524,11 @@ class _SingleImageMemoryCard extends StatelessWidget {
         RouteNavigation.goToFoodDetail(context, item.id);
         break;
       case 'travel':
-        RouteNavigation.goToTravelDetail(context, item.id);
+        if (item.isJournal) {
+          RouteNavigation.pushToJournalDetail(context, item.id);
+        } else {
+          RouteNavigation.goToTravelDetail(context, item.id);
+        }
         break;
     }
   }
@@ -2678,7 +2696,11 @@ class _MultiImageMemoryCard extends StatelessWidget {
         RouteNavigation.goToFoodDetail(context, item.id);
         break;
       case 'travel':
-        RouteNavigation.goToTravelDetail(context, item.id);
+        if (item.isJournal) {
+          RouteNavigation.pushToJournalDetail(context, item.id);
+        } else {
+          RouteNavigation.goToTravelDetail(context, item.id);
+        }
         break;
     }
   }
@@ -2786,7 +2808,11 @@ class _NoImageMemoryCard extends StatelessWidget {
         RouteNavigation.goToFoodDetail(context, item.id);
         break;
       case 'travel':
-        RouteNavigation.goToTravelDetail(context, item.id);
+        if (item.isJournal) {
+          RouteNavigation.pushToJournalDetail(context, item.id);
+        } else {
+          RouteNavigation.goToTravelDetail(context, item.id);
+        }
         break;
     }
   }

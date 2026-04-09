@@ -16,6 +16,7 @@ import '../../../core/database/database_providers.dart';
 import '../../../core/utils/icon_utils.dart';
 import '../../../core/router/route_navigation.dart';
 import '../../../core/router/app_router.dart';
+import '../../../core/services/file_logger.dart';
 import '../../travel/presentation/travel_page.dart' show TravelItem;
 import '../providers/flashback_provider.dart';
 import '../providers/reminder_provider.dart';
@@ -1569,6 +1570,7 @@ class _EventStream extends ConsumerWidget {
   }
 
   Future<void> _openTravelDetail(BuildContext context, WidgetRef ref, String travelId) async {
+    FileLogger.instance.log('HomeSchedule._openTravelDetail', 'travelId=$travelId');
     final db = ref.read(appDatabaseProvider);
     final record = await (db.select(db.travelRecords)
           ..where((t) => t.id.equals(travelId))
@@ -1577,11 +1579,20 @@ class _EventStream extends ConsumerWidget {
         .getSingleOrNull();
     if (!context.mounted) return;
     if (record == null) {
+      FileLogger.instance.logWithLevel('HomeSchedule._openTravelDetail', 'record not found: travelId=$travelId', LogLevel.warn);
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('未找到旅行记录')));
       return;
     }
-    final item = TravelItem.fromRecord(record);
-    RouteNavigation.goToTravelDetail(context, item.travelId, item: item);
+    FileLogger.instance.log('HomeSchedule._openTravelDetail', 'record found: id=${record.id} isJournal=${record.isJournal} '
+        'tripId=${record.tripId} title=${record.title}');
+    if (record.isJournal) {
+      FileLogger.instance.log('HomeSchedule._openTravelDetail', 'navigating to JournalDetail: ${record.id}');
+      RouteNavigation.pushToJournalDetail(context, record.id);
+    } else {
+      final item = TravelItem.fromRecord(record);
+      FileLogger.instance.log('HomeSchedule._openTravelDetail', 'navigating to TravelDetail: ${item.travelId} tripId=${item.tripId}');
+      RouteNavigation.goToTravelDetail(context, item.travelId, item: item);
+    }
   }
 
   Future<void> _openMomentDetail(BuildContext context, String momentId) async {

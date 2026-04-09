@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:life_chronicle/core/database/app_database.dart';
 import 'package:life_chronicle/core/database/database_providers.dart';
+import 'package:life_chronicle/core/services/file_logger.dart';
 import 'package:rxdart/rxdart.dart';
 
 class TravelDetailState {
@@ -135,6 +136,10 @@ final travelDetailProvider = StreamProvider.family.autoDispose<TravelDetailState
 
   return recordStream.switchMap((record) {
     final effectiveTripId = resolveTravelDetailTripId(record, params.tripId);
+    FileLogger.instance.log('TravelDetailProvider', 'travelId=${params.travelId} params.tripId="${params.tripId}" '
+        'record.tripId="${record?.tripId}" effectiveTripId="$effectiveTripId" '
+        'record.isJournal=${record?.isJournal} record.isWishlist=${record?.isWishlist} '
+        'record.title="${record?.title}" record.id="${record?.id}"');
     final tripStream = effectiveTripId.isEmpty ? Stream.value(null) : db.travelDao.watchTripById(effectiveTripId);
     final allRecordsStream = effectiveTripId.isEmpty
         ? Stream.value(record == null ? const <TravelRecord>[] : <TravelRecord>[record])
@@ -209,6 +214,9 @@ Stream<TravelDetailState> _combineStreams({
         if (isCurrentJournal) return true;
         return r.id != recordId;
       }).toList(growable: false);
+      FileLogger.instance.log('TravelDetailProvider', 'allRecords=${allRecords.length} journals=${journals.length} '
+          'isCurrentJournal=$isCurrentJournal recordId=$recordId tripId=$tripId '
+          'checklistItems=${checklistItems.length} links=${links.length} friends=${friends.length} foods=${foods.length}');
 
       final allTravelIds = <String>{recordId};
       for (final r in allRecords) {

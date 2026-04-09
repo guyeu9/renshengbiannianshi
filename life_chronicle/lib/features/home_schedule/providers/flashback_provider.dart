@@ -15,6 +15,7 @@ class FlashbackItem {
   final bool isFavorite;
   final DateTime date;
   final String? content;
+  final bool isJournal;
 
   const FlashbackItem({
     required this.yearsAgo,
@@ -25,6 +26,7 @@ class FlashbackItem {
     required this.isFavorite,
     required this.date,
     this.content,
+    this.isJournal = false,
   });
 
   String get yearLabel => '${date.year}年';
@@ -195,6 +197,7 @@ Future<List<FlashbackItem>> _loadTravelByTimeRange(AppDatabase db, DateTime star
       isFavorite: r.isFavorite,
       date: r.recordDate,
       content: r.content,
+      isJournal: r.isJournal,
     );
   }).toList();
 }

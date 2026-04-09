@@ -5353,6 +5353,16 @@ class $TimelineEventsTable extends TimelineEvents
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('CHECK ("is_favorite" IN (0, 1))'),
       defaultValue: const Constant(false));
+  static const VerificationMeta _isJournalMeta =
+      const VerificationMeta('isJournal');
+  @override
+  late final GeneratedColumn<bool> isJournal = GeneratedColumn<bool>(
+      'is_journal', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_journal" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _recordDateMeta =
       const VerificationMeta('recordDate');
   @override
@@ -5395,6 +5405,7 @@ class $TimelineEventsTable extends TimelineEvents
         latitude,
         longitude,
         isFavorite,
+        isJournal,
         recordDate,
         createdAt,
         updatedAt,
@@ -5467,6 +5478,10 @@ class $TimelineEventsTable extends TimelineEvents
           isFavorite.isAcceptableOrUnknown(
               data['is_favorite']!, _isFavoriteMeta));
     }
+    if (data.containsKey('is_journal')) {
+      context.handle(_isJournalMeta,
+          isJournal.isAcceptableOrUnknown(data['is_journal']!, _isJournalMeta));
+    }
     if (data.containsKey('record_date')) {
       context.handle(
           _recordDateMeta,
@@ -5524,6 +5539,8 @@ class $TimelineEventsTable extends TimelineEvents
           .read(DriftSqlType.double, data['${effectivePrefix}longitude']),
       isFavorite: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_favorite'])!,
+      isJournal: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_journal'])!,
       recordDate: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}record_date'])!,
       createdAt: attachedDatabase.typeMapping
@@ -5554,6 +5571,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
   final double? latitude;
   final double? longitude;
   final bool isFavorite;
+  final bool isJournal;
   final DateTime recordDate;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -5571,6 +5589,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
       this.latitude,
       this.longitude,
       required this.isFavorite,
+      required this.isJournal,
       required this.recordDate,
       required this.createdAt,
       required this.updatedAt,
@@ -5606,6 +5625,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
       map['longitude'] = Variable<double>(longitude);
     }
     map['is_favorite'] = Variable<bool>(isFavorite);
+    map['is_journal'] = Variable<bool>(isJournal);
     map['record_date'] = Variable<DateTime>(recordDate);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -5638,6 +5658,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
           ? const Value.absent()
           : Value(longitude),
       isFavorite: Value(isFavorite),
+      isJournal: Value(isJournal),
       recordDate: Value(recordDate),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -5661,6 +5682,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
       latitude: serializer.fromJson<double?>(json['latitude']),
       longitude: serializer.fromJson<double?>(json['longitude']),
       isFavorite: serializer.fromJson<bool>(json['isFavorite']),
+      isJournal: serializer.fromJson<bool>(json['isJournal']),
       recordDate: serializer.fromJson<DateTime>(json['recordDate']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -5683,6 +5705,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
       'latitude': serializer.toJson<double?>(latitude),
       'longitude': serializer.toJson<double?>(longitude),
       'isFavorite': serializer.toJson<bool>(isFavorite),
+      'isJournal': serializer.toJson<bool>(isJournal),
       'recordDate': serializer.toJson<DateTime>(recordDate),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -5703,6 +5726,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
           Value<double?> latitude = const Value.absent(),
           Value<double?> longitude = const Value.absent(),
           bool? isFavorite,
+          bool? isJournal,
           DateTime? recordDate,
           DateTime? createdAt,
           DateTime? updatedAt,
@@ -5720,6 +5744,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
         latitude: latitude.present ? latitude.value : this.latitude,
         longitude: longitude.present ? longitude.value : this.longitude,
         isFavorite: isFavorite ?? this.isFavorite,
+        isJournal: isJournal ?? this.isJournal,
         recordDate: recordDate ?? this.recordDate,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
@@ -5741,6 +5766,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
       longitude: data.longitude.present ? data.longitude.value : this.longitude,
       isFavorite:
           data.isFavorite.present ? data.isFavorite.value : this.isFavorite,
+      isJournal: data.isJournal.present ? data.isJournal.value : this.isJournal,
       recordDate:
           data.recordDate.present ? data.recordDate.value : this.recordDate,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
@@ -5764,6 +5790,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
           ..write('latitude: $latitude, ')
           ..write('longitude: $longitude, ')
           ..write('isFavorite: $isFavorite, ')
+          ..write('isJournal: $isJournal, ')
           ..write('recordDate: $recordDate, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -5786,6 +5813,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
       latitude,
       longitude,
       isFavorite,
+      isJournal,
       recordDate,
       createdAt,
       updatedAt,
@@ -5806,6 +5834,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
           other.latitude == this.latitude &&
           other.longitude == this.longitude &&
           other.isFavorite == this.isFavorite &&
+          other.isJournal == this.isJournal &&
           other.recordDate == this.recordDate &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -5825,6 +5854,7 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
   final Value<double?> latitude;
   final Value<double?> longitude;
   final Value<bool> isFavorite;
+  final Value<bool> isJournal;
   final Value<DateTime> recordDate;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -5843,6 +5873,7 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
     this.latitude = const Value.absent(),
     this.longitude = const Value.absent(),
     this.isFavorite = const Value.absent(),
+    this.isJournal = const Value.absent(),
     this.recordDate = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -5862,6 +5893,7 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
     this.latitude = const Value.absent(),
     this.longitude = const Value.absent(),
     this.isFavorite = const Value.absent(),
+    this.isJournal = const Value.absent(),
     required DateTime recordDate,
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -5886,6 +5918,7 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
     Expression<double>? latitude,
     Expression<double>? longitude,
     Expression<bool>? isFavorite,
+    Expression<bool>? isJournal,
     Expression<DateTime>? recordDate,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -5905,6 +5938,7 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
       if (latitude != null) 'latitude': latitude,
       if (longitude != null) 'longitude': longitude,
       if (isFavorite != null) 'is_favorite': isFavorite,
+      if (isJournal != null) 'is_journal': isJournal,
       if (recordDate != null) 'record_date': recordDate,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -5926,6 +5960,7 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
       Value<double?>? latitude,
       Value<double?>? longitude,
       Value<bool>? isFavorite,
+      Value<bool>? isJournal,
       Value<DateTime>? recordDate,
       Value<DateTime>? createdAt,
       Value<DateTime>? updatedAt,
@@ -5944,6 +5979,7 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       isFavorite: isFavorite ?? this.isFavorite,
+      isJournal: isJournal ?? this.isJournal,
       recordDate: recordDate ?? this.recordDate,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -5991,6 +6027,9 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
     if (isFavorite.present) {
       map['is_favorite'] = Variable<bool>(isFavorite.value);
     }
+    if (isJournal.present) {
+      map['is_journal'] = Variable<bool>(isJournal.value);
+    }
     if (recordDate.present) {
       map['record_date'] = Variable<DateTime>(recordDate.value);
     }
@@ -6024,6 +6063,7 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
           ..write('latitude: $latitude, ')
           ..write('longitude: $longitude, ')
           ..write('isFavorite: $isFavorite, ')
+          ..write('isJournal: $isJournal, ')
           ..write('recordDate: $recordDate, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -15154,6 +15194,7 @@ typedef $$TimelineEventsTableCreateCompanionBuilder = TimelineEventsCompanion
   Value<double?> latitude,
   Value<double?> longitude,
   Value<bool> isFavorite,
+  Value<bool> isJournal,
   required DateTime recordDate,
   required DateTime createdAt,
   required DateTime updatedAt,
@@ -15174,6 +15215,7 @@ typedef $$TimelineEventsTableUpdateCompanionBuilder = TimelineEventsCompanion
   Value<double?> latitude,
   Value<double?> longitude,
   Value<bool> isFavorite,
+  Value<bool> isJournal,
   Value<DateTime> recordDate,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
@@ -15225,6 +15267,9 @@ class $$TimelineEventsTableFilterComposer
 
   ColumnFilters<bool> get isFavorite => $composableBuilder(
       column: $table.isFavorite, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isJournal => $composableBuilder(
+      column: $table.isJournal, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get recordDate => $composableBuilder(
       column: $table.recordDate, builder: (column) => ColumnFilters(column));
@@ -15284,6 +15329,9 @@ class $$TimelineEventsTableOrderingComposer
   ColumnOrderings<bool> get isFavorite => $composableBuilder(
       column: $table.isFavorite, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<bool> get isJournal => $composableBuilder(
+      column: $table.isJournal, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get recordDate => $composableBuilder(
       column: $table.recordDate, builder: (column) => ColumnOrderings(column));
 
@@ -15342,6 +15390,9 @@ class $$TimelineEventsTableAnnotationComposer
   GeneratedColumn<bool> get isFavorite => $composableBuilder(
       column: $table.isFavorite, builder: (column) => column);
 
+  GeneratedColumn<bool> get isJournal =>
+      $composableBuilder(column: $table.isJournal, builder: (column) => column);
+
   GeneratedColumn<DateTime> get recordDate => $composableBuilder(
       column: $table.recordDate, builder: (column) => column);
 
@@ -15394,6 +15445,7 @@ class $$TimelineEventsTableTableManager extends RootTableManager<
             Value<double?> latitude = const Value.absent(),
             Value<double?> longitude = const Value.absent(),
             Value<bool> isFavorite = const Value.absent(),
+            Value<bool> isJournal = const Value.absent(),
             Value<DateTime> recordDate = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
@@ -15413,6 +15465,7 @@ class $$TimelineEventsTableTableManager extends RootTableManager<
             latitude: latitude,
             longitude: longitude,
             isFavorite: isFavorite,
+            isJournal: isJournal,
             recordDate: recordDate,
             createdAt: createdAt,
             updatedAt: updatedAt,
@@ -15432,6 +15485,7 @@ class $$TimelineEventsTableTableManager extends RootTableManager<
             Value<double?> latitude = const Value.absent(),
             Value<double?> longitude = const Value.absent(),
             Value<bool> isFavorite = const Value.absent(),
+            Value<bool> isJournal = const Value.absent(),
             required DateTime recordDate,
             required DateTime createdAt,
             required DateTime updatedAt,
@@ -15451,6 +15505,7 @@ class $$TimelineEventsTableTableManager extends RootTableManager<
             latitude: latitude,
             longitude: longitude,
             isFavorite: isFavorite,
+            isJournal: isJournal,
             recordDate: recordDate,
             createdAt: createdAt,
             updatedAt: updatedAt,

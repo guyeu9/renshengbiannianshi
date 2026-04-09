@@ -17,6 +17,7 @@ import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/providers/uuid_provider.dart';
 import '../../../core/services/delete_service.dart';
+import '../../../core/services/file_logger.dart';
 import '../../../core/utils/media_storage.dart';
 import '../../../core/utils/permission_manager.dart';
 import '../../../core/widgets/ai_parse_button.dart';
@@ -1031,6 +1032,9 @@ class TravelDetailPage extends ConsumerWidget {
     final db = ref.watch(appDatabaseProvider);
     final effectiveTravelId = item?.travelId ?? travelId;
     final effectiveTripId = item?.tripId ?? '';
+    
+    FileLogger.instance.log('TravelDetailPage.build', 'travelId=$travelId item.travelId=${item?.travelId} effectiveTravelId=$effectiveTravelId item.tripId=${item?.tripId} effectiveTripId=$effectiveTripId');
+    
     final stateAsync = ref.watch(travelDetailProvider((travelId: effectiveTravelId, tripId: effectiveTripId)));
 
     return stateAsync.when(
@@ -1300,6 +1304,40 @@ class TravelDetailPage extends ConsumerWidget {
                             ),
                         ],
                       ),
+                      if (!state.isJournal && record != null) ...[
+                        Builder(builder: (context) {
+                          final recordImages = _decodeStringList(record.images);
+                          final recordContent = (record.content ?? '').trim();
+                          if (recordImages.isEmpty && recordContent.isEmpty) {
+                            return const SizedBox.shrink();
+                          }
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 14),
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (recordContent.isNotEmpty) ...[
+                                    Text(
+                                      recordContent,
+                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF64748B), height: 1.5),
+                                    ),
+                                    if (recordImages.isNotEmpty) const SizedBox(height: 10),
+                                  ],
+                                  if (recordImages.isNotEmpty)
+                                    _buildWechatStyleImages(context, recordImages, record, trip),
+                                ],
+                              ),
+                            ),
+                          );
+                        }),
+                      ],
                       _TravelTimeline(
                         trip: trip,
                         tripStart: state.headerStart,
@@ -1858,7 +1896,8 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
     final uuid = ref.read(uuidProvider);
     final now = DateTime.now();
     final recordDate = existingRecord?.recordDate ?? DateTime(now.year, now.month, now.day);
-    final tripId = existingTrip?.id ?? existingRecord?.tripId ?? uuid.v4();
+    final rawTripId = existingTrip?.id ?? existingRecord?.tripId;
+    final tripId = (rawTripId != null && rawTripId.trim().isNotEmpty) ? rawTripId.trim() : uuid.v4();
     final travelId = existingRecord?.id ?? uuid.v4();
 
     final destination = _destinationController.text.trim();
@@ -1947,6 +1986,7 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
             poiAddress: Value(poiAddress.isEmpty ? null : poiAddress),
             latitude: Value(_latitude),
             longitude: Value(_longitude),
+            isJournal: const Value(false),
             recordDate: eventRecordDate,
             createdAt: existingRecord?.createdAt ?? now,
             updatedAt: now,
@@ -2590,7 +2630,8 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
   @override
   void initState() {
     super.initState();
-    _linkedTripId = widget.initialTripId ?? widget.initialRecord?.tripId;
+    final rawTripId = widget.initialTripId ?? widget.initialRecord?.tripId;
+    _linkedTripId = (rawTripId != null && rawTripId.trim().isNotEmpty) ? rawTripId.trim() : null;
     _linkedTripTitle = widget.initialTripTitle;
 
     if (widget.initialRecord != null) {
@@ -2983,6 +3024,7 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
             poiAddress: Value(poiAddress.isEmpty ? null : poiAddress),
             latitude: Value(_latitude),
             longitude: Value(_longitude),
+            isJournal: const Value(true),
             recordDate: eventRecordDate,
             createdAt: now,
             updatedAt: now,
@@ -4006,25 +4048,18 @@ class _TimelineJournalCard extends StatelessWidget {
 Widget _buildWechatStyleImages(BuildContext context, List<String> images, TravelRecord record, Trip? trip) {
   if (images.isEmpty) return const SizedBox.shrink();
 
-  void navigateToDetail() {
-    RouteNavigation.pushToJournalDetail(context, record.id);
-  }
-
   if (images.length == 1) {
-    return GestureDetector(
-      onTap: navigateToDetail,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          color: const Color(0xFFF8FAFC),
-          child: SmartImage(
-            source: images.first,
-            borderRadius: 10,
-            mode: SmartImageDisplayMode.contain,
-            maxHeight: 240,
-            images: images,
-            initialIndex: 0,
-          ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        color: const Color(0xFFF8FAFC),
+        child: SmartImage(
+          source: images.first,
+          borderRadius: 10,
+          mode: SmartImageDisplayMode.contain,
+          maxHeight: 240,
+          images: images,
+          initialIndex: 0,
         ),
       ),
     );
@@ -4033,57 +4068,67 @@ Widget _buildWechatStyleImages(BuildContext context, List<String> images, Travel
   final displayImages = images.length > 4 ? images.take(4).toList() : images;
   final remainingCount = images.length > 4 ? images.length - 4 : 0;
 
-  // 计算网格行数
-  final rowCount = (displayImages.length + 1) ~/ 2;
-  final gridHeight = rowCount * 160.0 + (rowCount - 1) * 4.0;
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      final gridItemSize = (constraints.maxWidth - 4) / 2;
+      final rowCount = (displayImages.length + 1) ~/ 2;
+      final gridHeight = rowCount * gridItemSize + (rowCount - 1) * 4.0;
 
-  return GestureDetector(
-    onTap: navigateToDetail,
-    child: SizedBox(
-      height: gridHeight,
-      child: RepaintBoundary(
-        child: GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisSpacing: 4,
-            crossAxisSpacing: 4,
-            childAspectRatio: 1,
-          ),
-          itemCount: displayImages.length,
-          itemBuilder: (context, index) {
-            final isLast = index == displayImages.length - 1;
-            final showOverlay = isLast && remainingCount > 0;
+      return SizedBox(
+        height: gridHeight,
+        child: RepaintBoundary(
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 4,
+              crossAxisSpacing: 4,
+              childAspectRatio: 1,
+            ),
+            itemCount: displayImages.length,
+            itemBuilder: (context, index) {
+              final isLast = index == displayImages.length - 1;
+              final showOverlay = isLast && remainingCount > 0;
 
-            return RepaintBoundary(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    _buildJournalGridImage(displayImages[index]),
-                    if (showOverlay)
-                      Container(
-                        color: Colors.black.withValues(alpha: 0.5),
-                        alignment: Alignment.center,
-                        child: Text(
-                          '+$remainingCount',
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
+              return RepaintBoundary(
+                child: GestureDetector(
+                  onTap: () {
+                    ImagePreview.showGallery(
+                      context,
+                      images: images,
+                      initialIndex: index,
+                    );
+                  },
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        _buildJournalGridImage(displayImages[index]),
+                        if (showOverlay)
+                          Container(
+                            color: Colors.black.withValues(alpha: 0.5),
+                            alignment: Alignment.center,
+                            child: Text(
+                              '+$remainingCount',
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                  ],
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
-      ),
-    ),
+      );
+    },
   );
 }
 

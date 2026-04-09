@@ -642,6 +642,15 @@ class _SmartImageState extends State<SmartImage> {
     _loadImageInfo();
   }
 
+  @override
+  void didUpdateWidget(covariant SmartImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.source != widget.source || oldWidget.mode != widget.mode) {
+      _imageInfo = null;
+      _loadImageInfo();
+    }
+  }
+
   Future<void> _loadImageInfo() async {
     try {
       final isNetwork = widget.source.startsWith('http://') || widget.source.startsWith('https://');

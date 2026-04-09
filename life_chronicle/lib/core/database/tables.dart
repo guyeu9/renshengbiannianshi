@@ -194,6 +194,7 @@ class TimelineEvents extends Table {
   RealColumn get latitude => real().nullable()();
   RealColumn get longitude => real().nullable()();
   BoolColumn get isFavorite => boolean().withDefault(const Constant(false))();
+  BoolColumn get isJournal => boolean().withDefault(const Constant(false))();
   DateTimeColumn get recordDate => dateTime()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
