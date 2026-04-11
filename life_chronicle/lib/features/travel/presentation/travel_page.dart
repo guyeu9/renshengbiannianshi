@@ -1304,48 +1304,58 @@ class TravelDetailPage extends ConsumerWidget {
                             ),
                         ],
                       ),
-                      if (!state.isJournal && record != null) ...[
-                        Builder(builder: (context) {
-                          final recordImages = _decodeStringList(record.images);
-                          final recordContent = (record.content ?? '').trim();
-                          if (recordImages.isEmpty && recordContent.isEmpty) {
-                            return const SizedBox.shrink();
-                          }
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 14),
-                            child: Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (recordContent.isNotEmpty) ...[
-                                    Text(
-                                      recordContent,
-                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF64748B), height: 1.5),
-                                    ),
-                                    if (recordImages.isNotEmpty) const SizedBox(height: 10),
-                                  ],
-                                  if (recordImages.isNotEmpty)
-                                    _buildWechatStyleImages(context, recordImages, record, trip),
-                                ],
-                              ),
+                      Builder(builder: (context) {
+                        FileLogger.instance.log('TravelDetailPage.recordCard', 'isJournal=${state.isJournal} record=${record?.id} images=${_decodeStringList(record?.images ?? '').length}');
+                        if (state.isJournal || record == null) {
+                          return const SizedBox.shrink();
+                        }
+                        final recordImages = _decodeStringList(record.images);
+                        final recordContent = (record.content ?? '').trim();
+                        FileLogger.instance.log('TravelDetailPage.recordCard', 'recordImages=${recordImages.length} recordContent=${recordContent.isNotEmpty}');
+                        if (recordImages.isEmpty && recordContent.isEmpty) {
+                          return const SizedBox.shrink();
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 14),
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
                             ),
-                          );
-                        }),
-                      ],
-                      _TravelTimeline(
-                        trip: trip,
-                        tripStart: state.headerStart,
-                        journals: journals,
-                        friends: friends,
-                        foods: foods,
-                        links: links,
-                      ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (recordContent.isNotEmpty) ...[
+                                  Text(
+                                    recordContent,
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF64748B), height: 1.5),
+                                  ),
+                                  if (recordImages.isNotEmpty) const SizedBox(height: 10),
+                                ],
+                                if (recordImages.isNotEmpty)
+                                  _buildWechatStyleImages(context, recordImages, record, trip),
+                              ],
+                            ),
+                          ),
+                        );
+                      }),
+                      Builder(builder: (context) {
+                        FileLogger.instance.log('TravelDetailPage._TravelTimeline', 'journals=${journals.length} friends=${friends.length} foods=${foods.length} links=${links.length} trip=${trip?.id} headerStart=${state.headerStart}');
+                        for (int i = 0; i < journals.length; i++) {
+                          final j = journals[i];
+                          FileLogger.instance.log('TravelDetailPage.journal[$i]', 'id=${j.id} title=${j.title} content=${(j.content ?? '').substring(0, (j.content ?? '').length > 50 ? 50 : (j.content ?? '').length)} images=${j.images}');
+                        }
+                        return _TravelTimeline(
+                          trip: trip,
+                          tripStart: state.headerStart,
+                          journals: journals,
+                          friends: friends,
+                          foods: foods,
+                          links: links,
+                        );
+                      }),
                     ],
                   ),
                 ),
@@ -3678,7 +3688,9 @@ class _TravelTimeline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    FileLogger.instance.log('_TravelTimeline.build', 'journals=${journals.length} friends=${friends.length} foods=${foods.length} links=${links.length}');
     if (journals.isEmpty) {
+      FileLogger.instance.log('_TravelTimeline.build', 'journals is empty, showing empty state');
       return const _EmptyTravelState(label: '暂无游记，去添加新的旅行记录吧');
     }
     final friendById = {for (final friend in friends) friend.id: friend};

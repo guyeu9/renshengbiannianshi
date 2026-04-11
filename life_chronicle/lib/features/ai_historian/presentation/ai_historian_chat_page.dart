@@ -1075,20 +1075,20 @@ ${result.prompt}
         }
         break;
       case 'travel':
+        if (!mounted) break;
         final db = ref.read(appDatabaseProvider);
         final record = await (db.select(db.travelRecords)
               ..where((t) => t.id.equals(card.id))
               ..where((t) => t.isDeleted.equals(false))
               ..limit(1))
             .getSingleOrNull();
+        if (!mounted) break;
         final shouldNavigateToJournal = record != null && record.isJournal;
         final recordId = card.id;
-        if (context.mounted) {
-          if (shouldNavigateToJournal) {
-            RouteNavigation.pushToJournalDetail(context, recordId);
-          } else {
-            RouteNavigation.goToTravelDetail(context, recordId);
-          }
+        if (shouldNavigateToJournal) {
+          RouteNavigation.pushToJournalDetail(context, recordId);
+        } else {
+          RouteNavigation.goToTravelDetail(context, recordId);
         }
         break;
       case 'goal':
