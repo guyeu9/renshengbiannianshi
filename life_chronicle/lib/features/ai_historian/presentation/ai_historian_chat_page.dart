@@ -1062,22 +1062,44 @@ ${result.prompt}
     );
   }
 
-  void _handleCardTap(RecommendationCard card) {
+  void _handleCardTap(RecommendationCard card) async {
     switch (card.type) {
       case 'food':
-        RouteNavigation.goToFoodDetail(context, card.id);
+        if (context.mounted) {
+          RouteNavigation.goToFoodDetail(context, card.id);
+        }
         break;
       case 'moment':
-        RouteNavigation.goToMomentDetail(context, card.id);
+        if (context.mounted) {
+          RouteNavigation.goToMomentDetail(context, card.id);
+        }
         break;
       case 'travel':
-        RouteNavigation.goToTravelDetail(context, card.id);
+        final db = ref.read(appDatabaseProvider);
+        final record = await (db.select(db.travelRecords)
+              ..where((t) => t.id.equals(card.id))
+              ..where((t) => t.isDeleted.equals(false))
+              ..limit(1))
+            .getSingleOrNull();
+        final shouldNavigateToJournal = record != null && record.isJournal;
+        final recordId = card.id;
+        if (context.mounted) {
+          if (shouldNavigateToJournal) {
+            RouteNavigation.pushToJournalDetail(context, recordId);
+          } else {
+            RouteNavigation.goToTravelDetail(context, recordId);
+          }
+        }
         break;
       case 'goal':
-        RouteNavigation.goToGoalDetail(context, card.id);
+        if (context.mounted) {
+          RouteNavigation.goToGoalDetail(context, card.id);
+        }
         break;
       case 'encounter':
-        RouteNavigation.goToEncounterDetail(context, card.id);
+        if (context.mounted) {
+          RouteNavigation.goToEncounterDetail(context, card.id);
+        }
         break;
     }
   }

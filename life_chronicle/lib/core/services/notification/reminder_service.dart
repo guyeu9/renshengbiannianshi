@@ -1,9 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
+
+typedef NotificationTapCallback = void Function(String type, String entityId);
 
 final reminderServiceProvider = Provider<ReminderService>((ref) {
   return ReminderService.instance;
@@ -15,6 +18,16 @@ class ReminderService {
 
   final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
   bool _initialized = false;
+  NotificationTapCallback? _onTapCallback;
+  GoRouter? _router;
+
+  void setOnTapCallback(NotificationTapCallback callback) {
+    _onTapCallback = callback;
+  }
+
+  void setRouter(GoRouter router) {
+    _router = router;
+  }
 
   Future<void> initialize() async {
     if (_initialized) return;
@@ -43,7 +56,41 @@ class ReminderService {
   }
 
   void _onNotificationTapped(NotificationResponse response) {
-    debugPrint('Notification tapped: ${response.payload}');
+    final payload = response.payload;
+    if (payload == null || payload.isEmpty) return;
+
+    debugPrint('Notification tapped: $payload');
+
+    final parts = payload.split(':');
+    if (parts.length != 2) return;
+
+    final type = parts[0];
+    final entityId = parts[1];
+
+    if (_onTapCallback != null) {
+      _onTapCallback!(type, entityId);
+      return;
+    }
+
+    _defaultNavigate(type, entityId);
+  }
+
+  void _defaultNavigate(String type, String entityId) {
+    try {
+      final router = _router;
+      if (router == null) return;
+      switch (type) {
+        case 'birthday':
+        case 'contact':
+          router.go('/bond/friend/$entityId');
+          break;
+        case 'goal':
+          router.go('/goal/$entityId');
+          break;
+      }
+    } catch (e) {
+      debugPrint('Failed to navigate from notification: $e');
+    }
   }
 
   Future<bool> requestPermissions() async {
@@ -85,7 +132,7 @@ class ReminderService {
     final now = DateTime.now();
     var nextBirthday = DateTime(now.year, birthday.month, birthday.day);
 
-    if (nextBirthday.isBefore(now) || nextBirthday.isAtSameMomentAs(now)) {
+    if (nextBirthday.isBefore(DateTime(now.year, now.month, now.day))) {
       nextBirthday = DateTime(now.year + 1, birthday.month, birthday.day);
     }
 
@@ -95,18 +142,17 @@ class ReminderService {
       return;
     }
 
-    final scheduledTime = tz.TZDateTime.from(
-      DateTime(reminderDate.year, reminderDate.month, reminderDate.day, 9, 0),
-      tz.local,
-    );
+    var scheduledTime = DateTime(reminderDate.year, reminderDate.month, reminderDate.day, 9, 0);
+    scheduledTime = _applyDoNotDisturb(scheduledTime, prefs);
 
-    final notificationId = friendName.hashCode;
+    final tzScheduledTime = tz.TZDateTime.from(scheduledTime, tz.local);
+    final notificationId = 'birthday_$friendId'.hashCode;
 
     await _notifications.zonedSchedule(
       notificationId,
       '生日提醒',
       '$friendName的生日还有$daysBefore天就要到了！',
-      scheduledTime,
+      tzScheduledTime,
       NotificationDetails(
         android: AndroidNotificationDetails(
           'birthday_reminders',
@@ -127,7 +173,7 @@ class ReminderService {
       payload: 'birthday:$friendId',
     );
 
-    debugPrint('Scheduled birthday reminder for $friendName at $scheduledTime');
+    debugPrint('Scheduled birthday reminder for $friendName at $tzScheduledTime');
   }
 
   Future<void> scheduleContactReminder({
@@ -142,18 +188,17 @@ class ReminderService {
     if (!globalEnabled) return;
 
     final now = DateTime.now();
-    final scheduledTime = tz.TZDateTime.from(
-      DateTime(now.year, now.month, now.day, 9, 0).add(Duration(days: intervalDays)),
-      tz.local,
-    );
+    var scheduledTime = DateTime(now.year, now.month, now.day, 9, 0).add(Duration(days: intervalDays));
+    scheduledTime = _applyDoNotDisturb(scheduledTime, prefs);
 
-    final notificationId = '${friendId}_contact'.hashCode;
+    final tzScheduledTime = tz.TZDateTime.from(scheduledTime, tz.local);
+    final notificationId = 'contact_$friendId'.hashCode;
 
     await _notifications.zonedSchedule(
       notificationId,
       '联络提醒',
       '已经$intervalDays天没联系$friendName了，该打个招呼啦！',
-      scheduledTime,
+      tzScheduledTime,
       NotificationDetails(
         android: AndroidNotificationDetails(
           'contact_reminders',
@@ -174,7 +219,7 @@ class ReminderService {
       payload: 'contact:$friendId',
     );
 
-    debugPrint('Scheduled contact reminder for $friendName at $scheduledTime');
+    debugPrint('Scheduled contact reminder for $friendName at $tzScheduledTime');
   }
 
   Future<void> scheduleGoalReminder({
@@ -200,7 +245,16 @@ class ReminderService {
         break;
       case 'weekly':
         final daysUntilMonday = (8 - now.weekday) % 7;
-        scheduledTime = DateTime(now.year, now.month, now.day, 9, 0).add(Duration(days: daysUntilMonday));
+        if (daysUntilMonday == 0 && now.weekday == DateTime.monday) {
+          final today9am = DateTime(now.year, now.month, now.day, 9, 0);
+          if (today9am.isAfter(now)) {
+            scheduledTime = today9am;
+          } else {
+            scheduledTime = DateTime(now.year, now.month, now.day, 9, 0).add(const Duration(days: 7));
+          }
+        } else {
+          scheduledTime = DateTime(now.year, now.month, now.day, 9, 0).add(Duration(days: daysUntilMonday));
+        }
         break;
       case 'monthly':
         scheduledTime = DateTime(now.year, now.month + 1, 1, 9, 0);
@@ -209,6 +263,7 @@ class ReminderService {
         return;
     }
 
+    scheduledTime = _applyDoNotDisturb(scheduledTime, prefs);
     final tzScheduledTime = tz.TZDateTime.from(scheduledTime, tz.local);
     final notificationId = 'goal_$goalId'.hashCode;
 
@@ -238,6 +293,26 @@ class ReminderService {
     );
 
     debugPrint('Scheduled goal reminder for $goalTitle at $tzScheduledTime');
+  }
+
+  DateTime _applyDoNotDisturb(DateTime scheduledTime, SharedPreferences prefs) {
+    final dndEnabled = prefs.getBool('dnd_enabled') ?? true;
+    if (!dndEnabled) return scheduledTime;
+
+    final startHour = prefs.getInt('dnd_start_hour') ?? 22;
+    final endHour = prefs.getInt('dnd_end_hour') ?? 8;
+
+    if (scheduledTime.hour >= startHour || scheduledTime.hour < endHour) {
+      return DateTime(
+        scheduledTime.year,
+        scheduledTime.month,
+        scheduledTime.day,
+        endHour,
+        0,
+      );
+    }
+
+    return scheduledTime;
   }
 
   Future<void> cancelReminder(String id) async {

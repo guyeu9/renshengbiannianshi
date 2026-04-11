@@ -18,6 +18,7 @@ import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/providers/uuid_provider.dart';
 import '../../../core/services/delete_service.dart';
+import '../../../core/services/notification/reminder_scheduler.dart';
 import '../../../core/utils/media_storage.dart';
 import '../../../core/utils/permission_manager.dart';
 import '../../../core/utils/icon_utils.dart';
@@ -4512,7 +4513,13 @@ class _TravelMemoryCard extends StatelessWidget {
         if (travel == null) return const SizedBox.shrink();
 
         return GestureDetector(
-          onTap: () => RouteNavigation.goToTravelDetail(context, travel.id, item: TravelItem.fromRecord(travel)),
+          onTap: () {
+            if (travel.isJournal) {
+              RouteNavigation.pushToJournalDetail(context, travel.id);
+            } else {
+              RouteNavigation.goToTravelDetail(context, travel.id, item: TravelItem.fromRecord(travel));
+            }
+          },
           child: SizedBox(
             width: 128,
             child: Column(
@@ -4925,7 +4932,13 @@ class _TravelListItem extends StatelessWidget {
         if (travel == null) return const SizedBox.shrink();
 
         return ListTile(
-          onTap: () => RouteNavigation.goToTravelDetail(context, travel.id, item: TravelItem.fromRecord(travel)),
+          onTap: () {
+            if (travel.isJournal) {
+              RouteNavigation.pushToJournalDetail(context, travel.id);
+            } else {
+              RouteNavigation.goToTravelDetail(context, travel.id, item: TravelItem.fromRecord(travel));
+            }
+          },
           leading: Container(
             width: 48,
             height: 48,
@@ -5357,6 +5370,8 @@ class _GoalCreatePageState extends ConsumerState<GoalCreatePage> {
         now: now,
       );
     }
+
+    ReminderScheduler.instance.rescheduleForGoal(db, goalId);
 
     if (!mounted) return;
     Navigator.of(context).pop();

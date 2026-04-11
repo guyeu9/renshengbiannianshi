@@ -42,10 +42,8 @@ class ReminderDao extends DatabaseAccessor<AppDatabase> with _$ReminderDaoMixin 
   }
 
   Stream<List<ReminderRecord>> watchUnhandledReminders() {
-    final now = DateTime.now();
     return (select(reminderRecords)
           ..where((t) => t.isHandled.equals(false))
-          ..where((t) => t.scheduledAt.isSmallerOrEqualValue(now))
           ..orderBy([(t) => OrderingTerm.desc(t.scheduledAt)]))
         .watch();
   }

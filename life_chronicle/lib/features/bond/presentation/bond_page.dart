@@ -10,6 +10,7 @@ import '../../../core/config/module_management_config.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/services/delete_service.dart';
+import '../../../core/services/notification/reminder_scheduler.dart';
 import '../../../core/utils/media_storage.dart';
 import '../../../core/utils/permission_manager.dart';
 import '../../../core/widgets/app_image.dart';
@@ -3036,6 +3037,8 @@ class _FriendCreatePageState extends ConsumerState<FriendCreatePage> {
     );
 
     ContextBuilder.clearCache();
+
+    ReminderScheduler.instance.rescheduleForFriend(db, friendId);
 
     if (!mounted) return;
     Navigator.of(context).pop();

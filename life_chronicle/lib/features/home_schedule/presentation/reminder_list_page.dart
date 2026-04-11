@@ -23,7 +23,7 @@ class _ReminderListPageState extends ConsumerState<ReminderListPage> with Single
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -86,13 +86,14 @@ class _ReminderListPageState extends ConsumerState<ReminderListPage> with Single
           indicatorColor: AppTheme.primary,
           labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
           onTap: (index) {
-            final types = [null, 'birthday', 'contact'];
+            final types = [null, 'birthday', 'contact', 'goal'];
             ref.read(_selectedTypeProvider.notifier).state = types[index];
           },
           tabs: const [
             Tab(text: '全部'),
             Tab(text: '生日'),
             Tab(text: '联络'),
+            Tab(text: '目标'),
           ],
         ),
       ),
@@ -102,6 +103,7 @@ class _ReminderListPageState extends ConsumerState<ReminderListPage> with Single
           _ReminderList(type: null),
           _ReminderList(type: 'birthday'),
           _ReminderList(type: 'contact'),
+          _ReminderList(type: 'goal'),
         ],
       ),
     );

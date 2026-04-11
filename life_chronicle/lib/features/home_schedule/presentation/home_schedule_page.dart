@@ -583,7 +583,11 @@ class _FlashbackItemCard extends StatelessWidget {
         RouteNavigation.goToMomentDetail(context, item.recordId);
         break;
       case 'travel':
-        RouteNavigation.goToTravelDetail(context, item.recordId);
+        if (item.isJournal) {
+          RouteNavigation.pushToJournalDetail(context, item.recordId);
+        } else {
+          RouteNavigation.goToTravelDetail(context, item.recordId);
+        }
         break;
       case 'goal':
         RouteNavigation.goToGoalDetail(context, item.recordId);

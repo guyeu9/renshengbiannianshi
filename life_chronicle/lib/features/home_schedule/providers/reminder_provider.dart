@@ -15,7 +15,9 @@ final unreadRemindersProvider = StreamProvider<List<ReminderRecord>>((ref) {
 
 final unhandledRemindersProvider = StreamProvider<List<ReminderRecord>>((ref) {
   final db = ref.watch(appDatabaseProvider);
-  return db.reminderDao.watchUnhandledReminders();
+  return db.reminderDao.watchUnhandledReminders().map(
+    (reminders) => reminders.where((r) => r.scheduledAt.isBefore(DateTime.now())).toList(),
+  );
 });
 
 final unreadReminderCountProvider = StreamProvider<int>((ref) {

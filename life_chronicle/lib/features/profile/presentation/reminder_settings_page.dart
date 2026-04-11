@@ -5,10 +5,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../app/app_theme.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/database/app_database.dart';
+import '../../../core/services/notification/reminder_scheduler.dart';
 import '../../../core/services/notification/reminder_service.dart';
 
 final _globalReminderEnabledProvider = StateProvider<bool>((ref) => false);
 final _birthdayReminderDaysProvider = StateProvider<int>((ref) => 3);
+final _dndEnabledProvider = StateProvider<bool>((ref) => true);
 
 class ReminderSettingsPage extends ConsumerStatefulWidget {
   const ReminderSettingsPage({super.key});
@@ -38,9 +40,11 @@ class _ReminderSettingsPageState extends ConsumerState<ReminderSettingsPage> wit
     final prefs = await SharedPreferences.getInstance();
     final globalEnabled = prefs.getBool('global_reminder_enabled') ?? true;
     final birthdayDays = prefs.getInt('birthday_reminder_days') ?? 3;
+    final dndEnabled = prefs.getBool('dnd_enabled') ?? true;
 
     ref.read(_globalReminderEnabledProvider.notifier).state = globalEnabled;
     ref.read(_birthdayReminderDaysProvider.notifier).state = birthdayDays;
+    ref.read(_dndEnabledProvider.notifier).state = dndEnabled;
 
     setState(() {
       _loading = false;
@@ -54,6 +58,10 @@ class _ReminderSettingsPageState extends ConsumerState<ReminderSettingsPage> wit
 
     if (enabled) {
       await ReminderService.instance.initialize();
+      final db = ref.read(appDatabaseProvider);
+      await ReminderScheduler.instance.scheduleAllReminders(db);
+    } else {
+      await ReminderService.instance.cancelAllReminders();
     }
   }
 
@@ -61,6 +69,24 @@ class _ReminderSettingsPageState extends ConsumerState<ReminderSettingsPage> wit
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('birthday_reminder_days', days);
     ref.read(_birthdayReminderDaysProvider.notifier).state = days;
+
+    final globalEnabled = ref.read(_globalReminderEnabledProvider);
+    if (globalEnabled) {
+      final db = ref.read(appDatabaseProvider);
+      await ReminderScheduler.instance.scheduleAllReminders(db);
+    }
+  }
+
+  Future<void> _toggleDnd(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('dnd_enabled', enabled);
+    ref.read(_dndEnabledProvider.notifier).state = enabled;
+
+    final globalEnabled = ref.read(_globalReminderEnabledProvider);
+    if (globalEnabled) {
+      final db = ref.read(appDatabaseProvider);
+      await ReminderScheduler.instance.scheduleAllReminders(db);
+    }
   }
 
   @override
@@ -153,6 +179,7 @@ class _ReminderSettingsPageState extends ConsumerState<ReminderSettingsPage> wit
                       _GeneralSettingsTab(
                         globalEnabled: globalEnabled,
                         onBirthdayDaysChanged: _setBirthdayReminderDays,
+                        onDndChanged: _toggleDnd,
                       ),
                       _BirthdaySettingsTab(globalEnabled: globalEnabled),
                       _ContactSettingsTab(globalEnabled: globalEnabled),
@@ -168,10 +195,12 @@ class _ReminderSettingsPageState extends ConsumerState<ReminderSettingsPage> wit
 class _GeneralSettingsTab extends ConsumerWidget {
   final bool globalEnabled;
   final Function(int) onBirthdayDaysChanged;
+  final Function(bool) onDndChanged;
 
   const _GeneralSettingsTab({
     required this.globalEnabled,
     required this.onBirthdayDaysChanged,
+    required this.onDndChanged,
   });
 
   @override
@@ -180,6 +209,7 @@ class _GeneralSettingsTab extends ConsumerWidget {
     final textMain = AppTheme.textMain;
     final textMuted = AppTheme.textMuted;
     final birthdayDays = ref.watch(_birthdayReminderDaysProvider);
+    final dndEnabled = ref.watch(_dndEnabledProvider);
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -263,13 +293,16 @@ class _GeneralSettingsTab extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('免打扰模式', style: TextStyle(fontWeight: FontWeight.w600, color: textMain)),
-                      Text('22:00 - 08:00 期间不发送提醒', style: TextStyle(fontSize: 12, color: textMuted)),
+                      Text(
+                        dndEnabled ? '22:00 - 08:00 期间不发送提醒' : '免打扰已关闭',
+                        style: TextStyle(fontSize: 12, color: textMuted),
+                      ),
                     ],
                   ),
                 ),
                 Switch(
-                  value: true,
-                  onChanged: null,
+                  value: dndEnabled,
+                  onChanged: globalEnabled ? onDndChanged : null,
                   activeColor: primary,
                 ),
               ],
@@ -302,15 +335,63 @@ class _SettingsSection extends StatelessWidget {
   }
 }
 
-class _BirthdaySettingsTab extends ConsumerWidget {
+class _BirthdaySettingsTab extends ConsumerStatefulWidget {
   final bool globalEnabled;
 
   const _BirthdaySettingsTab({required this.globalEnabled});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_BirthdaySettingsTab> createState() => _BirthdaySettingsTabState();
+}
+
+class _BirthdaySettingsTabState extends ConsumerState<_BirthdaySettingsTab> {
+  Map<String, bool> _birthdayEnabled = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBirthdaySettings();
+  }
+
+  Future<void> _loadBirthdaySettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final db = ref.read(appDatabaseProvider);
+    final friends = await db.friendDao.watchAllActive().first;
+
+    final Map<String, bool> enabled = {};
+    for (final f in friends) {
+      if (f.birthday != null) {
+        enabled[f.id] = prefs.getBool('birthday_reminder_${f.id}') ?? true;
+      }
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _birthdayEnabled = enabled;
+    });
+  }
+
+  Future<void> _toggleBirthdayReminder(String friendId, bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('birthday_reminder_$friendId', enabled);
+    setState(() {
+      _birthdayEnabled[friendId] = enabled;
+    });
+
+    final db = ref.read(appDatabaseProvider);
+    if (enabled) {
+      await ReminderScheduler.instance.rescheduleForFriend(db, friendId);
+    } else {
+      await ReminderService.instance.cancelReminder('birthday_$friendId');
+      await db.reminderDao.deleteRemindersByEntity('friend', friendId);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final db = ref.watch(appDatabaseProvider);
     final textMuted = AppTheme.textMuted;
+    final primary = AppTheme.primary;
 
     return StreamBuilder(
       stream: db.friendDao.watchAllActive(),
@@ -338,9 +419,13 @@ class _BirthdaySettingsTab extends ConsumerWidget {
           itemCount: friendsWithBirthday.length,
           itemBuilder: (context, index) {
             final friend = friendsWithBirthday[index];
+            final enabled = _birthdayEnabled[friend.id] ?? true;
             return _BirthdayReminderCard(
               friend: friend,
-              enabled: globalEnabled,
+              enabled: enabled && widget.globalEnabled,
+              globalEnabled: widget.globalEnabled,
+              onToggle: (v) => _toggleBirthdayReminder(friend.id, v),
+              primary: primary,
             );
           },
         );
@@ -352,10 +437,16 @@ class _BirthdaySettingsTab extends ConsumerWidget {
 class _BirthdayReminderCard extends StatelessWidget {
   final FriendRecord friend;
   final bool enabled;
+  final bool globalEnabled;
+  final Function(bool) onToggle;
+  final Color primary;
 
   const _BirthdayReminderCard({
     required this.friend,
     required this.enabled,
+    required this.globalEnabled,
+    required this.onToggle,
+    required this.primary,
   });
 
   @override
@@ -409,19 +500,25 @@ class _BirthdayReminderCard extends StatelessWidget {
               ),
             ),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 color: daysUntil <= 7 ? Colors.red.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
                 daysUntil == 0 ? '今天' : daysUntil == 1 ? '明天' : '$daysUntil天后',
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: FontWeight.w600,
                   color: daysUntil <= 7 ? Colors.red : textMuted,
                 ),
               ),
+            ),
+            const SizedBox(width: 8),
+            Switch(
+              value: enabled,
+              onChanged: globalEnabled ? onToggle : null,
+              activeColor: primary,
             ),
           ],
         ),
@@ -462,8 +559,9 @@ class _ContactSettingsTabState extends ConsumerState<_ContactSettingsTab> {
 
     for (final f in friends) {
       final key = 'reminder_${f.id}';
-      enabled[f.id] = prefs.getBool(key) ?? false;
-      days[f.id] = prefs.getInt('${key}_days') ?? 7;
+      final freqDays = ReminderScheduler.contactFrequencyToDays(f.contactFrequency);
+      enabled[f.id] = prefs.getBool(key) ?? (freqDays > 0);
+      days[f.id] = prefs.getInt('${key}_days') ?? (freqDays > 0 ? freqDays : 7);
     }
 
     if (!mounted) return;
@@ -481,6 +579,14 @@ class _ContactSettingsTabState extends ConsumerState<_ContactSettingsTab> {
     setState(() {
       _reminderEnabled[friendId] = enabled;
     });
+
+    final db = ref.read(appDatabaseProvider);
+    if (enabled) {
+      await ReminderScheduler.instance.rescheduleForFriend(db, friendId);
+    } else {
+      await ReminderService.instance.cancelReminder('contact_$friendId');
+      await db.reminderDao.deleteRemindersByEntity('friend', friendId);
+    }
   }
 
   Future<void> _setReminderDays(String friendId, int days) async {
@@ -489,6 +595,9 @@ class _ContactSettingsTabState extends ConsumerState<_ContactSettingsTab> {
     setState(() {
       _reminderDays[friendId] = days;
     });
+
+    final db = ref.read(appDatabaseProvider);
+    await ReminderScheduler.instance.rescheduleForFriend(db, friendId);
   }
 
   @override

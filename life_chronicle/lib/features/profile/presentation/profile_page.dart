@@ -3439,15 +3439,19 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
       final travelId = id.substring(7);
       final travel = await (db.select(db.travelRecords)..where((t) => t.id.equals(travelId))).getSingleOrNull();
       if (travel == null || !context.mounted) return;
-      RouteNavigation.goToTravelDetail(context, travel.id, item: TravelItem(
-        travelId: travel.id,
-        tripId: '',
-        recordDate: travel.recordDate,
-        date: '${travel.recordDate.year}年${travel.recordDate.month}月${travel.recordDate.day}日',
-        title: travel.title ?? '',
-        subtitle: travel.destination ?? '',
-        imageUrl: _parseStringList(travel.images).firstOrNull ?? '',
-      ));
+      if (travel.isJournal) {
+        RouteNavigation.pushToJournalDetail(context, travel.id);
+      } else {
+        RouteNavigation.goToTravelDetail(context, travel.id, item: TravelItem(
+          travelId: travel.id,
+          tripId: '',
+          recordDate: travel.recordDate,
+          date: '${travel.recordDate.year}年${travel.recordDate.month}月${travel.recordDate.day}日',
+          title: travel.title ?? '',
+          subtitle: travel.destination ?? '',
+          imageUrl: _parseStringList(travel.images).firstOrNull ?? '',
+        ));
+      }
     } else if (id.startsWith('moment-')) {
       RouteNavigation.goToMomentDetail(context, id.substring(7));
     } else if (id.startsWith('bond-')) {

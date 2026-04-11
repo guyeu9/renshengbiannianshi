@@ -6,6 +6,7 @@ import 'app_theme.dart';
 import '../core/widgets/unfocus_on_tap.dart';
 import '../core/errors/error_boundary.dart';
 import '../core/router/app_router.dart';
+import '../core/services/notification/reminder_service.dart';
 
 class BottomSheetFocusObserver extends RouteObserver<ModalRoute<void>> {
   @override
@@ -33,6 +34,8 @@ class LifeChronicleApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(goRouterProvider);
+
+    ReminderService.instance.setRouter(router);
     
     return ErrorBoundary(
       child: UnfocusOnTap(
