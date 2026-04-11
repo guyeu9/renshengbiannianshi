@@ -3730,6 +3730,13 @@ class _TravelTimeline extends StatelessWidget {
     final days = dayMap.keys.toList()..sort((a, b) => a.compareTo(b));
     final today = DateTime.now();
     final hasActiveDay = days.any((d) => _isSameDay(d, today));
+    
+    FileLogger.instance.log('_TravelTimeline.build', 'sorted=${sorted.length} days=${days.length} hasActiveDay=$hasActiveDay');
+    for (int i = 0; i < days.length; i++) {
+      final dayRecords = dayMap[days[i]] ?? [];
+      FileLogger.instance.log('_TravelTimeline.day[$i]', 'day=${days[i]} records=${dayRecords.length}');
+    }
+    
     return Stack(
       children: [
         Positioned(
@@ -3822,6 +3829,7 @@ class _TimelineDayBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    FileLogger.instance.log('_TimelineDayBlock.build', 'dayTitle=$dayTitle items=${items.length}');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -3975,6 +3983,7 @@ class _TimelineJournalCard extends StatelessWidget {
     final subtitle = _travelPlace(record, trip);
     final content = (record.content ?? '').trim();
     final images = _decodeStringList(record.images);
+    FileLogger.instance.log('_TimelineJournalCard.build', 'id=${record.id} title=$title images=${images.length} content=${content.isNotEmpty}');
     final tagSet = <String>{};
     tagSet.addAll(_decodeStringList(record.tags));
     final destination = record.destination?.trim();
