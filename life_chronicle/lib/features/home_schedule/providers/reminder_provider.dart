@@ -36,3 +36,16 @@ final hasUnreadRemindersProvider = StreamProvider<bool>((ref) {
   final db = ref.watch(appDatabaseProvider);
   return db.reminderDao.watchUnreadCount().map((count) => count > 0);
 });
+
+final upcomingRemindersProvider = StreamProvider<List<ReminderRecord>>((ref) {
+  final db = ref.watch(appDatabaseProvider);
+  return db.reminderDao.watchAllReminders().map(
+    (reminders) {
+      final now = DateTime.now();
+      return reminders
+          .where((r) => !r.isHandled && r.scheduledAt.isAfter(now))
+          .toList()
+        ..sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
+    },
+  );
+});

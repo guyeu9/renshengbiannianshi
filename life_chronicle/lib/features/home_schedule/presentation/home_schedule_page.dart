@@ -633,49 +633,88 @@ class _FlashbackItemCard extends StatelessWidget {
   }
 }
 
-class _TodayReminder extends StatelessWidget {
+class _TodayReminder extends ConsumerWidget {
   const _TodayReminder();
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFF3F4F6)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: const BoxDecoration(
-              color: Color(0xFFFEF2F2),
-              shape: BoxShape.circle,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final upcomingReminders = ref.watch(upcomingRemindersProvider);
+
+    return upcomingReminders.when(
+      data: (reminders) {
+        if (reminders.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        final reminder = reminders.first;
+        final typeColor = _getTypeColor(reminder.type);
+        final typeIcon = _getTypeIcon(reminder.type);
+
+        return GestureDetector(
+          onTap: () => context.go(AppRoutes.reminderList),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: const Color(0xFFF3F4F6)),
             ),
-            child: const Icon(Icons.cake, size: 16, color: Color(0xFFEF4444)),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: RichText(
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              text: const TextSpan(
-                style: TextStyle(fontSize: 14, color: Color(0xFF374151), fontWeight: FontWeight.w600),
-                children: [
-                  TextSpan(text: '张三', style: TextStyle(color: AppTheme.textMain, fontWeight: FontWeight.w800)),
-                  TextSpan(text: ' 的生日还有 '),
-                  TextSpan(text: '2天', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w800)),
-                ],
-              ),
+            child: Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: typeColor.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(typeIcon, size: 16, color: typeColor),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    reminder.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 14, color: Color(0xFF374151), fontWeight: FontWeight.w600),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Icon(Icons.chevron_right, color: Color(0xFFD1D5DB)),
+              ],
             ),
           ),
-          const SizedBox(width: 8),
-          const Icon(Icons.chevron_right, color: Color(0xFFD1D5DB)),
-        ],
-      ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
     );
+  }
+
+  Color _getTypeColor(String type) {
+    switch (type) {
+      case 'birthday':
+        return Colors.red;
+      case 'contact':
+        return Colors.blue;
+      case 'goal':
+        return const Color(0xFFA855F7);
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getTypeIcon(String type) {
+    switch (type) {
+      case 'birthday':
+        return Icons.cake;
+      case 'contact':
+        return Icons.people;
+      case 'goal':
+        return Icons.outlined_flag;
+      default:
+        return Icons.notifications;
+    }
   }
 }
 
