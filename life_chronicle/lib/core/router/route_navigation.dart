@@ -52,6 +52,10 @@ class RouteNavigation {
     context.go('${AppRoutes.goal}/$id', extra: {'record': record});
   }
 
+  static void pushToGoalDetail(BuildContext context, String id, {GoalRecord? record}) {
+    context.push('${AppRoutes.goal}/$id', extra: {'record': record});
+  }
+
   static void goToGoalCreate(BuildContext context, {GoalRecord? goal}) {
     context.go(AppRoutes.goalCreate, extra: {'goal': goal});
   }
@@ -74,6 +78,10 @@ class RouteNavigation {
 
   static void goToFriendProfile(BuildContext context, String friendId) {
     context.go(AppRoutes.friendProfile.replaceAll(':id', friendId));
+  }
+
+  static void pushToFriendProfile(BuildContext context, String friendId) {
+    context.push(AppRoutes.friendProfile.replaceAll(':id', friendId));
   }
 
   static void goToFriendCreate(BuildContext context, {FriendRecord? initialFriend}) {

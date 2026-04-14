@@ -33,7 +33,7 @@ class ReminderService {
     if (_initialized) return;
 
     tz_data.initializeTimeZones();
-    tz.setLocalTimeZone(tz.getLocation('Asia/Shanghai'));
+    tz.setLocalLocation(tz.getLocation('Asia/Shanghai'));
 
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iOSSettings = DarwinInitializationSettings(
@@ -83,10 +83,10 @@ class ReminderService {
       switch (type) {
         case 'birthday':
         case 'contact':
-          router.go('/bond/friend/$entityId');
+          router.push('/bond/friend/$entityId');
           break;
         case 'goal':
-          router.go('/goal/$entityId');
+          router.push('/goal/$entityId');
           break;
       }
     } catch (e) {
@@ -181,6 +181,7 @@ class ReminderService {
     required String friendId,
     required String friendName,
     required int intervalDays,
+    DateTime? scheduledTime,
   }) async {
     if (!_initialized) await initialize();
 
@@ -188,11 +189,8 @@ class ReminderService {
     final globalEnabled = prefs.getBool('global_reminder_enabled') ?? true;
     if (!globalEnabled) return;
 
-    final now = DateTime.now();
-    var scheduledTime = DateTime(now.year, now.month, now.day, 9, 0).add(Duration(days: intervalDays));
-    scheduledTime = _applyDoNotDisturb(scheduledTime, prefs);
-
-    final tzScheduledTime = tz.TZDateTime.from(scheduledTime, tz.local);
+    final effectiveScheduledTime = scheduledTime ?? DateTime.now().add(Duration(days: intervalDays));
+    final tzScheduledTime = tz.TZDateTime.from(effectiveScheduledTime, tz.local);
     final notificationId = 'contact_$friendId'.hashCode;
 
     await _notifications.zonedSchedule(
@@ -227,6 +225,7 @@ class ReminderService {
     required String goalId,
     required String goalTitle,
     required String frequency,
+    DateTime? scheduledTime,
   }) async {
     if (!_initialized) await initialize();
 
@@ -234,38 +233,41 @@ class ReminderService {
     final globalEnabled = prefs.getBool('global_reminder_enabled') ?? true;
     if (!globalEnabled || frequency == 'none') return;
 
-    final now = DateTime.now();
-    DateTime scheduledTime;
-
-    switch (frequency) {
-      case 'daily':
-        scheduledTime = DateTime(now.year, now.month, now.day, 9, 0);
-        if (scheduledTime.isBefore(now)) {
-          scheduledTime = scheduledTime.add(const Duration(days: 1));
-        }
-        break;
-      case 'weekly':
-        final daysUntilMonday = (8 - now.weekday) % 7;
-        if (daysUntilMonday == 0 && now.weekday == DateTime.monday) {
-          final today9am = DateTime(now.year, now.month, now.day, 9, 0);
-          if (today9am.isAfter(now)) {
-            scheduledTime = today9am;
-          } else {
-            scheduledTime = DateTime(now.year, now.month, now.day, 9, 0).add(const Duration(days: 7));
+    DateTime effectiveScheduledTime;
+    if (scheduledTime != null) {
+      effectiveScheduledTime = scheduledTime;
+    } else {
+      final now = DateTime.now();
+      switch (frequency) {
+        case 'daily':
+          effectiveScheduledTime = DateTime(now.year, now.month, now.day, 9, 0);
+          if (effectiveScheduledTime.isBefore(now)) {
+            effectiveScheduledTime = effectiveScheduledTime.add(const Duration(days: 1));
           }
-        } else {
-          scheduledTime = DateTime(now.year, now.month, now.day, 9, 0).add(Duration(days: daysUntilMonday));
-        }
-        break;
-      case 'monthly':
-        scheduledTime = DateTime(now.year, now.month + 1, 1, 9, 0);
-        break;
-      default:
-        return;
+          break;
+        case 'weekly':
+          final daysUntilMonday = (8 - now.weekday) % 7;
+          if (daysUntilMonday == 0 && now.weekday == DateTime.monday) {
+            final today9am = DateTime(now.year, now.month, now.day, 9, 0);
+            if (today9am.isAfter(now)) {
+              effectiveScheduledTime = today9am;
+            } else {
+              effectiveScheduledTime = DateTime(now.year, now.month, now.day, 9, 0).add(const Duration(days: 7));
+            }
+          } else {
+            effectiveScheduledTime = DateTime(now.year, now.month, now.day, 9, 0).add(Duration(days: daysUntilMonday));
+          }
+          break;
+        case 'monthly':
+          effectiveScheduledTime = DateTime(now.year, now.month + 1, 1, 9, 0);
+          break;
+        default:
+          return;
+      }
+      effectiveScheduledTime = _applyDoNotDisturb(effectiveScheduledTime, prefs);
     }
 
-    scheduledTime = _applyDoNotDisturb(scheduledTime, prefs);
-    final tzScheduledTime = tz.TZDateTime.from(scheduledTime, tz.local);
+    final tzScheduledTime = tz.TZDateTime.from(effectiveScheduledTime, tz.local);
     final notificationId = 'goal_$goalId'.hashCode;
 
     await _notifications.zonedSchedule(

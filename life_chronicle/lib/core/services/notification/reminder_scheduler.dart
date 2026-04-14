@@ -227,6 +227,7 @@ class ReminderScheduler {
       friendId: friend.id,
       friendName: friend.name,
       intervalDays: intervalDays,
+      scheduledTime: scheduledTime,
     );
 
     final reminderId = 'contact_${friend.id}';
@@ -315,6 +316,7 @@ class ReminderScheduler {
       goalId: goal.id,
       goalTitle: goal.title,
       frequency: frequency,
+      scheduledTime: scheduledTime,
     );
 
     final reminderId = 'goal_${goal.id}';

@@ -309,6 +309,42 @@ class _GeneralSettingsTab extends ConsumerWidget {
             ),
           ),
         ),
+        const SizedBox(height: 16),
+        const _SettingsSection(title: '测试通知'),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Icon(Icons.notifications_active, color: primary, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('发送测试通知', style: TextStyle(fontWeight: FontWeight.w600, color: textMain)),
+                      Text(
+                        '点击发送一条即时通知，验证通知系统是否正常',
+                        style: TextStyle(fontSize: 12, color: textMuted),
+                      ),
+                    ],
+                  ),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    await ReminderService.instance.showTestNotification();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('测试通知已发送')),
+                      );
+                    }
+                  },
+                  child: Text('发送', style: TextStyle(color: primary)),
+                ),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -656,8 +692,6 @@ class _ContactSettingsTabState extends ConsumerState<_ContactSettingsTab> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(friend.name, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: textMain)),
-                          if (friend.contactFrequency != null && friend.contactFrequency!.isNotEmpty)
-                            Text('期望频率：${friend.contactFrequency}', style: TextStyle(fontSize: 12, color: textMuted)),
                         ],
                       ),
                     ),
@@ -674,30 +708,32 @@ class _ContactSettingsTabState extends ConsumerState<_ContactSettingsTab> {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Text('提醒周期', style: TextStyle(color: textMuted)),
-                      const SizedBox(width: 12),
-                      DropdownButton<int>(
-                        value: days,
-                        items: const [
-                          DropdownMenuItem(value: 3, child: Text('每3天')),
-                          DropdownMenuItem(value: 7, child: Text('每7天')),
-                          DropdownMenuItem(value: 14, child: Text('每14天')),
-                          DropdownMenuItem(value: 30, child: Text('每30天')),
-                          DropdownMenuItem(value: 60, child: Text('每60天')),
-                        ],
-                        onChanged: (v) {
-                          if (v != null) {
-                            _setReminderDays(friend.id, v);
-                          }
-                        },
-                        underline: const SizedBox(),
+                      Expanded(
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<int>(
+                            value: days,
+                            isExpanded: true,
+                            icon: const Icon(Icons.keyboard_arrow_down, size: 20),
+                            items: [
+                              DropdownMenuItem(value: 7, child: Text('每周提醒一次', style: TextStyle(fontSize: 14, color: textMain))),
+                              DropdownMenuItem(value: 14, child: Text('每两周提醒一次', style: TextStyle(fontSize: 14, color: textMain))),
+                              DropdownMenuItem(value: 30, child: Text('每月提醒一次', style: TextStyle(fontSize: 14, color: textMain))),
+                              DropdownMenuItem(value: 90, child: Text('每三个月提醒一次', style: TextStyle(fontSize: 14, color: textMain))),
+                            ],
+                            onChanged: (v) {
+                              if (v != null) {
+                                _setReminderDays(friend.id, v);
+                              }
+                            },
+                          ),
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '超过$days天未联络时发送提醒',
-                    style: TextStyle(fontSize: 12, color: textMuted, fontStyle: FontStyle.italic),
+                    '将在超过 $days 天未联系时提醒您',
+                    style: TextStyle(fontSize: 12, color: textMuted),
                   ),
                 ],
               ],

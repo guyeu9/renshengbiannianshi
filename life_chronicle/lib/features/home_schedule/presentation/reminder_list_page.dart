@@ -368,13 +368,17 @@ class _ReminderCard extends ConsumerWidget {
     }
 
     if (reminder.relatedEntityType != null && reminder.relatedEntityId != null) {
-      if (!context.mounted) return;
       switch (reminder.relatedEntityType) {
         case 'friend':
-          RouteNavigation.goToFriendProfile(context, reminder.relatedEntityId!);
+          if (context.mounted) {
+            RouteNavigation.pushToFriendProfile(context, reminder.relatedEntityId!);
+          }
           break;
         case 'goal':
-          RouteNavigation.goToGoalDetail(context, reminder.relatedEntityId!);
+          final goal = await db.goalDao.findById(reminder.relatedEntityId!);
+          if (goal != null && context.mounted) {
+            RouteNavigation.pushToGoalDetail(context, reminder.relatedEntityId!, record: goal);
+          }
           break;
       }
     }
