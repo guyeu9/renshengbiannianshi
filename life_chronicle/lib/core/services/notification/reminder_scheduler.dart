@@ -305,17 +305,22 @@ class ReminderScheduler {
       frequency: frequency,
     );
 
-    final reminderId = 'goal_${goal.id}_${scheduledTime.millisecondsSinceEpoch}';
-    await _upsertReminderRecord(
-      db,
-      id: reminderId,
-      type: 'goal',
-      title: '目标提醒：${goal.title}',
-      content: '别忘了你的目标：${goal.title}',
-      relatedEntityType: 'goal',
-      relatedEntityId: goal.id,
-      scheduledAt: scheduledTime,
+    final reminderId = 'goal_${goal.id}';
+    await db.reminderDao.deleteRemindersByEntity('goal', goal.id);
+    await db.reminderDao.insertReminder(
+      ReminderRecordsCompanion.insert(
+        id: reminderId,
+        type: 'goal',
+        title: '目标提醒：${goal.title}',
+        content: Value('别忘了你的目标：${goal.title}'),
+        relatedEntityType: const Value('goal'),
+        relatedEntityId: Value(goal.id),
+        scheduledAt: scheduledTime,
+        createdAt: DateTime.now(),
+      ),
     );
+
+    debugPrint('Scheduled goal reminder for ${goal.title} at $scheduledTime (frequency: $frequency)');
   }
 
   Future<DateTime> _applyDoNotDisturb(DateTime scheduledTime) async {
