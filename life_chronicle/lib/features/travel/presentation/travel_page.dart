@@ -1065,7 +1065,11 @@ class TravelDetailPage extends ConsumerWidget {
         
         FileLogger.instance.log('TravelDetailPage.data', 'record=${record?.id} isJournal=${state.isJournal} isWishlist=${state.isWishlist} journals=${journals.length} cover=${cover.isNotEmpty} title=$title tripId=$tripId');
 
-        return Scaffold(
+        final finalSummary = 'BUILD COMPLETE: record=${record?.id} isJournal=${state.isJournal} isWishlist=${state.isWishlist} journals=${journals.length} checklistItems=${checklistItems.length} friends=${friends.length} foods=${foods.length} links=${links.length} title="$title" tripId=$tripId';
+        
+        return TravelDetailPageFinalLog(
+          summary: finalSummary,
+          child: Scaffold(
           backgroundColor: const Color(0xFFF6F8F8),
           floatingActionButton: FloatingActionButton(
             backgroundColor: const Color(0xFF2BCDEE),
@@ -1376,9 +1380,22 @@ class TravelDetailPage extends ConsumerWidget {
               ),
             ],
           ),
+        ),
         );
       },
     );
+  }
+}
+
+class TravelDetailPageFinalLog extends StatelessWidget {
+  const TravelDetailPageFinalLog({super.key, required this.child, required this.summary});
+  final Widget child;
+  final String summary;
+  
+  @override
+  Widget build(BuildContext context) {
+    FileLogger.instance.logSync('TravelDetailPage.FINAL', summary);
+    return child;
   }
 }
 
