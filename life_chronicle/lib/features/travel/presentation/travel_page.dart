@@ -1219,17 +1219,11 @@ class TravelDetailPage extends ConsumerWidget {
                 ),
               ),
               SliverToBoxAdapter(
-                child: Builder(builder: (context) {
-                  FileLogger.instance.log('TravelDetailPage.SliverToBoxAdapter', 'START building Column children');
-                  return Padding(
+                child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 18, 20, 110),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Builder(builder: (context) {
-                        FileLogger.instance.log('TravelDetailPage.Column', 'child[0]: isWishlist=${state.isWishlist}');
-                        return const SizedBox.shrink();
-                      }),
                       if (state.isWishlist)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -1287,10 +1281,6 @@ class TravelDetailPage extends ConsumerWidget {
                           ),
                         ),
                       if (tagList.isNotEmpty) const SizedBox(height: 14),
-                      Builder(builder: (context) {
-                        FileLogger.instance.log('TravelDetailPage.Column', 'child[1]: checklistItems=${checklistItems.length} friends=${friends.length}');
-                        return const SizedBox.shrink();
-                      }),
                       Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -1317,23 +1307,22 @@ class TravelDetailPage extends ConsumerWidget {
                         ],
                       ),
                       Builder(builder: (context) {
-                        FileLogger.instance.log('TravelDetailPage.Column', 'child[2]: recordCard START');
-                        return const SizedBox.shrink();
-                      }),
-                      Builder(builder: (context) {
-                        FileLogger.instance.log('TravelDetailPage.recordCard', 'isJournal=${state.isJournal} record=${record?.id} images=${_decodeStringList(record?.images ?? '').length}');
-                        if (state.isJournal || record == null) {
-                          FileLogger.instance.log('TravelDetailPage.recordCard', 'SKIPPED: isJournal=${state.isJournal} recordNull=${record == null}');
+                        final isJournal = state.isJournal;
+                        final currentRecord = record;
+                        final hasRecord = currentRecord != null;
+                        final recordImagesCount = hasRecord ? _decodeStringList(currentRecord.images).length : 0;
+                        final recordContent = hasRecord ? (currentRecord.content ?? '').trim() : '';
+                        FileLogger.instance.logSync('TravelDetailPage.recordCard', 'isJournal=$isJournal hasRecord=$hasRecord images=$recordImagesCount content=${recordContent.isNotEmpty}');
+                        if (isJournal || !hasRecord) {
+                          FileLogger.instance.logSync('TravelDetailPage.recordCard', 'SKIPPED: isJournal=$isJournal hasRecord=$hasRecord');
                           return const SizedBox.shrink();
                         }
-                        final recordImages = _decodeStringList(record.images);
-                        final recordContent = (record.content ?? '').trim();
-                        FileLogger.instance.log('TravelDetailPage.recordCard', 'recordImages=${recordImages.length} recordContent=${recordContent.isNotEmpty}');
+                        final recordImages = _decodeStringList(currentRecord.images);
                         if (recordImages.isEmpty && recordContent.isEmpty) {
-                          FileLogger.instance.log('TravelDetailPage.recordCard', 'SKIPPED: no images and no content');
+                          FileLogger.instance.logSync('TravelDetailPage.recordCard', 'SKIPPED: no images and no content');
                           return const SizedBox.shrink();
                         }
-                        FileLogger.instance.log('TravelDetailPage.recordCard', 'BUILDING: will return Container with ${recordImages.length} images');
+                        FileLogger.instance.logSync('TravelDetailPage.recordCard', 'BUILDING Container with ${recordImages.length} images');
                         return Padding(
                           padding: const EdgeInsets.only(top: 14),
                           child: Container(
@@ -1354,21 +1343,17 @@ class TravelDetailPage extends ConsumerWidget {
                                   if (recordImages.isNotEmpty) const SizedBox(height: 10),
                                 ],
                                 if (recordImages.isNotEmpty)
-                                  _buildWechatStyleImages(context, recordImages, record, trip),
+                                  _buildWechatStyleImages(context, recordImages, currentRecord, trip),
                               ],
                             ),
                           ),
                         );
                       }),
                       Builder(builder: (context) {
-                        FileLogger.instance.log('TravelDetailPage.Column', 'child[3]: _TravelTimeline START journals=${journals.length}');
-                        return const SizedBox.shrink();
-                      }),
-                      Builder(builder: (context) {
-                        FileLogger.instance.log('TravelDetailPage._TravelTimeline', 'journals=${journals.length} friends=${friends.length} foods=${foods.length} links=${links.length} trip=${trip?.id} headerStart=${state.headerStart}');
+                        FileLogger.instance.logSync('TravelDetailPage._TravelTimeline', 'journals=${journals.length} friends=${friends.length} foods=${foods.length} links=${links.length} trip=${trip?.id}');
                         for (int i = 0; i < journals.length; i++) {
                           final j = journals[i];
-                          FileLogger.instance.log('TravelDetailPage.journal[$i]', 'id=${j.id} title=${j.title} content=${(j.content ?? '').substring(0, (j.content ?? '').length > 50 ? 50 : (j.content ?? '').length)} images=${j.images}');
+                          FileLogger.instance.logSync('TravelDetailPage.journal[$i]', 'id=${j.id} title=${j.title} images=${j.images}');
                         }
                         return _TravelTimeline(
                           trip: trip,
@@ -1379,14 +1364,9 @@ class TravelDetailPage extends ConsumerWidget {
                           links: links,
                         );
                       }),
-                      Builder(builder: (context) {
-                        FileLogger.instance.log('TravelDetailPage.Column', 'END of Column children');
-                        return const SizedBox.shrink();
-                      }),
                     ],
                   ),
-                );
-              }),
+                ),
               ),
             ],
           ),
@@ -3759,10 +3739,10 @@ class _TravelTimeline extends StatelessWidget {
     final today = DateTime.now();
     final hasActiveDay = days.any((d) => _isSameDay(d, today));
     
-    FileLogger.instance.log('_TravelTimeline.build', 'sorted=${sorted.length} days=${days.length} hasActiveDay=$hasActiveDay');
+    FileLogger.instance.logSync('_TravelTimeline.build', 'sorted=${sorted.length} days=${days.length} hasActiveDay=$hasActiveDay');
     for (int i = 0; i < days.length; i++) {
       final dayRecords = dayMap[days[i]] ?? [];
-      FileLogger.instance.log('_TravelTimeline.day[$i]', 'day=${days[i]} records=${dayRecords.length}');
+      FileLogger.instance.logSync('_TravelTimeline.day[$i]', 'day=${days[i]} records=${dayRecords.length}');
     }
     
     return Column(
@@ -3777,7 +3757,7 @@ class _TravelTimeline extends StatelessWidget {
               friendIdsByTravel: friendIdsByTravel,
               foodIdsByTravel: foodIdsByTravel,
             );
-            FileLogger.instance.log('_TravelTimeline.dayBlock[$i]', 'dayTitle=${_buildDayTitle(days[i], i)} items=${items.length}');
+            FileLogger.instance.logSync('_TravelTimeline.dayBlock[$i]', 'dayTitle=${_buildDayTitle(days[i], i)} items=${items.length}');
             return IntrinsicHeight(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -3905,7 +3885,7 @@ class _TimelineDayBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    FileLogger.instance.log('_TimelineDayBlock.build', 'START dayTitle=$dayTitle items=${items.length}');
+    FileLogger.instance.logSync('_TimelineDayBlock.build', 'START dayTitle=$dayTitle items=${items.length}');
     final result = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -3922,7 +3902,7 @@ class _TimelineDayBlock extends StatelessWidget {
           children: [
             for (int i = 0; i < items.length; i++) ...[
               Builder(builder: (context) {
-                FileLogger.instance.log('_TimelineDayBlock.item[$i]', 'building item $i of ${items.length}');
+                FileLogger.instance.logSync('_TimelineDayBlock.item[$i]', 'building item $i of ${items.length}');
                 return items[i].build(context);
               }),
               if (i != items.length - 1) const SizedBox(height: 14),
@@ -3931,7 +3911,7 @@ class _TimelineDayBlock extends StatelessWidget {
         ),
       ],
     );
-    FileLogger.instance.log('_TimelineDayBlock.build', 'END dayTitle=$dayTitle');
+    FileLogger.instance.logSync('_TimelineDayBlock.build', 'END dayTitle=$dayTitle');
     return result;
   }
 }
@@ -4036,7 +4016,7 @@ class _TimelineJournalCard extends StatelessWidget {
     final subtitle = _travelPlace(record, trip);
     final content = (record.content ?? '').trim();
     final images = _decodeStringList(record.images);
-    FileLogger.instance.log('_TimelineJournalCard.build', 'id=${record.id} title=$title images=${images.length} content=${content.isNotEmpty}');
+    FileLogger.instance.logSync('_TimelineJournalCard.build', 'id=${record.id} title=$title images=${images.length} content=${content.isNotEmpty}');
     final tagSet = <String>{};
     tagSet.addAll(_decodeStringList(record.tags));
     final destination = record.destination?.trim();
@@ -4147,7 +4127,7 @@ Widget _buildWechatStyleImages(BuildContext context, List<String> images, Travel
       final gridItemSize = (constraints.maxWidth - 4) / 2;
       final rowCount = (displayImages.length + 1) ~/ 2;
       final gridHeight = rowCount * gridItemSize + (rowCount - 1) * 4.0;
-      FileLogger.instance.log('_buildWechatStyleImages', 'images=${images.length} displayImages=${displayImages.length} maxWidth=${constraints.maxWidth} gridItemSize=$gridItemSize gridHeight=$gridHeight');
+      FileLogger.instance.logSync('_buildWechatStyleImages', 'images=${images.length} displayImages=${displayImages.length} maxWidth=${constraints.maxWidth} gridItemSize=$gridItemSize gridHeight=$gridHeight');
 
       return SizedBox(
         height: gridHeight,

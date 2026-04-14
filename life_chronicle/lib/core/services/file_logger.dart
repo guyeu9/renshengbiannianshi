@@ -83,6 +83,53 @@ class FileLogger {
   Future<void> log(String tag, String message) async {
     await logWithLevel(tag, message, LogLevel.info);
   }
+  
+  void logSync(String tag, String message) {
+    logWithLevelSync(tag, message, LogLevel.info);
+  }
+  
+  void logWithLevelSync(String tag, String message, LogLevel level) {
+    if (!_shouldLog(level)) return;
+    
+    final timestamp = _formatTimestamp();
+    final levelStr = _levelPrefix(level);
+    final logLine = '[$timestamp] [$levelStr] [$tag] $message\n';
+    
+    if (enableConsole) {
+      final consoleOutput = '[$levelStr] [$tag] $message';
+      if (level == LogLevel.error) {
+        debugPrint('\x1B[31m$consoleOutput\x1B[0m');
+      } else if (level == LogLevel.warn) {
+        debugPrint('\x1B[33m$consoleOutput\x1B[0m');
+      } else if (level == LogLevel.debug) {
+        debugPrint('\x1B[90m$consoleOutput\x1B[0m');
+      } else {
+        debugPrint(consoleOutput);
+      }
+    }
+    
+    if (enableFile) {
+      _writeLogSync(logLine);
+    }
+  }
+  
+  void _writeLogSync(String logLine) {
+    if (_logFile == null) {
+      init().then((_) {
+        try {
+          _logFile?.writeAsStringSync(logLine, mode: FileMode.append);
+        } catch (e) {
+          debugPrint('[FileLogger] Sync write failed: $e');
+        }
+      });
+    } else {
+      try {
+        _logFile!.writeAsStringSync(logLine, mode: FileMode.append);
+      } catch (e) {
+        debugPrint('[FileLogger] Sync write failed: $e');
+      }
+    }
+  }
 
   Future<void> logWithLevel(String tag, String message, LogLevel level) async {
     if (!_shouldLog(level)) return;

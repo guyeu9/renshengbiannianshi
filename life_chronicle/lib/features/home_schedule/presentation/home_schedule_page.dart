@@ -286,12 +286,12 @@ class _GlassHeaderState extends State<_GlassHeader> {
                         data: (hasUnread) => _HeaderIconButton(
                           icon: Icons.notifications,
                           showDot: hasUnread,
-                          onTap: () => context.go(AppRoutes.reminderList),
+                          onTap: () => RouteNavigation.pushToReminderList(context),
                         ),
                         orElse: () => _HeaderIconButton(
                           icon: Icons.notifications,
                           showDot: false,
-                          onTap: () => context.go(AppRoutes.reminderList),
+                          onTap: () => RouteNavigation.pushToReminderList(context),
                         ),
                       );
                     },
@@ -416,7 +416,7 @@ class _FlashbackSection extends ConsumerWidget {
                 ),
               ),
               TextButton(
-                onPressed: () => context.go(AppRoutes.flashback),
+                onPressed: () => RouteNavigation.pushToFlashback(context),
                 style: TextButton.styleFrom(
                   padding: EdgeInsets.zero,
                   minimumSize: const Size(0, 0),
@@ -651,7 +651,7 @@ class _TodayReminder extends ConsumerWidget {
         final typeIcon = _getTypeIcon(reminder.type);
 
         return GestureDetector(
-          onTap: () => context.go(AppRoutes.reminderList),
+          onTap: () => RouteNavigation.pushToReminderList(context),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
