@@ -4039,79 +4039,84 @@ class _TimelineJournalCard extends StatelessWidget {
     FileLogger.instance.logSync('_TimelineJournalCard.build', 'BUILDING: title="$title" subtitle="$subtitle" timeLabel=$timeLabel images=${images.length} tags=${tags.length}');
     
     FileLogger.instance.logSync('_TimelineJournalCard.build', 'RETURNING GestureDetector with Container');
-    return GestureDetector(
-      onTap: () {
-        RouteNavigation.pushToJournalDetail(context, record.id);
-      },
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
-        ),
-        child: Builder(builder: (context) {
-          FileLogger.instance.logSync('_TimelineJournalCard.build', 'BUILDING Column children');
-          return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        FileLogger.instance.logSync('_TimelineJournalCard.build', 'Container constraints: maxWidth=${constraints.maxWidth} maxHeight=${constraints.maxHeight}');
+        return GestureDetector(
+          onTap: () {
+            RouteNavigation.pushToJournalDetail(context, record.id);
+          },
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+            ),
+            child: Builder(builder: (context) {
+              FileLogger.instance.logSync('_TimelineJournalCard.build', 'BUILDING Column children');
+              return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(color: const Color(0xFFF97316).withValues(alpha: 0.12), shape: BoxShape.circle),
-                  child: const Icon(Icons.edit_note, size: 18, color: Color(0xFFF97316)),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                Builder(builder: (context) {
+                  FileLogger.instance.logSync('_TimelineJournalCard.build', 'BUILDING Row with icon, title="$title", timeLabel=$timeLabel');
+                  return Row(
+                  children: [
+                    Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(color: const Color(0xFFF97316).withValues(alpha: 0.12), shape: BoxShape.circle),
+                      child: const Icon(Icons.edit_note, size: 18, color: Color(0xFFF97316)),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(timeLabel, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
-                          ),
+                          const SizedBox(height: 2),
+                          Text(subtitle, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
                         ],
                       ),
-                      const SizedBox(height: 2),
-                      Text(subtitle, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
-                    ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(timeLabel, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
+                    ),
+                  ],
+                );
+                }),
+                if (images.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  _buildWechatStyleImages(context, images, record, trip),
+                ],
+                if (content.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    content,
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF64748B), height: 1.5),
                   ),
-                ),
+                ],
+                if (tags.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [for (final tag in tags) _TagChip(label: '#$tag')],
+                  ),
+                ],
               ],
-            ),
-            if (images.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              _buildWechatStyleImages(context, images, record, trip),
-            ],
-            if (content.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              Text(
-                content,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF64748B), height: 1.5),
-              ),
-            ],
-            if (tags.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [for (final tag in tags) _TagChip(label: '#$tag')],
-              ),
-            ],
-          ],
+            );
+            }),
+          ),
         );
-        }),
-      ),
+      },
     );
   }
 }
