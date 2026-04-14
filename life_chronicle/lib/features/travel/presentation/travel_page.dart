@@ -1322,8 +1322,8 @@ class TravelDetailPage extends ConsumerWidget {
                           FileLogger.instance.logSync('TravelDetailPage.recordCard', 'SKIPPED: no images and no content');
                           return const SizedBox.shrink();
                         }
-                        FileLogger.instance.logSync('TravelDetailPage.recordCard', 'BUILDING Container with ${recordImages.length} images');
-                        return Padding(
+                        FileLogger.instance.logSync('TravelDetailPage.recordCard', 'BUILDING Container with ${recordImages.length} images, content=${recordContent.isNotEmpty}');
+                        final result = Padding(
                           padding: const EdgeInsets.only(top: 14),
                           child: Container(
                             padding: const EdgeInsets.all(12),
@@ -1342,12 +1342,18 @@ class TravelDetailPage extends ConsumerWidget {
                                   ),
                                   if (recordImages.isNotEmpty) const SizedBox(height: 10),
                                 ],
-                                if (recordImages.isNotEmpty)
-                                  _buildWechatStyleImages(context, recordImages, currentRecord, trip),
+                                if (recordImages.isNotEmpty) ...[
+                                  Builder(builder: (context) {
+                                    FileLogger.instance.logSync('TravelDetailPage.recordCard', 'CALLING _buildWechatStyleImages with ${recordImages.length} images');
+                                    return _buildWechatStyleImages(context, recordImages, currentRecord, trip);
+                                  }),
+                                ],
                               ],
                             ),
                           ),
                         );
+                        FileLogger.instance.logSync('TravelDetailPage.recordCard', 'BUILT Container successfully');
+                        return result;
                       }),
                       Builder(builder: (context) {
                         FileLogger.instance.logSync('TravelDetailPage._TravelTimeline', 'journals=${journals.length} friends=${friends.length} foods=${foods.length} links=${links.length} trip=${trip?.id}');
@@ -3745,46 +3751,50 @@ class _TravelTimeline extends StatelessWidget {
       FileLogger.instance.logSync('_TravelTimeline.day[$i]', 'day=${days[i]} records=${dayRecords.length}');
     }
     
+    FileLogger.instance.logSync('_TravelTimeline.build', 'RETURNING Column with ${days.length} days');
     return Column(
       children: [
         for (int i = 0; i < days.length; i++) ...[
           Builder(builder: (context) {
-            final dayRecords = dayMap[days[i]] ?? [];
-            final items = _buildDayItems(
-              records: dayRecords,
-              friendById: friendById,
-              foodById: foodById,
-              friendIdsByTravel: friendIdsByTravel,
-              foodIdsByTravel: foodIdsByTravel,
-            );
-            FileLogger.instance.logSync('_TravelTimeline.dayBlock[$i]', 'dayTitle=${_buildDayTitle(days[i], i)} items=${items.length}');
-            return IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: 36,
-                    child: Column(
-                      children: [
-                        _TimelineDayDot(isActive: hasActiveDay ? _isSameDay(days[i], today) : i == 0),
-                        if (i < days.length - 1 || trip != null)
-                          Expanded(
-                            child: Container(width: 2, color: const Color(0xFFE5E7EB)),
-                          ),
-                      ],
-                    ),
+            FileLogger.instance.logSync('_TravelTimeline.build', 'BUILDING day $i of ${days.length}: ${_buildDayTitle(days[i], i)}');
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 36,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _TimelineDayDot(isActive: hasActiveDay ? _isSameDay(days[i], today) : i == 0),
+                      if (i < days.length - 1 || trip != null)
+                        Container(
+                          width: 2,
+                          height: 100,
+                          color: const Color(0xFFE5E7EB),
+                        ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _TimelineDayBlock(
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Builder(builder: (context) {
+                    final items = _buildDayItems(
+                      records: dayMap[days[i]] ?? const <TravelRecord>[],
+                      friendById: friendById,
+                      foodById: foodById,
+                      friendIdsByTravel: friendIdsByTravel,
+                      foodIdsByTravel: foodIdsByTravel,
+                    );
+                    FileLogger.instance.logSync('_TravelTimeline.build', 'CALLING _TimelineDayBlock for day $i with ${items.length} items');
+                    return _TimelineDayBlock(
                       dayTitle: _buildDayTitle(days[i], i),
                       daySubTitle: _formatDaySubTitle(days[i]),
                       isActive: hasActiveDay ? _isSameDay(days[i], today) : i == 0,
                       items: items,
-                    ),
-                  ),
-                ],
-              ),
+                    );
+                  }),
+                ),
+              ],
             );
           }),
           if (i != days.length - 1) const SizedBox(height: 22),
@@ -4025,6 +4035,10 @@ class _TimelineJournalCard extends StatelessWidget {
     }
     final tags = tagSet.toList()..sort();
     final timeLabel = '${record.recordDate.year}-${record.recordDate.month.toString().padLeft(2, '0')}-${record.recordDate.day.toString().padLeft(2, '0')} ${record.recordDate.hour.toString().padLeft(2, '0')}:${record.recordDate.minute.toString().padLeft(2, '0')}';
+    
+    FileLogger.instance.logSync('_TimelineJournalCard.build', 'BUILDING: title="$title" subtitle="$subtitle" timeLabel=$timeLabel images=${images.length} tags=${tags.length}');
+    
+    FileLogger.instance.logSync('_TimelineJournalCard.build', 'RETURNING GestureDetector with Container');
     return GestureDetector(
       onTap: () {
         RouteNavigation.pushToJournalDetail(context, record.id);
@@ -4036,7 +4050,9 @@ class _TimelineJournalCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
         ),
-        child: Column(
+        child: Builder(builder: (context) {
+          FileLogger.instance.logSync('_TimelineJournalCard.build', 'BUILDING Column children');
+          return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
@@ -4093,16 +4109,22 @@ class _TimelineJournalCard extends StatelessWidget {
               ),
             ],
           ],
-        ),
+        );
+        }),
       ),
     );
   }
 }
 
 Widget _buildWechatStyleImages(BuildContext context, List<String> images, TravelRecord record, Trip? trip) {
-  if (images.isEmpty) return const SizedBox.shrink();
+  FileLogger.instance.logSync('_buildWechatStyleImages', 'START images=${images.length}');
+  if (images.isEmpty) {
+    FileLogger.instance.logSync('_buildWechatStyleImages', 'RETURNING SizedBox.shrink() because images is empty');
+    return const SizedBox.shrink();
+  }
 
   if (images.length == 1) {
+    FileLogger.instance.logSync('_buildWechatStyleImages', 'RETURNING single SmartImage for 1 image');
     return ClipRRect(
       borderRadius: BorderRadius.circular(10),
       child: Container(
@@ -4119,6 +4141,7 @@ Widget _buildWechatStyleImages(BuildContext context, List<String> images, Travel
     );
   }
 
+  FileLogger.instance.logSync('_buildWechatStyleImages', 'BUILDING grid for ${images.length} images');
   final displayImages = images.length > 4 ? images.take(4).toList() : images;
   final remainingCount = images.length > 4 ? images.length - 4 : 0;
 
@@ -4127,7 +4150,7 @@ Widget _buildWechatStyleImages(BuildContext context, List<String> images, Travel
       final gridItemSize = (constraints.maxWidth - 4) / 2;
       final rowCount = (displayImages.length + 1) ~/ 2;
       final gridHeight = rowCount * gridItemSize + (rowCount - 1) * 4.0;
-      FileLogger.instance.logSync('_buildWechatStyleImages', 'images=${images.length} displayImages=${displayImages.length} maxWidth=${constraints.maxWidth} gridItemSize=$gridItemSize gridHeight=$gridHeight');
+      FileLogger.instance.logSync('_buildWechatStyleImages', 'LayoutBuilder: maxWidth=${constraints.maxWidth} gridItemSize=$gridItemSize gridHeight=$gridHeight');
 
       return SizedBox(
         height: gridHeight,

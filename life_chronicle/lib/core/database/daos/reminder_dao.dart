@@ -99,4 +99,12 @@ class ReminderDao extends DatabaseAccessor<AppDatabase> with _$ReminderDaoMixin 
           ..where((t) => t.relatedEntityId.equals(entityId)))
         .go();
   }
+
+  Future<void> deleteRemindersByTypeAndEntity(String type, String entityType, String entityId) async {
+    await (delete(reminderRecords)
+          ..where((t) => t.type.equals(type))
+          ..where((t) => t.relatedEntityType.equals(entityType))
+          ..where((t) => t.relatedEntityId.equals(entityId)))
+        .go();
+  }
 }

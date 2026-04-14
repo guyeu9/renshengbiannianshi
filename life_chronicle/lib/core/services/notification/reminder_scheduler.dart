@@ -190,18 +190,19 @@ class ReminderScheduler {
     FriendRecord friend,
     SharedPreferences prefs,
   ) async {
+    final freqDays = contactFrequencyToDays(friend.contactFrequency);
+    if (freqDays == 0) {
+      debugPrint('Skip contact reminder for ${friend.name}: contactFrequency is ${friend.contactFrequency}');
+      return;
+    }
+
     final reminderEnabled = prefs.getBool('reminder_${friend.id}') ?? false;
     final customDays = prefs.getInt('reminder_${friend.id}_days');
 
     int intervalDays;
-    if (reminderEnabled && customDays != null) {
+    if (reminderEnabled && customDays != null && customDays > 0) {
       intervalDays = customDays;
-    } else if (reminderEnabled) {
-      intervalDays = contactFrequencyToDays(friend.contactFrequency);
-      if (intervalDays == 0) intervalDays = 30;
     } else {
-      final freqDays = contactFrequencyToDays(friend.contactFrequency);
-      if (freqDays == 0) return;
       intervalDays = freqDays;
     }
 
@@ -210,19 +211,14 @@ class ReminderScheduler {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    DateTime scheduledTime;
-    final lastMeetDate = friend.lastMeetDate;
-    if (lastMeetDate != null) {
-      final lastMeetDay = DateTime(lastMeetDate.year, lastMeetDate.month, lastMeetDate.day);
-      scheduledTime = lastMeetDay.add(Duration(days: intervalDays));
-      scheduledTime = DateTime(scheduledTime.year, scheduledTime.month, scheduledTime.day, 9, 0);
-      if (scheduledTime.isBefore(today)) {
-        scheduledTime = today.add(Duration(days: intervalDays));
-        scheduledTime = DateTime(scheduledTime.year, scheduledTime.month, scheduledTime.day, 9, 0);
-      }
-    } else {
-      scheduledTime = today.add(Duration(days: intervalDays));
-      scheduledTime = DateTime(scheduledTime.year, scheduledTime.month, scheduledTime.day, 9, 0);
+    final baseDate = friend.lastMeetDate ?? friend.createdAt;
+    final baseDay = DateTime(baseDate.year, baseDate.month, baseDate.day);
+
+    var scheduledTime = baseDay.add(Duration(days: intervalDays));
+    scheduledTime = DateTime(scheduledTime.year, scheduledTime.month, scheduledTime.day, 9, 0);
+
+    if (scheduledTime.isBefore(today)) {
+      scheduledTime = DateTime(today.year, today.month, today.day, 9, 0);
     }
 
     scheduledTime = await _applyDoNotDisturb(scheduledTime);
@@ -234,13 +230,18 @@ class ReminderScheduler {
     );
 
     final reminderId = 'contact_${friend.id}';
-    await db.reminderDao.deleteRemindersByEntity('friend', friend.id);
+    await db.reminderDao.deleteRemindersByTypeAndEntity('contact', 'friend', friend.id);
+    
+    final daysSinceLastMeet = friend.lastMeetDate != null 
+        ? now.difference(friend.lastMeetDate!).inDays 
+        : -1;
+    
     await db.reminderDao.insertReminder(
       ReminderRecordsCompanion.insert(
         id: reminderId,
         type: 'contact',
-        title: '联络提醒：${friend.name}',
-        content: Value('已经$intervalDays天没联系${friend.name}了，该打个招呼啦！'),
+        title: friend.name,
+        content: Value(_buildContactReminderContent(friend, intervalDays, daysSinceLastMeet)),
         relatedEntityType: const Value('friend'),
         relatedEntityId: Value(friend.id),
         scheduledAt: scheduledTime,
@@ -248,7 +249,18 @@ class ReminderScheduler {
       ),
     );
 
-    debugPrint('Scheduled contact reminder for ${friend.name} at $scheduledTime (based on lastMeetDate: $lastMeetDate, intervalDays: $intervalDays)');
+    debugPrint('Scheduled contact reminder for ${friend.name} at $scheduledTime (baseDate: $baseDate, intervalDays: $intervalDays, daysSinceLastMeet: $daysSinceLastMeet)');
+  }
+
+  String _buildContactReminderContent(FriendRecord friend, int intervalDays, int daysSinceLastMeet) {
+    final buffer = StringBuffer();
+    buffer.writeln('联络周期：${friend.contactFrequency ?? '每$intervalDays天'}');
+    if (daysSinceLastMeet >= 0) {
+      buffer.writeln('距上次联系：$daysSinceLastMeet天');
+    } else {
+      buffer.writeln('距上次联系：未记录');
+    }
+    return buffer.toString().trimRight();
   }
 
   Future<void> _scheduleAllGoalReminders(AppDatabase db) async {
@@ -306,7 +318,7 @@ class ReminderScheduler {
     );
 
     final reminderId = 'goal_${goal.id}';
-    await db.reminderDao.deleteRemindersByEntity('goal', goal.id);
+    await db.reminderDao.deleteRemindersByTypeAndEntity('goal', 'goal', goal.id);
     await db.reminderDao.insertReminder(
       ReminderRecordsCompanion.insert(
         id: reminderId,

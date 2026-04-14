@@ -33,6 +33,7 @@ class ReminderService {
     if (_initialized) return;
 
     tz_data.initializeTimeZones();
+    tz.setLocalTimeZone(tz.getLocation('Asia/Shanghai'));
 
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iOSSettings = DarwinInitializationSettings(
@@ -168,7 +169,7 @@ class ReminderService {
           presentSound: true,
         ),
       ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
       payload: 'birthday:$friendId',
     );
@@ -214,7 +215,7 @@ class ReminderService {
           presentSound: true,
         ),
       ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
       payload: 'contact:$friendId',
     );
@@ -287,7 +288,7 @@ class ReminderService {
           presentSound: true,
         ),
       ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
       payload: 'goal:$goalId',
     );
@@ -328,5 +329,32 @@ class ReminderService {
 
   Future<List<PendingNotificationRequest>> getPendingReminders() async {
     return await _notifications.pendingNotificationRequests();
+  }
+
+  Future<void> showTestNotification() async {
+    if (!_initialized) await initialize();
+
+    await _notifications.show(
+      999999,
+      '测试通知',
+      '如果你看到这条通知，说明通知系统工作正常！',
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          'test_notifications',
+          '测试通知',
+          channelDescription: '用于测试通知是否正常工作',
+          importance: Importance.max,
+          priority: Priority.max,
+          icon: '@mipmap/ic_launcher',
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      ),
+    );
+
+    debugPrint('Test notification sent');
   }
 }

@@ -330,7 +330,7 @@ class _ReminderCard extends ConsumerWidget {
                           fontSize: 12,
                           color: Color(0xFF6B7280),
                         ),
-                        maxLines: 2,
+                        maxLines: 4,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
