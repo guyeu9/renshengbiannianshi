@@ -638,9 +638,9 @@ class _TodayReminder extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final upcomingReminders = ref.watch(upcomingRemindersProvider);
+    final todayReminders = ref.watch(todayRemindersProvider);
 
-    return upcomingReminders.when(
+    return todayReminders.when(
       data: (reminders) {
         if (reminders.isEmpty) {
           return const SizedBox.shrink();
