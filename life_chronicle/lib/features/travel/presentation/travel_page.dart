@@ -1062,6 +1062,8 @@ class TravelDetailPage extends ConsumerWidget {
         final friends = state.linkedFriends;
         final foods = state.linkedFoods;
         final links = state.entityLinks;
+        
+        FileLogger.instance.log('TravelDetailPage.data', 'record=${record?.id} isJournal=${state.isJournal} isWishlist=${state.isWishlist} journals=${journals.length} cover=${cover.isNotEmpty} title=$title tripId=$tripId');
 
         return Scaffold(
           backgroundColor: const Color(0xFFF6F8F8),
@@ -1217,11 +1219,17 @@ class TravelDetailPage extends ConsumerWidget {
                 ),
               ),
               SliverToBoxAdapter(
-                child: Padding(
+                child: Builder(builder: (context) {
+                  FileLogger.instance.log('TravelDetailPage.SliverToBoxAdapter', 'START building Column children');
+                  return Padding(
                   padding: const EdgeInsets.fromLTRB(20, 18, 20, 110),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      Builder(builder: (context) {
+                        FileLogger.instance.log('TravelDetailPage.Column', 'child[0]: isWishlist=${state.isWishlist}');
+                        return const SizedBox.shrink();
+                      }),
                       if (state.isWishlist)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -1279,6 +1287,10 @@ class TravelDetailPage extends ConsumerWidget {
                           ),
                         ),
                       if (tagList.isNotEmpty) const SizedBox(height: 14),
+                      Builder(builder: (context) {
+                        FileLogger.instance.log('TravelDetailPage.Column', 'child[1]: checklistItems=${checklistItems.length} friends=${friends.length}');
+                        return const SizedBox.shrink();
+                      }),
                       Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -1305,16 +1317,23 @@ class TravelDetailPage extends ConsumerWidget {
                         ],
                       ),
                       Builder(builder: (context) {
+                        FileLogger.instance.log('TravelDetailPage.Column', 'child[2]: recordCard START');
+                        return const SizedBox.shrink();
+                      }),
+                      Builder(builder: (context) {
                         FileLogger.instance.log('TravelDetailPage.recordCard', 'isJournal=${state.isJournal} record=${record?.id} images=${_decodeStringList(record?.images ?? '').length}');
                         if (state.isJournal || record == null) {
+                          FileLogger.instance.log('TravelDetailPage.recordCard', 'SKIPPED: isJournal=${state.isJournal} recordNull=${record == null}');
                           return const SizedBox.shrink();
                         }
                         final recordImages = _decodeStringList(record.images);
                         final recordContent = (record.content ?? '').trim();
                         FileLogger.instance.log('TravelDetailPage.recordCard', 'recordImages=${recordImages.length} recordContent=${recordContent.isNotEmpty}');
                         if (recordImages.isEmpty && recordContent.isEmpty) {
+                          FileLogger.instance.log('TravelDetailPage.recordCard', 'SKIPPED: no images and no content');
                           return const SizedBox.shrink();
                         }
+                        FileLogger.instance.log('TravelDetailPage.recordCard', 'BUILDING: will return Container with ${recordImages.length} images');
                         return Padding(
                           padding: const EdgeInsets.only(top: 14),
                           child: Container(
@@ -1342,6 +1361,10 @@ class TravelDetailPage extends ConsumerWidget {
                         );
                       }),
                       Builder(builder: (context) {
+                        FileLogger.instance.log('TravelDetailPage.Column', 'child[3]: _TravelTimeline START journals=${journals.length}');
+                        return const SizedBox.shrink();
+                      }),
+                      Builder(builder: (context) {
                         FileLogger.instance.log('TravelDetailPage._TravelTimeline', 'journals=${journals.length} friends=${friends.length} foods=${foods.length} links=${links.length} trip=${trip?.id} headerStart=${state.headerStart}');
                         for (int i = 0; i < journals.length; i++) {
                           final j = journals[i];
@@ -1356,9 +1379,14 @@ class TravelDetailPage extends ConsumerWidget {
                           links: links,
                         );
                       }),
+                      Builder(builder: (context) {
+                        FileLogger.instance.log('TravelDetailPage.Column', 'END of Column children');
+                        return const SizedBox.shrink();
+                      }),
                     ],
                   ),
-                ),
+                );
+              }),
               ),
             ],
           ),
@@ -3737,37 +3765,54 @@ class _TravelTimeline extends StatelessWidget {
       FileLogger.instance.log('_TravelTimeline.day[$i]', 'day=${days[i]} records=${dayRecords.length}');
     }
     
-    return Stack(
+    return Column(
       children: [
-        Positioned(
-          left: 18,
-          top: 16,
-          bottom: 18,
-          child: Container(width: 2, color: const Color(0xFFE5E7EB)),
-        ),
-        Column(
-          children: [
-            for (int i = 0; i < days.length; i++) ...[
-              _TimelineDayBlock(
-                dayTitle: _buildDayTitle(days[i], i),
-                daySubTitle: _formatDaySubTitle(days[i]),
-                isActive: hasActiveDay ? _isSameDay(days[i], today) : i == 0,
-                items: _buildDayItems(
-                  records: dayMap[days[i]] ?? const <TravelRecord>[],
-                  friendById: friendById,
-                  foodById: foodById,
-                  friendIdsByTravel: friendIdsByTravel,
-                  foodIdsByTravel: foodIdsByTravel,
-                ),
+        for (int i = 0; i < days.length; i++) ...[
+          Builder(builder: (context) {
+            final dayRecords = dayMap[days[i]] ?? [];
+            final items = _buildDayItems(
+              records: dayRecords,
+              friendById: friendById,
+              foodById: foodById,
+              friendIdsByTravel: friendIdsByTravel,
+              foodIdsByTravel: foodIdsByTravel,
+            );
+            FileLogger.instance.log('_TravelTimeline.dayBlock[$i]', 'dayTitle=${_buildDayTitle(days[i], i)} items=${items.length}');
+            return IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 36,
+                    child: Column(
+                      children: [
+                        _TimelineDayDot(isActive: hasActiveDay ? _isSameDay(days[i], today) : i == 0),
+                        if (i < days.length - 1 || trip != null)
+                          Expanded(
+                            child: Container(width: 2, color: const Color(0xFFE5E7EB)),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _TimelineDayBlock(
+                      dayTitle: _buildDayTitle(days[i], i),
+                      daySubTitle: _formatDaySubTitle(days[i]),
+                      isActive: hasActiveDay ? _isSameDay(days[i], today) : i == 0,
+                      items: items,
+                    ),
+                  ),
+                ],
               ),
-              if (i != days.length - 1) const SizedBox(height: 22),
-            ],
-            if (trip != null) ...[
-              const SizedBox(height: 18),
-              const _TimelineEndMarker(),
-            ],
-          ],
-        ),
+            );
+          }),
+          if (i != days.length - 1) const SizedBox(height: 22),
+        ],
+        if (trip != null) ...[
+          const SizedBox(height: 18),
+          const _TimelineEndMarker(),
+        ],
       ],
     );
   }
@@ -3819,6 +3864,37 @@ class _TravelTimeline extends StatelessWidget {
   }
 }
 
+class _TimelineDayDot extends StatelessWidget {
+  const _TimelineDayDot({required this.isActive});
+
+  final bool isActive;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 36,
+      height: 36,
+      child: Center(
+        child: Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: isActive ? const Color(0xFF2BCDEE) : const Color(0xFFCBD5E1),
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: (isActive ? const Color(0xFF2BCDEE) : const Color(0xFFCBD5E1)).withValues(alpha: 0.25),
+                blurRadius: 0,
+                spreadRadius: 6,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _TimelineDayBlock extends StatelessWidget {
   const _TimelineDayBlock({required this.dayTitle, required this.daySubTitle, required this.isActive, required this.items});
 
@@ -3829,57 +3905,34 @@ class _TimelineDayBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    FileLogger.instance.log('_TimelineDayBlock.build', 'dayTitle=$dayTitle items=${items.length}');
-    return Column(
+    FileLogger.instance.log('_TimelineDayBlock.build', 'START dayTitle=$dayTitle items=${items.length}');
+    final result = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              width: 36,
-              child: Center(
-                child: Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: isActive ? const Color(0xFF2BCDEE) : const Color(0xFFCBD5E1),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: (isActive ? const Color(0xFF2BCDEE) : const Color(0xFFCBD5E1)).withValues(alpha: 0.25),
-                        blurRadius: 0,
-                        spreadRadius: 6,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(dayTitle, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                const SizedBox(height: 2),
-                Text(daySubTitle, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
-              ],
-            ),
+            Text(dayTitle, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+            const SizedBox(height: 2),
+            Text(daySubTitle, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
           ],
         ),
         const SizedBox(height: 14),
-        Padding(
-          padding: const EdgeInsets.only(left: 48),
-          child: Column(
-            children: [
-              for (int i = 0; i < items.length; i++) ...[
-                items[i].build(context),
-                if (i != items.length - 1) const SizedBox(height: 14),
-              ],
+        Column(
+          children: [
+            for (int i = 0; i < items.length; i++) ...[
+              Builder(builder: (context) {
+                FileLogger.instance.log('_TimelineDayBlock.item[$i]', 'building item $i of ${items.length}');
+                return items[i].build(context);
+              }),
+              if (i != items.length - 1) const SizedBox(height: 14),
             ],
-          ),
+          ],
         ),
       ],
     );
+    FileLogger.instance.log('_TimelineDayBlock.build', 'END dayTitle=$dayTitle');
+    return result;
   }
 }
 
@@ -4094,6 +4147,7 @@ Widget _buildWechatStyleImages(BuildContext context, List<String> images, Travel
       final gridItemSize = (constraints.maxWidth - 4) / 2;
       final rowCount = (displayImages.length + 1) ~/ 2;
       final gridHeight = rowCount * gridItemSize + (rowCount - 1) * 4.0;
+      FileLogger.instance.log('_buildWechatStyleImages', 'images=${images.length} displayImages=${displayImages.length} maxWidth=${constraints.maxWidth} gridItemSize=$gridItemSize gridHeight=$gridHeight');
 
       return SizedBox(
         height: gridHeight,
