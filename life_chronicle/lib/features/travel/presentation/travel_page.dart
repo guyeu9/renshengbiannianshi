@@ -1067,6 +1067,8 @@ class TravelDetailPage extends ConsumerWidget {
 
         final finalSummary = 'BUILD COMPLETE: record=${record?.id} isJournal=${state.isJournal} isWishlist=${state.isWishlist} journals=${journals.length} checklistItems=${checklistItems.length} friends=${friends.length} foods=${foods.length} links=${links.length} title="$title" tripId=$tripId';
         
+        FileLogger.instance.logSync('TravelDetailPage.build', 'BUILDING CustomScrollView: SliverAppBar(expandedHeight=288, pinned=false) + SliverToBoxAdapter(isJournal=${state.isJournal}, isWishlist=${state.isWishlist}, journals=${journals.length})');
+        
         return TravelDetailPageFinalLog(
           summary: finalSummary,
           child: Scaffold(
@@ -3705,6 +3707,7 @@ class _TravelTimeline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    FileLogger.instance.logSync('_TravelTimeline.data', 'RECEIVED: journals=${journals.length} friends=${friends.length} foods=${foods.length} links=${links.length} tripId=${trip?.id}');
     FileLogger.instance.logSync('_TravelTimeline.build', 'journals=${journals.length} friends=${friends.length} foods=${foods.length} links=${links.length}');
     if (journals.isEmpty) {
       FileLogger.instance.logSync('_TravelTimeline.build', 'journals is empty, showing empty state');
@@ -3806,8 +3809,9 @@ class _TravelTimeline extends StatelessWidget {
       dayRows.add(const _TimelineEndMarker());
     }
     
-    FileLogger.instance.logSync('_TravelTimeline.build', 'RETURNING Column with ${dayRows.length} widgets');
+    FileLogger.instance.logSync('_TravelTimeline.build', 'RETURNING Column(mainAxisSize.min) with ${dayRows.length} widgets');
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: dayRows,
     );
   }
@@ -3910,10 +3914,14 @@ class _TimelineDayBlock extends StatelessWidget {
       itemWidgets.add(items[i].build(context));
     }
     
+    FileLogger.instance.logSync('_TimelineDayBlock.tree', 'RETURNING Column(mainAxisSize.min) > dayTitle=$dayTitle itemWidgets=${itemWidgets.length}');
+    
     return Column(
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(dayTitle, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
@@ -3923,6 +3931,7 @@ class _TimelineDayBlock extends StatelessWidget {
         ),
         const SizedBox(height: 14),
         Column(
+          mainAxisSize: MainAxisSize.min,
           children: itemWidgets,
         ),
       ],
@@ -4030,6 +4039,8 @@ class _TimelineJournalCard extends StatelessWidget {
     final subtitle = _travelPlace(record, trip);
     final content = (record.content ?? '').trim();
     final images = _decodeStringList(record.images);
+    FileLogger.instance.logSync('_TimelineJournalCard.data', 'RECEIVED: recordId=${record.id} title="${record.title}" tripId=${trip?.id}');
+    
     final tagSet = <String>{};
     tagSet.addAll(_decodeStringList(record.tags));
     final destination = record.destination?.trim();
@@ -4039,7 +4050,7 @@ class _TimelineJournalCard extends StatelessWidget {
     final tags = tagSet.toList()..sort();
     final timeLabel = '${record.recordDate.year}-${record.recordDate.month.toString().padLeft(2, '0')}-${record.recordDate.day.toString().padLeft(2, '0')} ${record.recordDate.hour.toString().padLeft(2, '0')}:${record.recordDate.minute.toString().padLeft(2, '0')}';
     
-    FileLogger.instance.logSync('_TimelineJournalCard.build', 'title="$title" subtitle="$subtitle" timeLabel=$timeLabel images=${images.length} tags=${tags.length} content=${content.isNotEmpty}');
+    FileLogger.instance.logSync('_TimelineJournalCard.build', 'BUILDING children: title="$title" subtitle="$subtitle" timeLabel=$timeLabel images=${images.length} tags=${tags.length} content=${content.isNotEmpty}');
     
     final children = <Widget>[
       Row(
@@ -4077,6 +4088,7 @@ class _TimelineJournalCard extends StatelessWidget {
     if (images.isNotEmpty) {
       children.add(const SizedBox(height: 10));
       children.add(_buildWechatStyleImages(context, images, record, trip));
+      FileLogger.instance.logSync('_TimelineJournalCard.build', 'ADDED images section (${images.length} images)');
     }
     if (content.isNotEmpty) {
       children.add(const SizedBox(height: 10));
@@ -4084,6 +4096,7 @@ class _TimelineJournalCard extends StatelessWidget {
         content,
         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF64748B), height: 1.5),
       ));
+      FileLogger.instance.logSync('_TimelineJournalCard.build', 'ADDED content section');
     }
     if (tags.isNotEmpty) {
       children.add(const SizedBox(height: 12));
@@ -4092,9 +4105,10 @@ class _TimelineJournalCard extends StatelessWidget {
         runSpacing: 8,
         children: [for (final tag in tags) _TagChip(label: '#$tag')],
       ));
+      FileLogger.instance.logSync('_TimelineJournalCard.build', 'ADDED tags section (${tags.length} tags)');
     }
     
-    FileLogger.instance.logSync('_TimelineJournalCard.build', 'RETURNING GestureDetector with ${children.length} children');
+    FileLogger.instance.logSync('_TimelineJournalCard.tree', 'RETURNING: GestureDetector > Container(padding=12) > Column(mainAxisSize.min, children=${children.length})');
     
     return GestureDetector(
       onTap: () {
@@ -4119,10 +4133,12 @@ class _TimelineJournalCard extends StatelessWidget {
 
 Widget _buildWechatStyleImages(BuildContext context, List<String> images, TravelRecord record, Trip? trip) {
   if (images.isEmpty) {
+    FileLogger.instance.logSync('_buildWechatStyleImages', 'images=0 RETURNING SizedBox.shrink()');
     return const SizedBox.shrink();
   }
 
   if (images.length == 1) {
+    FileLogger.instance.logSync('_buildWechatStyleImages', 'images=1 RETURNING SmartImage(contain, maxHeight=240)');
     return ClipRRect(
       borderRadius: BorderRadius.circular(10),
       child: Container(
@@ -4142,66 +4158,58 @@ Widget _buildWechatStyleImages(BuildContext context, List<String> images, Travel
   final displayImages = images.length > 4 ? images.take(4).toList() : images;
   final remainingCount = images.length > 4 ? images.length - 4 : 0;
   final rowCount = (displayImages.length + 1) ~/ 2;
+  final gridHeight = rowCount * 150.0 + (rowCount - 1) * 4.0;
 
-  return Column(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      for (int row = 0; row < rowCount; row++) ...[
-        if (row > 0) const SizedBox(height: 4),
-        Row(
-          children: [
-            for (int col = 0; col < 2; col++) ...[
-              if (col > 0) const SizedBox(width: 4),
-              if (row * 2 + col < displayImages.length)
-                Expanded(
-                  child: AspectRatio(
-                    aspectRatio: 1,
-                    child: _buildGridImageItem(context, images, displayImages, row * 2 + col, remainingCount),
-                  ),
-                )
-              else
-                const Expanded(child: SizedBox()),
-            ],
-          ],
-        ),
-      ],
-    ],
-  );
-}
+  FileLogger.instance.logSync('_buildWechatStyleImages', 'images=${images.length} display=${displayImages.length} remaining=$remainingCount rowCount=$rowCount gridHeight=$gridHeight RETURNING SizedBox+GridView');
 
-Widget _buildGridImageItem(BuildContext context, List<String> allImages, List<String> displayImages, int index, int remainingCount) {
-  final isLast = index == displayImages.length - 1;
-  final showOverlay = isLast && remainingCount > 0;
-
-  return GestureDetector(
-    onTap: () {
-      ImagePreview.showGallery(
-        context,
-        images: allImages,
-        initialIndex: index,
-      );
-    },
-    child: ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          _buildJournalGridImage(displayImages[index]),
-          if (showOverlay)
-            Container(
-              color: Colors.black.withValues(alpha: 0.5),
-              alignment: Alignment.center,
-              child: Text(
-                '+$remainingCount',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-        ],
+  return SizedBox(
+    height: gridHeight,
+    child: GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 4,
+        crossAxisSpacing: 4,
+        childAspectRatio: 1,
       ),
+      itemCount: displayImages.length,
+      itemBuilder: (context, index) {
+        final isLast = index == displayImages.length - 1;
+        final showOverlay = isLast && remainingCount > 0;
+
+        return GestureDetector(
+          onTap: () {
+            ImagePreview.showGallery(
+              context,
+              images: images,
+              initialIndex: index,
+            );
+          },
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                _buildJournalGridImage(displayImages[index]),
+                if (showOverlay)
+                  Container(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    alignment: Alignment.center,
+                    child: Text(
+                      '+$remainingCount',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     ),
   );
 }

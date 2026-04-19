@@ -249,7 +249,7 @@ Stream<TravelDetailState> _combineStreams({
       final linkedFriends = friends.where((f) => linkedFriendIds.contains(f.id)).toList(growable: false);
       final linkedFoods = foods.where((f) => linkedFoodIds.contains(f.id)).toList(growable: false);
 
-      return TravelDetailState(
+      final state = TravelDetailState(
         record: record,
         trip: trip,
         journals: journals,
@@ -259,6 +259,10 @@ Stream<TravelDetailState> _combineStreams({
         entityLinks: entityLinks,
         allTravelIds: allTravelIds,
       );
+      
+      FileLogger.instance.logSync('TravelDetailProvider', 'RETURNING: travelId=$travelId tripId=$tripId recordId=${record?.id} isJournal=${state.isJournal} isWishlist=${state.isWishlist} journals=${journals.length} checklistItems=${checklistItems.length} linkedFriends=${linkedFriends.length} linkedFoods=${linkedFoods.length} entityLinks=${entityLinks.length} allTravelIds=${allTravelIds.length}');
+      
+      return state;
     },
   );
 }
