@@ -1225,12 +1225,14 @@ class TravelDetailPage extends ConsumerWidget {
                 ),
               ),
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 110),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
+                child: _SizeLogger(
+                  tag: 'SliverToBoxAdapter.Column',
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 110),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
                       if (state.isWishlist)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -1367,6 +1369,7 @@ class TravelDetailPage extends ConsumerWidget {
                   ),
                 ),
               ),
+            ),
             ],
           ),
         ),
