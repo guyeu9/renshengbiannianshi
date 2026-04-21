@@ -13,6 +13,10 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await FileLogger.instance.init();
+  
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FileLogger.instance.logWithLevel('FlutterError', '${details.exception}\n${details.stack}', LogLevel.error);
+  };
 
   final backgroundBackupService = BackgroundBackupService();
   await backgroundBackupService.initialize();

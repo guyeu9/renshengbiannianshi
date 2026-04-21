@@ -1228,6 +1228,7 @@ class TravelDetailPage extends ConsumerWidget {
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 18, 20, 110),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       if (state.isWishlist)
@@ -1384,6 +1385,50 @@ class TravelDetailPageFinalLog extends StatelessWidget {
   Widget build(BuildContext context) {
     FileLogger.instance.logSync('TravelDetailPage.FINAL', summary);
     return child;
+  }
+}
+
+class _SizeLogger extends StatefulWidget {
+  const _SizeLogger({required this.tag, required this.child});
+  final String tag;
+  final Widget child;
+  
+  @override
+  State<_SizeLogger> createState() => _SizeLoggerState();
+}
+
+class _SizeLoggerState extends State<_SizeLogger> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _logSize();
+    });
+  }
+  
+  @override
+  void didUpdateWidget(covariant _SizeLogger oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _logSize();
+    });
+  }
+  
+  void _logSize() {
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox != null && renderBox.hasSize) {
+      final size = renderBox.size;
+      final position = renderBox.localToGlobal(Offset.zero);
+      FileLogger.instance.logSync('${widget.tag}.size', 
+        'width=${size.width.toStringAsFixed(1)} height=${size.height.toStringAsFixed(1)} position=(${position.dx.toStringAsFixed(1)}, ${position.dy.toStringAsFixed(1)})');
+    } else {
+      FileLogger.instance.logSync('${widget.tag}.size', 'NO SIZE - widget not rendered or has no size!');
+    }
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return widget.child;
   }
 }
 
@@ -3810,9 +3855,12 @@ class _TravelTimeline extends StatelessWidget {
     }
     
     FileLogger.instance.logSync('_TravelTimeline.build', 'RETURNING Column(mainAxisSize.min) with ${dayRows.length} widgets');
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: dayRows,
+    return _SizeLogger(
+      tag: '_TravelTimeline',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: dayRows,
+      ),
     );
   }
 
@@ -3916,25 +3964,28 @@ class _TimelineDayBlock extends StatelessWidget {
     
     FileLogger.instance.logSync('_TimelineDayBlock.tree', 'RETURNING Column(mainAxisSize.min) > dayTitle=$dayTitle itemWidgets=${itemWidgets.length}');
     
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(dayTitle, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-            const SizedBox(height: 2),
-            Text(daySubTitle, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
-          ],
-        ),
-        const SizedBox(height: 14),
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: itemWidgets,
-        ),
-      ],
+    return _SizeLogger(
+      tag: '_TimelineDayBlock',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(dayTitle, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+              const SizedBox(height: 2),
+              Text(daySubTitle, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: itemWidgets,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -4110,21 +4161,24 @@ class _TimelineJournalCard extends StatelessWidget {
     
     FileLogger.instance.logSync('_TimelineJournalCard.tree', 'RETURNING: GestureDetector > Container(padding=12) > Column(mainAxisSize.min, children=${children.length})');
     
-    return GestureDetector(
-      onTap: () {
-        RouteNavigation.pushToJournalDetail(context, record.id);
-      },
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: children,
+    return _SizeLogger(
+      tag: '_TimelineJournalCard',
+      child: GestureDetector(
+        onTap: () {
+          RouteNavigation.pushToJournalDetail(context, record.id);
+        },
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: children,
+          ),
         ),
       ),
     );

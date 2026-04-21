@@ -214,13 +214,17 @@ class ReminderScheduler {
     final baseDate = friend.lastMeetDate ?? friend.createdAt;
     final baseDay = DateTime(baseDate.year, baseDate.month, baseDate.day);
 
-    var scheduledTime = baseDay.add(Duration(days: intervalDays));
-    scheduledTime = DateTime(scheduledTime.year, scheduledTime.month, scheduledTime.day, 9, 0);
-
-    if (scheduledTime.isBefore(today)) {
-      scheduledTime = DateTime(today.year, today.month, today.day, 9, 0);
+    // 计算从上一次见面到现在过去了多少天
+    final daysSinceLastMeet = today.difference(baseDay).inDays;
+    
+    // 如果还没超过间隔天数，不创建提醒
+    if (daysSinceLastMeet < intervalDays) {
+      debugPrint('Skip contact reminder for ${friend.name}: daysSinceLastMeet=$daysSinceLastMeet < intervalDays=$intervalDays');
+      return;
     }
 
+    // 已经超过间隔天数，今天提醒
+    var scheduledTime = DateTime(today.year, today.month, today.day, 9, 0);
     scheduledTime = await _applyDoNotDisturb(scheduledTime);
 
     await _service.scheduleContactReminder(
@@ -232,10 +236,6 @@ class ReminderScheduler {
 
     final reminderId = 'contact_${friend.id}';
     await db.reminderDao.deleteRemindersByTypeAndEntity('contact', 'friend', friend.id);
-    
-    final daysSinceLastMeet = friend.lastMeetDate != null 
-        ? now.difference(friend.lastMeetDate!).inDays 
-        : -1;
     
     await db.reminderDao.insertReminder(
       ReminderRecordsCompanion.insert(

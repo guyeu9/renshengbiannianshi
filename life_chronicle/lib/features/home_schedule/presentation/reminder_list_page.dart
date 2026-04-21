@@ -152,8 +152,14 @@ class _ReminderList extends ConsumerWidget {
         }
 
         final now = DateTime.now();
+        final thirtyDaysLater = now.add(const Duration(days: 30));
+        
         final pending = reminders.where((r) => !r.isHandled && r.scheduledAt.isBefore(now)).toList();
-        final upcoming = reminders.where((r) => !r.isHandled && r.scheduledAt.isAfter(now)).toList();
+        final upcoming = reminders.where((r) => 
+          !r.isHandled && 
+          r.scheduledAt.isAfter(now) && 
+          r.scheduledAt.isBefore(thirtyDaysLater)
+        ).toList();
         final handled = reminders.where((r) => r.isHandled).toList();
 
         return ListView(
