@@ -55,10 +55,11 @@ final todayRemindersProvider = StreamProvider<List<ReminderRecord>>((ref) {
   return db.reminderDao.watchAllReminders().map(
     (reminders) {
       final now = DateTime.now();
+      final todayStart = DateTime(now.year, now.month, now.day);
       final tomorrow = now.add(const Duration(days: 1));
       final tomorrowStart = DateTime(tomorrow.year, tomorrow.month, tomorrow.day);
       return reminders
-          .where((r) => !r.isHandled && r.scheduledAt.isBefore(tomorrowStart))
+          .where((r) => !r.isHandled && r.scheduledAt.isAfter(todayStart) && r.scheduledAt.isBefore(tomorrowStart))
           .toList()
         ..sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
     },

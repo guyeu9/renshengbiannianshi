@@ -419,7 +419,7 @@ class _BirthdaySettingsTabState extends ConsumerState<_BirthdaySettingsTab> {
       await ReminderScheduler.instance.rescheduleForFriend(db, friendId);
     } else {
       await ReminderService.instance.cancelReminder('birthday_$friendId');
-      await db.reminderDao.deleteRemindersByEntity('friend', friendId);
+      await db.reminderDao.deleteRemindersByTypeAndEntity('birthday', 'friend', friendId);
     }
   }
 
@@ -621,7 +621,7 @@ class _ContactSettingsTabState extends ConsumerState<_ContactSettingsTab> {
       await ReminderScheduler.instance.rescheduleForFriend(db, friendId);
     } else {
       await ReminderService.instance.cancelReminder('contact_$friendId');
-      await db.reminderDao.deleteRemindersByEntity('friend', friendId);
+      await db.reminderDao.deleteRemindersByTypeAndEntity('contact', 'friend', friendId);
     }
   }
 
