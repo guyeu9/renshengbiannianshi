@@ -3816,37 +3816,34 @@ class _TravelTimeline extends StatelessWidget {
       FileLogger.instance.logSync('_TravelTimeline.build', 'day $i: ${_buildDayTitle(days[i], i)} with ${items.length} items');
       
       dayRows.add(
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: 36,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _TimelineDayDot(isActive: hasActiveDay ? _isSameDay(days[i], today) : i == 0),
-                    if (i < days.length - 1 || trip != null)
-                      Expanded(
-                        child: Container(
-                          width: 2,
-                          color: const Color(0xFFE5E7EB),
-                        ),
-                      ),
-                  ],
-                ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 36,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _TimelineDayDot(isActive: hasActiveDay ? _isSameDay(days[i], today) : i == 0),
+                  if (i < days.length - 1 || trip != null)
+                    Container(
+                      width: 2,
+                      height: 200,
+                      color: const Color(0xFFE5E7EB),
+                    ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _TimelineDayBlock(
-                  dayTitle: _buildDayTitle(days[i], i),
-                  daySubTitle: _formatDaySubTitle(days[i]),
-                  isActive: hasActiveDay ? _isSameDay(days[i], today) : i == 0,
-                  items: items,
-                ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _TimelineDayBlock(
+                dayTitle: _buildDayTitle(days[i], i),
+                daySubTitle: _formatDaySubTitle(days[i]),
+                isActive: hasActiveDay ? _isSameDay(days[i], today) : i == 0,
+                items: items,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
       
