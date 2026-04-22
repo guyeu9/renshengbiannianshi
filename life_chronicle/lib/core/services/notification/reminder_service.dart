@@ -1,10 +1,17 @@
+import 'dart:io';
+
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
+
+import '../../database/app_database.dart';
+import 'reminder_scheduler.dart';
 
 typedef NotificationTapCallback = void Function(String type, String entityId);
 
@@ -56,7 +63,7 @@ class ReminderService {
     debugPrint('ReminderService initialized');
   }
 
-  void _onNotificationTapped(NotificationResponse response) {
+  void _onNotificationTapped(NotificationResponse response) async {
     final payload = response.payload;
     if (payload == null || payload.isEmpty) return;
 
@@ -67,6 +74,23 @@ class ReminderService {
 
     final type = parts[0];
     final entityId = parts[1];
+
+    try {
+      final db = AppDatabase();
+      final scheduler = ReminderScheduler.instance;
+      switch (type) {
+        case 'birthday':
+        case 'contact':
+          await scheduler.rescheduleForFriend(db, entityId);
+          break;
+        case 'goal':
+          await scheduler.rescheduleForGoal(db, entityId);
+          break;
+      }
+      await db.close();
+    } catch (e) {
+      debugPrint('Failed to reschedule after notification tap: $e');
+    }
 
     if (_onTapCallback != null) {
       _onTapCallback!(type, entityId);
@@ -116,6 +140,37 @@ class ReminderService {
     }
 
     return granted;
+  }
+
+  Future<bool> isBatteryOptimizationIgnored() async {
+    if (!Platform.isAndroid) return true;
+
+    final status = await Permission.ignoreBatteryOptimizations.status;
+    return status.isGranted;
+  }
+
+  Future<bool> requestIgnoreBatteryOptimization() async {
+    if (!Platform.isAndroid) return true;
+
+    try {
+      final deviceInfo = DeviceInfoPlugin();
+      final androidInfo = await deviceInfo.androidInfo;
+      debugPrint('Android version: ${androidInfo.version.sdkInt}, manufacturer: ${androidInfo.manufacturer}');
+
+      final status = await Permission.ignoreBatteryOptimizations.status;
+      if (status.isGranted) {
+        debugPrint('Battery optimization already ignored');
+        return true;
+      }
+
+      final result = await Permission.ignoreBatteryOptimizations.request();
+      final granted = result.isGranted;
+      debugPrint('Battery optimization request result: $granted');
+      return granted;
+    } catch (e) {
+      debugPrint('Failed to request ignore battery optimization: $e');
+      return false;
+    }
   }
 
   Future<void> scheduleBirthdayReminder({
@@ -168,6 +223,9 @@ class ReminderService {
           importance: Importance.high,
           priority: Priority.high,
           icon: '@mipmap/ic_launcher',
+          playSound: true,
+          enableVibration: true,
+          category: AndroidNotificationCategory.reminder,
         ),
         iOS: const DarwinNotificationDetails(
           presentAlert: true,
@@ -212,6 +270,9 @@ class ReminderService {
           importance: Importance.high,
           priority: Priority.high,
           icon: '@mipmap/ic_launcher',
+          playSound: true,
+          enableVibration: true,
+          category: AndroidNotificationCategory.reminder,
         ),
         iOS: const DarwinNotificationDetails(
           presentAlert: true,
@@ -289,6 +350,9 @@ class ReminderService {
           importance: Importance.high,
           priority: Priority.high,
           icon: '@mipmap/ic_launcher',
+          playSound: true,
+          enableVibration: true,
+          category: AndroidNotificationCategory.reminder,
         ),
         iOS: const DarwinNotificationDetails(
           presentAlert: true,
@@ -351,6 +415,9 @@ class ReminderService {
           importance: Importance.high,
           priority: Priority.high,
           icon: '@mipmap/ic_launcher',
+          playSound: true,
+          enableVibration: true,
+          category: AndroidNotificationCategory.reminder,
         ),
         iOS: const DarwinNotificationDetails(
           presentAlert: true,

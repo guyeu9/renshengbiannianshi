@@ -129,6 +129,19 @@ class ReminderScheduler {
       nextBirthday = DateTime(now.year + 1, birthday.month, birthday.day);
     }
 
+    final today = DateTime(now.year, now.month, now.day);
+    final birthdayThisYear = DateTime(now.year, birthday.month, birthday.day);
+
+    if (birthdayThisYear == today) {
+      await _service.showImmediateReminder(
+        id: 'birthday_${friend.id}_today',
+        title: '🎂 生日提醒',
+        content: '今天是${friend.name}的生日！快去送上祝福吧！',
+        type: 'birthday',
+        payload: 'birthday:${friend.id}',
+      );
+    }
+
     final reminderDate = nextBirthday.subtract(Duration(days: advanceDays));
     if (reminderDate.isBefore(now)) {
       if (nextBirthday.year == now.year) {

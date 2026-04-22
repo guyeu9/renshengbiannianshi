@@ -6,6 +6,7 @@ import 'app/app.dart';
 import 'core/database/app_database.dart';
 import 'core/services/backup/background_backup_service.dart';
 import 'core/services/file_logger.dart';
+import 'core/services/notification/background_reminder_service.dart';
 import 'core/services/notification/reminder_scheduler.dart';
 import 'core/services/notification/reminder_service.dart';
 
@@ -20,6 +21,10 @@ void main() async {
 
   final backgroundBackupService = BackgroundBackupService();
   await backgroundBackupService.initialize();
+
+  final backgroundReminderService = BackgroundReminderService();
+  await backgroundReminderService.initialize();
+  await backgroundReminderService.registerPeriodicReminderCheck();
 
   await _initReminderSystem();
 
