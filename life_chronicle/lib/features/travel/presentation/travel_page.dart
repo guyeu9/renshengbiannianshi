@@ -1401,6 +1401,8 @@ class _SizeLogger extends StatefulWidget {
 }
 
 class _SizeLoggerState extends State<_SizeLogger> {
+  BoxConstraints? _lastConstraints;
+  
   @override
   void initState() {
     super.initState();
@@ -1422,16 +1424,43 @@ class _SizeLoggerState extends State<_SizeLogger> {
     if (renderBox != null && renderBox.hasSize) {
       final size = renderBox.size;
       final position = renderBox.localToGlobal(Offset.zero);
+      final constraints = _lastConstraints;
+      
+      final isPositionValid = !position.dx.isNaN && !position.dy.isNaN;
+      final isHeightInfinite = constraints != null && constraints.maxHeight == double.infinity;
+      final isWidthInfinite = constraints != null && constraints.maxWidth == double.infinity;
+      
+      final warnings = <String>[];
+      if (!isPositionValid) warnings.add('POSITION_INVALID');
+      if (isHeightInfinite) warnings.add('HEIGHT_INFINITE');
+      if (isWidthInfinite) warnings.add('WIDTH_INFINITE');
+      
+      final warningStr = warnings.isEmpty ? '' : ' ⚠️ ${warnings.join(',')}';
+      
       FileLogger.instance.logSync('${widget.tag}.size', 
-        'width=${size.width.toStringAsFixed(1)} height=${size.height.toStringAsFixed(1)} position=(${position.dx.toStringAsFixed(1)}, ${position.dy.toStringAsFixed(1)})');
+        'width=${size.width.toStringAsFixed(1)} height=${size.height.toStringAsFixed(1)} '
+        'position=(${position.dx.isNaN ? 'NaN' : position.dx.toStringAsFixed(1)}, '
+        '${position.dy.isNaN ? 'NaN' : position.dy.toStringAsFixed(1)})'
+        '${constraints != null ? ' constraints=${_formatConstraints(constraints)}' : ''}$warningStr');
     } else {
       FileLogger.instance.logSync('${widget.tag}.size', 'NO SIZE - widget not rendered or has no size!');
     }
   }
   
+  String _formatConstraints(BoxConstraints c) {
+    final w = c.maxWidth == double.infinity ? '∞' : c.maxWidth.toStringAsFixed(1);
+    final h = c.maxHeight == double.infinity ? '∞' : c.maxHeight.toStringAsFixed(1);
+    return '(${w}x$h)';
+  }
+  
   @override
   Widget build(BuildContext context) {
-    return widget.child;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        _lastConstraints = constraints;
+        return widget.child;
+      },
+    );
   }
 }
 
@@ -4192,6 +4221,15 @@ Widget _buildWechatStyleImages(BuildContext context, List<String> images, Travel
   if (images.isEmpty) {
     FileLogger.instance.logSync('_buildWechatStyleImages', 'images=0 RETURNING SizedBox.shrink()');
     return const SizedBox.shrink();
+  }
+
+  for (int i = 0; i < images.length; i++) {
+    final path = images[i];
+    final file = File(path);
+    final exists = file.existsSync();
+    final size = exists ? file.lengthSync() : 0;
+    FileLogger.instance.logSync('_buildWechatStyleImages.path[$i]', 
+      'path=$path exists=$exists size=$size bytes');
   }
 
   if (images.length == 1) {
