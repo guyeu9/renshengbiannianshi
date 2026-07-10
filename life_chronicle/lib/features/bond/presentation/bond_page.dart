@@ -10,6 +10,7 @@ import '../../../core/config/module_management_config.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/services/delete_service.dart';
+import '../../../core/services/file_logger.dart';
 import '../../../core/services/notification/reminder_scheduler.dart';
 import '../../../core/utils/media_storage.dart';
 import '../../../core/utils/permission_manager.dart';
@@ -844,7 +845,7 @@ class _EncounterTimelineState extends ConsumerState<_EncounterTimeline> {
         return decoded.map((e) => e.toString()).where((e) => e.trim().isNotEmpty).toList(growable: false);
       }
     } catch (e) {
-      debugPrint('解析标签JSON失败: $e');
+      FileLogger.instance.logSync('BondPage', '解析标签JSON失败: $e');
     }
     return const <String>[];
   }
@@ -863,7 +864,7 @@ class _EncounterTimelineState extends ConsumerState<_EncounterTimeline> {
             final list = jsonDecode(jsonStr) as List;
             images = list.map((e) => e.toString()).toList();
           } catch (e) {
-            debugPrint('解析图片JSON失败: $e');
+            FileLogger.instance.logSync('BondPage', '解析图片JSON失败: $e');
           }
         }
       }
@@ -1361,7 +1362,7 @@ class _BondFriendDetailPage extends ConsumerWidget {
         return decoded.map((e) => e.toString()).where((e) => e.trim().isNotEmpty).toList(growable: false);
       }
     } catch (e) {
-      debugPrint('解析字符串列表JSON失败: $e');
+      FileLogger.instance.logSync('BondPage', '解析字符串列表JSON失败: $e');
     }
     return const <String>[];
   }
@@ -1868,7 +1869,7 @@ class _FriendMemorySliverState extends ConsumerState<_FriendMemorySliver> {
         return decoded.map((e) => e.toString()).where((e) => e.trim().isNotEmpty).toList(growable: false);
       }
     } catch (e) {
-      debugPrint('解析字符串列表JSON失败: $e');
+      FileLogger.instance.logSync('BondPage', '解析字符串列表JSON失败: $e');
     }
     return const <String>[];
   }
@@ -1931,7 +1932,7 @@ class _FriendMemorySliverState extends ConsumerState<_FriendMemorySliver> {
               final list = jsonDecode(jsonStr) as List;
               images = list.map((e) => e.toString()).toList();
             } catch (e) {
-              debugPrint('解析图片JSON失败: $e');
+              FileLogger.instance.logSync('BondPage', '解析图片JSON失败: $e');
             }
           }
         }
@@ -2384,7 +2385,7 @@ class _TimelineEntry extends StatelessWidget {
   }
 
   void _toggleFavorite(BuildContext context) {
-    debugPrint('切换收藏状态: ${item.id}, 当前: ${item.isFavorite}');
+    FileLogger.instance.logSync('BondPage', '切换收藏状态: ${item.id}, 当前: ${item.isFavorite}');
   }
 }
 
@@ -2535,7 +2536,7 @@ class _SingleImageMemoryCard extends StatelessWidget {
   }
 
   void _toggleFavorite(BuildContext context) {
-    debugPrint('切换收藏状态: ${item.id}, 当前: ${item.isFavorite}');
+    FileLogger.instance.logSync('BondPage', '切换收藏状态: ${item.id}, 当前: ${item.isFavorite}');
   }
 }
 
@@ -2707,7 +2708,7 @@ class _MultiImageMemoryCard extends StatelessWidget {
   }
 
   void _toggleFavorite(BuildContext context) {
-    debugPrint('切换收藏状态: ${item.id}, 当前: ${item.isFavorite}');
+    FileLogger.instance.logSync('BondPage', '切换收藏状态: ${item.id}, 当前: ${item.isFavorite}');
   }
 }
 
@@ -3064,7 +3065,7 @@ class _FriendCreatePageState extends ConsumerState<FriendCreatePage> {
             final cleanHex = hex.replaceFirst('#', '');
             return Color(int.parse('FF$cleanHex', radix: 16));
           } catch (e) {
-            debugPrint('解析颜色值失败: $e');
+            FileLogger.instance.logSync('BondPage', '解析颜色值失败: $e');
             return const Color(0xFFF3F4F6);
           }
         }
@@ -3436,7 +3437,7 @@ List<String> _parseTags(String? raw) {
       return decoded.map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList(growable: false);
     }
   } catch (e) {
-    debugPrint('解析标签JSON失败，使用分隔符解析: $e');
+    FileLogger.instance.logSync('BondPage', '解析标签JSON失败，使用分隔符解析: $e');
   }
   return value
       .split(RegExp(r'[，,;；/|]'))

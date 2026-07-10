@@ -1,5 +1,7 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:workmanager/workmanager.dart';
+
+import '../file_logger.dart';
 
 import '../../database/app_database.dart';
 import '../../database/db_connection_io.dart' as dbconn;
@@ -36,23 +38,23 @@ void reminderCallbackDispatcher() {
           );
 
           triggeredCount++;
-          debugPrint('Background reminder check: triggered reminder ${reminder.id} (${reminder.title})');
+          FileLogger.instance.logSync('BackgroundReminder', 'triggered reminder ${reminder.id} (${reminder.title})');
         }
       }
 
       if (triggeredCount > 0) {
-        debugPrint('Background reminder check: triggered $triggeredCount reminders');
+        FileLogger.instance.logSync('BackgroundReminder', 'triggered $triggeredCount reminders');
       }
 
       await db.close();
       return Future.value(true);
     } catch (e) {
-      debugPrint('Background reminder check failed: $e');
+      FileLogger.instance.logSync('BackgroundReminder', 'check failed: $e');
       if (db != null) {
         try {
           await db.close();
         } catch (closeError) {
-          debugPrint('关闭数据库失败: $closeError');
+          FileLogger.instance.logSync('BackgroundReminder', '关闭数据库失败: $closeError');
         }
       }
       return Future.value(false);
@@ -76,7 +78,7 @@ class BackgroundReminderService {
     );
 
     _initialized = true;
-    debugPrint('BackgroundReminderService initialized');
+    FileLogger.instance.logSync('BackgroundReminder', 'initialized');
   }
 
   Future<void> registerPeriodicReminderCheck() async {
@@ -97,11 +99,11 @@ class BackgroundReminderService {
       ),
     );
 
-    debugPrint('Registered periodic reminder check task (every 15 minutes)');
+    FileLogger.instance.logSync('BackgroundReminder', 'Registered periodic reminder check task (every 15 minutes)');
   }
 
   Future<void> cancelReminderCheck() async {
     await Workmanager().cancelByTag(reminderCheckTaskTag);
-    debugPrint('Cancelled periodic reminder check task');
+    FileLogger.instance.logSync('BackgroundReminder', 'Cancelled periodic reminder check task');
   }
 }

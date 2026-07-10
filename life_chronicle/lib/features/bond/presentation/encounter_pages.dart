@@ -11,6 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/services/file_logger.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/providers/uuid_provider.dart';
 import '../../../core/utils/image_save_util.dart';
@@ -451,7 +452,7 @@ class _EncounterCreatePageState extends ConsumerState<EncounterCreatePage> {
             _imageUrls.addAll(decoded.whereType<String>());
           }
         } catch (e) {
-          debugPrint('解析图片JSON失败: $e');
+          FileLogger.instance.logSync('EncounterPage', '解析图片JSON失败: $e');
         }
       }
     }
@@ -1045,7 +1046,7 @@ class _EncounterDetailPageState extends ConsumerState<EncounterDetailPage> {
       await file.writeAsBytes(bytes);
       await Share.shareXFiles([XFile(file.path)]);
     } catch (e) {
-      debugPrint('分享导出失败: $e');
+      FileLogger.instance.logSync('EncounterPage', '分享导出失败: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('导出失败，请稍后重试')));
       }
@@ -1541,7 +1542,7 @@ _EncounterNoteData _parseEncounterNote(String? note) {
           result.images.addAll(decoded.whereType<String>());
         }
       } catch (e) {
-        debugPrint('解析图片JSON失败: $e');
+        FileLogger.instance.logSync('EncounterPage', '解析图片JSON失败: $e');
       }
     }
   }

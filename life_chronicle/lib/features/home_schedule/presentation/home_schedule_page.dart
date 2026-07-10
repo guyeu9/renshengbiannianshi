@@ -30,7 +30,9 @@ List<String> _parseMomentTags(String? raw) {
       if (decoded is List) {
         return decoded.whereType<String>().map((e) => e.trim()).where((e) => e.isNotEmpty).toList(growable: false);
       }
-    } catch (_) {}
+    } catch (e) {
+      FileLogger.instance.logSync('HomeSchedule', '解析模块标签JSON失败: $e');
+    }
   }
   return value
       .split(RegExp(r'[,\s，、/]+'))
@@ -134,7 +136,7 @@ class _GlassHeaderState extends State<_GlassHeader> {
         }
       }
     } catch (e) {
-      debugPrint('加载头像配置失败: $e');
+      FileLogger.instance.logSync('HomeSchedule', '加载头像配置失败: $e');
     }
     return null;
   }

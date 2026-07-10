@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:life_chronicle/core/database/app_database.dart';
 import 'package:life_chronicle/core/database/database_providers.dart';
@@ -110,7 +110,7 @@ class TravelDetailState {
         return decoded.map((e) => e.toString()).toList(growable: false);
       }
     } catch (e) {
-      debugPrint('JSON解析失败: $e');
+      FileLogger.instance.logSync('TravelDetail', 'JSON解析失败: $e');
     }
 
     // 兼容历史数据：逗号分隔格式
@@ -306,7 +306,7 @@ class JournalDetailState {
         return decoded.map((e) => e.toString()).toList(growable: false);
       }
     } catch (e) {
-      debugPrint('JSON解析失败: $e');
+      FileLogger.instance.logSync('TravelDetail', 'JSON解析失败: $e');
     }
     if (trimmed.contains(',') && !trimmed.startsWith('[')) {
       return trimmed.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList(growable: false);
@@ -437,7 +437,7 @@ class TravelTimelineState {
         return decoded.map((e) => e.toString()).toList(growable: false);
       }
     } catch (e) {
-      debugPrint('JSON解析失败: $e');
+      FileLogger.instance.logSync('TravelDetail', 'JSON解析失败: $e');
     }
     if (trimmed.contains(',') && !trimmed.startsWith('[')) {
       return trimmed.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList(growable: false);

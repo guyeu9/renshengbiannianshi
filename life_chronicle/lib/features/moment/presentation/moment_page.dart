@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/config/module_management_config.dart';
+import '../../../core/services/file_logger.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/providers/uuid_provider.dart';
@@ -33,7 +34,7 @@ List<String> _parseMomentImages(String? raw) {
       return decoded.whereType<String>().toList(growable: false);
     }
   } catch (e) {
-    debugPrint('解析动态图片失败: $e');
+    FileLogger.instance.logSync('MomentPage', '解析动态图片失败: $e');
   }
   return const [];
 }
@@ -76,7 +77,7 @@ List<String> _parseSceneTags(String? raw) {
         return decoded.whereType<String>().map((e) => e.trim()).where((e) => e.isNotEmpty).toList(growable: false);
       }
     } catch (e) {
-      debugPrint('解析场景标签失败: $e');
+      FileLogger.instance.logSync('MomentPage', '解析场景标签失败: $e');
     }
   }
   final parts = value.split(RegExp(r'[,\s，、/]+')).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
@@ -1408,7 +1409,7 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
         return decoded.whereType<String>().toList(growable: false);
       }
     } catch (e) {
-      debugPrint('解析图片列表失败: $e');
+      FileLogger.instance.logSync('MomentPage', '解析图片列表失败: $e');
     }
     return const [];
   }

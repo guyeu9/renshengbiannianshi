@@ -13,6 +13,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/config/module_management_config.dart';
+import '../../../core/services/file_logger.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/router/app_router.dart';
@@ -701,7 +702,7 @@ class _FoodRecordBody extends ConsumerWidget {
       final decoded = jsonDecode(raw);
       if (decoded is List) return decoded.whereType<String>().toList(growable: false);
     } catch (e) {
-      debugPrint('解码字符串列表失败: $e');
+      FileLogger.instance.logSync('FoodPage', '解码字符串列表失败: $e');
     }
     return const [];
   }
@@ -915,7 +916,7 @@ class _FoodRecordCard extends StatelessWidget {
       final decoded = jsonDecode(raw);
       if (decoded is List) return decoded.whereType<String>().toList(growable: false);
     } catch (e) {
-      debugPrint('解码字符串列表失败: $e');
+      FileLogger.instance.logSync('FoodPage', '解码字符串列表失败: $e');
     }
     return const [];
   }
@@ -1052,7 +1053,7 @@ class _FoodWishlistBody extends ConsumerWidget {
       final decoded = jsonDecode(raw);
       if (decoded is List) return decoded.whereType<String>().toList(growable: false);
     } catch (e) {
-      debugPrint('解码字符串列表失败: $e');
+      FileLogger.instance.logSync('FoodPage', '解码字符串列表失败: $e');
     }
     return const [];
   }
@@ -1273,7 +1274,7 @@ class _FoodWishlistRecordCard extends ConsumerWidget {
       final decoded = jsonDecode(raw);
       if (decoded is List) return decoded.whereType<String>().toList(growable: false);
     } catch (e) {
-      debugPrint('解码字符串列表失败: $e');
+      FileLogger.instance.logSync('FoodPage', '解码字符串列表失败: $e');
     }
     return const [];
   }
@@ -2054,7 +2055,7 @@ class FoodDetailPage extends ConsumerWidget {
         return decoded.whereType<String>().toList(growable: false);
       }
     } catch (e) {
-      debugPrint('解码字符串列表失败: $e');
+      FileLogger.instance.logSync('FoodPage', '解码字符串列表失败: $e');
     }
     return const [];
   }
@@ -2067,7 +2068,7 @@ class FoodDetailPage extends ConsumerWidget {
         return decoded.whereType<String>().toList(growable: false);
       }
     } catch (e) {
-      debugPrint('解析字符串列表失败: $e');
+      FileLogger.instance.logSync('FoodPage', '解析字符串列表失败: $e');
     }
     return const [];
   }
@@ -2094,7 +2095,7 @@ class FoodDetailPage extends ConsumerWidget {
       await file.writeAsBytes(bytes);
       await Share.shareXFiles([XFile(file.path)]);
     } catch (e) {
-      debugPrint('分享长图失败: $e');
+      FileLogger.instance.logSync('FoodPage', '分享长图失败: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('导出失败，请稍后重试')));
       }
@@ -3811,7 +3812,7 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
         return decoded.whereType<String>().toList(growable: false);
       }
     } catch (e) {
-      debugPrint('解码字符串列表失败: $e');
+      FileLogger.instance.logSync('FoodPage', '解码字符串列表失败: $e');
     }
     return const [];
   }

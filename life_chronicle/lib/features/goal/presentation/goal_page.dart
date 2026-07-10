@@ -13,6 +13,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:vibration/vibration.dart';
 
 import '../../../app/app_theme.dart';
+import '../../../core/services/file_logger.dart';
 import '../../../core/config/module_management_config.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
@@ -965,7 +966,7 @@ class _TaskItemState extends State<_TaskItem> with SingleTickerProviderStateMixi
         await Vibration.vibrate(duration: 50, amplitude: 128);
       }
     } catch (e) {
-      debugPrint('震动触发失败: $e');
+      FileLogger.instance.logSync('GoalPage', '震动触发失败: $e');
     }
   }
 
@@ -1093,7 +1094,7 @@ class _AnnualGoalSummaryPageState extends ConsumerState<AnnualGoalSummaryPage> {
             _reviewImages.clear();
             _reviewImages.addAll(imageList.cast<String>());
           } catch (e) {
-            debugPrint('解析年度回顾图片列表失败: $e');
+            FileLogger.instance.logSync('GoalPage', '解析年度回顾图片列表失败: $e');
           }
         }
         _existingReviewId = existing.id;
@@ -1205,7 +1206,7 @@ class _AnnualGoalSummaryPageState extends ConsumerState<AnnualGoalSummaryPage> {
       await file.writeAsBytes(bytes);
       await Share.shareXFiles([XFile(file.path)]);
     } catch (e) {
-      debugPrint('导出目标摘要图片失败: $e');
+      FileLogger.instance.logSync('GoalPage', '导出目标摘要图片失败: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('导出失败，请稍后重试')));
       }
@@ -1641,7 +1642,7 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
         await Vibration.vibrate(duration: 50, amplitude: 128);
       }
     } catch (e) {
-      debugPrint('庆祝震动触发失败: $e');
+      FileLogger.instance.logSync('GoalPage', '庆祝震动触发失败: $e');
     }
   }
 
@@ -3263,7 +3264,7 @@ Future<void> _updateTaskCompletionForGoal(AppDatabase db, GoalRecord task, bool 
               ..where((t) => t.id.equals(task.id))
               ..where((t) => t.eventType.equals('goal')))
             .go();
-        debugPrint('Goal task ${task.id} unchecked, deleted $deletedCount timeline events');
+        FileLogger.instance.logSync('GoalPage', 'Goal task ${task.id} unchecked, deleted $deletedCount timeline events');
       }
     }
 
@@ -4253,7 +4254,7 @@ class _DayTaskTileState extends State<_DayTaskTile> with SingleTickerProviderSta
         await Vibration.vibrate(duration: 50, amplitude: 128);
       }
     } catch (e) {
-      debugPrint('震动触发失败: $e');
+      FileLogger.instance.logSync('GoalPage', '震动触发失败: $e');
     }
   }
 

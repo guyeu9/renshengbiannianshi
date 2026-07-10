@@ -286,7 +286,7 @@ Future<List<ChronicleRecord>> loadChronicleRecords() async {
           .toList(growable: false);
     }
   } catch (e) {
-    debugPrint('加载编年史记录失败: $e');
+    FileLogger.instance.logSync('ProfilePage', '加载编年史记录失败: $e');
   }
   await file.writeAsString('[]');
   return const <ChronicleRecord>[];
@@ -661,7 +661,7 @@ class _HeaderState extends ConsumerState<_Header> {
         }
       }
     } catch (e) {
-      debugPrint('加载头像路径失败: $e');
+      FileLogger.instance.logSync('ProfilePage', '加载头像路径失败: $e');
     }
     return null;
   }
@@ -1522,7 +1522,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
         return decoded.map((e) => e.toString()).toList();
       }
     } catch (e) {
-      debugPrint('解析图片路径JSON失败: $e');
+      FileLogger.instance.logSync('ProfilePage', '解析图片路径JSON失败: $e');
     }
     return const [];
   }
@@ -2041,7 +2041,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
             imageCount++;
           }
         } catch (e) {
-          debugPrint('处理图片失败: $e');
+          FileLogger.instance.logSync('ProfilePage', '处理图片失败: $e');
           imageWidgets.add(
             pw.Container(
               height: 120,
@@ -3420,7 +3420,7 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
         return decoded.whereType<String>().toList(growable: false);
       }
     } catch (e) {
-      debugPrint('解析字符串列表失败: $e');
+      FileLogger.instance.logSync('ProfilePage', '解析字符串列表失败: $e');
     }
     return const [];
   }
@@ -5913,7 +5913,7 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
         return decoded.whereType<String>().toList(growable: false);
       }
     } catch (e) {
-      debugPrint('解析字符串列表失败: $e');
+      FileLogger.instance.logSync('ProfilePage', '解析字符串列表失败: $e');
     }
     return const [];
   }
@@ -5945,7 +5945,7 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
           tags = [raw];
         }
       } catch (e) {
-        debugPrint('解析小确幸标签失败: $e');
+        FileLogger.instance.logSync('ProfilePage', '解析小确幸标签失败: $e');
         tags = [raw];
       }
       for (final tag in tags) {
@@ -6224,7 +6224,7 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
       buffer.write(hex.replaceFirst('#', ''));
       return Color(int.parse(buffer.toString(), radix: 16));
     } catch (e) {
-      debugPrint('解析颜色值失败: $e');
+      FileLogger.instance.logSync('ProfilePage', '解析颜色值失败: $e');
       return const Color(0xFF6B7280);
     }
   }
@@ -8589,7 +8589,7 @@ class AnnualReportRecord {
       try {
         content = AnnualReportContent.fromJson(jsonDecode(review.content!));
       } catch (e) {
-        debugPrint('解析年度报告内容失败: $e');
+        FileLogger.instance.logSync('ProfilePage', '解析年度报告内容失败: $e');
         content = AnnualReportContent(
           opening: review.content!,
           foodChapter: '',
@@ -8607,7 +8607,7 @@ class AnnualReportRecord {
       try {
         stats = YearStatistics.fromJson(jsonDecode(review.stats!));
       } catch (e) {
-        debugPrint('解析年度统计失败: $e');
+        FileLogger.instance.logSync('ProfilePage', '解析年度统计失败: $e');
         stats = YearStatistics(
           year: review.year,
           totalRecords: 0,
@@ -8635,7 +8635,7 @@ class AnnualReportRecord {
       try {
         keywordsList = List<String>.from(jsonDecode(review.keywords!));
       } catch (e) {
-        debugPrint('解析年度报告关键词失败: $e');
+        FileLogger.instance.logSync('ProfilePage', '解析年度报告关键词失败: $e');
         keywordsList = content?.keywords ?? [];
       }
     } else {

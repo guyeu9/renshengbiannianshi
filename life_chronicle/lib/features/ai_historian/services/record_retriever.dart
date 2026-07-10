@@ -1,8 +1,8 @@
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
-import 'package:flutter/foundation.dart';
 import 'package:life_chronicle/core/database/app_database.dart';
+import 'package:life_chronicle/core/services/file_logger.dart';
 
 enum QueryType {
   summary,
@@ -346,7 +346,7 @@ class RecordRetriever {
         return decoded.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
       }
     } catch (e) {
-      debugPrint('解析标签JSON失败，使用逗号分隔解析: $e');
+      FileLogger.instance.logSync('RecordRetriever', '解析标签JSON失败，使用逗号分隔解析: $e');
       return tagsJson.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
     }
     return [];
@@ -360,7 +360,7 @@ class RecordRetriever {
         return decoded.map((e) => e.toString()).toList();
       }
     } catch (e) {
-      debugPrint('解析图片JSON失败: $e');
+      FileLogger.instance.logSync('RecordRetriever', '解析图片JSON失败: $e');
     }
     return [];
   }

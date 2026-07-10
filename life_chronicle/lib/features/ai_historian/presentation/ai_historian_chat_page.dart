@@ -214,7 +214,6 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
 
       setState(() {});
     } catch (e, stackTrace) {
-      debugPrint('加载好友数据失败: $e');
       await FileLogger.instance.logWithLevel('AI史官', '加载好友数据失败: $e\n$stackTrace', LogLevel.error);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -247,7 +246,7 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
   Future<void> _loadModuleData() async {
     // 添加防御性检查
     if (widget.moduleParams == null || widget.moduleParams!.moduleType.isEmpty) {
-      debugPrint('_loadModuleData: moduleParams 无效，跳过加载');
+      FileLogger.instance.logSync('AI史官', '_loadModuleData: moduleParams 无效，跳过加载');
       return;
     }
     
@@ -282,7 +281,6 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
       
       setState(() {});
     } catch (e, stackTrace) {
-      debugPrint('加载模块数据失败: $e');
       await FileLogger.instance.logWithLevel('AI史官', '加载模块数据失败: $e\n$stackTrace', LogLevel.error);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -328,7 +326,6 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
         }
       }
     } catch (e, stackTrace) {
-      debugPrint('加载用户头像失败: $e');
       await FileLogger.instance.logWithLevel('AI史官', '加载用户头像失败: $e\n$stackTrace', LogLevel.error);
     }
   }
@@ -369,7 +366,6 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
         _isInitialized = true;
       });
     } catch (e, stackTrace) {
-      debugPrint('AI史官初始化失败: $e');
       await FileLogger.instance.logWithLevel('AI史官', '初始化失败: $e\n$stackTrace', LogLevel.error);
       if (mounted) {
         setState(() {
@@ -405,7 +401,6 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
 
       _addWelcomeMessage();
     } catch (e, stackTrace) {
-      debugPrint('创建会话失败: $e');
       await FileLogger.instance.logWithLevel('AI史官', '创建会话失败: $e\n$stackTrace', LogLevel.error);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -431,7 +426,7 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
                 json.map((e) => RecommendationCard.fromJson(e as Map<String, dynamic>)),
               );
             } catch (e) {
-              debugPrint('Failed to parse recommendations: $e');
+              FileLogger.instance.logSync('AI史官', 'Failed to parse recommendations: $e');
             }
           }
           _messages.add(ChatMessageModel(
@@ -448,7 +443,6 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
         _addWelcomeMessage();
       }
     } catch (e, stackTrace) {
-      debugPrint('加载会话消息失败: $e');
       await FileLogger.instance.logWithLevel('AI史官', '加载会话消息失败: $e\n$stackTrace', LogLevel.error);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -624,7 +618,7 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
         final json = jsonDecode(jsonStr) as Map<String, dynamic>;
         final cards = json['recommendations'] as List?;
         if (cards != null) {
-          debugPrint('成功解析到 ${cards.length} 个推荐卡片');
+          FileLogger.instance.logSync('AI史官', '成功解析到 ${cards.length} 个推荐卡片');
           return cards.map((c) => RecommendationCard.fromJson(c as Map<String, dynamic>)).toList();
         }
       }
@@ -634,15 +628,15 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
           final json = jsonDecode(jsonMatch2.group(0)!) as Map<String, dynamic>;
           final cards = json['recommendations'] as List?;
           if (cards != null) {
-            debugPrint('成功解析到 ${cards.length} 个推荐卡片（备用格式）');
+            FileLogger.instance.logSync('AI史官', '成功解析到 ${cards.length} 个推荐卡片（备用格式）');
             return cards.map((c) => RecommendationCard.fromJson(c as Map<String, dynamic>)).toList();
           }
         } catch (e) {
-          debugPrint('备用JSON格式解析失败: $e');
+          FileLogger.instance.logSync('AI史官', '备用JSON格式解析失败: $e');
         }
       }
     } catch (e) {
-      debugPrint('解析推荐卡片失败: $e');
+      FileLogger.instance.logSync('AI史官', '解析推荐卡片失败: $e');
     }
     return [];
   }
@@ -826,7 +820,6 @@ $text
         await _saveMessage(finalMessage);
       }
     } catch (e, stackTrace) {
-      debugPrint('发送消息失败: $e');
       await FileLogger.instance.logWithLevel('AI史官', '发送消息失败: $e\n$stackTrace', LogLevel.error);
       final index = _messages.indexWhere((m) => m.id == aiMessageId);
       if (index != -1) {
@@ -1011,7 +1004,6 @@ ${result.prompt}
         await _saveMessage(finalMessage);
       }
     } catch (e, stackTrace) {
-      debugPrint('执行快捷操作失败: $e');
       await FileLogger.instance.logWithLevel('AI史官', '执行快捷操作失败: $e\n$stackTrace', LogLevel.error);
       final index = _messages.indexWhere((m) => m.id == aiMessageId);
       if (index != -1) {

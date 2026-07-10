@@ -2002,7 +2002,7 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
     try {
       start = DateTime(startYear, startMonth, startDay);
     } catch (e) {
-      debugPrint('日期解析失败: $e');
+      FileLogger.instance.logSync('TravelPage', '日期解析失败: $e');
       start = null;
     }
     if (numbers.length >= 5) {
@@ -2012,7 +2012,7 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
       try {
         end = DateTime(endYear, endMonth, endDay);
       } catch (e) {
-        debugPrint('日期解析失败: $e');
+        FileLogger.instance.logSync('TravelPage', '日期解析失败: $e');
         end = null;
       }
     }
@@ -2217,7 +2217,7 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
             final cleanHex = hex.replaceFirst('#', '');
             return Color(int.parse('FF$cleanHex', radix: 16));
           } catch (e) {
-            debugPrint('颜色解析失败: $e');
+            FileLogger.instance.logSync('TravelPage', '颜色解析失败: $e');
             return const Color(0xFFF1F5F9);
           }
         }
@@ -3319,7 +3319,7 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
             final cleanHex = hex.replaceFirst('#', '');
             return Color(int.parse('FF$cleanHex', radix: 16));
           } catch (e) {
-            debugPrint('颜色解析失败: $e');
+            FileLogger.instance.logSync('TravelPage', '颜色解析失败: $e');
             return const Color(0xFFF1F5F9);
           }
         }
@@ -5182,7 +5182,7 @@ List<String> _decodeStringList(String? raw) {
       return decoded.map((e) => e.toString()).toList();
     }
   } catch (e) {
-    debugPrint('JSON解析失败: $e');
+    FileLogger.instance.logSync('TravelPage', 'JSON解析失败: $e');
   }
   
   // 兼容历史数据：逗号分隔格式

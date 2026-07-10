@@ -207,7 +207,7 @@ void main() {
         await emptyZipFile.writeAsBytes([80, 75, 5, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
 
         final extractDir = path.join(tempDir.path, 'empty_extract');
-        expect(
+        await expectLater(
           () => EncryptionService.extractZipArchive(emptyZipFile, extractDir),
           throwsA(isA<Exception>()),
         );

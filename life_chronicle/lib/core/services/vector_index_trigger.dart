@@ -1,3 +1,4 @@
+import 'file_logger.dart';
 import 'vector_index_task_queue.dart';
 import 'vector_index_service.dart';
 
@@ -19,7 +20,9 @@ class VectorIndexTrigger {
         text: text,
         action: VectorIndexTaskAction.create,
       );
-    } catch (e) {}
+    } catch (e) {
+      FileLogger.instance.logSync('VectorIndex', 'recordInsert失败: $e');
+    }
   }
 
   Future<void> recordUpdate({
@@ -34,7 +37,9 @@ class VectorIndexTrigger {
         text: text,
         action: VectorIndexTaskAction.update,
       );
-    } catch (e) {}
+    } catch (e) {
+      FileLogger.instance.logSync('VectorIndex', 'recordUpdate失败: $e');
+    }
   }
 
   Future<void> recordDelete({
@@ -46,6 +51,8 @@ class VectorIndexTrigger {
         entityType: entityType,
         entityId: entityId,
       );
-    } catch (e) {}
+    } catch (e) {
+      FileLogger.instance.logSync('VectorIndex', 'recordDelete失败: $e');
+    }
   }
 }
