@@ -6,12 +6,19 @@ import '../../../app/app_theme.dart';
 import '../../../core/router/route_navigation.dart';
 import '../providers/flashback_provider.dart';
 
-class FlashbackPage extends ConsumerWidget {
+class FlashbackPage extends ConsumerStatefulWidget {
   const FlashbackPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final flashbackAsync = ref.watch(flashbackItemsProvider);
+  ConsumerState<FlashbackPage> createState() => _FlashbackPageState();
+}
+
+class _FlashbackPageState extends ConsumerState<FlashbackPage> {
+  List<int>? _selectedYears;
+
+  @override
+  Widget build(BuildContext context) {
+    final availableYearsAsync = ref.watch(availableFlashbackYearsProvider);
     final now = DateTime.now();
 
     return Scaffold(
@@ -36,101 +43,136 @@ class FlashbackPage extends ConsumerWidget {
           icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: Color(0xFF374151)),
           onPressed: () => context.pop(),
         ),
+        actions: [
+          availableYearsAsync.when(
+            data: (availableYears) {
+              if (availableYears.isEmpty) return const SizedBox.shrink();
+              return IconButton(
+                icon: Stack(
+                  children: [
+                    const Icon(Icons.filter_list, color: Color(0xFF374151)),
+                    if (_selectedYears != null)
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFEF4444),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const SizedBox(width: 6, height: 6),
+                        ),
+                      ),
+                  ],
+                ),
+                tooltip: '选择年份',
+                onPressed: () => _showYearFilterSheet(availableYears),
+              );
+            },
+            loading: () => const SizedBox.shrink(),
+            error: (_, __) => const SizedBox.shrink(),
+          ),
+        ],
       ),
-      body: flashbackAsync.when(
-        data: (items) {
-          if (items.isEmpty) {
-            return Center(
+      body: availableYearsAsync.when(
+        data: (availableYears) {
+          final yearsToQuery = _selectedYears ?? availableYears;
+          if (yearsToQuery.isEmpty) {
+            return _buildEmptyState('暂无历史记录', '过去几年的今天还没有记录');
+          }
+
+          final flashbackAsync = ref.watch(flashbackItemsProvider(yearsToQuery));
+          return flashbackAsync.when(
+            data: (items) {
+              if (items.isEmpty) {
+                return _buildEmptyState('暂无记录', '所选年份的今天没有记录');
+              }
+
+              final groupedItems = <int, List<FlashbackItem>>{};
+              for (final item in items) {
+                groupedItems.putIfAbsent(item.yearsAgo, () => []).add(item);
+              }
+
+              final sortedYears = groupedItems.keys.toList()..sort();
+
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: sortedYears.length,
+                itemBuilder: (context, index) {
+                  final yearsAgo = sortedYears[index];
+                  final yearItems = groupedItems[yearsAgo]!;
+                  final year = now.year - yearsAgo;
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 4,
+                              height: 20,
+                              decoration: BoxDecoration(
+                                color: AppTheme.primary,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '$year年',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF1F2937),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '$yearsAgo年前',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF9CA3AF),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                '${yearItems.length}条记录',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppTheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      ...yearItems.map((item) => _FlashbackItemCard(item: item)),
+                      const SizedBox(height: 16),
+                    ],
+                  );
+                },
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.history, size: 64, color: Colors.grey[400]),
+                  Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
                   const SizedBox(height: 16),
-                  Text(
-                    '暂无历史记录',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 16),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '过去几年的今天还没有记录',
-                    style: TextStyle(color: Colors.grey[400], fontSize: 14),
-                  ),
+                  Text('加载失败: $e', style: TextStyle(color: Colors.grey[600])),
                 ],
               ),
-            );
-          }
-
-          final groupedItems = <int, List<FlashbackItem>>{};
-          for (final item in items) {
-            groupedItems.putIfAbsent(item.yearsAgo, () => []).add(item);
-          }
-
-          final sortedYears = groupedItems.keys.toList()..sort();
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: sortedYears.length,
-            itemBuilder: (context, index) {
-              final yearsAgo = sortedYears[index];
-              final yearItems = groupedItems[yearsAgo]!;
-              final year = now.year - yearsAgo;
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 4,
-                          height: 20,
-                          decoration: BoxDecoration(
-                            color: AppTheme.primary,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '$year年',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF1F2937),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '$yearsAgo年前',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF9CA3AF),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            '${yearItems.length}条记录',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppTheme.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  ...yearItems.map((item) => _FlashbackItemCard(item: item)),
-                  const SizedBox(height: 16),
-                ],
-              );
-            },
+            ),
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -143,6 +185,221 @@ class FlashbackPage extends ConsumerWidget {
               Text('加载失败: $e', style: TextStyle(color: Colors.grey[600])),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(String title, String subtitle) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.history, size: 64, color: Colors.grey[400]),
+          const SizedBox(height: 16),
+          Text(title, style: TextStyle(color: Colors.grey[600], fontSize: 16)),
+          const SizedBox(height: 8),
+          Text(subtitle, style: TextStyle(color: Colors.grey[400], fontSize: 14)),
+        ],
+      ),
+    );
+  }
+
+  void _showYearFilterSheet(List<int> availableYears) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return _FlashbackYearFilterSheet(
+          availableYears: availableYears,
+          selectedYears: _selectedYears ?? List<int>.from(availableYears),
+          onConfirm: (years) {
+            setState(() {
+              _selectedYears = years.length == availableYears.length ? null : years;
+            });
+          },
+        );
+      },
+    );
+  }
+}
+
+/// 年份选择器底部弹窗
+class _FlashbackYearFilterSheet extends StatefulWidget {
+  final List<int> availableYears;
+  final List<int> selectedYears;
+  final ValueChanged<List<int>> onConfirm;
+
+  const _FlashbackYearFilterSheet({
+    required this.availableYears,
+    required this.selectedYears,
+    required this.onConfirm,
+  });
+
+  @override
+  State<_FlashbackYearFilterSheet> createState() => _FlashbackYearFilterSheetState();
+}
+
+class _FlashbackYearFilterSheetState extends State<_FlashbackYearFilterSheet> {
+  late Set<int> _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = Set<int>.from(widget.selectedYears);
+  }
+
+  void _toggleAll() {
+    setState(() {
+      if (_selected.length == widget.availableYears.length) {
+        _selected.clear();
+      } else {
+        _selected = Set<int>.from(widget.availableYears);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final allSelected = _selected.length == widget.availableYears.length;
+
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          20,
+          20,
+          20 + MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  '选择年份',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
+                ),
+                TextButton(
+                  onPressed: _toggleAll,
+                  child: Text(
+                    allSelected ? '取消全选' : '全选',
+                    style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '共 ${widget.availableYears.length} 个年份可选，已选 ${_selected.length} 个',
+              style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
+            ),
+            const SizedBox(height: 16),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: widget.availableYears.map((yearsAgo) {
+                    final year = now.year - yearsAgo;
+                    final isSelected = _selected.contains(yearsAgo);
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          if (isSelected) {
+                            _selected.remove(yearsAgo);
+                          } else {
+                            _selected.add(yearsAgo);
+                          }
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: isSelected ? AppTheme.primary : const Color(0xFFF3F4F6),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color: isSelected ? AppTheme.primary : Colors.transparent,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '$year年',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: isSelected ? Colors.white : const Color(0xFF374151),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '$yearsAgo年前',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: isSelected ? Colors.white.withValues(alpha: 0.8) : const Color(0xFF9CA3AF),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: const BorderSide(color: Color(0xFFE5E7EB)),
+                      ),
+                    ),
+                    child: const Text(
+                      '取消',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF6B7280)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _selected.isEmpty
+                        ? null
+                        : () {
+                            widget.onConfirm(_selected.toList()..sort());
+                            Navigator.pop(context);
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primary,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: const Color(0xFFE5E7EB),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text(
+                      '确定',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

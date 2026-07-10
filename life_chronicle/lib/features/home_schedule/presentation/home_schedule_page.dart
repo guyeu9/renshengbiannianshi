@@ -17,6 +17,7 @@ import '../../../core/utils/icon_utils.dart';
 import '../../../core/router/route_navigation.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/services/file_logger.dart';
+import '../../../core/widgets/app_image.dart';
 import '../../travel/presentation/travel_page.dart' show TravelItem;
 import '../providers/flashback_provider.dart';
 import '../providers/reminder_provider.dart';
@@ -58,14 +59,22 @@ bool _isCompletedDailyGoal(GoalRecord record) {
   return record.level == 'daily' && record.isCompleted && !record.isDeleted;
 }
 
-class HomeSchedulePage extends StatefulWidget {
+String _greetingByHour(int hour) {
+  if (hour < 6) return '夜深了';
+  if (hour < 11) return '早上好';
+  if (hour < 13) return '中午好';
+  if (hour < 18) return '下午好';
+  return '晚上好';
+}
+
+class HomeSchedulePage extends ConsumerStatefulWidget {
   const HomeSchedulePage({super.key});
 
   @override
-  State<HomeSchedulePage> createState() => _HomeSchedulePageState();
+  ConsumerState<HomeSchedulePage> createState() => _HomeSchedulePageState();
 }
 
-class _HomeSchedulePageState extends State<HomeSchedulePage> {
+class _HomeSchedulePageState extends ConsumerState<HomeSchedulePage> {
   late DateTime _selectedDay;
 
   @override
@@ -75,31 +84,45 @@ class _HomeSchedulePageState extends State<HomeSchedulePage> {
     _selectedDay = DateTime(now.year, now.month, now.day);
   }
 
+  Future<void> _refreshData() async {
+    ref.invalidate(flashbackItemsProvider);
+    await ref.read(flashbackItemsProvider(defaultFlashbackYears).future);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: false,
       appBar: const _GlassHeader(),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 140),
-        children: [
-          const _FlashbackSection(),
-          const SizedBox(height: 16),
-          const _TodayReminder(),
-          const SizedBox(height: 16),
-          _CalendarCard(
-            selectedDay: _selectedDay,
-            onSelectDay: (day) => setState(() => _selectedDay = day),
+      body: RefreshIndicator(
+        onRefresh: _refreshData,
+        color: AppTheme.primary,
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(
+            20,
+            16,
+            20,
+            MediaQuery.paddingOf(context).bottom + kBottomNavigationBarHeight + 56,
           ),
-          const SizedBox(height: 16),
-          _EventStream(selectedDay: _selectedDay),
-        ],
+          children: [
+            const _FlashbackSection(),
+            const SizedBox(height: 16),
+            const _TodayReminder(),
+            const SizedBox(height: 16),
+            _CalendarCard(
+              selectedDay: _selectedDay,
+              onSelectDay: (day) => setState(() => _selectedDay = day),
+            ),
+            const SizedBox(height: 16),
+            _EventStream(selectedDay: _selectedDay),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _GlassHeader extends StatefulWidget implements PreferredSizeWidget {
+class _GlassHeader extends ConsumerStatefulWidget implements PreferredSizeWidget {
   const _GlassHeader();
 
   static const _defaultAvatarUrl =
@@ -109,16 +132,27 @@ class _GlassHeader extends StatefulWidget implements PreferredSizeWidget {
   Size get preferredSize => const Size.fromHeight(72);
 
   @override
-  State<_GlassHeader> createState() => _GlassHeaderState();
+  ConsumerState<_GlassHeader> createState() => _GlassHeaderState();
 }
 
-class _GlassHeaderState extends State<_GlassHeader> {
+class _GlassHeaderState extends ConsumerState<_GlassHeader> {
   Future<String?>? _avatarFuture;
+  int? _lastProfileRevision;
 
   @override
   void initState() {
     super.initState();
     _avatarFuture = _loadAvatarPath();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final revision = ref.read(profileRevisionProvider);
+    if (_lastProfileRevision != null && _lastProfileRevision != revision) {
+      _refreshAvatar();
+    }
+    _lastProfileRevision = revision;
   }
 
   Future<String?> _loadAvatarPath() async {
@@ -208,9 +242,9 @@ class _GlassHeaderState extends State<_GlassHeader> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      '早上好',
-                      style: TextStyle(
+                    Text(
+                      _greetingByHour(DateTime.now().hour),
+                      style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: AppTheme.textMuted,
@@ -232,7 +266,7 @@ class _GlassHeaderState extends State<_GlassHeader> {
                             overflow: TextOverflow.ellipsis,
                           ),
                           loading: () => const Text(
-                            '林晓梦',
+                            '...',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
@@ -242,7 +276,7 @@ class _GlassHeaderState extends State<_GlassHeader> {
                             overflow: TextOverflow.ellipsis,
                           ),
                           error: (_, __) => const Text(
-                            '林晓梦',
+                            '未设置',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
@@ -364,7 +398,7 @@ class _FlashbackSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final flashbackAsync = ref.watch(flashbackItemsProvider);
+    final flashbackAsync = ref.watch(flashbackItemsProvider(defaultFlashbackYears));
 
     return flashbackAsync.when(
       data: (items) {
@@ -515,8 +549,17 @@ class _FlashbackItemCard extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              if (item.imageUrl != null)
-                Image.network(item.imageUrl!, fit: BoxFit.cover)
+              if (item.imageUrl != null && item.imageUrl!.isNotEmpty)
+                AppImage(
+                  source: item.imageUrl!,
+                  fit: BoxFit.cover,
+                  errorWidget: Container(
+                    color: _getTypeColor(item.type),
+                    child: Center(
+                      child: Icon(_getTypeIcon(item.type), color: Colors.white, size: 48),
+                    ),
+                  ),
+                )
               else
                 Container(
                   color: _getTypeColor(item.type),
@@ -597,6 +640,11 @@ class _FlashbackItemCard extends StatelessWidget {
       case 'encounter':
         RouteNavigation.goToEncounterDetail(context, item.recordId);
         break;
+      default:
+        FileLogger.instance.logSync('HomeSchedule.Flashback', '未知记录类型: ${item.type}, recordId=${item.recordId}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('未知记录类型: ${item.type}')),
+        );
     }
   }
 
@@ -651,6 +699,7 @@ class _TodayReminder extends ConsumerWidget {
         final reminder = reminders.first;
         final typeColor = _getTypeColor(reminder.type);
         final typeIcon = _getTypeIcon(reminder.type);
+        final hasMore = reminders.length > 1;
 
         return GestureDetector(
           onTap: () => RouteNavigation.pushToReminderList(context),
@@ -681,6 +730,20 @@ class _TodayReminder extends ConsumerWidget {
                     style: const TextStyle(fontSize: 14, color: Color(0xFF374151), fontWeight: FontWeight.w600),
                   ),
                 ),
+                if (hasMore) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEF4444),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '+${reminders.length - 1}',
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white),
+                    ),
+                  ),
+                ],
                 const SizedBox(width: 8),
                 const Icon(Icons.chevron_right, color: Color(0xFFD1D5DB)),
               ],
@@ -1077,12 +1140,15 @@ class _CalendarGrid extends StatelessWidget {
       }
 
       final icons = iconsByDay[displayDay]?.toList(growable: false) ?? const <IconData>[];
+      final displayIcons = icons.length > 3 ? icons.take(3).toList(growable: false) : icons;
+      final extraCount = icons.length > 3 ? icons.length - 3 : 0;
       return _CalendarCellData(
         day: '$displayDay',
         date: date,
         selected: selected,
         dots: dots,
-        icons: icons.length > 3 ? icons.take(3).toList(growable: false) : icons,
+        icons: displayIcons,
+        extraIconCount: extraCount,
       );
     });
   }
@@ -1117,6 +1183,7 @@ class _CalendarCellData {
     this.selected = false,
     this.dots = const [],
     this.icons = const [],
+    this.extraIconCount = 0,
   });
 
   final String day;
@@ -1125,6 +1192,7 @@ class _CalendarCellData {
   final bool selected;
   final List<Color> dots;
   final List<IconData> icons;
+  final int extraIconCount;
 }
 
 class _CalendarCell extends StatelessWidget {
@@ -1199,6 +1267,14 @@ class _CalendarCell extends StatelessWidget {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Icon(icon, size: 12, color: const Color(0xFF0F766E)),
+                ),
+              if (data.extraIconCount > 0)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: Text(
+                    '+${data.extraIconCount}',
+                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF0F766E)),
+                  ),
                 ),
             ],
           )
@@ -1279,7 +1355,7 @@ class _MonthYearPickerSheetState extends State<_MonthYearPickerSheet> {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    final years = List.generate(13, (index) => now.year - 6 + index);
+    final years = List.generate(7, (index) => now.year - 6 + index);
     return SafeArea(
       top: false,
       child: Container(
@@ -1423,21 +1499,21 @@ class _EventStream extends ConsumerWidget {
                               subtitle: e.note,
                               type: e.eventType,
                               id: e.id,
-                              onTap: () {
-                                switch (e.eventType) {
-                                  case 'encounter':
-                                    _openEncounterDetail(context, e.id);
-                                    break;
-                                  case 'travel':
-                                    _openTravelDetail(context, ref, e.id);
-                                    break;
-                                  case 'moment':
-                                    _openMomentDetail(context, e.id);
-                                    break;
-                                  default:
-                                    break;
-                                }
-                              },
+                              onTap: _canOpenEventDetail(e.eventType)
+                                  ? () {
+                                      switch (e.eventType) {
+                                        case 'encounter':
+                                          _openEncounterDetail(context, e.id);
+                                          break;
+                                        case 'travel':
+                                          _openTravelDetail(context, ref, e.id);
+                                          break;
+                                        case 'moment':
+                                          _openMomentDetail(context, e.id);
+                                          break;
+                                      }
+                                    }
+                                  : null,
                             ),
                           for (final goal in completedGoals)
                             (
@@ -1458,7 +1534,7 @@ class _EventStream extends ConsumerWidget {
                                   ? (f.poiName ?? '').trim()
                                   : ((f.content ?? '').trim().isNotEmpty ? (f.content ?? '').trim() : null),
                               type: 'food',
-                              id: null,
+                              id: f.id,
                               onTap: () {
                                 RouteNavigation.goToFoodDetail(context, f.id);
                               },
@@ -1562,6 +1638,10 @@ class _EventStream extends ConsumerWidget {
     return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
   }
 
+  bool _canOpenEventDetail(String eventType) {
+    return eventType == 'encounter' || eventType == 'travel' || eventType == 'moment';
+  }
+
   String? _goalTimelineSubtitle(GoalRecord goal) {
     if (goal.completedAt == null) return null;
     final completedAt = goal.completedAt!;
@@ -1660,7 +1740,16 @@ class _EventStream extends ConsumerWidget {
     GoalRecord yearGoal = record;
     if (record.level != 'year') {
       String? currentParentId = record.parentId;
-      while (currentParentId != null) {
+      const maxDepth = 10;
+      var depth = 0;
+      final visitedIds = <String>{record.id};
+      while (currentParentId != null && depth < maxDepth) {
+        if (visitedIds.contains(currentParentId)) {
+          FileLogger.instance.logSync('HomeSchedule._openGoalDetail', '检测到循环引用: goalId=$goalId, visited=$visitedIds');
+          break;
+        }
+        visitedIds.add(currentParentId);
+        depth++;
         final parent = await (db.select(db.goalRecords)
               ..where((t) => t.id.equals(currentParentId!))
               ..where((t) => t.isDeleted.equals(false))

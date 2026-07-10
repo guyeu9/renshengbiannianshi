@@ -42,14 +42,87 @@ class FlashbackItem {
   }
 }
 
-final flashbackItemsProvider = FutureProvider<List<FlashbackItem>>((ref) async {
+/// 默认查询的年份偏移列表（首页那年今日使用）
+const defaultFlashbackYears = [1, 2, 3, 4, 5];
+
+/// 查询数据库中所有有记录的年份偏移列表，用于年份选择器
+final availableFlashbackYearsProvider = FutureProvider<List<int>>((ref) async {
+  final db = ref.watch(appDatabaseProvider);
+  final now = DateTime.now();
+  final currentYear = now.year;
+
+  final years = <int>{};
+
+  final earliestFood = await (db.selectOnly(db.foodRecords)
+        ..addColumns([db.foodRecords.recordDate.min()])
+        ..where(db.foodRecords.isDeleted.equals(false)))
+      .map((row) => row.read(db.foodRecords.recordDate.min()))
+      .getSingleOrNull();
+  if (earliestFood != null) {
+    for (int y = earliestFood.year; y < currentYear; y++) {
+      years.add(currentYear - y);
+    }
+  }
+
+  final earliestMoment = await (db.selectOnly(db.momentRecords)
+        ..addColumns([db.momentRecords.recordDate.min()])
+        ..where(db.momentRecords.isDeleted.equals(false)))
+      .map((row) => row.read(db.momentRecords.recordDate.min()))
+      .getSingleOrNull();
+  if (earliestMoment != null) {
+    for (int y = earliestMoment.year; y < currentYear; y++) {
+      years.add(currentYear - y);
+    }
+  }
+
+  final earliestTravel = await (db.selectOnly(db.travelRecords)
+        ..addColumns([db.travelRecords.recordDate.min()])
+        ..where(db.travelRecords.isDeleted.equals(false)))
+      .map((row) => row.read(db.travelRecords.recordDate.min()))
+      .getSingleOrNull();
+  if (earliestTravel != null) {
+    for (int y = earliestTravel.year; y < currentYear; y++) {
+      years.add(currentYear - y);
+    }
+  }
+
+  final earliestGoal = await (db.selectOnly(db.goalRecords)
+        ..addColumns([db.goalRecords.recordDate.min()])
+        ..where(db.goalRecords.isDeleted.equals(false)))
+      .map((row) => row.read(db.goalRecords.recordDate.min()))
+      .getSingleOrNull();
+  if (earliestGoal != null) {
+    for (int y = earliestGoal.year; y < currentYear; y++) {
+      years.add(currentYear - y);
+    }
+  }
+
+  final earliestEvent = await (db.selectOnly(db.timelineEvents)
+        ..addColumns([db.timelineEvents.recordDate.min()])
+        ..where(db.timelineEvents.isDeleted.equals(false))
+        ..where(db.timelineEvents.eventType.equals('encounter')))
+      .map((row) => row.read(db.timelineEvents.recordDate.min()))
+      .getSingleOrNull();
+  if (earliestEvent != null) {
+    for (int y = earliestEvent.year; y < currentYear; y++) {
+      years.add(currentYear - y);
+    }
+  }
+
+  final sorted = years.toList()..sort();
+  return sorted;
+});
+
+/// 根据指定的年份偏移列表查询那年今日数据
+final flashbackItemsProvider =
+    FutureProvider.family<List<FlashbackItem>, List<int>>((ref, yearsAgoList) async {
   final db = ref.watch(appDatabaseProvider);
   final items = <FlashbackItem>[];
 
   final now = DateTime.now();
 
-  for (int i = 1; i <= 5; i++) {
-    final targetDate = DateTime(now.year - i, now.month, now.day);
+  for (final yearsAgo in yearsAgoList) {
+    final targetDate = DateTime(now.year - yearsAgo, now.month, now.day);
     final nextDay = targetDate.add(const Duration(days: 1));
 
     final foods = await _loadFoodByTimeRange(db, targetDate, nextDay);
