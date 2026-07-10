@@ -1067,7 +1067,13 @@ class TravelDetailPage extends ConsumerWidget {
 
         final finalSummary = 'BUILD COMPLETE: record=${record?.id} isJournal=${state.isJournal} isWishlist=${state.isWishlist} journals=${journals.length} checklistItems=${checklistItems.length} friends=${friends.length} foods=${foods.length} links=${links.length} title="$title" tripId=$tripId';
         
-        FileLogger.instance.logSync('TravelDetailPage.build', 'BUILDING CustomScrollView: SliverAppBar(expandedHeight=288, pinned=false) + SliverToBoxAdapter(isJournal=${state.isJournal}, isWishlist=${state.isWishlist}, journals=${journals.length})');
+        FileLogger.instance.logSync('TravelDetailPage.build', 'BUILDING CustomScrollView: SliverAppBar(expandedHeight=288, pinned=true) + SliverToBoxAdapter(isJournal=${state.isJournal}, isWishlist=${state.isWishlist}, journals=${journals.length})');
+
+        final mediaQuery = MediaQuery.of(context);
+        FileLogger.instance.logSync('TravelDetailPage.viewport',
+          'screenWidth=${mediaQuery.size.width.toStringAsFixed(1)} screenHeight=${mediaQuery.size.height.toStringAsFixed(1)} '
+          'paddingTop=${mediaQuery.padding.top.toStringAsFixed(1)} paddingBottom=${mediaQuery.padding.bottom.toStringAsFixed(1)} '
+          'viewInsetsBottom=${mediaQuery.viewInsets.bottom.toStringAsFixed(1)}');
         
         return TravelDetailPageFinalLog(
           summary: finalSummary,
@@ -1079,14 +1085,23 @@ class TravelDetailPage extends ConsumerWidget {
             onPressed: () => RouteNavigation.pushToJournalCreate(context, initialTripId: tripId, initialTripTitle: tripTitle),
             child: const Icon(Icons.add, size: 28),
           ),
-          body: CustomScrollView(
+          body: NotificationListener<ScrollNotification>(
+            onNotification: (notification) {
+              if (notification is ScrollEndNotification) {
+                final metrics = notification.metrics;
+                FileLogger.instance.logSync('CustomScrollView.scroll', 
+                  'offset=${metrics.pixels.toStringAsFixed(1)} viewport=${metrics.viewportDimension.toStringAsFixed(1)} maxScrollExtent=${metrics.maxScrollExtent.toStringAsFixed(1)}');
+              }
+              return false;
+            },
+            child: CustomScrollView(
             slivers: [
               SliverAppBar(
                 automaticallyImplyLeading: false,
                 backgroundColor: Colors.transparent,
                 surfaceTintColor: Colors.transparent,
                 elevation: 0,
-                pinned: false,
+                pinned: true,
                 expandedHeight: 288,
                 flexibleSpace: FlexibleSpaceBar(
                   background: Stack(
@@ -1188,6 +1203,7 @@ class TravelDetailPage extends ConsumerWidget {
                         right: 20,
                         bottom: 20,
                         child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
@@ -1225,7 +1241,11 @@ class TravelDetailPage extends ConsumerWidget {
                 ),
               ),
               SliverToBoxAdapter(
-                child: _SizeLogger(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    FileLogger.instance.logSync('SliverToBoxAdapter.constraints',
+                      'maxWidth=${constraints.maxWidth.toStringAsFixed(1)} maxHeight=${constraints.maxHeight == double.infinity ? "infinity" : constraints.maxHeight.toStringAsFixed(1)}');
+                    return _SizeLogger(
                   tag: 'SliverToBoxAdapter.Column',
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(20, 18, 20, 110),
@@ -1315,48 +1335,51 @@ class TravelDetailPage extends ConsumerWidget {
                             ),
                         ],
                       ),
-                      Builder(builder: (context) {
-                        final isJournal = state.isJournal;
-                        final currentRecord = record;
-                        final hasRecord = currentRecord != null;
-                        final recordImagesCount = hasRecord ? _decodeStringList(currentRecord.images).length : 0;
-                        final recordContent = hasRecord ? (currentRecord.content ?? '').trim() : '';
-                        FileLogger.instance.logSync('TravelDetailPage.recordCard', 'isJournal=$isJournal hasRecord=$hasRecord images=$recordImagesCount content=${recordContent.isNotEmpty}');
-                        if (isJournal || !hasRecord) {
-                          return const SizedBox.shrink();
-                        }
-                        final recordImages = _decodeStringList(currentRecord.images);
-                        if (recordImages.isEmpty && recordContent.isEmpty) {
-                          return const SizedBox.shrink();
-                        }
-                        FileLogger.instance.logSync('TravelDetailPage.recordCard', 'BUILDING Container with ${recordImages.length} images, content=${recordContent.isNotEmpty}');
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 14),
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (recordContent.isNotEmpty) ...[
-                                  Text(
-                                    recordContent,
-                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF64748B), height: 1.5),
-                                  ),
-                                  if (recordImages.isNotEmpty) const SizedBox(height: 10),
+                      _SizeLogger(
+                        tag: 'recordCard',
+                        child: Builder(builder: (context) {
+                          final isJournal = state.isJournal;
+                          final currentRecord = record;
+                          final hasRecord = currentRecord != null;
+                          final recordImagesCount = hasRecord ? _decodeStringList(currentRecord.images).length : 0;
+                          final recordContent = hasRecord ? (currentRecord.content ?? '').trim() : '';
+                          FileLogger.instance.logSync('TravelDetailPage.recordCard', 'isJournal=$isJournal hasRecord=$hasRecord images=$recordImagesCount content=${recordContent.isNotEmpty}');
+                          if (isJournal || !hasRecord) {
+                            return const SizedBox.shrink();
+                          }
+                          final recordImages = _decodeStringList(currentRecord.images);
+                          if (recordImages.isEmpty && recordContent.isEmpty) {
+                            return const SizedBox.shrink();
+                          }
+                          FileLogger.instance.logSync('TravelDetailPage.recordCard', 'BUILDING Container with ${recordImages.length} images, content=${recordContent.isNotEmpty}');
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 14),
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (recordContent.isNotEmpty) ...[
+                                    Text(
+                                      recordContent,
+                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF64748B), height: 1.5),
+                                    ),
+                                    if (recordImages.isNotEmpty) const SizedBox(height: 10),
+                                  ],
+                                  if (recordImages.isNotEmpty) ...[
+                                    _buildWechatStyleImages(context, recordImages, currentRecord, trip),
+                                  ],
                                 ],
-                                if (recordImages.isNotEmpty) ...[
-                                  _buildWechatStyleImages(context, recordImages, currentRecord, trip),
-                                ],
-                              ],
+                              ),
                             ),
-                          ),
-                        );
-                      }),
+                          );
+                        }),
+                      ),
                       _TravelTimeline(
                         trip: trip,
                         tripStart: state.headerStart,
@@ -1368,9 +1391,12 @@ class TravelDetailPage extends ConsumerWidget {
                     ],
                   ),
                 ),
+                    );
+                  },
+                ),
               ),
-            ),
             ],
+          ),
           ),
         ),
         );
@@ -1404,7 +1430,9 @@ class _SizeLoggerState extends State<_SizeLogger> {
   @override
   void initState() {
     super.initState();
+    FileLogger.instance.logSync('${widget.tag}.initState', 'initState called');
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      FileLogger.instance.logSync('${widget.tag}.postFrame', 'postFrame callback executed');
       _logSize();
     });
   }
@@ -1418,14 +1446,27 @@ class _SizeLoggerState extends State<_SizeLogger> {
   }
   
   void _logSize() {
-    final renderBox = context.findRenderObject() as RenderBox?;
-    if (renderBox != null && renderBox.hasSize) {
+    try {
+      final renderBox = context.findRenderObject() as RenderBox?;
+      if (renderBox == null) {
+        FileLogger.instance.logSync('${widget.tag}.size', 'renderBox is NULL');
+        return;
+      }
+      if (!renderBox.hasSize) {
+        FileLogger.instance.logSync('${widget.tag}.size', 'renderBox has NO SIZE');
+        return;
+      }
+      if (!renderBox.attached) {
+        FileLogger.instance.logSync('${widget.tag}.size', 'renderBox NOT ATTACHED to tree');
+        return;
+      }
       final size = renderBox.size;
       final position = renderBox.localToGlobal(Offset.zero);
       FileLogger.instance.logSync('${widget.tag}.size', 
         'width=${size.width.toStringAsFixed(1)} height=${size.height.toStringAsFixed(1)} position=(${position.dx.toStringAsFixed(1)}, ${position.dy.toStringAsFixed(1)})');
-    } else {
-      FileLogger.instance.logSync('${widget.tag}.size', 'NO SIZE - widget not rendered or has no size!');
+    } catch (e, stack) {
+      FileLogger.instance.logSync('${widget.tag}.size', 'EXCEPTION: $e');
+      FileLogger.instance.logSync('${widget.tag}.size.stack', '$stack');
     }
   }
   

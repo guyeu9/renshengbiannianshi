@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
+import '../services/file_logger.dart';
 import '../utils/image_save_util.dart';
 
 class AppImage extends StatelessWidget {
@@ -166,8 +167,9 @@ class _LocalFileImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final file = File(path);
-    
+
     if (!file.existsSync()) {
+      FileLogger.instance.logSync('AppImage.local', 'FILE NOT FOUND: $path');
       return errorWidget ?? _buildDefaultError();
     }
 
@@ -652,16 +654,22 @@ class _SmartImageState extends State<SmartImage> {
   }
 
   Future<void> _loadImageInfo() async {
+    FileLogger.instance.logSync('SmartImage.load', 'START source=${widget.source}');
     try {
       final isNetwork = widget.source.startsWith('http://') || widget.source.startsWith('https://');
       ImageProvider provider;
-      
+
       if (isNetwork) {
         provider = NetworkImage(widget.source);
       } else if (widget.source.startsWith('assets/')) {
         provider = AssetImage(widget.source);
       } else {
-        provider = FileImage(File(widget.source));
+        final file = File(widget.source);
+        if (!file.existsSync()) {
+          FileLogger.instance.logSync('SmartImage.load', 'FAILED file not found: ${widget.source}');
+          return;
+        }
+        provider = FileImage(file);
       }
 
       final completer = Completer<ui.Image>();
@@ -672,15 +680,17 @@ class _SmartImageState extends State<SmartImage> {
           }
         }),
       );
-      
+
       final img = await completer.future;
       if (mounted) {
+        FileLogger.instance.logSync('SmartImage.load', 'SUCCESS width=${img.width} height=${img.height} source=${widget.source}');
         setState(() {
           _imageInfo = img;
         });
       }
-    } catch (e) {
-      // Ignore errors
+    } catch (e, stack) {
+      FileLogger.instance.logSync('SmartImage.load', 'EXCEPTION: $e source=${widget.source}');
+      FileLogger.instance.logSync('SmartImage.load.stack', '$stack');
     }
   }
 
