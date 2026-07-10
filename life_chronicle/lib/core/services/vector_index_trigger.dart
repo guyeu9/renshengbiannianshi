@@ -21,7 +21,7 @@ class VectorIndexTrigger {
         action: VectorIndexTaskAction.create,
       );
     } catch (e) {
-      FileLogger.instance.logSync('VectorIndex', 'recordInsert失败: $e');
+      FileLogger.instance.logWithLevelSync('VectorIndex', 'recordInsert失败: $e', LogLevel.error);
     }
   }
 
@@ -38,7 +38,7 @@ class VectorIndexTrigger {
         action: VectorIndexTaskAction.update,
       );
     } catch (e) {
-      FileLogger.instance.logSync('VectorIndex', 'recordUpdate失败: $e');
+      FileLogger.instance.logWithLevelSync('VectorIndex', 'recordUpdate失败: $e', LogLevel.error);
     }
   }
 
@@ -52,7 +52,7 @@ class VectorIndexTrigger {
         entityId: entityId,
       );
     } catch (e) {
-      FileLogger.instance.logSync('VectorIndex', 'recordDelete失败: $e');
+      FileLogger.instance.logWithLevelSync('VectorIndex', 'recordDelete失败: $e', LogLevel.error);
     }
   }
 }
