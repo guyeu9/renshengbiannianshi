@@ -1,10 +1,17 @@
+import 'dart:io';
+
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
+
+import '../../database/app_database.dart';
+import 'reminder_scheduler.dart';
 
 typedef NotificationTapCallback = void Function(String type, String entityId);
 
@@ -56,7 +63,7 @@ class ReminderService {
     debugPrint('ReminderService initialized');
   }
 
-  void _onNotificationTapped(NotificationResponse response) {
+  void _onNotificationTapped(NotificationResponse response) async {
     final payload = response.payload;
     if (payload == null || payload.isEmpty) return;
 
@@ -67,6 +74,23 @@ class ReminderService {
 
     final type = parts[0];
     final entityId = parts[1];
+
+    try {
+      final db = AppDatabase();
+      final scheduler = ReminderScheduler.instance;
+      switch (type) {
+        case 'birthday':
+        case 'contact':
+          await scheduler.rescheduleForFriend(db, entityId);
+          break;
+        case 'goal':
+          await scheduler.rescheduleForGoal(db, entityId);
+          break;
+      }
+      await db.close();
+    } catch (e) {
+      debugPrint('Failed to reschedule after notification tap: $e');
+    }
 
     if (_onTapCallback != null) {
       _onTapCallback!(type, entityId);
@@ -118,11 +142,43 @@ class ReminderService {
     return granted;
   }
 
+  Future<bool> isBatteryOptimizationIgnored() async {
+    if (!Platform.isAndroid) return true;
+
+    final status = await Permission.ignoreBatteryOptimizations.status;
+    return status.isGranted;
+  }
+
+  Future<bool> requestIgnoreBatteryOptimization() async {
+    if (!Platform.isAndroid) return true;
+
+    try {
+      final deviceInfo = DeviceInfoPlugin();
+      final androidInfo = await deviceInfo.androidInfo;
+      debugPrint('Android version: ${androidInfo.version.sdkInt}, manufacturer: ${androidInfo.manufacturer}');
+
+      final status = await Permission.ignoreBatteryOptimizations.status;
+      if (status.isGranted) {
+        debugPrint('Battery optimization already ignored');
+        return true;
+      }
+
+      final result = await Permission.ignoreBatteryOptimizations.request();
+      final granted = result.isGranted;
+      debugPrint('Battery optimization request result: $granted');
+      return granted;
+    } catch (e) {
+      debugPrint('Failed to request ignore battery optimization: $e');
+      return false;
+    }
+  }
+
   Future<void> scheduleBirthdayReminder({
     required String friendId,
     required String friendName,
     required DateTime birthday,
     int daysBefore = 3,
+    DateTime? scheduledTime,
   }) async {
     if (!_initialized) await initialize();
 
@@ -130,23 +186,28 @@ class ReminderService {
     final globalEnabled = prefs.getBool('global_reminder_enabled') ?? true;
     if (!globalEnabled) return;
 
-    final now = DateTime.now();
-    var nextBirthday = DateTime(now.year, birthday.month, birthday.day);
+    DateTime effectiveScheduledTime;
+    if (scheduledTime != null) {
+      effectiveScheduledTime = scheduledTime;
+    } else {
+      final now = DateTime.now();
+      var nextBirthday = DateTime(now.year, birthday.month, birthday.day);
 
-    if (nextBirthday.isBefore(DateTime(now.year, now.month, now.day))) {
-      nextBirthday = DateTime(now.year + 1, birthday.month, birthday.day);
+      if (nextBirthday.isBefore(DateTime(now.year, now.month, now.day))) {
+        nextBirthday = DateTime(now.year + 1, birthday.month, birthday.day);
+      }
+
+      final reminderDate = nextBirthday.subtract(Duration(days: daysBefore));
+
+      if (reminderDate.isBefore(now)) {
+        return;
+      }
+
+      effectiveScheduledTime = DateTime(reminderDate.year, reminderDate.month, reminderDate.day, 9, 0);
+      effectiveScheduledTime = _applyDoNotDisturb(effectiveScheduledTime, prefs);
     }
 
-    final reminderDate = nextBirthday.subtract(Duration(days: daysBefore));
-
-    if (reminderDate.isBefore(now)) {
-      return;
-    }
-
-    var scheduledTime = DateTime(reminderDate.year, reminderDate.month, reminderDate.day, 9, 0);
-    scheduledTime = _applyDoNotDisturb(scheduledTime, prefs);
-
-    final tzScheduledTime = tz.TZDateTime.from(scheduledTime, tz.local);
+    final tzScheduledTime = tz.TZDateTime.from(effectiveScheduledTime, tz.local);
     final notificationId = 'birthday_$friendId'.hashCode;
 
     await _notifications.zonedSchedule(
@@ -162,6 +223,9 @@ class ReminderService {
           importance: Importance.high,
           priority: Priority.high,
           icon: '@mipmap/ic_launcher',
+          playSound: true,
+          enableVibration: true,
+          category: AndroidNotificationCategory.reminder,
         ),
         iOS: const DarwinNotificationDetails(
           presentAlert: true,
@@ -206,6 +270,9 @@ class ReminderService {
           importance: Importance.high,
           priority: Priority.high,
           icon: '@mipmap/ic_launcher',
+          playSound: true,
+          enableVibration: true,
+          category: AndroidNotificationCategory.reminder,
         ),
         iOS: const DarwinNotificationDetails(
           presentAlert: true,
@@ -283,6 +350,9 @@ class ReminderService {
           importance: Importance.high,
           priority: Priority.high,
           icon: '@mipmap/ic_launcher',
+          playSound: true,
+          enableVibration: true,
+          category: AndroidNotificationCategory.reminder,
         ),
         iOS: const DarwinNotificationDetails(
           presentAlert: true,
@@ -306,16 +376,72 @@ class ReminderService {
     final endHour = prefs.getInt('dnd_end_hour') ?? 8;
 
     if (scheduledTime.hour >= startHour || scheduledTime.hour < endHour) {
-      return DateTime(
+      var adjusted = DateTime(
         scheduledTime.year,
         scheduledTime.month,
         scheduledTime.day,
         endHour,
         0,
       );
+      if (adjusted.isBefore(DateTime.now())) {
+        adjusted = adjusted.add(const Duration(days: 1));
+      }
+      return adjusted;
     }
 
     return scheduledTime;
+  }
+
+  Future<void> showImmediateReminder({
+    required String id,
+    required String title,
+    String? content,
+    required String type,
+    String? payload,
+  }) async {
+    if (!_initialized) await initialize();
+
+    final channelInfo = _getChannelInfo(type);
+
+    await _notifications.show(
+      id.hashCode,
+      title,
+      content ?? '',
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          channelInfo.$1,
+          channelInfo.$2,
+          channelDescription: channelInfo.$3,
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: '@mipmap/ic_launcher',
+          playSound: true,
+          enableVibration: true,
+          category: AndroidNotificationCategory.reminder,
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      ),
+      payload: payload,
+    );
+
+    debugPrint('Showed immediate reminder: $title (type: $type)');
+  }
+
+  (String, String, String) _getChannelInfo(String type) {
+    switch (type) {
+      case 'birthday':
+        return ('birthday_reminders', '生日提醒', '朋友生日提醒通知');
+      case 'contact':
+        return ('contact_reminders', '联络提醒', '朋友联络提醒通知');
+      case 'goal':
+        return ('goal_reminders', '目标提醒', '目标提醒通知');
+      default:
+        return ('other_reminders', '提醒', '其他提醒通知');
+    }
   }
 
   Future<void> cancelReminder(String id) async {

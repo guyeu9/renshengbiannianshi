@@ -176,9 +176,11 @@ class _LocalFileImage extends StatelessWidget {
     late ImageProvider provider;
     if (_imageCache.containsKey(path)) {
       provider = _imageCache[path]!;
+      debugPrint('[_LocalFileImage] CACHE_HIT: path=$path');
     } else {
       provider = FileImage(file);
       _imageCache[path] = provider;
+      debugPrint('[_LocalFileImage] CACHE_MISS: path=$path size=${file.lengthSync()} bytes');
     }
 
     return Image(
@@ -186,7 +188,10 @@ class _LocalFileImage extends StatelessWidget {
       fit: fit,
       width: width,
       height: height,
-      errorBuilder: (_, __, ___) => errorWidget ?? _buildDefaultError(),
+      errorBuilder: (_, error, stack) {
+        debugPrint('[_LocalFileImage] LOAD_ERROR: path=$path error=$error');
+        return errorWidget ?? _buildDefaultError();
+      },
       gaplessPlayback: true,
     );
   }
@@ -678,10 +683,16 @@ class _SmartImageState extends State<SmartImage> {
           if (!completer.isCompleted) {
             completer.complete(info.image);
           }
+        }, onError: (error, stackTrace) {
+          debugPrint('[SmartImage] RESOLVE_ERROR: source=${widget.source} error=$error');
+          if (!completer.isCompleted) {
+            completer.completeError(error);
+          }
         }),
       );
 
       final img = await completer.future;
+      debugPrint('[SmartImage] LOADED: source=${widget.source} width=${img.width} height=${img.height} ratio=${(img.width / img.height).toStringAsFixed(2)}');
       if (mounted) {
         FileLogger.instance.logSync('SmartImage.load', 'SUCCESS width=${img.width} height=${img.height} source=${widget.source}');
         setState(() {

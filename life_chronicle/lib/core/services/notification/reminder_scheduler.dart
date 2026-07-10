@@ -129,6 +129,19 @@ class ReminderScheduler {
       nextBirthday = DateTime(now.year + 1, birthday.month, birthday.day);
     }
 
+    final today = DateTime(now.year, now.month, now.day);
+    final birthdayThisYear = DateTime(now.year, birthday.month, birthday.day);
+
+    if (birthdayThisYear == today) {
+      await _service.showImmediateReminder(
+        id: 'birthday_${friend.id}_today',
+        title: '🎂 生日提醒',
+        content: '今天是${friend.name}的生日！快去送上祝福吧！',
+        type: 'birthday',
+        payload: 'birthday:${friend.id}',
+      );
+    }
+
     final reminderDate = nextBirthday.subtract(Duration(days: advanceDays));
     if (reminderDate.isBefore(now)) {
       if (nextBirthday.year == now.year) {
@@ -158,6 +171,7 @@ class ReminderScheduler {
       friendName: friend.name,
       birthday: friend.birthday!,
       daysBefore: advanceDays,
+      scheduledTime: scheduledTime,
     );
 
     final reminderId = 'birthday_${friend.id}_${nextBirthday.year}';
@@ -227,12 +241,22 @@ class ReminderScheduler {
     var scheduledTime = DateTime(today.year, today.month, today.day, 9, 0);
     scheduledTime = await _applyDoNotDisturb(scheduledTime);
 
-    await _service.scheduleContactReminder(
-      friendId: friend.id,
-      friendName: friend.name,
-      intervalDays: intervalDays,
-      scheduledTime: scheduledTime,
-    );
+    if (scheduledTime.isBefore(now)) {
+      await _service.showImmediateReminder(
+        id: 'contact_${friend.id}',
+        title: '联络提醒',
+        content: _buildContactReminderContent(friend, intervalDays, daysSinceLastMeet),
+        type: 'contact',
+        payload: 'contact:${friend.id}',
+      );
+    } else {
+      await _service.scheduleContactReminder(
+        friendId: friend.id,
+        friendName: friend.name,
+        intervalDays: intervalDays,
+        scheduledTime: scheduledTime,
+      );
+    }
 
     final reminderId = 'contact_${friend.id}';
     await db.reminderDao.deleteRemindersByTypeAndEntity('contact', 'friend', friend.id);
@@ -346,13 +370,17 @@ class ReminderScheduler {
     final endHour = prefs.getInt('dnd_end_hour') ?? 8;
 
     if (scheduledTime.hour >= startHour || scheduledTime.hour < endHour) {
-      return DateTime(
+      var adjusted = DateTime(
         scheduledTime.year,
         scheduledTime.month,
         scheduledTime.day,
         endHour,
         0,
       );
+      if (adjusted.isBefore(DateTime.now())) {
+        adjusted = adjusted.add(const Duration(days: 1));
+      }
+      return adjusted;
     }
 
     return scheduledTime;
@@ -391,6 +419,13 @@ class ReminderScheduler {
     for (final reminder in allReminders) {
       if (!reminder.isHandled && reminder.scheduledAt.isBefore(now) && reminder.triggeredAt == null) {
         await db.reminderDao.updateReminder(reminder.id, triggeredAt: now);
+        await _service.showImmediateReminder(
+          id: reminder.id,
+          title: reminder.title,
+          content: reminder.content,
+          type: reminder.type,
+          payload: '${reminder.type}:${reminder.relatedEntityId ?? ''}',
+        );
       }
     }
   }
