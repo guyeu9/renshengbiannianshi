@@ -16,48 +16,59 @@ final userDisplayNameProvider = FutureProvider<String>((ref) async {
   final db = ref.watch(appDatabaseProvider);
   final row = await (db.select(db.userProfiles)..where((t) => t.id.equals('me'))).getSingleOrNull();
   final name = (row?.displayName ?? '').trim();
-  return name.isEmpty ? '林晓梦' : name;
+  return name.isEmpty ? '未设置' : name;
 });
 
 final userRecordDaysProvider = FutureProvider<int>((ref) async {
   ref.watch(profileRevisionProvider);
   final db = ref.watch(appDatabaseProvider);
-  
+
   final profile = await (db.select(db.userProfiles)..where((t) => t.id.equals('me'))).getSingleOrNull();
-  
+
   if (profile?.createdAt != null) {
     return DateTime.now().difference(profile!.createdAt).inDays;
   }
-  
+
   final allDates = <DateTime>[];
-  
+
   final foods = await db.foodDao.watchAllActive().first;
   for (final f in foods) {
     allDates.add(f.recordDate);
   }
-  
+
   final moments = await db.momentDao.watchAllActive().first;
   for (final m in moments) {
     allDates.add(m.recordDate);
   }
-  
+
   final travels = await (db.select(db.travelRecords)..where((t) => t.isDeleted.equals(false))).get();
   for (final t in travels) {
     allDates.add(t.recordDate);
   }
-  
+
   final events = await (db.select(db.timelineEvents)..where((t) => t.isDeleted.equals(false))).get();
   for (final e in events) {
     allDates.add(e.recordDate);
   }
-  
+
   final friends = await db.friendDao.watchAllActive().first;
   for (final f in friends) {
     allDates.add(f.updatedAt);
   }
-  
+
   if (allDates.isEmpty) return 0;
-  
+
   allDates.sort();
   return DateTime.now().difference(allDates.first).inDays;
+});
+
+final userSignatureProvider = FutureProvider<List<String>>((ref) async {
+  ref.watch(profileRevisionProvider);
+  final db = ref.watch(appDatabaseProvider);
+  final row = await (db.select(db.userProfiles)..where((t) => t.id.equals('me'))).getSingleOrNull();
+  final sig = (row?.signature ?? '').trim();
+  if (sig.isEmpty) {
+    return const ['我频繁的记录着，我热烈的分享着', '你要知道诗人的一生也可能非常普通'];
+  }
+  return sig.split('\n');
 });

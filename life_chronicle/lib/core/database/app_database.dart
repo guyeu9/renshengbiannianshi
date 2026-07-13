@@ -44,7 +44,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 31;
+  int get schemaVersion => 32;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -270,6 +270,10 @@ class AppDatabase extends _$AppDatabase {
 
           if (from < 30) {
             await ensureTable(reminderRecords);
+          }
+
+          if (from < 32) {
+            await ensureColumn(table: userProfiles, column: userProfiles.signature);
           }
 
           // 修复历史数据：将逗号分隔的images字段转换为JSON数组格式

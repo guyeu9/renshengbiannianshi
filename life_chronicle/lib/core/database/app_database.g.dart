@@ -6947,6 +6947,12 @@ class $UserProfilesTable extends UserProfiles
   late final GeneratedColumn<String> gender = GeneratedColumn<String>(
       'gender', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _signatureMeta =
+      const VerificationMeta('signature');
+  @override
+  late final GeneratedColumn<String> signature = GeneratedColumn<String>(
+      'signature', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _createdAtMeta =
       const VerificationMeta('createdAt');
   @override
@@ -6968,6 +6974,7 @@ class $UserProfilesTable extends UserProfiles
         weightKg,
         relationshipStatus,
         gender,
+        signature,
         createdAt,
         updatedAt
       ];
@@ -7016,6 +7023,10 @@ class $UserProfilesTable extends UserProfiles
       context.handle(_genderMeta,
           gender.isAcceptableOrUnknown(data['gender']!, _genderMeta));
     }
+    if (data.containsKey('signature')) {
+      context.handle(_signatureMeta,
+          signature.isAcceptableOrUnknown(data['signature']!, _signatureMeta));
+    }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
           createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
@@ -7051,6 +7062,8 @@ class $UserProfilesTable extends UserProfiles
           DriftSqlType.string, data['${effectivePrefix}relationship_status']),
       gender: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}gender']),
+      signature: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}signature']),
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
       updatedAt: attachedDatabase.typeMapping
@@ -7072,6 +7085,7 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
   final double? weightKg;
   final String? relationshipStatus;
   final String? gender;
+  final String? signature;
   final DateTime createdAt;
   final DateTime updatedAt;
   const UserProfile(
@@ -7082,6 +7096,7 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
       this.weightKg,
       this.relationshipStatus,
       this.gender,
+      this.signature,
       required this.createdAt,
       required this.updatedAt});
   @override
@@ -7103,6 +7118,9 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
     }
     if (!nullToAbsent || gender != null) {
       map['gender'] = Variable<String>(gender);
+    }
+    if (!nullToAbsent || signature != null) {
+      map['signature'] = Variable<String>(signature);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -7127,6 +7145,9 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
           : Value(relationshipStatus),
       gender:
           gender == null && nullToAbsent ? const Value.absent() : Value(gender),
+      signature: signature == null && nullToAbsent
+          ? const Value.absent()
+          : Value(signature),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -7144,6 +7165,7 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
       relationshipStatus:
           serializer.fromJson<String?>(json['relationshipStatus']),
       gender: serializer.fromJson<String?>(json['gender']),
+      signature: serializer.fromJson<String?>(json['signature']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -7159,6 +7181,7 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
       'weightKg': serializer.toJson<double?>(weightKg),
       'relationshipStatus': serializer.toJson<String?>(relationshipStatus),
       'gender': serializer.toJson<String?>(gender),
+      'signature': serializer.toJson<String?>(signature),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -7172,6 +7195,7 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
           Value<double?> weightKg = const Value.absent(),
           Value<String?> relationshipStatus = const Value.absent(),
           Value<String?> gender = const Value.absent(),
+          Value<String?> signature = const Value.absent(),
           DateTime? createdAt,
           DateTime? updatedAt}) =>
       UserProfile(
@@ -7184,6 +7208,7 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
             ? relationshipStatus.value
             : this.relationshipStatus,
         gender: gender.present ? gender.value : this.gender,
+        signature: signature.present ? signature.value : this.signature,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
       );
@@ -7199,6 +7224,7 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
           ? data.relationshipStatus.value
           : this.relationshipStatus,
       gender: data.gender.present ? data.gender.value : this.gender,
+      signature: data.signature.present ? data.signature.value : this.signature,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -7214,6 +7240,7 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
           ..write('weightKg: $weightKg, ')
           ..write('relationshipStatus: $relationshipStatus, ')
           ..write('gender: $gender, ')
+          ..write('signature: $signature, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -7222,7 +7249,7 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
 
   @override
   int get hashCode => Object.hash(id, displayName, birthday, heightCm, weightKg,
-      relationshipStatus, gender, createdAt, updatedAt);
+      relationshipStatus, gender, signature, createdAt, updatedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -7234,6 +7261,7 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
           other.weightKg == this.weightKg &&
           other.relationshipStatus == this.relationshipStatus &&
           other.gender == this.gender &&
+          other.signature == this.signature &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -7246,6 +7274,7 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfile> {
   final Value<double?> weightKg;
   final Value<String?> relationshipStatus;
   final Value<String?> gender;
+  final Value<String?> signature;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
@@ -7257,6 +7286,7 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfile> {
     this.weightKg = const Value.absent(),
     this.relationshipStatus = const Value.absent(),
     this.gender = const Value.absent(),
+    this.signature = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -7269,6 +7299,7 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfile> {
     this.weightKg = const Value.absent(),
     this.relationshipStatus = const Value.absent(),
     this.gender = const Value.absent(),
+    this.signature = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.rowid = const Value.absent(),
@@ -7284,6 +7315,7 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfile> {
     Expression<double>? weightKg,
     Expression<String>? relationshipStatus,
     Expression<String>? gender,
+    Expression<String>? signature,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -7296,6 +7328,7 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfile> {
       if (weightKg != null) 'weight_kg': weightKg,
       if (relationshipStatus != null) 'relationship_status': relationshipStatus,
       if (gender != null) 'gender': gender,
+      if (signature != null) 'signature': signature,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -7310,6 +7343,7 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfile> {
       Value<double?>? weightKg,
       Value<String?>? relationshipStatus,
       Value<String?>? gender,
+      Value<String?>? signature,
       Value<DateTime>? createdAt,
       Value<DateTime>? updatedAt,
       Value<int>? rowid}) {
@@ -7321,6 +7355,7 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfile> {
       weightKg: weightKg ?? this.weightKg,
       relationshipStatus: relationshipStatus ?? this.relationshipStatus,
       gender: gender ?? this.gender,
+      signature: signature ?? this.signature,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -7351,6 +7386,9 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfile> {
     if (gender.present) {
       map['gender'] = Variable<String>(gender.value);
     }
+    if (signature.present) {
+      map['signature'] = Variable<String>(signature.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -7373,6 +7411,7 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfile> {
           ..write('weightKg: $weightKg, ')
           ..write('relationshipStatus: $relationshipStatus, ')
           ..write('gender: $gender, ')
+          ..write('signature: $signature, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -15950,6 +15989,7 @@ typedef $$UserProfilesTableCreateCompanionBuilder = UserProfilesCompanion
   Value<double?> weightKg,
   Value<String?> relationshipStatus,
   Value<String?> gender,
+  Value<String?> signature,
   required DateTime createdAt,
   required DateTime updatedAt,
   Value<int> rowid,
@@ -15963,6 +16003,7 @@ typedef $$UserProfilesTableUpdateCompanionBuilder = UserProfilesCompanion
   Value<double?> weightKg,
   Value<String?> relationshipStatus,
   Value<String?> gender,
+  Value<String?> signature,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
   Value<int> rowid,
@@ -15998,6 +16039,9 @@ class $$UserProfilesTableFilterComposer
 
   ColumnFilters<String> get gender => $composableBuilder(
       column: $table.gender, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get signature => $composableBuilder(
+      column: $table.signature, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
@@ -16037,6 +16081,9 @@ class $$UserProfilesTableOrderingComposer
   ColumnOrderings<String> get gender => $composableBuilder(
       column: $table.gender, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get signature => $composableBuilder(
+      column: $table.signature, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 
@@ -16073,6 +16120,9 @@ class $$UserProfilesTableAnnotationComposer
 
   GeneratedColumn<String> get gender =>
       $composableBuilder(column: $table.gender, builder: (column) => column);
+
+  GeneratedColumn<String> get signature =>
+      $composableBuilder(column: $table.signature, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -16114,6 +16164,7 @@ class $$UserProfilesTableTableManager extends RootTableManager<
             Value<double?> weightKg = const Value.absent(),
             Value<String?> relationshipStatus = const Value.absent(),
             Value<String?> gender = const Value.absent(),
+            Value<String?> signature = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -16126,6 +16177,7 @@ class $$UserProfilesTableTableManager extends RootTableManager<
             weightKg: weightKg,
             relationshipStatus: relationshipStatus,
             gender: gender,
+            signature: signature,
             createdAt: createdAt,
             updatedAt: updatedAt,
             rowid: rowid,
@@ -16138,6 +16190,7 @@ class $$UserProfilesTableTableManager extends RootTableManager<
             Value<double?> weightKg = const Value.absent(),
             Value<String?> relationshipStatus = const Value.absent(),
             Value<String?> gender = const Value.absent(),
+            Value<String?> signature = const Value.absent(),
             required DateTime createdAt,
             required DateTime updatedAt,
             Value<int> rowid = const Value.absent(),
@@ -16150,6 +16203,7 @@ class $$UserProfilesTableTableManager extends RootTableManager<
             weightKg: weightKg,
             relationshipStatus: relationshipStatus,
             gender: gender,
+            signature: signature,
             createdAt: createdAt,
             updatedAt: updatedAt,
             rowid: rowid,

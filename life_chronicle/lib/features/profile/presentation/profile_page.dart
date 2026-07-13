@@ -327,20 +327,36 @@ class ProfilePage extends ConsumerWidget {
     try {
       final db = ref.read(appDatabaseProvider);
       final profile = await (db.select(db.userProfiles)).getSingleOrNull();
-      final name = profile?.displayName ?? '林晓梦';
+      final name = (profile?.displayName ?? '').trim().isEmpty ? '未设置' : profile!.displayName.trim();
+
+      final foodCount = await (db.select(db.foodRecords)..where((t) => t.isDeleted.equals(false))).get().then((l) => l.length);
+      final travelCount = await (db.select(db.travelRecords)..where((t) => t.isDeleted.equals(false))).get().then((l) => l.length);
+      final momentCount = await db.momentDao.watchAllActive().first.then((l) => l.length);
+      final encounterCount = await (db.select(db.timelineEvents)
+            ..where((t) => t.isDeleted.equals(false))
+            ..where((t) => t.eventType.equals('encounter')))
+          .get()
+          .then((l) => l.length);
+      final goalCount = await (db.select(db.timelineEvents)
+            ..where((t) => t.isDeleted.equals(false))
+            ..where((t) => t.eventType.equals('goal')))
+          .get()
+          .then((l) => l.length);
+
+      final days = await ref.read(userRecordDaysProvider.future);
 
       final text = '''
 【人生编年史 - 个人中心】
 
 用户名：$name
-已记录人生：${await _calculateRecordDays(ref)}天
+已记录人生：$days天
 
 记录统计：
-- 美食记录：待统计
-- 旅行记录：待统计
-- 小确幸记录：待统计
-- 羁绊记录：待统计
-- 目标记录：待统计
+- 美食记录：$foodCount条
+- 旅行记录：$travelCount条
+- 小确幸记录：$momentCount条
+- 相遇记录：$encounterCount条
+- 目标记录：$goalCount条
 
 我频繁的记录着，我热烈的分享着
 你要知道诗人的一生也可能非常普通
@@ -360,47 +376,6 @@ class ProfilePage extends ConsumerWidget {
 
   void _showNotificationSettings(BuildContext context) {
     RouteNavigation.goToReminderSettings(context);
-  }
-
-  Future<int> _calculateRecordDays(WidgetRef ref) async {
-    final db = ref.read(appDatabaseProvider);
-    final profile = await (db.select(db.userProfiles)..where((t) => t.id.equals('me'))).getSingleOrNull();
-
-    if (profile?.createdAt != null) {
-      return DateTime.now().difference(profile!.createdAt).inDays;
-    }
-
-    final allDates = <DateTime>[];
-
-    final foods = await db.foodDao.watchAllActive().first;
-    for (final f in foods) {
-      allDates.add(f.recordDate);
-    }
-
-    final moments = await db.momentDao.watchAllActive().first;
-    for (final m in moments) {
-      allDates.add(m.recordDate);
-    }
-
-    final travels = await (db.select(db.travelRecords)..where((t) => t.isDeleted.equals(false))).get();
-    for (final t in travels) {
-      allDates.add(t.recordDate);
-    }
-
-    final events = await (db.select(db.timelineEvents)..where((t) => t.isDeleted.equals(false))).get();
-    for (final e in events) {
-      allDates.add(e.recordDate);
-    }
-
-    final friends = await db.friendDao.watchAllActive().first;
-    for (final f in friends) {
-      allDates.add(f.updatedAt);
-    }
-
-    if (allDates.isEmpty) return 0;
-
-    allDates.sort();
-    return DateTime.now().difference(allDates.first).inDays;
   }
 
   @override
@@ -551,7 +526,11 @@ class ProfilePage extends ConsumerWidget {
                           ).copyWith(
                             backgroundColor: WidgetStateProperty.all(Colors.transparent),
                           ),
-                          onPressed: () {},
+                          onPressed: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('退出登录功能开发中，敬请期待')),
+                            );
+                          },
                           child: const Text('退出登录', style: TextStyle(fontWeight: FontWeight.w600)),
                         ),
                       ],
@@ -606,11 +585,22 @@ class _HeaderState extends ConsumerState<_Header> {
       'https://lh3.googleusercontent.com/aida-public/AB6AXuBbKe_aCd46pUms7LLAFzD6OXtQ8lCfAXJOsCrBecRIq0Rsb6hG4jY_titPPL6OX4UEolhRaXIm5q1CN8mgX1sDnDEpjIu6VsAPEPXD_TgVO70SfpWy3Ip2I0CsCyMuTYopG68o1H3zfeCTGnhMwcli29GRkYeNRSh_bne4ffgw7Lym8TRcy9xvfIRJ7re4r_AZ6HYWFXuNljbmovvrN8K3yGjv8iiZ5MCKo2rG0vQcYlScRiJTep-ftfRgTq7kF_pycqvsKRxWyfNh';
 
   String? _avatarPath;
+  int? _lastProfileRevision;
 
   @override
   void initState() {
     super.initState();
     _loadAvatar();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final revision = ref.read(profileRevisionProvider);
+    if (_lastProfileRevision != null && _lastProfileRevision != revision) {
+      _loadAvatar();
+    }
+    _lastProfileRevision = revision;
   }
 
   ImageProvider _avatarProvider() {
@@ -828,11 +818,11 @@ class _HeaderState extends ConsumerState<_Header> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 loading: () => const Text(
-                  '林晓梦',
+                  '...',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
                 ),
                 error: (_, __) => const Text(
-                  '林晓梦',
+                  '未设置',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
                 ),
               );
@@ -876,14 +866,25 @@ class _HeaderState extends ConsumerState<_Header> {
             },
           ),
           const SizedBox(height: 16),
-          const Text(
-            '我频繁的记录着，我热烈的分享着',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF1152D4)),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            '你要知道诗人的一生也可能非常普通',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF1152D4)),
+          Consumer(
+            builder: (context, ref, _) {
+              final sigAsync = ref.watch(userSignatureProvider);
+              return sigAsync.when(
+                data: (lines) => Column(
+                  children: [
+                    for (int i = 0; i < lines.length; i++) ...[
+                      if (i > 0) const SizedBox(height: 6),
+                      Text(
+                        lines[i],
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF1152D4)),
+                      ),
+                    ],
+                  ],
+                ),
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              );
+            },
           ),
         ],
       ),
@@ -1000,37 +1001,8 @@ class _ChronicleCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 18),
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    SizedBox(
-                      height: 32,
-                      child: Stack(
-                        children: const [
-                          _StackAvatar(
-                            left: 0,
-                            image:
-                                'https://lh3.googleusercontent.com/aida-public/AB6AXuBH6ehj1x0eGgr0VT06HQYlUaq4fxkuUqmW_4FW1gikA4nxmI22lrL1sVhFIaaXEu4_sdXwyQzkzCt-Dnrf67biay7YI5oTrsxWpfXYiDoEZ8XgUQuJKSYkju8t7BU-1oC6Pe41HZgsfEJ-8oBiL-EoEHYjkIMGCg8b9eEaanMop_7hkQD5mnnsAE5St7AICaTl30tf6PViJCwsyVOz4DzZpvGdGZKHVVXJacED7BYrhu8umPQo5a8feO9c8Je6Tu0hBrX-Qa6IqdPz',
-                          ),
-                          _StackAvatar(
-                            left: 20,
-                            image:
-                                'https://lh3.googleusercontent.com/aida-public/AB6AXuAxXDOLwhNbt-UVPJcW_LvKDBPIFu2hX7FsNBdXVv1wiYEXyaNi06egGSt711Y68tkgK5bmiHGEArNPbXPlUqI3hvoopLb4Q1Wp1u1HsKCs87W5BCKa4qIfvOl4VitjkOYUCI9PkDmdEWe2WxS5GcFcwiE9yOGssBuuM3V81VxKHBzmc0ClvZ1UQ0ljfW0DdCs5zGmFoBnUpVeqJFFTy_uZ0uzkCnheIB8Z_TdXj23jlr2fS_cAzwrHvlTJ9KFxYr5zTudW71WrxMRa',
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 30),
-                    Container(
-                      width: 32,
-                      height: 32,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E40AF),
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(color: const Color(0xFF1E3A8A), width: 2),
-                      ),
-                      child: const Text('+3', style: TextStyle(fontSize: 10, color: Color(0xFFDBEAFE), fontWeight: FontWeight.w800)),
-                    ),
-                    const Spacer(),
                     TextButton(
                       onPressed: onGenerate,
                       style: TextButton.styleFrom(
@@ -1055,30 +1027,6 @@ class _ChronicleCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _StackAvatar extends StatelessWidget {
-  const _StackAvatar({required this.left, required this.image});
-
-  final double left;
-  final String image;
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      left: left,
-      top: 0,
-      child: Container(
-        width: 32,
-        height: 32,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: const Color(0xFF1E3A8A), width: 2),
-          image: DecorationImage(image: NetworkImage(image), fit: BoxFit.cover),
-        ),
       ),
     );
   }
@@ -5602,7 +5550,7 @@ class _PersonalProfilePageState extends ConsumerState<PersonalProfilePage> {
     final row = await (db.select(db.userProfiles)..where((t) => t.id.equals('me'))).getSingleOrNull();
 
     final displayName = (row?.displayName ?? '').trim();
-    final nameAsync = displayName.isEmpty ? await ref.read(userDisplayNameProvider.future) : displayName;
+    final nameAsync = displayName.isEmpty ? '' : displayName;
     final birthday = row?.birthday == null ? null : DateTime(row!.birthday!.year, row.birthday!.month, row.birthday!.day);
 
     final heightText = _formatNumber(row?.heightCm);
@@ -8687,6 +8635,11 @@ class PrivacySecurityPage extends StatelessWidget {
 class HelpFeedbackPage extends StatelessWidget {
   const HelpFeedbackPage({super.key});
 
+  static Future<String> _getAppVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    return '${info.version}+${info.buildNumber}';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -8746,12 +8699,17 @@ class HelpFeedbackPage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    '版本 1.0.0',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[400],
-                    ),
+                  FutureBuilder<String>(
+                    future: HelpFeedbackPage._getAppVersion(),
+                    builder: (context, snapshot) {
+                      return Text(
+                        '版本 ${snapshot.data ?? '...'}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[400],
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
