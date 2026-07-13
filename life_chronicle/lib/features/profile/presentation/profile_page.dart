@@ -326,7 +326,7 @@ class ProfilePage extends ConsumerWidget {
   Future<void> _shareProfile(BuildContext context, WidgetRef ref) async {
     try {
       final db = ref.read(appDatabaseProvider);
-      final profile = await (db.select(db.userProfiles)).getSingleOrNull();
+      final profile = await (db.select(db.userProfiles)..where((t) => t.id.equals('me'))).getSingleOrNull();
       final trimmedName = (profile?.displayName ?? '').trim();
       final name = trimmedName.isEmpty ? '未设置' : trimmedName;
 
@@ -338,11 +338,7 @@ class ProfilePage extends ConsumerWidget {
             ..where((t) => t.eventType.equals('encounter')))
           .get()
           .then((l) => l.length);
-      final goalCount = await (db.select(db.timelineEvents)
-            ..where((t) => t.isDeleted.equals(false))
-            ..where((t) => t.eventType.equals('goal')))
-          .get()
-          .then((l) => l.length);
+      final goalCount = await (db.select(db.goalRecords)..where((t) => t.isDeleted.equals(false))).get().then((l) => l.length);
 
       final days = await ref.read(userRecordDaysProvider.future);
 
