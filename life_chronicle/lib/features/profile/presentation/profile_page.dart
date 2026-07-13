@@ -327,7 +327,8 @@ class ProfilePage extends ConsumerWidget {
     try {
       final db = ref.read(appDatabaseProvider);
       final profile = await (db.select(db.userProfiles)).getSingleOrNull();
-      final name = (profile?.displayName ?? '').trim().isEmpty ? '未设置' : profile!.displayName.trim();
+      final trimmedName = (profile?.displayName ?? '').trim();
+      final name = trimmedName.isEmpty ? '未设置' : trimmedName;
 
       final foodCount = await (db.select(db.foodRecords)..where((t) => t.isDeleted.equals(false))).get().then((l) => l.length);
       final travelCount = await (db.select(db.travelRecords)..where((t) => t.isDeleted.equals(false))).get().then((l) => l.length);
