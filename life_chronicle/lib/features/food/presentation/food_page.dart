@@ -11,6 +11,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/config/module_management_config.dart';
 import '../../../core/services/file_logger.dart';
@@ -124,6 +125,74 @@ class _FoodPageState extends State<FoodPage> {
     });
   }
 
+  Future<void> _openTuneMenu() async {
+    final action = await showModalBottomSheet<_TuneAction>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE5E7EB),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              const Text(
+                '快捷操作',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              ListTile(
+                leading: const Icon(Icons.restart_alt, color: Color(0xFF2BCDEE)),
+                title: const Text('重置所有筛选', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+                subtitle: const Text('清除日期、评分、城市、同伴筛选', style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+                onTap: () => Navigator.of(context).pop(_TuneAction.reset),
+              ),
+              ListTile(
+                leading: const Icon(Icons.event, color: Color(0xFF2BCDEE)),
+                title: const Text('打开日期筛选', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+                onTap: () => Navigator.of(context).pop(_TuneAction.dateFilter),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (action == null) return;
+    switch (action) {
+      case _TuneAction.reset:
+        setState(() {
+          _filterDateIndex = 0;
+          _filterCustomRange = null;
+          _filterRatings = {};
+          _filterCities = {};
+          _filterFriendIds = {};
+          _filterSolo = false;
+          _filterFavorite = false;
+          _searchController.clear();
+          _searchQuery = '';
+        });
+        break;
+      case _TuneAction.dateFilter:
+        await _openDateFilter();
+        break;
+    }
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -143,6 +212,7 @@ class _FoodPageState extends State<FoodPage> {
               onModeChanged: (next) => setState(() => _modeIndex = next),
               searchController: _searchController,
               onSearchChanged: (v) => setState(() => _searchQuery = v),
+              onTuneTap: _openTuneMenu,
             ),
             Expanded(
               child: CustomScrollView(
@@ -206,12 +276,14 @@ class _FoodFixedHeader extends StatelessWidget {
     required this.onModeChanged,
     required this.searchController,
     required this.onSearchChanged,
+    required this.onTuneTap,
   });
 
   final int modeIndex;
   final ValueChanged<int> onModeChanged;
   final TextEditingController searchController;
   final ValueChanged<String> onSearchChanged;
+  final VoidCallback onTuneTap;
 
   @override
   Widget build(BuildContext context) {
@@ -271,7 +343,7 @@ class _FoodFixedHeader extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              _HeaderCircle(icon: Icons.tune, onTap: () {}),
+              _HeaderCircle(icon: Icons.tune, onTap: onTuneTap),
             ],
           ),
           const SizedBox(height: 12),
@@ -1317,10 +1389,12 @@ class FoodDetailPage extends ConsumerWidget {
             ),
             onEdit: null,
             onToggleFavorite: null,
-            onShare: null,
             onDelete: null,
             onCheckInAgain: null,
             onMarkAsTasted: null,
+            wishlistDone: false,
+            link: null,
+            mood: null,
           );
         }
         final images = _parseImages(record.images);
@@ -1348,9 +1422,10 @@ class FoodDetailPage extends ConsumerWidget {
             entityId: record.id,
             entityType: 'food',
             showContent: true,
+            onAddTap: () => context.push('${AppRoutes.food}/create', extra: {'initialRecord': record}),
           ),
           onEdit: () {
-            context.go('${AppRoutes.food}/create', extra: {'initialRecord': record});
+            context.push('${AppRoutes.food}/create', extra: {'initialRecord': record});
           },
           onToggleFavorite: () async {
             await db.foodDao.updateFavorite(
@@ -1359,7 +1434,6 @@ class FoodDetailPage extends ConsumerWidget {
               now: DateTime.now(),
             );
           },
-          onShare: () {},
           onDelete: () async {
             final db = ref.read(appDatabaseProvider);
             final deleteService = DeleteService(db);
@@ -1377,7 +1451,7 @@ class FoodDetailPage extends ConsumerWidget {
             Navigator.of(context).pop();
           },
           onCheckInAgain: () {
-            context.go('${AppRoutes.food}/create', extra: {
+            context.push('${AppRoutes.food}/create', extra: {
               'prefillTitle': record.title,
               'prefillPoiName': (record.poiName ?? '').trim().isEmpty ? record.title : record.poiName,
               'prefillPoiAddress': (record.poiAddress ?? record.city ?? '').trim(),
@@ -1387,18 +1461,21 @@ class FoodDetailPage extends ConsumerWidget {
           onMarkAsTasted: !isWishlist
               ? null
               : () async {
-                  final converted = await context.push<bool>(
-                    '${AppRoutes.food}/create',
-                    extra: {
-                      'initialRecord': record,
-                      'overrideIsWishlist': false,
-                      'overrideWishlistDone': true,
-                      'popWithResultOnPublish': true,
-                    },
+                  await db.foodDao.updateWishlistStatus(
+                    record.id,
+                    isWishlist: record.isWishlist,
+                    wishlistDone: true,
+                    now: DateTime.now(),
                   );
                   if (!context.mounted) return;
-                  if (converted == true) Navigator.of(context).pop(true);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('已标记为已品尝'), backgroundColor: Color(0xFF10B981)),
+                  );
+                  Navigator.of(context).pop(true);
                 },
+          wishlistDone: record.wishlistDone,
+          link: record.link,
+          mood: record.mood,
         );
       },
     );
@@ -1423,10 +1500,12 @@ class FoodDetailPage extends ConsumerWidget {
     required Widget linkSection,
     required VoidCallback? onEdit,
     required VoidCallback? onToggleFavorite,
-    required VoidCallback? onShare,
     required VoidCallback? onDelete,
     required VoidCallback? onCheckInAgain,
     required Future<void> Function()? onMarkAsTasted,
+    required bool wishlistDone,
+    required String? link,
+    required String? mood,
   }) {
     final shareKey = GlobalKey();
     void openMapPreview() {
@@ -1451,7 +1530,7 @@ class FoodDetailPage extends ConsumerWidget {
             scrolledUnderElevation: 0,
             title: isWishlist ? const SizedBox.shrink() : Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
             actions: [
-              IconButton(onPressed: onShare == null ? null : () => _shareLongImage(context, shareKey), icon: const Icon(Icons.ios_share)),
+              IconButton(onPressed: onEdit == null ? null : () => _shareLongImage(context, shareKey), icon: const Icon(Icons.ios_share)),
               IconButton(
                 onPressed: onDelete == null
                     ? null
@@ -1733,6 +1812,86 @@ class FoodDetailPage extends ConsumerWidget {
                           ],
                         ),
                       ),
+                      if (link != null && link.trim().isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        InkWell(
+                          onTap: () async {
+                            final uri = Uri.tryParse(link.trim());
+                            if (uri == null) return;
+                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                          },
+                          borderRadius: BorderRadius.circular(18),
+                          child: Container(
+                            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(color: const Color(0xFFF3F4F6)),
+                              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 12, offset: const Offset(0, 4))],
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(color: const Color(0x1A2BCDEE), borderRadius: BorderRadius.circular(999)),
+                                  child: const Icon(Icons.link, size: 16, color: Color(0xFF22BEBE)),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('相关链接', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        link.trim(),
+                                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF22BEBE)),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(Icons.open_in_new, size: 14, color: Color(0xFF9CA3AF)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                      if (mood != null && mood.trim().isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: const Color(0xFFF3F4F6)),
+                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 12, offset: const Offset(0, 4))],
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(color: const Color(0x1A2BCDEE), borderRadius: BorderRadius.circular(999)),
+                                child: const Icon(Icons.mood, size: 16, color: Color(0xFF22BEBE)),
+                              ),
+                              const SizedBox(width: 10),
+                              const Text('心情', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  mood.trim(),
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 16),
                       Container(height: 1, color: const Color(0xFFF1F5F9)),
                       const SizedBox(height: 16),
@@ -1800,6 +1959,86 @@ class FoodDetailPage extends ConsumerWidget {
                       ),
                       const SizedBox(height: 16),
                       if (images.isNotEmpty) _ImageGrid(images: images),
+                      if (mood != null && mood.trim().isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: const Color(0xFFF3F4F6)),
+                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 12, offset: const Offset(0, 4))],
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(color: const Color(0x1A2BCDEE), borderRadius: BorderRadius.circular(999)),
+                                child: const Icon(Icons.mood, size: 16, color: Color(0xFF22BEBE)),
+                              ),
+                              const SizedBox(width: 10),
+                              const Text('心情', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  mood.trim(),
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      if (link != null && link.trim().isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        InkWell(
+                          onTap: () async {
+                            final uri = Uri.tryParse(link.trim());
+                            if (uri == null) return;
+                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                          },
+                          borderRadius: BorderRadius.circular(18),
+                          child: Container(
+                            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(color: const Color(0xFFF3F4F6)),
+                              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 12, offset: const Offset(0, 4))],
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(color: const Color(0x1A2BCDEE), borderRadius: BorderRadius.circular(999)),
+                                  child: const Icon(Icons.link, size: 16, color: Color(0xFF22BEBE)),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('相关链接', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        link.trim(),
+                                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF22BEBE)),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(Icons.open_in_new, size: 14, color: Color(0xFF9CA3AF)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 16),
                       Container(height: 1, color: const Color(0xFFF1F5F9)),
                       const SizedBox(height: 16),
@@ -1892,7 +2131,7 @@ class FoodDetailPage extends ConsumerWidget {
                           _BottomAction(
                             icon: Icons.share,
                             label: '分享',
-                            onTap: onShare == null ? null : () => _shareLongImage(context, shareKey),
+                            onTap: onEdit == null ? null : () => _shareLongImage(context, shareKey),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -1905,14 +2144,21 @@ class FoodDetailPage extends ConsumerWidget {
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
                                 textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
                               ),
-                              onPressed: onMarkAsTasted == null
-                                  ? null
-                                  : () {
-                                      FocusManager.instance.primaryFocus?.unfocus();
-                                      onMarkAsTasted();
-                                    },
-                              icon: const Icon(Icons.check_circle_outline, size: 16),
-                              label: const Text('标记为已品尝'),
+                              onPressed: wishlistDone
+                                  ? (onCheckInAgain == null
+                                      ? null
+                                      : () {
+                                          FocusManager.instance.primaryFocus?.unfocus();
+                                          onCheckInAgain();
+                                        })
+                                  : (onMarkAsTasted == null
+                                      ? null
+                                      : () {
+                                          FocusManager.instance.primaryFocus?.unfocus();
+                                          onMarkAsTasted();
+                                        }),
+                              icon: Icon(wishlistDone ? Icons.restaurant : Icons.check_circle_outline, size: 16),
+                              label: Text(wishlistDone ? '再次打卡' : '标记为已品尝'),
                             ),
                           ),
                         ]
@@ -1933,7 +2179,7 @@ class FoodDetailPage extends ConsumerWidget {
                           _BottomAction(
                             icon: Icons.share,
                             label: '分享',
-                            onTap: onShare == null ? null : () => _shareLongImage(context, shareKey),
+                            onTap: onEdit == null ? null : () => _shareLongImage(context, shareKey),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -1971,17 +2217,18 @@ class FoodDetailPage extends ConsumerWidget {
     required String entityId,
     required String entityType,
     required bool showContent,
+    VoidCallback? onAddTap,
   }) {
     if (!showContent) {
       return Column(
         children: [
-          _LinkBlock(icon: Icons.group, title: '关联人物', chips: const []),
+          _LinkBlock(icon: Icons.group, title: '关联人物', chips: const [], onAddTap: onAddTap),
           const SizedBox(height: 10),
-          _LinkBlock(icon: Icons.auto_awesome, title: '关联小确幸', chips: const []),
+          _LinkBlock(icon: Icons.auto_awesome, title: '关联小确幸', chips: const [], onAddTap: onAddTap),
           const SizedBox(height: 10),
-          _LinkBlock(icon: Icons.airplanemode_active, title: '关联旅行', chips: const []),
+          _LinkBlock(icon: Icons.airplanemode_active, title: '关联旅行', chips: const [], onAddTap: onAddTap),
           const SizedBox(height: 10),
-          _LinkBlock(icon: Icons.outlined_flag, title: '关联目标', chips: const []),
+          _LinkBlock(icon: Icons.outlined_flag, title: '关联目标', chips: const [], onAddTap: onAddTap),
         ],
       );
     }
@@ -2026,13 +2273,13 @@ class FoodDetailPage extends ConsumerWidget {
                         );
                         return Column(
                           children: [
-                            _LinkBlock(icon: Icons.people, title: '关联人物', chips: friendNames),
+                            _LinkBlock(icon: Icons.people, title: '关联人物', chips: friendNames, onAddTap: onAddTap),
                             const SizedBox(height: 10),
-                            _LinkBlock(icon: Icons.auto_awesome, title: '关联小确幸', chips: momentTitles),
+                            _LinkBlock(icon: Icons.auto_awesome, title: '关联小确幸', chips: momentTitles, onAddTap: onAddTap),
                             const SizedBox(height: 10),
-                            _LinkBlock(icon: Icons.airplanemode_active, title: '关联旅行', chips: travelTitles),
+                            _LinkBlock(icon: Icons.airplanemode_active, title: '关联旅行', chips: travelTitles, onAddTap: onAddTap),
                             const SizedBox(height: 10),
-                            _LinkBlock(icon: Icons.flag, title: '关联目标', chips: goalTitles),
+                            _LinkBlock(icon: Icons.flag, title: '关联目标', chips: goalTitles, onAddTap: onAddTap),
                           ],
                         );
                       },
@@ -2323,51 +2570,56 @@ class _BottomDivider extends StatelessWidget {
 }
 
 class _LinkBlock extends StatelessWidget {
-  const _LinkBlock({required this.icon, required this.title, required this.chips});
+  const _LinkBlock({required this.icon, required this.title, required this.chips, this.onAddTap});
 
   final IconData icon;
   final String title;
   final List<String> chips;
+  final VoidCallback? onAddTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFF3F4F6)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: const Color(0xFF2BCDEE), size: 18),
-              const SizedBox(width: 8),
-              Expanded(child: Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827)))),
-              const Icon(Icons.chevron_right, size: 18, color: Color(0xFFCBD5E1)),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final c in chips)
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: onAddTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFF3F4F6)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: const Color(0xFF2BCDEE), size: 18),
+                const SizedBox(width: 8),
+                Expanded(child: Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827)))),
+                const Icon(Icons.chevron_right, size: 18, color: Color(0xFFCBD5E1)),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final c in chips)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(color: const Color(0x1A2BCDEE), borderRadius: BorderRadius.circular(999)),
+                    child: Text(c, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF2BCDEE))),
+                  ),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(color: const Color(0x1A2BCDEE), borderRadius: BorderRadius.circular(999)),
-                  child: Text(c, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF2BCDEE))),
+                  decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(999)),
+                  child: const Text('+ 添加', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF6B7280))),
                 ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(999)),
-                child: const Text('+ 添加', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF6B7280))),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2411,6 +2663,7 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
   var _rating = 4;
   var _isWishlist = false;
   var _wishlistDone = false;
+  var _isFavorite = false;
   var _selectedMood = '开心';
 
   var _poiName = '';
@@ -2442,6 +2695,7 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
       _rating = record.rating?.round() ?? _rating;
       _isWishlist = record.isWishlist;
       _wishlistDone = record.wishlistDone;
+      _isFavorite = record.isFavorite;
       _selectedMood = (record.mood ?? '').trim().isEmpty ? _selectedMood : record.mood!.trim();
       _poiName = (record.poiName ?? '').trim().isEmpty ? _poiName : record.poiName!.trim();
       _poiAddress = (record.poiAddress ?? '').trim().isEmpty ? _poiAddress : record.poiAddress!.trim();
@@ -2938,6 +3192,27 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
                 activeColor: _primary,
                 activeTrackColor: _primary.withValues(alpha: 0.35),
                 onChanged: (v) => setState(() => _isWishlist = v),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text('收藏到收藏夹', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                    SizedBox(height: 4),
+                    Text('开启后将出现在收藏筛选结果中', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+                  ],
+                ),
+              ),
+              Switch(
+                value: _isFavorite,
+                activeColor: _primary,
+                activeTrackColor: _primary.withValues(alpha: 0.35),
+                onChanged: (v) => setState(() => _isFavorite = v),
               ),
             ],
           ),
@@ -3479,7 +3754,7 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
 
   Stream<List<GoalRecord>> _watchGoalEvents() {
     final db = ref.read(appDatabaseProvider);
-    return db.watchUncompletedYearGoals();
+    return db.goalDao.watchUncompletedYearGoals();
   }
 
   Future<void> _showLinkTravelsSheet(BuildContext context) async {
@@ -3699,7 +3974,7 @@ class _FoodCreatePageState extends ConsumerState<FoodCreatePage> {
     final foodId = existing?.id ?? uuid.v4();
     final recordDate = _recordDate;
     final createdAt = existing?.createdAt ?? now;
-    final isFavorite = existing?.isFavorite ?? false;
+    final isFavorite = _isFavorite;
 
     final content = _contentController.text.trim();
     final link = _linkController.text.trim();
@@ -3955,6 +4230,8 @@ class _BottomSheetShell extends StatelessWidget {
     );
   }
 }
+
+enum _TuneAction { reset, dateFilter }
 
 class _DateFilterResult {
   const _DateFilterResult({
@@ -4537,12 +4814,19 @@ String _resolveFoodCity(FoodRecord record) {
 String _extractCityToken(String input) {
   final s = input.trim();
   if (s.isEmpty) return '';
-  final m1 = RegExp(r'([\u4e00-\u9fa5]{2,10}市)').firstMatch(s);
-  if (m1 != null) return m1.group(1) ?? '';
-  final m2 = RegExp(r'([\u4e00-\u9fa5]{2,10}州)').firstMatch(s);
-  if (m2 != null) return m2.group(1) ?? '';
-  final m3 = RegExp(r'([\u4e00-\u9fa5]{2,10}地区)').firstMatch(s);
-  if (m3 != null) return m3.group(1) ?? '';
+  final patterns = <RegExp>[
+    RegExp(r'([\u4e00-\u9fa5]{2,10}市)'),
+    RegExp(r'([\u4e00-\u9fa5]{2,10}州)'),
+    RegExp(r'([\u4e00-\u9fa5]{2,10}地区)'),
+    RegExp(r'(北京|上海|天津|重庆)'),
+    RegExp(r'(香港|澳门)'),
+    RegExp(r'([\u4e00-\u9fa5]{2,10}盟)'),
+    RegExp(r'([\u4e00-\u9fa5]{2,10}旗)'),
+  ];
+  for (final p in patterns) {
+    final m = p.firstMatch(s);
+    if (m != null && (m.group(1) ?? '').isNotEmpty) return m.group(1)!;
+  }
   final first = s.split(RegExp(r'[\s,，/]+')).first.trim();
   return first.length > 12 ? '' : first;
 }
