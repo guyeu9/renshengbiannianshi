@@ -28,6 +28,17 @@ import '../../../core/widgets/ai_parse_button.dart';
 import '../../../core/utils/image_save_util.dart';
 import '../../ai_historian/services/context_builder.dart';
 
+List<String> decodeFoodStringList(String? raw) {
+  if (raw == null || raw.trim().isEmpty) return const [];
+  try {
+    final decoded = jsonDecode(raw);
+    if (decoded is List) return decoded.whereType<String>().toList(growable: false);
+  } catch (e) {
+    FileLogger.instance.logSync('FoodPage', '解码字符串列表失败: $e');
+  }
+  return const [];
+}
+
 class FoodPage extends StatefulWidget {
   const FoodPage({super.key});
 
@@ -647,8 +658,8 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
-class _FoodRecordBody extends ConsumerWidget {
-  const _FoodRecordBody({
+abstract class _FoodBodyBase extends ConsumerWidget {
+  const _FoodBodyBase({
     super.key,
     required this.searchQuery,
     required this.filterDateIndex,
@@ -669,6 +680,9 @@ class _FoodRecordBody extends ConsumerWidget {
   final bool filterSolo;
   final bool filterFavorite;
 
+  bool filterWishlist(FoodRecord e);
+  Widget buildListView(BuildContext context, List<FoodRecord> records);
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final db = ref.watch(appDatabaseProvider);
@@ -678,12 +692,12 @@ class _FoodRecordBody extends ConsumerWidget {
       stream: stream,
       builder: (context, snapshot) {
         final all = snapshot.data ?? const <FoodRecord>[];
-        final base = all.where((e) => e.isWishlist == false).toList(growable: false);
+        final base = all.where(filterWishlist).toList(growable: false);
         final byRatingAndCity = _applyRatingAndCity(base);
 
         if (filterFriendIds.isEmpty && !filterSolo) {
           final filtered = _applySearch(byRatingAndCity, searchQuery);
-          return _FoodRecordListView(records: filtered);
+          return buildListView(context, filtered);
         }
 
         final selectedFriendIds = filterFriendIds.toList(growable: false);
@@ -708,7 +722,7 @@ class _FoodRecordBody extends ConsumerWidget {
             if (!filterSolo) {
               final byFriend = byRatingAndCity.where((e) => bySelectedFriends.contains(e.id)).toList(growable: false);
               final filtered = _applySearch(byFriend, searchQuery);
-              return _FoodRecordListView(records: filtered);
+              return buildListView(context, filtered);
             }
 
             return StreamBuilder<List<EntityLink>>(
@@ -723,7 +737,7 @@ class _FoodRecordBody extends ConsumerWidget {
                   return bySelectedFriends.contains(e.id);
                 }).toList(growable: false);
                 final filtered = _applySearch(byCompanion, searchQuery);
-                return _FoodRecordListView(records: filtered);
+                return buildListView(context, filtered);
               },
             );
           },
@@ -756,7 +770,7 @@ class _FoodRecordBody extends ConsumerWidget {
     final q = query.trim().toLowerCase();
     if (q.isEmpty) return input;
     return input.where((r) {
-      final tags = _decodeStringList(r.tags).join(' ');
+      final tags = decodeFoodStringList(r.tags).join(' ');
       final fields = [
         r.title,
         r.content ?? '',
@@ -766,17 +780,6 @@ class _FoodRecordBody extends ConsumerWidget {
       ].join(' ').toLowerCase();
       return fields.contains(q);
     }).toList(growable: false);
-  }
-
-  List<String> _decodeStringList(String? raw) {
-    if (raw == null || raw.trim().isEmpty) return const [];
-    try {
-      final decoded = jsonDecode(raw);
-      if (decoded is List) return decoded.whereType<String>().toList(growable: false);
-    } catch (e) {
-      FileLogger.instance.logSync('FoodPage', '解码字符串列表失败: $e');
-    }
-    return const [];
   }
 
   List<FoodRecord> _applyRatingAndCity(List<FoodRecord> input) {
@@ -798,6 +801,28 @@ class _FoodRecordBody extends ConsumerWidget {
       out = out.where((r) => r.isFavorite).toList(growable: false);
     }
     return out;
+  }
+}
+
+class _FoodRecordBody extends _FoodBodyBase {
+  const _FoodRecordBody({
+    super.key,
+    required super.searchQuery,
+    required super.filterDateIndex,
+    required super.filterCustomRange,
+    required super.filterRatings,
+    required super.filterCities,
+    required super.filterFriendIds,
+    required super.filterSolo,
+    required super.filterFavorite,
+  });
+
+  @override
+  bool filterWishlist(FoodRecord e) => e.isWishlist == false;
+
+  @override
+  Widget buildListView(BuildContext context, List<FoodRecord> records) {
+    return _FoodRecordListView(records: records);
   }
 }
 
@@ -839,8 +864,8 @@ class _FoodRecordCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final images = _decodeStringList(record.images);
-    final tags = _decodeStringList(record.tags);
+    final images = decodeFoodStringList(record.images);
+    final tags = decodeFoodStringList(record.tags);
     final cover = images.isEmpty ? '' : images.first;
     final subtitle = (record.content ?? '').trim();
     final location = [
@@ -982,173 +1007,32 @@ class _FoodRecordCard extends StatelessWidget {
     );
   }
 
-  List<String> _decodeStringList(String? raw) {
-    if (raw == null || raw.trim().isEmpty) return const [];
-    try {
-      final decoded = jsonDecode(raw);
-      if (decoded is List) return decoded.whereType<String>().toList(growable: false);
-    } catch (e) {
-      FileLogger.instance.logSync('FoodPage', '解码字符串列表失败: $e');
-    }
-    return const [];
-  }
 }
 
 
 
-class _FoodWishlistBody extends ConsumerWidget {
+class _FoodWishlistBody extends _FoodBodyBase {
   const _FoodWishlistBody({
     super.key,
-    required this.searchQuery,
-    required this.filterDateIndex,
-    required this.filterCustomRange,
-    required this.filterRatings,
-    required this.filterCities,
-    required this.filterFriendIds,
-    required this.filterSolo,
-    required this.filterFavorite,
+    required super.searchQuery,
+    required super.filterDateIndex,
+    required super.filterCustomRange,
+    required super.filterRatings,
+    required super.filterCities,
+    required super.filterFriendIds,
+    required super.filterSolo,
+    required super.filterFavorite,
     required this.onSwitchToRecords,
   });
 
-  final String searchQuery;
-  final int filterDateIndex;
-  final DateTimeRange? filterCustomRange;
-  final Set<int> filterRatings;
-  final Set<String> filterCities;
-  final Set<String> filterFriendIds;
-  final bool filterSolo;
-  final bool filterFavorite;
   final VoidCallback onSwitchToRecords;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final db = ref.watch(appDatabaseProvider);
-    final range = _resolveDateRange(filterDateIndex, filterCustomRange);
-    final stream = range == null ? db.foodDao.watchAllActive() : db.foodDao.watchByRecordDateRange(range.$1, range.$2);
-    return StreamBuilder<List<FoodRecord>>(
-      stream: stream,
-      builder: (context, snapshot) {
-        final all = snapshot.data ?? const <FoodRecord>[];
-        final base = all.where((e) => e.isWishlist == true).toList(growable: false);
-        final byRatingAndCity = _applyRatingAndCity(base);
+  bool filterWishlist(FoodRecord e) => e.isWishlist == true;
 
-        if (filterFriendIds.isEmpty && !filterSolo) {
-          final filtered = _applySearch(byRatingAndCity, searchQuery);
-          return _FoodWishlistListView(records: filtered, onSwitchToRecords: onSwitchToRecords);
-        }
-
-        final selectedFriendIds = filterFriendIds.toList(growable: false);
-        final friendLinksStream = selectedFriendIds.isEmpty
-            ? const Stream<List<EntityLink>>.empty()
-            : (db.select(db.entityLinks)
-                  ..where((t) => t.sourceType.equals('food'))
-                  ..where((t) => t.targetType.equals('friend'))
-                  ..where((t) => t.targetId.isIn(selectedFriendIds)))
-                .watch();
-
-        final anyFriendLinksStream = (db.select(db.entityLinks)
-              ..where((t) => t.sourceType.equals('food'))
-              ..where((t) => t.targetType.equals('friend')))
-            .watch();
-
-        return StreamBuilder<List<EntityLink>>(
-          stream: friendLinksStream,
-          builder: (context, friendLinkSnapshot) {
-            final friendLinks = friendLinkSnapshot.data ?? const <EntityLink>[];
-            final bySelectedFriends = <String>{for (final l in friendLinks) l.sourceId};
-            if (!filterSolo) {
-              final byFriend = byRatingAndCity.where((e) => bySelectedFriends.contains(e.id)).toList(growable: false);
-              final filtered = _applySearch(byFriend, searchQuery);
-              return _FoodWishlistListView(records: filtered, onSwitchToRecords: onSwitchToRecords);
-            }
-
-            return StreamBuilder<List<EntityLink>>(
-              stream: anyFriendLinksStream,
-              builder: (context, anyLinkSnapshot) {
-                final anyLinks = anyLinkSnapshot.data ?? const <EntityLink>[];
-                final hasAnyFriend = <String>{for (final l in anyLinks) l.sourceId};
-                final byCompanion = byRatingAndCity.where((e) {
-                  final isSolo = !hasAnyFriend.contains(e.id);
-                  if (isSolo) return true;
-                  if (selectedFriendIds.isEmpty) return false;
-                  return bySelectedFriends.contains(e.id);
-                }).toList(growable: false);
-                final filtered = _applySearch(byCompanion, searchQuery);
-                return _FoodWishlistListView(records: filtered, onSwitchToRecords: onSwitchToRecords);
-              },
-            );
-          },
-        );
-      },
-    );
-  }
-
-  (DateTime, DateTime)? _resolveDateRange(int index, DateTimeRange? customRange) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    switch (index) {
-      case 1:
-        return (today, today.add(const Duration(days: 1)));
-      case 2:
-        return (today.subtract(const Duration(days: 6)), today.add(const Duration(days: 1)));
-      case 3:
-        return (today.subtract(const Duration(days: 29)), today.add(const Duration(days: 1)));
-      case 4:
-        if (customRange == null) return null;
-        final start = DateTime(customRange.start.year, customRange.start.month, customRange.start.day);
-        final end = DateTime(customRange.end.year, customRange.end.month, customRange.end.day).add(const Duration(days: 1));
-        return (start, end);
-      default:
-        return null;
-    }
-  }
-
-  List<FoodRecord> _applySearch(List<FoodRecord> input, String query) {
-    final q = query.trim().toLowerCase();
-    if (q.isEmpty) return input;
-    return input.where((r) {
-      final tags = _decodeStringList(r.tags).join(' ');
-      final fields = [
-        r.title,
-        r.content ?? '',
-        r.poiName ?? '',
-        r.poiAddress ?? r.city ?? '',
-        tags,
-      ].join(' ').toLowerCase();
-      return fields.contains(q);
-    }).toList(growable: false);
-  }
-
-  List<String> _decodeStringList(String? raw) {
-    if (raw == null || raw.trim().isEmpty) return const [];
-    try {
-      final decoded = jsonDecode(raw);
-      if (decoded is List) return decoded.whereType<String>().toList(growable: false);
-    } catch (e) {
-      FileLogger.instance.logSync('FoodPage', '解码字符串列表失败: $e');
-    }
-    return const [];
-  }
-
-  List<FoodRecord> _applyRatingAndCity(List<FoodRecord> input) {
-    var out = input;
-    if (filterRatings.isNotEmpty) {
-      out = out.where((r) {
-        final v = r.rating;
-        if (v == null) return false;
-        return filterRatings.contains(v.round().clamp(1, 5));
-      }).toList(growable: false);
-    }
-    if (filterCities.isNotEmpty) {
-      out = out.where((r) {
-        final city = _resolveFoodCity(r);
-        return city.isNotEmpty && filterCities.contains(city);
-      }).toList(growable: false);
-    }
-    if (filterFavorite) {
-      out = out.where((r) => r.isFavorite).toList(growable: false);
-    }
-    return out;
+  @override
+  Widget buildListView(BuildContext context, List<FoodRecord> records) {
+    return _FoodWishlistListView(records: records, onSwitchToRecords: onSwitchToRecords);
   }
 }
 
@@ -1188,8 +1072,8 @@ class _FoodWishlistRecordCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final db = ref.watch(appDatabaseProvider);
-    final images = _decodeStringList(record.images);
-    final tags = _decodeStringList(record.tags);
+    final images = decodeFoodStringList(record.images);
+    final tags = decodeFoodStringList(record.tags);
     final cover = images.isEmpty ? '' : images.first;
     final subtitle = (record.content ?? '').trim();
     final location = [
@@ -1340,16 +1224,6 @@ class _FoodWishlistRecordCard extends ConsumerWidget {
     );
   }
 
-  List<String> _decodeStringList(String? raw) {
-    if (raw == null || raw.trim().isEmpty) return const [];
-    try {
-      final decoded = jsonDecode(raw);
-      if (decoded is List) return decoded.whereType<String>().toList(growable: false);
-    } catch (e) {
-      FileLogger.instance.logSync('FoodPage', '解码字符串列表失败: $e');
-    }
-    return const [];
-  }
 }
 
 class FoodDetailPage extends ConsumerWidget {
