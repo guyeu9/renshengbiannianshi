@@ -40,6 +40,10 @@ class RouteNavigation {
     context.go(AppRoutes.travelCreate, extra: {'initialRecord': initialRecord});
   }
 
+  static Future<bool?> pushToTravelCreate(BuildContext context, {TravelRecord? initialRecord, Trip? initialTrip}) {
+    return context.push<bool>(AppRoutes.travelCreate, extra: {'initialRecord': initialRecord, 'initialTrip': initialTrip});
+  }
+
   static void pushToJournalDetail(BuildContext context, String id) {
     context.push('/travel/journal/$id');
   }

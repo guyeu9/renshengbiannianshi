@@ -5,18 +5,19 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:share_plus/share_plus.dart';
 import 'package:confetti/confetti.dart';
 import 'package:vibration/vibration.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/config/module_management_config.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/providers/uuid_provider.dart';
-import '../../../core/services/delete_service.dart';
 import '../../../core/services/file_logger.dart';
 import '../../../core/utils/media_storage.dart';
 import '../../../core/utils/permission_manager.dart';
@@ -25,6 +26,7 @@ import '../../../core/widgets/custom_bottom_sheet.dart';
 import '../../../core/utils/image_save_util.dart';
 import '../../../core/widgets/app_image.dart';
 import '../../../core/router/route_navigation.dart';
+import '../../../core/router/app_router.dart';
 import '../providers/travel_detail_provider.dart';
 import '../../ai_historian/services/context_builder.dart';
 
@@ -193,15 +195,29 @@ class _TravelSearchRow extends StatelessWidget {
                   const Icon(Icons.search, color: Color(0xFF9CA3AF), size: 22),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: TextField(
-                      controller: controller,
-                      decoration: const InputDecoration(
-                        hintText: '搜索城市、标签、地理位置...',
-                        hintStyle: TextStyle(fontSize: 15, color: Color(0xFF9CA3AF), fontWeight: FontWeight.w500),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                      style: const TextStyle(fontSize: 15, color: Color(0xFF111827), fontWeight: FontWeight.w600),
+                    child: ValueListenableBuilder<TextEditingValue>(
+                      valueListenable: controller,
+                      builder: (context, value, child) {
+                        final hasText = value.text.isNotEmpty;
+                        return TextField(
+                          controller: controller,
+                          decoration: InputDecoration(
+                            hintText: '搜索城市、标签、地理位置...',
+                            hintStyle: const TextStyle(fontSize: 15, color: Color(0xFF9CA3AF), fontWeight: FontWeight.w500),
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.zero,
+                            suffixIcon: hasText
+                                ? IconButton(
+                                    icon: const Icon(Icons.close, size: 18, color: Color(0xFF9CA3AF)),
+                                    onPressed: () => controller.clear(),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                  )
+                                : null,
+                          ),
+                          style: const TextStyle(fontSize: 15, color: Color(0xFF111827), fontWeight: FontWeight.w600),
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -394,7 +410,7 @@ class _TravelOnTheRoadView extends ConsumerWidget {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _TravelFootprintCard(onTap: () {}),
+            _TravelFootprintCard(onTap: null),
             const SizedBox(height: 18),
             _TravelOnTheRoadTimeline(entries: entries),
           ],
@@ -1007,7 +1023,7 @@ class TravelItem {
       recordDate: record.recordDate,
       date: '${record.recordDate.year}-${record.recordDate.month.toString().padLeft(2, '0')}-${record.recordDate.day.toString().padLeft(2, '0')}',
       title: record.title ?? '',
-      subtitle: record.destination ?? record.poiAddress ?? '',
+      subtitle: _travelPlace(record, null),
       imageUrl: imageUrl ?? '',
     );
   }
@@ -1130,17 +1146,29 @@ class TravelDetailPage extends ConsumerWidget {
                             children: [
                               _FrostedCircleIconButton(
                                 icon: Icons.arrow_back,
-                                onTap: () => Navigator.of(context).maybePop(),
+                                onTap: () {
+                                  final navigator = Navigator.of(context);
+                                  if (navigator.canPop()) {
+                                    navigator.maybePop();
+                                  } else {
+                                    context.go(AppRoutes.travel);
+                                  }
+                                },
                               ),
                               const Spacer(),
                               _FrostedCircleIconButton(
                                 icon: Icons.delete_outline,
                                 onTap: () async {
+                                  final isJournal = state.isJournal;
+                                  final confirmTitle = isJournal ? '删除游记' : '删除旅行';
+                                  final confirmContent = isJournal
+                                      ? '确定要删除这篇游记吗？'
+                                      : '确定要删除这个旅行吗？相关的游记也会被删除。';
                                   final confirmed = await showDialog<bool>(
                                     context: context,
                                     builder: (context) => AlertDialog(
-                                      title: const Text('删除旅行'),
-                                      content: const Text('确定要删除这个旅行吗？相关的游记也会被删除。'),
+                                      title: Text(confirmTitle),
+                                      content: Text(confirmContent),
                                       actions: [
                                         TextButton(
                                           onPressed: () => Navigator.of(context).pop(false),
@@ -1154,11 +1182,25 @@ class TravelDetailPage extends ConsumerWidget {
                                       ],
                                     ),
                                   );
-                                  if (confirmed == true) {
-                                    await db.travelDao.softDeleteTripById(tripId, now: DateTime.now());
-                                    if (context.mounted) {
-                                      Navigator.of(context).pop();
-                                    }
+                                  if (confirmed != true) return;
+                                  final now = DateTime.now();
+                                  if (isJournal) {
+                                    final recordId = record?.id ?? '';
+                                    if (recordId.isEmpty) return;
+                                    await db.travelDao.softDeleteById(recordId, now: now);
+                                    await (db.update(db.timelineEvents)..where((t) => t.id.equals(recordId))).write(
+                                      TimelineEventsCompanion(
+                                        isDeleted: const Value(true),
+                                        updatedAt: Value(now),
+                                      ),
+                                    );
+                                  } else {
+                                    if (tripId.isEmpty) return;
+                                    await db.travelDao.softDeleteTripById(tripId, now: now);
+                                  }
+                                  ContextBuilder.clearCache();
+                                  if (context.mounted) {
+                                    Navigator.of(context).pop();
                                   }
                                 },
                               ),
@@ -1167,23 +1209,17 @@ class TravelDetailPage extends ConsumerWidget {
                                 icon: record?.isFavorite == true ? Icons.bookmark : Icons.bookmark_border,
                                 onTap: () async {
                                   if (record == null) return;
-                                  await (db.update(db.travelRecords)..where((t) => t.id.equals(record.id))).write(
-                                    TravelRecordsCompanion(
-                                      isFavorite: Value(!record.isFavorite),
-                                      updatedAt: Value(DateTime.now()),
-                                    ),
+                                  await db.travelDao.updateFavorite(
+                                    record.id,
+                                    isFavorite: !record.isFavorite,
+                                    now: DateTime.now(),
                                   );
                                 },
                               ),
                               const SizedBox(width: 10),
                               _FrostedCircleIconButton(
                                 icon: Icons.edit,
-                                onTap: () => RouteNavigation.goToTravelCreate(context, initialRecord: record),
-                              ),
-                              const SizedBox(width: 10),
-                              _FrostedCircleIconButton(
-                                icon: Icons.add,
-                                onTap: () => RouteNavigation.pushToJournalCreate(context, initialTripId: tripId, initialTripTitle: tripTitle),
+                                onTap: () => RouteNavigation.pushToTravelCreate(context, initialRecord: record, initialTrip: trip),
                               ),
                               const SizedBox(width: 10),
                               _PrimaryPillButton(
@@ -1269,11 +1305,11 @@ class TravelDetailPage extends ConsumerWidget {
                                 onChanged: record == null
                                     ? null
                                     : (value) async {
-                                        await (db.update(db.travelRecords)..where((t) => t.id.equals(record.id))).write(
-                                          TravelRecordsCompanion(
-                                            wishlistDone: Value(value ?? false),
-                                            updatedAt: Value(DateTime.now()),
-                                          ),
+                                        await db.travelDao.updateWishlistStatus(
+                                          record.id,
+                                          isWishlist: record.isWishlist,
+                                          wishlistDone: value ?? false,
+                                          now: DateTime.now(),
                                         );
                                       },
                               ),
@@ -1374,6 +1410,14 @@ class TravelDetailPage extends ConsumerWidget {
                                   if (recordImages.isNotEmpty) ...[
                                     _buildWechatStyleImages(context, recordImages, currentRecord, trip),
                                   ],
+                                  if (_hasTravelExpenseOrBudget(currentRecord, trip)) ...[
+                                    const SizedBox(height: 12),
+                                    _buildTravelExpenseSection(currentRecord, trip),
+                                  ],
+                                  if ((currentRecord.flightLink ?? '').isNotEmpty || (currentRecord.hotelLink ?? '').isNotEmpty) ...[
+                                    const SizedBox(height: 10),
+                                    _buildTravelLinkSection(currentRecord),
+                                  ],
                                 ],
                               ),
                             ),
@@ -1401,6 +1445,120 @@ class TravelDetailPage extends ConsumerWidget {
         ),
         );
       },
+    );
+  }
+
+  bool _hasTravelExpenseOrBudget(TravelRecord record, Trip? trip) {
+    return (trip?.totalExpense != null && trip!.totalExpense! > 0) ||
+        record.expenseTransport != null ||
+        record.expenseHotel != null ||
+        record.expenseFood != null ||
+        record.expenseTicket != null;
+  }
+
+  Widget _buildTravelExpenseSection(TravelRecord record, Trip? trip) {
+    final budget = trip?.totalExpense;
+    final items = <(String, double?)>[
+      ('交通', record.expenseTransport),
+      ('住宿', record.expenseHotel),
+      ('餐饮', record.expenseFood),
+      ('门票', record.expenseTicket),
+    ];
+    final hasItem = items.any((e) => e.$2 != null);
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (budget != null && budget > 0)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.paid, size: 14, color: Color(0xFF2BCDEE)),
+                  const SizedBox(width: 6),
+                  const Text('总预算', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF334155))),
+                  const Spacer(),
+                  Text('¥${budget.toStringAsFixed(2)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                ],
+              ),
+            ),
+          if (hasItem)
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                for (final item in items)
+                  if (item.$2 != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+                      ),
+                      child: Text('${item.$1} ¥${item.$2!.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
+                    ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTravelLinkSection(TravelRecord record) {
+    final flightLink = record.flightLink ?? '';
+    final hotelLink = record.hotelLink ?? '';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (flightLink.isNotEmpty)
+          _TravelLinkChip(icon: Icons.flight, label: '机票/交通', url: flightLink),
+        if (flightLink.isNotEmpty && hotelLink.isNotEmpty) const SizedBox(height: 6),
+        if (hotelLink.isNotEmpty)
+          _TravelLinkChip(icon: Icons.hotel, label: '酒店/住宿', url: hotelLink),
+      ],
+    );
+  }
+}
+
+class _TravelLinkChip extends StatelessWidget {
+  const _TravelLinkChip({required this.icon, required this.label, required this.url});
+
+  final IconData icon;
+  final String label;
+  final String url;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: const Color(0xFFF1F5F9),
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () async {
+          final uri = Uri.tryParse(url.trim());
+          if (uri == null) return;
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 13, color: const Color(0xFF2BCDEE)),
+              const SizedBox(width: 5),
+              Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF334155))),
+              const SizedBox(width: 4),
+              const Icon(Icons.open_in_new, size: 11, color: Color(0xFF94A3B8)),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1548,7 +1706,7 @@ class _ChecklistItem {
 }
 
 class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
-  bool _addToWishlist = true;
+  bool _addToWishlist = false;
   final List<_ChecklistItem> _checklistItems = [];
 
   final Set<String> _linkedFriendIds = {};
@@ -1562,6 +1720,10 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
   final _budgetController = TextEditingController();
   final _flightLinkController = TextEditingController();
   final _hotelLinkController = TextEditingController();
+  final _expenseTransportController = TextEditingController();
+  final _expenseHotelController = TextEditingController();
+  final _expenseFoodController = TextEditingController();
+  final _expenseTicketController = TextEditingController();
   final TextEditingController _dateRangeController = TextEditingController();
   final List<String> _availableTags = [];
   final Set<String> _selectedTags = {};
@@ -1617,6 +1779,10 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
     _flightLinkController.text = (record?.flightLink ?? '').isNotEmpty ? record!.flightLink! : contentParts.flight;
     _hotelLinkController.text = (record?.hotelLink ?? '').isNotEmpty ? record!.hotelLink! : contentParts.hotel;
     _budgetController.text = trip?.totalExpense?.toString() ?? '';
+    _expenseTransportController.text = record?.expenseTransport?.toString() ?? '';
+    _expenseHotelController.text = record?.expenseHotel?.toString() ?? '';
+    _expenseFoodController.text = record?.expenseFood?.toString() ?? '';
+    _expenseTicketController.text = record?.expenseTicket?.toString() ?? '';
 
     final tags = _decodeStringList(record?.tags);
     _availableTags
@@ -2053,6 +2219,10 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
     final city = _city.trim();
     final country = _country.trim();
     final budget = double.tryParse(_budgetController.text.trim());
+    final expenseTransport = double.tryParse(_expenseTransportController.text.trim());
+    final expenseHotel = double.tryParse(_expenseHotelController.text.trim());
+    final expenseFood = double.tryParse(_expenseFoodController.text.trim());
+    final expenseTicket = double.tryParse(_expenseTicketController.text.trim());
     final note = _noteController.text.trim();
     final flightLink = _flightLinkController.text.trim();
     final hotelLink = _hotelLinkController.text.trim();
@@ -2108,6 +2278,10 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
             longitude: Value(_longitude),
             flightLink: Value(flightLink.isEmpty ? null : flightLink),
             hotelLink: Value(hotelLink.isEmpty ? null : hotelLink),
+            expenseTransport: Value(expenseTransport),
+            expenseHotel: Value(expenseHotel),
+            expenseFood: Value(expenseFood),
+            expenseTicket: Value(expenseTicket),
             isWishlist: Value(_addToWishlist),
             isJournal: const Value(false),
             wishlistDone: Value(existingRecord?.wishlistDone ?? false),
@@ -2194,6 +2368,10 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
     _budgetController.dispose();
     _flightLinkController.dispose();
     _hotelLinkController.dispose();
+    _expenseTransportController.dispose();
+    _expenseHotelController.dispose();
+    _expenseFoodController.dispose();
+    _expenseTicketController.dispose();
     _dateRangeController.dispose();
     super.dispose();
   }
@@ -2248,11 +2426,11 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
                         child: const Text('取消'),
                       ),
                       const Spacer(),
-                      const Text('新建旅行行程', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                      Text(widget.initialRecord != null ? '编辑旅行行程' : '新建旅行行程', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
                       const Spacer(),
                       Padding(
                         padding: const EdgeInsets.only(left: 10),
-                        child: _PrimaryPillButton(icon: null, label: '创建', onTap: _save),
+                        child: _PrimaryPillButton(icon: null, label: widget.initialRecord != null ? '保存' : '创建', onTap: _save),
                       ),
                     ],
                   ),
@@ -2395,6 +2573,54 @@ class _TravelCreatePageState extends ConsumerState<TravelCreatePage> {
                           const Text('¥', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
                           const SizedBox(width: 6),
                           Expanded(child: _PlainTextField(controller: _budgetController, hintText: '0.00', keyboardType: TextInputType.number)),
+                        ],
+                      ),
+                    ),
+                    Divider(height: 1, color: Colors.black.withValues(alpha: 0.05)),
+                    _InfoRow(
+                      icon: Icons.directions_bus,
+                      label: '交通支出',
+                      child: Row(
+                        children: [
+                          const Text('¥', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                          const SizedBox(width: 6),
+                          Expanded(child: _PlainTextField(controller: _expenseTransportController, hintText: '0.00', keyboardType: TextInputType.number)),
+                        ],
+                      ),
+                    ),
+                    Divider(height: 1, color: Colors.black.withValues(alpha: 0.05)),
+                    _InfoRow(
+                      icon: Icons.hotel,
+                      label: '住宿支出',
+                      child: Row(
+                        children: [
+                          const Text('¥', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                          const SizedBox(width: 6),
+                          Expanded(child: _PlainTextField(controller: _expenseHotelController, hintText: '0.00', keyboardType: TextInputType.number)),
+                        ],
+                      ),
+                    ),
+                    Divider(height: 1, color: Colors.black.withValues(alpha: 0.05)),
+                    _InfoRow(
+                      icon: Icons.restaurant,
+                      label: '餐饮支出',
+                      child: Row(
+                        children: [
+                          const Text('¥', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                          const SizedBox(width: 6),
+                          Expanded(child: _PlainTextField(controller: _expenseFoodController, hintText: '0.00', keyboardType: TextInputType.number)),
+                        ],
+                      ),
+                    ),
+                    Divider(height: 1, color: Colors.black.withValues(alpha: 0.05)),
+                    _InfoRow(
+                      icon: Icons.confirmation_number,
+                      label: '门票支出',
+                      child: Row(
+                        children: [
+                          const Text('¥', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                          const SizedBox(width: 6),
+                          Expanded(child: _PlainTextField(controller: _expenseTicketController, hintText: '0.00', keyboardType: TextInputType.number)),
                         ],
                       ),
                     ),
@@ -3350,11 +3576,11 @@ class _TravelJournalCreatePageState extends ConsumerState<TravelJournalCreatePag
                         child: const Text('取消'),
                       ),
                       const Spacer(),
-                      const Text('新建游记', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                      Text(_isEditMode ? '编辑游记' : '新建游记', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
                       const Spacer(),
                       Padding(
                         padding: const EdgeInsets.only(left: 10),
-                        child: _PrimaryPillButton(icon: null, label: '发布', onTap: _publish),
+                        child: _PrimaryPillButton(icon: null, label: _isEditMode ? '保存' : '发布', onTap: _publish),
                       ),
                     ],
                   ),
@@ -3829,7 +4055,7 @@ class _TravelTimeline extends StatelessWidget {
     FileLogger.instance.logSync('_TravelTimeline.build', 'journals=${journals.length} friends=${friends.length} foods=${foods.length} links=${links.length}');
     if (journals.isEmpty) {
       FileLogger.instance.logSync('_TravelTimeline.build', 'journals is empty, showing empty state');
-      return const _EmptyTravelState(label: '暂无游记，去添加新的旅行记录吧');
+      return const _EmptyTravelState(label: '暂无游记，去添加新的游记吧');
     }
     final friendById = {for (final friend in friends) friend.id: friend};
     final foodById = {for (final food in foods) food.id: food};
@@ -4360,49 +4586,56 @@ class _TimelineFoodCard extends StatelessWidget {
     final image = _pickFoodCoverImage(record);
     final label = _pickFoodLabel(record);
     final subtitle = _pickFoodSubtitle(record);
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: SizedBox(
-              width: 64,
-              height: 64,
-              child: image.isEmpty
-                  ? Container(
-                      color: const Color(0xFFE2E8F0),
-                      alignment: Alignment.center,
-                      child: const Icon(Icons.restaurant, color: Color(0xFF94A3B8)),
-                    )
-                  : _buildLocalImage(image, fit: BoxFit.cover),
-            ),
+        onTap: () => RouteNavigation.goToFoodDetail(context, record.id),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  width: 64,
+                  height: 64,
+                  child: image.isEmpty
+                      ? Container(
+                          color: const Color(0xFFE2E8F0),
+                          alignment: Alignment.center,
+                          child: const Icon(Icons.restaurant, color: Color(0xFF94A3B8)),
+                        )
+                      : _buildLocalImage(image, fit: BoxFit.cover),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.restaurant, color: Color(0xFF2BCDEE), size: 14),
-                    const SizedBox(width: 6),
-                    Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF2BCDEE), letterSpacing: 0.4)),
+                    Row(
+                      children: [
+                        const Icon(Icons.restaurant, color: Color(0xFF2BCDEE), size: 14),
+                        const SizedBox(width: 6),
+                        Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF2BCDEE), letterSpacing: 0.4)),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(record.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                    const SizedBox(height: 4),
+                    Text(subtitle, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
                   ],
                 ),
-                const SizedBox(height: 6),
-                Text(record.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                const SizedBox(height: 4),
-                Text(subtitle, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -6230,11 +6463,15 @@ class _JournalDetailPageState extends ConsumerState<JournalDetailPage>
     final poiName = (record.poiName ?? '').trim();
     final poiAddress = (record.poiAddress ?? '').trim();
 
-    final linkChips = <String>[
-      ..._buildLinkLabels('关联羁绊', state.linkedFriends.map((f) => f.name).toList()),
-      ..._buildLinkLabels('关联美食', state.linkedFoods.map((f) => f.title).toList()),
-      ..._buildLinkLabels('关联目标', state.linkedGoals.map((g) => g.title).toList()),
-      ..._buildLinkLabels('关联旅行', state.linkedTravels.map((t) => t.title ?? '旅行').toList()),
+    final linkChips = <({String label, String targetType, String targetId})>[
+      for (final f in state.linkedFriends)
+        (label: '关联羁绊 · ${f.name}', targetType: 'friend', targetId: f.id),
+      for (final f in state.linkedFoods)
+        (label: '关联美食 · ${f.title}', targetType: 'food', targetId: f.id),
+      for (final g in state.linkedGoals)
+        (label: '关联目标 · ${g.title}', targetType: 'goal', targetId: g.id),
+      for (final t in state.linkedTravels)
+        (label: '关联旅行 · ${t.title ?? '旅行'}', targetType: 'travel', targetId: t.id),
     ];
 
     return Scaffold(
@@ -6345,7 +6582,13 @@ class _JournalDetailPageState extends ConsumerState<JournalDetailPage>
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
-                        children: [for (final label in linkChips) _JournalLinkChip(label: label)],
+                        children: [
+                          for (final chip in linkChips)
+                            _JournalLinkChip(
+                              label: chip.label,
+                              onTap: () => _navigateToLinked(context, chip.targetType, chip.targetId),
+                            ),
+                        ],
                       ),
                   ],
                 ),
@@ -6566,10 +6809,17 @@ class _JournalDetailPageState extends ConsumerState<JournalDetailPage>
 
   Future<void> _deleteJournal(TravelRecord record) async {
     final db = ref.read(appDatabaseProvider);
-    final deleteService = DeleteService(db);
+    final now = DateTime.now();
 
     try {
-      await deleteService.hardDeleteTravelJournal(record.id);
+      await db.travelDao.softDeleteById(record.id, now: now);
+      await (db.update(db.timelineEvents)..where((t) => t.id.equals(record.id))).write(
+        TimelineEventsCompanion(
+          isDeleted: const Value(true),
+          updatedAt: Value(now),
+        ),
+      );
+      ContextBuilder.clearCache();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -6586,17 +6836,28 @@ class _JournalDetailPageState extends ConsumerState<JournalDetailPage>
 
   Future<void> _toggleFavorite(TravelRecord record) async {
     final db = ref.read(appDatabaseProvider);
-    final now = DateTime.now();
-    await (db.update(db.travelRecords)..where((t) => t.id.equals(record.id))).write(
-      TravelRecordsCompanion(
-        isFavorite: Value(!record.isFavorite),
-        updatedAt: Value(now),
-      ),
+    await db.travelDao.updateFavorite(
+      record.id,
+      isFavorite: !record.isFavorite,
+      now: DateTime.now(),
     );
   }
 
-  List<String> _buildLinkLabels(String prefix, List<String> names) {
-    return [for (final name in names) '$prefix · $name'];
+  void _navigateToLinked(BuildContext context, String targetType, String targetId) {
+    switch (targetType) {
+      case 'friend':
+        RouteNavigation.goToFriendProfile(context, targetId);
+        break;
+      case 'food':
+        RouteNavigation.goToFoodDetail(context, targetId);
+        break;
+      case 'goal':
+        RouteNavigation.goToGoalDetail(context, targetId);
+        break;
+      case 'travel':
+        RouteNavigation.goToTravelDetail(context, targetId);
+        break;
+    }
   }
 
   String _formatDateTime(DateTime date) {
@@ -6661,19 +6922,24 @@ class _JournalInfoRow extends StatelessWidget {
 }
 
 class _JournalLinkChip extends StatelessWidget {
-  const _JournalLinkChip({required this.label});
+  const _JournalLinkChip({required this.label, this.onTap});
 
   final String label;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
+    return Material(
+      color: const Color(0xFFF1F5F9),
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
         borderRadius: BorderRadius.circular(999),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
+        ),
       ),
-      child: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
     );
   }
 }

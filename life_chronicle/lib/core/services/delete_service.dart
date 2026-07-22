@@ -223,26 +223,6 @@ class DeleteService {
     ContextBuilder.clearCache();
   }
 
-  Future<void> hardDeleteTravelJournal(String id) async {
-    await db.transaction(() async {
-      await _deleteLinksForEntity('travel', id);
-
-      await (db.delete(db.timelineEvents)
-            ..where((t) => t.id.equals(id))
-            ..where((t) => t.eventType.equals('journal')))
-          .go();
-
-      await (db.delete(db.travelRecords)..where((t) => t.id.equals(id))).go();
-
-      await _changeLogRecorder.recordDelete(
-        entityType: 'travel_records',
-        entityId: id,
-      );
-    });
-    
-    ContextBuilder.clearCache();
-  }
-
   Future<void> deleteFriend(String id) async {
     await db.transaction(() async {
       final now = DateTime.now();
