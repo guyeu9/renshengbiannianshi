@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/config/module_management_config.dart';
 import '../core/providers/vector_search_provider.dart';
 import '../core/router/app_router.dart';
+import '../core/utils/icon_utils.dart';
 
 class AppShell extends ConsumerStatefulWidget {
   final Widget child;
-  
+
   const AppShell({super.key, required this.child});
 
   @override
@@ -25,31 +27,58 @@ class _AppShellState extends ConsumerState<AppShell> {
     });
   }
 
-  int _getTabIndexFromLocation(String location) {
-    if (location.startsWith(AppRoutes.food)) return 1;
-    if (location.startsWith(AppRoutes.moment)) return 2;
-    if (location.startsWith(AppRoutes.travel)) return 3;
-    if (location.startsWith(AppRoutes.goal)) return 4;
-    if (location.startsWith(AppRoutes.bond)) return 5;
+  /// 构建当前可用的底部 Tab 配置列表（首页 + 已启用模块）
+  List<_BottomTabEntry> _buildTabEntries(ModuleManagementConfig config) {
+    final entries = <_BottomTabEntry>[
+      _BottomTabEntry(
+        route: AppRoutes.home,
+        label: '日程',
+        iconName: 'calendar_today',
+      ),
+    ];
+    // 按固定顺序追加已启用（showOnCalendar）的模块
+    const moduleOrder = ['food', 'moment', 'travel', 'goal', 'bond'];
+    const routeByKey = <String, String>{
+      'food': AppRoutes.food,
+      'moment': AppRoutes.moment,
+      'travel': AppRoutes.travel,
+      'goal': AppRoutes.goal,
+      'bond': AppRoutes.bond,
+    };
+    for (final key in moduleOrder) {
+      final module = config.modules[key];
+      if (module == null) continue;
+      if (!module.showOnCalendar) continue;
+      entries.add(_BottomTabEntry(
+        route: routeByKey[key] ?? AppRoutes.home,
+        label: module.title,
+        iconName: module.iconName,
+      ));
+    }
+    return entries;
+  }
+
+  int _getTabIndexFromLocation(String location, List<_BottomTabEntry> entries) {
+    for (int i = entries.length - 1; i >= 1; i--) {
+      if (location.startsWith(entries[i].route)) return i;
+    }
     return 0;
   }
 
-  void _onTabTapped(int index) {
-    final routes = [
-      AppRoutes.home,
-      AppRoutes.food,
-      AppRoutes.moment,
-      AppRoutes.travel,
-      AppRoutes.goal,
-      AppRoutes.bond,
-    ];
-    context.go(routes[index]);
+  void _onTabTapped(int index, List<_BottomTabEntry> entries) {
+    context.go(entries[index].route);
   }
 
   @override
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
-    final index = _getTabIndexFromLocation(location);
+    final configAsync = ref.watch(moduleManagementConfigProvider);
+    final config = configAsync.maybeWhen(
+      data: (c) => c,
+      orElse: () => ModuleManagementConfig.defaults(),
+    );
+    final entries = _buildTabEntries(config);
+    final index = _getTabIndexFromLocation(location, entries).clamp(0, entries.length - 1);
 
     return Scaffold(
       extendBody: true,
@@ -77,32 +106,14 @@ class _AppShellState extends ConsumerState<AppShell> {
                 padding: const EdgeInsets.only(bottom: 8),
                 child: BottomNavigationBar(
                   currentIndex: index,
-                  onTap: _onTabTapped,
-                  items: const [
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.calendar_today),
-                      label: '日程',
-                    ),
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.restaurant),
-                      label: '美食',
-                    ),
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.auto_awesome),
-                      label: '小确幸',
-                    ),
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.airplanemode_active),
-                      label: '旅行',
-                    ),
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.outlined_flag),
-                      label: '目标',
-                    ),
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.group),
-                      label: '羁绊',
-                    ),
+                  onTap: (i) => _onTabTapped(i, entries),
+                  type: BottomNavigationBarType.fixed,
+                  items: [
+                    for (final entry in entries)
+                      BottomNavigationBarItem(
+                        icon: Icon(IconUtils.fromName(entry.iconName)),
+                        label: entry.label,
+                      ),
                   ],
                 ),
               ),
@@ -112,6 +123,19 @@ class _AppShellState extends ConsumerState<AppShell> {
       ),
     );
   }
+}
+
+/// 底部 Tab 配置项
+class _BottomTabEntry {
+  const _BottomTabEntry({
+    required this.route,
+    required this.label,
+    required this.iconName,
+  });
+
+  final String route;
+  final String label;
+  final String iconName;
 }
 
 void _showQuickCreateSheet(BuildContext context, WidgetRef ref) {

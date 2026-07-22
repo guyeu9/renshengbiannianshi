@@ -10529,11 +10529,6 @@ class $AnnualReviewsTable extends AnnualReviews
   late final GeneratedColumn<String> content = GeneratedColumn<String>(
       'content', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _imagesMeta = const VerificationMeta('images');
-  @override
-  late final GeneratedColumn<String> images = GeneratedColumn<String>(
-      'images', aliasedName, true,
-      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _statsMeta = const VerificationMeta('stats');
   @override
   late final GeneratedColumn<String> stats = GeneratedColumn<String>(
@@ -10559,7 +10554,7 @@ class $AnnualReviewsTable extends AnnualReviews
       type: DriftSqlType.dateTime, requiredDuringInsert: true);
   @override
   List<GeneratedColumn> get $columns =>
-      [id, year, title, content, images, stats, keywords, createdAt, updatedAt];
+      [id, year, title, content, stats, keywords, createdAt, updatedAt];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -10588,10 +10583,6 @@ class $AnnualReviewsTable extends AnnualReviews
     if (data.containsKey('content')) {
       context.handle(_contentMeta,
           content.isAcceptableOrUnknown(data['content']!, _contentMeta));
-    }
-    if (data.containsKey('images')) {
-      context.handle(_imagesMeta,
-          images.isAcceptableOrUnknown(data['images']!, _imagesMeta));
     }
     if (data.containsKey('stats')) {
       context.handle(
@@ -10630,8 +10621,6 @@ class $AnnualReviewsTable extends AnnualReviews
           .read(DriftSqlType.string, data['${effectivePrefix}title'])!,
       content: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}content']),
-      images: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}images']),
       stats: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}stats']),
       keywords: attachedDatabase.typeMapping
@@ -10654,7 +10643,6 @@ class AnnualReview extends DataClass implements Insertable<AnnualReview> {
   final int year;
   final String title;
   final String? content;
-  final String? images;
   final String? stats;
   final String? keywords;
   final DateTime createdAt;
@@ -10664,7 +10652,6 @@ class AnnualReview extends DataClass implements Insertable<AnnualReview> {
       required this.year,
       required this.title,
       this.content,
-      this.images,
       this.stats,
       this.keywords,
       required this.createdAt,
@@ -10677,9 +10664,6 @@ class AnnualReview extends DataClass implements Insertable<AnnualReview> {
     map['title'] = Variable<String>(title);
     if (!nullToAbsent || content != null) {
       map['content'] = Variable<String>(content);
-    }
-    if (!nullToAbsent || images != null) {
-      map['images'] = Variable<String>(images);
     }
     if (!nullToAbsent || stats != null) {
       map['stats'] = Variable<String>(stats);
@@ -10700,8 +10684,6 @@ class AnnualReview extends DataClass implements Insertable<AnnualReview> {
       content: content == null && nullToAbsent
           ? const Value.absent()
           : Value(content),
-      images:
-          images == null && nullToAbsent ? const Value.absent() : Value(images),
       stats:
           stats == null && nullToAbsent ? const Value.absent() : Value(stats),
       keywords: keywords == null && nullToAbsent
@@ -10720,7 +10702,6 @@ class AnnualReview extends DataClass implements Insertable<AnnualReview> {
       year: serializer.fromJson<int>(json['year']),
       title: serializer.fromJson<String>(json['title']),
       content: serializer.fromJson<String?>(json['content']),
-      images: serializer.fromJson<String?>(json['images']),
       stats: serializer.fromJson<String?>(json['stats']),
       keywords: serializer.fromJson<String?>(json['keywords']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -10735,7 +10716,6 @@ class AnnualReview extends DataClass implements Insertable<AnnualReview> {
       'year': serializer.toJson<int>(year),
       'title': serializer.toJson<String>(title),
       'content': serializer.toJson<String?>(content),
-      'images': serializer.toJson<String?>(images),
       'stats': serializer.toJson<String?>(stats),
       'keywords': serializer.toJson<String?>(keywords),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -10748,7 +10728,6 @@ class AnnualReview extends DataClass implements Insertable<AnnualReview> {
           int? year,
           String? title,
           Value<String?> content = const Value.absent(),
-          Value<String?> images = const Value.absent(),
           Value<String?> stats = const Value.absent(),
           Value<String?> keywords = const Value.absent(),
           DateTime? createdAt,
@@ -10758,7 +10737,6 @@ class AnnualReview extends DataClass implements Insertable<AnnualReview> {
         year: year ?? this.year,
         title: title ?? this.title,
         content: content.present ? content.value : this.content,
-        images: images.present ? images.value : this.images,
         stats: stats.present ? stats.value : this.stats,
         keywords: keywords.present ? keywords.value : this.keywords,
         createdAt: createdAt ?? this.createdAt,
@@ -10770,7 +10748,6 @@ class AnnualReview extends DataClass implements Insertable<AnnualReview> {
       year: data.year.present ? data.year.value : this.year,
       title: data.title.present ? data.title.value : this.title,
       content: data.content.present ? data.content.value : this.content,
-      images: data.images.present ? data.images.value : this.images,
       stats: data.stats.present ? data.stats.value : this.stats,
       keywords: data.keywords.present ? data.keywords.value : this.keywords,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
@@ -10785,7 +10762,6 @@ class AnnualReview extends DataClass implements Insertable<AnnualReview> {
           ..write('year: $year, ')
           ..write('title: $title, ')
           ..write('content: $content, ')
-          ..write('images: $images, ')
           ..write('stats: $stats, ')
           ..write('keywords: $keywords, ')
           ..write('createdAt: $createdAt, ')
@@ -10796,7 +10772,7 @@ class AnnualReview extends DataClass implements Insertable<AnnualReview> {
 
   @override
   int get hashCode => Object.hash(
-      id, year, title, content, images, stats, keywords, createdAt, updatedAt);
+      id, year, title, content, stats, keywords, createdAt, updatedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -10805,7 +10781,6 @@ class AnnualReview extends DataClass implements Insertable<AnnualReview> {
           other.year == this.year &&
           other.title == this.title &&
           other.content == this.content &&
-          other.images == this.images &&
           other.stats == this.stats &&
           other.keywords == this.keywords &&
           other.createdAt == this.createdAt &&
@@ -10817,7 +10792,6 @@ class AnnualReviewsCompanion extends UpdateCompanion<AnnualReview> {
   final Value<int> year;
   final Value<String> title;
   final Value<String?> content;
-  final Value<String?> images;
   final Value<String?> stats;
   final Value<String?> keywords;
   final Value<DateTime> createdAt;
@@ -10828,7 +10802,6 @@ class AnnualReviewsCompanion extends UpdateCompanion<AnnualReview> {
     this.year = const Value.absent(),
     this.title = const Value.absent(),
     this.content = const Value.absent(),
-    this.images = const Value.absent(),
     this.stats = const Value.absent(),
     this.keywords = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -10840,7 +10813,6 @@ class AnnualReviewsCompanion extends UpdateCompanion<AnnualReview> {
     required int year,
     this.title = const Value.absent(),
     this.content = const Value.absent(),
-    this.images = const Value.absent(),
     this.stats = const Value.absent(),
     this.keywords = const Value.absent(),
     required DateTime createdAt,
@@ -10855,7 +10827,6 @@ class AnnualReviewsCompanion extends UpdateCompanion<AnnualReview> {
     Expression<int>? year,
     Expression<String>? title,
     Expression<String>? content,
-    Expression<String>? images,
     Expression<String>? stats,
     Expression<String>? keywords,
     Expression<DateTime>? createdAt,
@@ -10867,7 +10838,6 @@ class AnnualReviewsCompanion extends UpdateCompanion<AnnualReview> {
       if (year != null) 'year': year,
       if (title != null) 'title': title,
       if (content != null) 'content': content,
-      if (images != null) 'images': images,
       if (stats != null) 'stats': stats,
       if (keywords != null) 'keywords': keywords,
       if (createdAt != null) 'created_at': createdAt,
@@ -10881,7 +10851,6 @@ class AnnualReviewsCompanion extends UpdateCompanion<AnnualReview> {
       Value<int>? year,
       Value<String>? title,
       Value<String?>? content,
-      Value<String?>? images,
       Value<String?>? stats,
       Value<String?>? keywords,
       Value<DateTime>? createdAt,
@@ -10892,7 +10861,6 @@ class AnnualReviewsCompanion extends UpdateCompanion<AnnualReview> {
       year: year ?? this.year,
       title: title ?? this.title,
       content: content ?? this.content,
-      images: images ?? this.images,
       stats: stats ?? this.stats,
       keywords: keywords ?? this.keywords,
       createdAt: createdAt ?? this.createdAt,
@@ -10915,9 +10883,6 @@ class AnnualReviewsCompanion extends UpdateCompanion<AnnualReview> {
     }
     if (content.present) {
       map['content'] = Variable<String>(content.value);
-    }
-    if (images.present) {
-      map['images'] = Variable<String>(images.value);
     }
     if (stats.present) {
       map['stats'] = Variable<String>(stats.value);
@@ -10944,9 +10909,523 @@ class AnnualReviewsCompanion extends UpdateCompanion<AnnualReview> {
           ..write('year: $year, ')
           ..write('title: $title, ')
           ..write('content: $content, ')
-          ..write('images: $images, ')
           ..write('stats: $stats, ')
           ..write('keywords: $keywords, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ChroniclesTable extends Chronicles
+    with TableInfo<$ChroniclesTable, Chronicle> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ChroniclesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+      'title', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _userSummaryMeta =
+      const VerificationMeta('userSummary');
+  @override
+  late final GeneratedColumn<String> userSummary = GeneratedColumn<String>(
+      'user_summary', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _aiSummaryMeta =
+      const VerificationMeta('aiSummary');
+  @override
+  late final GeneratedColumn<String> aiSummary = GeneratedColumn<String>(
+      'ai_summary', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _moduleTagsMeta =
+      const VerificationMeta('moduleTags');
+  @override
+  late final GeneratedColumn<String> moduleTags = GeneratedColumn<String>(
+      'module_tags', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('[]'));
+  static const VerificationMeta _startDateMeta =
+      const VerificationMeta('startDate');
+  @override
+  late final GeneratedColumn<DateTime> startDate = GeneratedColumn<DateTime>(
+      'start_date', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _endDateMeta =
+      const VerificationMeta('endDate');
+  @override
+  late final GeneratedColumn<DateTime> endDate = GeneratedColumn<DateTime>(
+      'end_date', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _isFeaturedMeta =
+      const VerificationMeta('isFeatured');
+  @override
+  late final GeneratedColumn<bool> isFeatured = GeneratedColumn<bool>(
+      'is_featured', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_featured" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        title,
+        userSummary,
+        aiSummary,
+        moduleTags,
+        startDate,
+        endDate,
+        isFeatured,
+        createdAt,
+        updatedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'chronicles';
+  @override
+  VerificationContext validateIntegrity(Insertable<Chronicle> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+          _titleMeta, title.isAcceptableOrUnknown(data['title']!, _titleMeta));
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('user_summary')) {
+      context.handle(
+          _userSummaryMeta,
+          userSummary.isAcceptableOrUnknown(
+              data['user_summary']!, _userSummaryMeta));
+    }
+    if (data.containsKey('ai_summary')) {
+      context.handle(_aiSummaryMeta,
+          aiSummary.isAcceptableOrUnknown(data['ai_summary']!, _aiSummaryMeta));
+    }
+    if (data.containsKey('module_tags')) {
+      context.handle(
+          _moduleTagsMeta,
+          moduleTags.isAcceptableOrUnknown(
+              data['module_tags']!, _moduleTagsMeta));
+    }
+    if (data.containsKey('start_date')) {
+      context.handle(_startDateMeta,
+          startDate.isAcceptableOrUnknown(data['start_date']!, _startDateMeta));
+    } else if (isInserting) {
+      context.missing(_startDateMeta);
+    }
+    if (data.containsKey('end_date')) {
+      context.handle(_endDateMeta,
+          endDate.isAcceptableOrUnknown(data['end_date']!, _endDateMeta));
+    } else if (isInserting) {
+      context.missing(_endDateMeta);
+    }
+    if (data.containsKey('is_featured')) {
+      context.handle(
+          _isFeaturedMeta,
+          isFeatured.isAcceptableOrUnknown(
+              data['is_featured']!, _isFeaturedMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Chronicle map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Chronicle(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      title: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}title'])!,
+      userSummary: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}user_summary']),
+      aiSummary: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}ai_summary']),
+      moduleTags: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}module_tags'])!,
+      startDate: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}start_date'])!,
+      endDate: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}end_date'])!,
+      isFeatured: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_featured'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+    );
+  }
+
+  @override
+  $ChroniclesTable createAlias(String alias) {
+    return $ChroniclesTable(attachedDatabase, alias);
+  }
+}
+
+class Chronicle extends DataClass implements Insertable<Chronicle> {
+  final String id;
+  final String title;
+  final String? userSummary;
+  final String? aiSummary;
+  final String moduleTags;
+  final DateTime startDate;
+  final DateTime endDate;
+  final bool isFeatured;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const Chronicle(
+      {required this.id,
+      required this.title,
+      this.userSummary,
+      this.aiSummary,
+      required this.moduleTags,
+      required this.startDate,
+      required this.endDate,
+      required this.isFeatured,
+      required this.createdAt,
+      required this.updatedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['title'] = Variable<String>(title);
+    if (!nullToAbsent || userSummary != null) {
+      map['user_summary'] = Variable<String>(userSummary);
+    }
+    if (!nullToAbsent || aiSummary != null) {
+      map['ai_summary'] = Variable<String>(aiSummary);
+    }
+    map['module_tags'] = Variable<String>(moduleTags);
+    map['start_date'] = Variable<DateTime>(startDate);
+    map['end_date'] = Variable<DateTime>(endDate);
+    map['is_featured'] = Variable<bool>(isFeatured);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  ChroniclesCompanion toCompanion(bool nullToAbsent) {
+    return ChroniclesCompanion(
+      id: Value(id),
+      title: Value(title),
+      userSummary: userSummary == null && nullToAbsent
+          ? const Value.absent()
+          : Value(userSummary),
+      aiSummary: aiSummary == null && nullToAbsent
+          ? const Value.absent()
+          : Value(aiSummary),
+      moduleTags: Value(moduleTags),
+      startDate: Value(startDate),
+      endDate: Value(endDate),
+      isFeatured: Value(isFeatured),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory Chronicle.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Chronicle(
+      id: serializer.fromJson<String>(json['id']),
+      title: serializer.fromJson<String>(json['title']),
+      userSummary: serializer.fromJson<String?>(json['userSummary']),
+      aiSummary: serializer.fromJson<String?>(json['aiSummary']),
+      moduleTags: serializer.fromJson<String>(json['moduleTags']),
+      startDate: serializer.fromJson<DateTime>(json['startDate']),
+      endDate: serializer.fromJson<DateTime>(json['endDate']),
+      isFeatured: serializer.fromJson<bool>(json['isFeatured']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'title': serializer.toJson<String>(title),
+      'userSummary': serializer.toJson<String?>(userSummary),
+      'aiSummary': serializer.toJson<String?>(aiSummary),
+      'moduleTags': serializer.toJson<String>(moduleTags),
+      'startDate': serializer.toJson<DateTime>(startDate),
+      'endDate': serializer.toJson<DateTime>(endDate),
+      'isFeatured': serializer.toJson<bool>(isFeatured),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  Chronicle copyWith(
+          {String? id,
+          String? title,
+          Value<String?> userSummary = const Value.absent(),
+          Value<String?> aiSummary = const Value.absent(),
+          String? moduleTags,
+          DateTime? startDate,
+          DateTime? endDate,
+          bool? isFeatured,
+          DateTime? createdAt,
+          DateTime? updatedAt}) =>
+      Chronicle(
+        id: id ?? this.id,
+        title: title ?? this.title,
+        userSummary: userSummary.present ? userSummary.value : this.userSummary,
+        aiSummary: aiSummary.present ? aiSummary.value : this.aiSummary,
+        moduleTags: moduleTags ?? this.moduleTags,
+        startDate: startDate ?? this.startDate,
+        endDate: endDate ?? this.endDate,
+        isFeatured: isFeatured ?? this.isFeatured,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+  Chronicle copyWithCompanion(ChroniclesCompanion data) {
+    return Chronicle(
+      id: data.id.present ? data.id.value : this.id,
+      title: data.title.present ? data.title.value : this.title,
+      userSummary:
+          data.userSummary.present ? data.userSummary.value : this.userSummary,
+      aiSummary: data.aiSummary.present ? data.aiSummary.value : this.aiSummary,
+      moduleTags:
+          data.moduleTags.present ? data.moduleTags.value : this.moduleTags,
+      startDate: data.startDate.present ? data.startDate.value : this.startDate,
+      endDate: data.endDate.present ? data.endDate.value : this.endDate,
+      isFeatured:
+          data.isFeatured.present ? data.isFeatured.value : this.isFeatured,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Chronicle(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('userSummary: $userSummary, ')
+          ..write('aiSummary: $aiSummary, ')
+          ..write('moduleTags: $moduleTags, ')
+          ..write('startDate: $startDate, ')
+          ..write('endDate: $endDate, ')
+          ..write('isFeatured: $isFeatured, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, title, userSummary, aiSummary, moduleTags,
+      startDate, endDate, isFeatured, createdAt, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Chronicle &&
+          other.id == this.id &&
+          other.title == this.title &&
+          other.userSummary == this.userSummary &&
+          other.aiSummary == this.aiSummary &&
+          other.moduleTags == this.moduleTags &&
+          other.startDate == this.startDate &&
+          other.endDate == this.endDate &&
+          other.isFeatured == this.isFeatured &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class ChroniclesCompanion extends UpdateCompanion<Chronicle> {
+  final Value<String> id;
+  final Value<String> title;
+  final Value<String?> userSummary;
+  final Value<String?> aiSummary;
+  final Value<String> moduleTags;
+  final Value<DateTime> startDate;
+  final Value<DateTime> endDate;
+  final Value<bool> isFeatured;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const ChroniclesCompanion({
+    this.id = const Value.absent(),
+    this.title = const Value.absent(),
+    this.userSummary = const Value.absent(),
+    this.aiSummary = const Value.absent(),
+    this.moduleTags = const Value.absent(),
+    this.startDate = const Value.absent(),
+    this.endDate = const Value.absent(),
+    this.isFeatured = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ChroniclesCompanion.insert({
+    required String id,
+    required String title,
+    this.userSummary = const Value.absent(),
+    this.aiSummary = const Value.absent(),
+    this.moduleTags = const Value.absent(),
+    required DateTime startDate,
+    required DateTime endDate,
+    this.isFeatured = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        title = Value(title),
+        startDate = Value(startDate),
+        endDate = Value(endDate),
+        createdAt = Value(createdAt),
+        updatedAt = Value(updatedAt);
+  static Insertable<Chronicle> custom({
+    Expression<String>? id,
+    Expression<String>? title,
+    Expression<String>? userSummary,
+    Expression<String>? aiSummary,
+    Expression<String>? moduleTags,
+    Expression<DateTime>? startDate,
+    Expression<DateTime>? endDate,
+    Expression<bool>? isFeatured,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (title != null) 'title': title,
+      if (userSummary != null) 'user_summary': userSummary,
+      if (aiSummary != null) 'ai_summary': aiSummary,
+      if (moduleTags != null) 'module_tags': moduleTags,
+      if (startDate != null) 'start_date': startDate,
+      if (endDate != null) 'end_date': endDate,
+      if (isFeatured != null) 'is_featured': isFeatured,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ChroniclesCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? title,
+      Value<String?>? userSummary,
+      Value<String?>? aiSummary,
+      Value<String>? moduleTags,
+      Value<DateTime>? startDate,
+      Value<DateTime>? endDate,
+      Value<bool>? isFeatured,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<int>? rowid}) {
+    return ChroniclesCompanion(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      userSummary: userSummary ?? this.userSummary,
+      aiSummary: aiSummary ?? this.aiSummary,
+      moduleTags: moduleTags ?? this.moduleTags,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      isFeatured: isFeatured ?? this.isFeatured,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (userSummary.present) {
+      map['user_summary'] = Variable<String>(userSummary.value);
+    }
+    if (aiSummary.present) {
+      map['ai_summary'] = Variable<String>(aiSummary.value);
+    }
+    if (moduleTags.present) {
+      map['module_tags'] = Variable<String>(moduleTags.value);
+    }
+    if (startDate.present) {
+      map['start_date'] = Variable<DateTime>(startDate.value);
+    }
+    if (endDate.present) {
+      map['end_date'] = Variable<DateTime>(endDate.value);
+    }
+    if (isFeatured.present) {
+      map['is_featured'] = Variable<bool>(isFeatured.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ChroniclesCompanion(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('userSummary: $userSummary, ')
+          ..write('aiSummary: $aiSummary, ')
+          ..write('moduleTags: $moduleTags, ')
+          ..write('startDate: $startDate, ')
+          ..write('endDate: $endDate, ')
+          ..write('isFeatured: $isFeatured, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -12899,6 +13378,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $GoalReviewsTable goalReviews = $GoalReviewsTable(this);
   late final $BackupLogsTable backupLogs = $BackupLogsTable(this);
   late final $AnnualReviewsTable annualReviews = $AnnualReviewsTable(this);
+  late final $ChroniclesTable chronicles = $ChroniclesTable(this);
   late final $RecordEmbeddingsTable recordEmbeddings =
       $RecordEmbeddingsTable(this);
   late final $ChatSessionsTable chatSessions = $ChatSessionsTable(this);
@@ -12924,6 +13404,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final GoalDao goalDao = GoalDao(this as AppDatabase);
   late final ChatDao chatDao = ChatDao(this as AppDatabase);
   late final ReminderDao reminderDao = ReminderDao(this as AppDatabase);
+  late final ChronicleDao chronicleDao = ChronicleDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -12947,6 +13428,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         goalReviews,
         backupLogs,
         annualReviews,
+        chronicles,
         recordEmbeddings,
         chatSessions,
         chatMessages,
@@ -17749,7 +18231,6 @@ typedef $$AnnualReviewsTableCreateCompanionBuilder = AnnualReviewsCompanion
   required int year,
   Value<String> title,
   Value<String?> content,
-  Value<String?> images,
   Value<String?> stats,
   Value<String?> keywords,
   required DateTime createdAt,
@@ -17762,7 +18243,6 @@ typedef $$AnnualReviewsTableUpdateCompanionBuilder = AnnualReviewsCompanion
   Value<int> year,
   Value<String> title,
   Value<String?> content,
-  Value<String?> images,
   Value<String?> stats,
   Value<String?> keywords,
   Value<DateTime> createdAt,
@@ -17790,9 +18270,6 @@ class $$AnnualReviewsTableFilterComposer
 
   ColumnFilters<String> get content => $composableBuilder(
       column: $table.content, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get images => $composableBuilder(
-      column: $table.images, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get stats => $composableBuilder(
       column: $table.stats, builder: (column) => ColumnFilters(column));
@@ -17828,9 +18305,6 @@ class $$AnnualReviewsTableOrderingComposer
   ColumnOrderings<String> get content => $composableBuilder(
       column: $table.content, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<String> get images => $composableBuilder(
-      column: $table.images, builder: (column) => ColumnOrderings(column));
-
   ColumnOrderings<String> get stats => $composableBuilder(
       column: $table.stats, builder: (column) => ColumnOrderings(column));
 
@@ -17864,9 +18338,6 @@ class $$AnnualReviewsTableAnnotationComposer
 
   GeneratedColumn<String> get content =>
       $composableBuilder(column: $table.content, builder: (column) => column);
-
-  GeneratedColumn<String> get images =>
-      $composableBuilder(column: $table.images, builder: (column) => column);
 
   GeneratedColumn<String> get stats =>
       $composableBuilder(column: $table.stats, builder: (column) => column);
@@ -17911,7 +18382,6 @@ class $$AnnualReviewsTableTableManager extends RootTableManager<
             Value<int> year = const Value.absent(),
             Value<String> title = const Value.absent(),
             Value<String?> content = const Value.absent(),
-            Value<String?> images = const Value.absent(),
             Value<String?> stats = const Value.absent(),
             Value<String?> keywords = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
@@ -17923,7 +18393,6 @@ class $$AnnualReviewsTableTableManager extends RootTableManager<
             year: year,
             title: title,
             content: content,
-            images: images,
             stats: stats,
             keywords: keywords,
             createdAt: createdAt,
@@ -17935,7 +18404,6 @@ class $$AnnualReviewsTableTableManager extends RootTableManager<
             required int year,
             Value<String> title = const Value.absent(),
             Value<String?> content = const Value.absent(),
-            Value<String?> images = const Value.absent(),
             Value<String?> stats = const Value.absent(),
             Value<String?> keywords = const Value.absent(),
             required DateTime createdAt,
@@ -17947,7 +18415,6 @@ class $$AnnualReviewsTableTableManager extends RootTableManager<
             year: year,
             title: title,
             content: content,
-            images: images,
             stats: stats,
             keywords: keywords,
             createdAt: createdAt,
@@ -17975,6 +18442,246 @@ typedef $$AnnualReviewsTableProcessedTableManager = ProcessedTableManager<
       BaseReferences<_$AppDatabase, $AnnualReviewsTable, AnnualReview>
     ),
     AnnualReview,
+    PrefetchHooks Function()>;
+typedef $$ChroniclesTableCreateCompanionBuilder = ChroniclesCompanion Function({
+  required String id,
+  required String title,
+  Value<String?> userSummary,
+  Value<String?> aiSummary,
+  Value<String> moduleTags,
+  required DateTime startDate,
+  required DateTime endDate,
+  Value<bool> isFeatured,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+  Value<int> rowid,
+});
+typedef $$ChroniclesTableUpdateCompanionBuilder = ChroniclesCompanion Function({
+  Value<String> id,
+  Value<String> title,
+  Value<String?> userSummary,
+  Value<String?> aiSummary,
+  Value<String> moduleTags,
+  Value<DateTime> startDate,
+  Value<DateTime> endDate,
+  Value<bool> isFeatured,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+
+class $$ChroniclesTableFilterComposer
+    extends Composer<_$AppDatabase, $ChroniclesTable> {
+  $$ChroniclesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get title => $composableBuilder(
+      column: $table.title, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get userSummary => $composableBuilder(
+      column: $table.userSummary, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get aiSummary => $composableBuilder(
+      column: $table.aiSummary, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get moduleTags => $composableBuilder(
+      column: $table.moduleTags, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get startDate => $composableBuilder(
+      column: $table.startDate, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get endDate => $composableBuilder(
+      column: $table.endDate, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isFeatured => $composableBuilder(
+      column: $table.isFeatured, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$ChroniclesTableOrderingComposer
+    extends Composer<_$AppDatabase, $ChroniclesTable> {
+  $$ChroniclesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get title => $composableBuilder(
+      column: $table.title, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get userSummary => $composableBuilder(
+      column: $table.userSummary, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get aiSummary => $composableBuilder(
+      column: $table.aiSummary, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get moduleTags => $composableBuilder(
+      column: $table.moduleTags, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get startDate => $composableBuilder(
+      column: $table.startDate, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get endDate => $composableBuilder(
+      column: $table.endDate, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isFeatured => $composableBuilder(
+      column: $table.isFeatured, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$ChroniclesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ChroniclesTable> {
+  $$ChroniclesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get userSummary => $composableBuilder(
+      column: $table.userSummary, builder: (column) => column);
+
+  GeneratedColumn<String> get aiSummary =>
+      $composableBuilder(column: $table.aiSummary, builder: (column) => column);
+
+  GeneratedColumn<String> get moduleTags => $composableBuilder(
+      column: $table.moduleTags, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get startDate =>
+      $composableBuilder(column: $table.startDate, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get endDate =>
+      $composableBuilder(column: $table.endDate, builder: (column) => column);
+
+  GeneratedColumn<bool> get isFeatured => $composableBuilder(
+      column: $table.isFeatured, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$ChroniclesTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $ChroniclesTable,
+    Chronicle,
+    $$ChroniclesTableFilterComposer,
+    $$ChroniclesTableOrderingComposer,
+    $$ChroniclesTableAnnotationComposer,
+    $$ChroniclesTableCreateCompanionBuilder,
+    $$ChroniclesTableUpdateCompanionBuilder,
+    (Chronicle, BaseReferences<_$AppDatabase, $ChroniclesTable, Chronicle>),
+    Chronicle,
+    PrefetchHooks Function()> {
+  $$ChroniclesTableTableManager(_$AppDatabase db, $ChroniclesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ChroniclesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ChroniclesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ChroniclesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> title = const Value.absent(),
+            Value<String?> userSummary = const Value.absent(),
+            Value<String?> aiSummary = const Value.absent(),
+            Value<String> moduleTags = const Value.absent(),
+            Value<DateTime> startDate = const Value.absent(),
+            Value<DateTime> endDate = const Value.absent(),
+            Value<bool> isFeatured = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ChroniclesCompanion(
+            id: id,
+            title: title,
+            userSummary: userSummary,
+            aiSummary: aiSummary,
+            moduleTags: moduleTags,
+            startDate: startDate,
+            endDate: endDate,
+            isFeatured: isFeatured,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String title,
+            Value<String?> userSummary = const Value.absent(),
+            Value<String?> aiSummary = const Value.absent(),
+            Value<String> moduleTags = const Value.absent(),
+            required DateTime startDate,
+            required DateTime endDate,
+            Value<bool> isFeatured = const Value.absent(),
+            required DateTime createdAt,
+            required DateTime updatedAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ChroniclesCompanion.insert(
+            id: id,
+            title: title,
+            userSummary: userSummary,
+            aiSummary: aiSummary,
+            moduleTags: moduleTags,
+            startDate: startDate,
+            endDate: endDate,
+            isFeatured: isFeatured,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$ChroniclesTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $ChroniclesTable,
+    Chronicle,
+    $$ChroniclesTableFilterComposer,
+    $$ChroniclesTableOrderingComposer,
+    $$ChroniclesTableAnnotationComposer,
+    $$ChroniclesTableCreateCompanionBuilder,
+    $$ChroniclesTableUpdateCompanionBuilder,
+    (Chronicle, BaseReferences<_$AppDatabase, $ChroniclesTable, Chronicle>),
+    Chronicle,
     PrefetchHooks Function()>;
 typedef $$RecordEmbeddingsTableCreateCompanionBuilder
     = RecordEmbeddingsCompanion Function({
@@ -18957,6 +19664,8 @@ class $AppDatabaseManager {
       $$BackupLogsTableTableManager(_db, _db.backupLogs);
   $$AnnualReviewsTableTableManager get annualReviews =>
       $$AnnualReviewsTableTableManager(_db, _db.annualReviews);
+  $$ChroniclesTableTableManager get chronicles =>
+      $$ChroniclesTableTableManager(_db, _db.chronicles);
   $$RecordEmbeddingsTableTableManager get recordEmbeddings =>
       $$RecordEmbeddingsTableTableManager(_db, _db.recordEmbeddings);
   $$ChatSessionsTableTableManager get chatSessions =>
@@ -19190,4 +19899,16 @@ class ReminderDaoManager {
   $$ReminderRecordsTableTableManager get reminderRecords =>
       $$ReminderRecordsTableTableManager(
           _db.attachedDatabase, _db.reminderRecords);
+}
+
+mixin _$ChronicleDaoMixin on DatabaseAccessor<AppDatabase> {
+  $ChroniclesTable get chronicles => attachedDatabase.chronicles;
+  ChronicleDaoManager get managers => ChronicleDaoManager(this);
+}
+
+class ChronicleDaoManager {
+  final _$ChronicleDaoMixin _db;
+  ChronicleDaoManager(this._db);
+  $$ChroniclesTableTableManager get chronicles =>
+      $$ChroniclesTableTableManager(_db.attachedDatabase, _db.chronicles);
 }

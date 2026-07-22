@@ -35,120 +35,61 @@ import '../../../core/services/file_logger.dart';
 import '../../../core/models/version_info.dart';
 import '../../../core/services/app_update_service.dart';
 import '../../travel/presentation/travel_page.dart' show TravelItem;
+import 'package:rxdart/rxdart.dart';
 
 class ChronicleRecord {
   const ChronicleRecord({
     required this.id,
     required this.title,
-    required this.rangeStart,
-    required this.rangeEnd,
-    required this.createdAt,
-    required this.modules,
-    required this.stats,
-    required this.aiSummary,
-    required this.userSummary,
-    required this.pdfPath,
-    required this.epubPath,
+    this.userSummary,
+    this.aiSummary,
+    required this.moduleTags,
+    required this.startDate,
+    required this.endDate,
     required this.isFeatured,
+    required this.createdAt,
+    required this.updatedAt,
   });
 
   final String id;
   final String title;
-  final DateTime rangeStart;
-  final DateTime rangeEnd;
-  final DateTime createdAt;
-  final List<String> modules;
-  final Map<String, int> stats;
-  final String aiSummary;
-  final String userSummary;
-  final String pdfPath;
-  final String epubPath;
+  final String? userSummary;
+  final String? aiSummary;
+  final List<String> moduleTags;
+  final DateTime startDate;
+  final DateTime endDate;
   final bool isFeatured;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   String rangeLabel() {
-    return '${_formatChronicleDate(rangeStart)} - ${_formatChronicleDate(rangeEnd)}';
+    return '${_formatChronicleDate(startDate)} - ${_formatChronicleDate(endDate)}';
   }
 
-  List<String> tags() {
-    final tags = <String>[...modules];
-    if (isFeatured) tags.add('精选');
-    return tags;
-  }
-
-  ChronicleRecord copyWith({
-    String? id,
-    String? title,
-    DateTime? rangeStart,
-    DateTime? rangeEnd,
-    DateTime? createdAt,
-    List<String>? modules,
-    Map<String, int>? stats,
-    String? aiSummary,
-    String? userSummary,
-    String? pdfPath,
-    String? epubPath,
-    bool? isFeatured,
-  }) {
-    return ChronicleRecord(
-      id: id ?? this.id,
-      title: title ?? this.title,
-      rangeStart: rangeStart ?? this.rangeStart,
-      rangeEnd: rangeEnd ?? this.rangeEnd,
-      createdAt: createdAt ?? this.createdAt,
-      modules: modules ?? this.modules,
-      stats: stats ?? this.stats,
-      aiSummary: aiSummary ?? this.aiSummary,
-      userSummary: userSummary ?? this.userSummary,
-      pdfPath: pdfPath ?? this.pdfPath,
-      epubPath: epubPath ?? this.epubPath,
-      isFeatured: isFeatured ?? this.isFeatured,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'title': title,
-      'rangeStart': rangeStart.toIso8601String(),
-      'rangeEnd': rangeEnd.toIso8601String(),
-      'createdAt': createdAt.toIso8601String(),
-      'modules': modules,
-      'stats': stats,
-      'aiSummary': aiSummary,
-      'userSummary': userSummary,
-      'pdfPath': pdfPath,
-      'epubPath': epubPath,
-      'isFeatured': isFeatured,
-    };
-  }
-
-  factory ChronicleRecord.fromJson(Map<String, dynamic> json) {
-    final rawModules = json['modules'];
-    final modules = <String>[];
-    if (rawModules is List) {
-      modules.addAll(rawModules.map((e) => e.toString()));
-    }
-    final rawStats = json['stats'];
-    final stats = <String, int>{};
-    if (rawStats is Map) {
-      for (final entry in rawStats.entries) {
-        final value = entry.value;
-        stats[entry.key.toString()] = value is num ? value.toInt() : int.tryParse(value.toString()) ?? 0;
+  static ChronicleRecord fromDatabase(Chronicle row) {
+    final tags = <String>[];
+    final raw = row.moduleTags;
+    if (raw.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is List) {
+          tags.addAll(decoded.map((e) => e.toString()));
+        }
+      } catch (_) {
+        // 非法 JSON，保持空列表
       }
     }
     return ChronicleRecord(
-      id: (json['id'] ?? '').toString(),
-      title: (json['title'] ?? '').toString(),
-      rangeStart: DateTime.tryParse(json['rangeStart']?.toString() ?? '') ?? DateTime.now(),
-      rangeEnd: DateTime.tryParse(json['rangeEnd']?.toString() ?? '') ?? DateTime.now(),
-      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
-      modules: modules,
-      stats: stats,
-      aiSummary: (json['aiSummary'] ?? '').toString(),
-      userSummary: (json['userSummary'] ?? '').toString(),
-      pdfPath: (json['pdfPath'] ?? '').toString(),
-      epubPath: (json['epubPath'] ?? '').toString(),
-      isFeatured: json['isFeatured'] == true,
+      id: row.id,
+      title: row.title,
+      userSummary: row.userSummary,
+      aiSummary: row.aiSummary,
+      moduleTags: tags,
+      startDate: row.startDate,
+      endDate: row.endDate,
+      isFeatured: row.isFeatured,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
     );
   }
 }
@@ -268,37 +209,12 @@ Future<Directory?> chronicleExportDir() async {
   return exportDir;
 }
 
-Future<List<ChronicleRecord>> loadChronicleRecords() async {
-  if (kIsWeb) return const <ChronicleRecord>[];
-  final file = await chronicleStoreFile();
-  if (file == null) return const <ChronicleRecord>[];
-  if (!await file.exists()) {
-    await file.writeAsString('[]');
-    return const <ChronicleRecord>[];
-  }
-  try {
-    final raw = await file.readAsString();
-    final decoded = jsonDecode(raw);
-    if (decoded is List) {
-      return decoded
-          .whereType<Map>()
-          .map((e) => ChronicleRecord.fromJson(Map<String, dynamic>.from(e)))
-          .toList(growable: false);
-    }
-  } catch (e) {
-    FileLogger.instance.logSync('ProfilePage', '加载编年史记录失败: $e');
-  }
-  await file.writeAsString('[]');
-  return const <ChronicleRecord>[];
-}
-
-Future<void> saveChronicleRecords(List<ChronicleRecord> records) async {
-  if (kIsWeb) return;
-  final file = await chronicleStoreFile();
-  if (file == null) return;
-  final payload = jsonEncode(records.map((e) => e.toJson()).toList(growable: false));
-  await file.writeAsString(payload);
-}
+final chronicleListProvider = StreamProvider<List<ChronicleRecord>>((ref) {
+  final db = ref.watch(appDatabaseProvider);
+  return db.chronicleDao
+      .watchAll()
+      .map((rows) => rows.map(ChronicleRecord.fromDatabase).toList());
+});
 
 String _formatChronicleDate(DateTime date) {
   String two(int v) => v.toString().padLeft(2, '0');
@@ -415,7 +331,7 @@ class ProfilePage extends ConsumerWidget {
                                 title: '收藏中心',
                                 subtitle: '美食 · 旅行 · 小确幸',
                                 onTap: () => RouteNavigation.goToFavoritesCenter(context),
-                                trailingIcon: Icons.ios_share,
+                                trailingIcon: Icons.star,
                               ),
                             ),
                           ],
@@ -1672,7 +1588,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
         );
       }
     }
-    final aiSummary = _buildAiSummary(range, summaries);
+    final aiSummary = await _buildAiSummary(range, summaries);
     return ChronicleGeneratedContent(
       rangeStart: range.start,
       rangeEnd: range.end,
@@ -1682,7 +1598,7 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
     );
   }
 
-  String _buildAiSummary(DateTimeRange range, List<ChronicleModuleSummary> summaries) {
+  String _buildLocalSummary(DateTimeRange range, List<ChronicleModuleSummary> summaries) {
     final total = summaries.fold<int>(0, (prev, e) => prev + e.count);
     final summaryLines = <String>[
       '时间范围：${_formatDate(range.start)} - ${_formatDate(range.end)}',
@@ -1693,6 +1609,39 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
       summaryLines.add('${item.title}：${item.count} 条，$highlights');
     }
     return summaryLines.join('\n');
+  }
+
+  Future<String> _buildAiSummary(DateTimeRange range, List<ChronicleModuleSummary> summaries) async {
+    final fallback = _buildLocalSummary(range, summaries);
+    final chatService = ref.read(activeChatServiceProvider);
+    if (chatService == null) {
+      return fallback;
+    }
+    try {
+      final total = summaries.fold<int>(0, (prev, e) => prev + e.count);
+      final moduleInfo = summaries.map((s) => '${s.title}(${s.count}条)').join('、');
+      final highlights = summaries
+          .where((s) => s.highlights.isNotEmpty)
+          .map((s) => '${s.title}：${s.highlights.join('、')}')
+          .join('；');
+      const systemPrompt = '你是人生编年史助手，根据用户提供的记忆数据生成一段温暖、凝练的编年史摘要。';
+      final userPrompt = '''请为以下人生记忆生成编年史摘要：
+时间范围：${_formatDate(range.start)} - ${_formatDate(range.end)}
+共整理 $total 条记录，覆盖 ${summaries.length} 个模块。
+模块概览：$moduleInfo
+代表内容：$highlights
+
+要求：1) 不超过150字；2) 突出成长与感悟；3) 语言有温度，避免罗列数据。''';
+      final response = await chatService.chat(
+        systemPrompt: systemPrompt,
+        messages: [ai_service.ChatMessage(role: 'user', content: userPrompt)],
+      );
+      final trimmed = response.trim();
+      return trimmed.isEmpty ? fallback : trimmed;
+    } catch (e) {
+      FileLogger.instance.logSync('编年史', 'AI 生成摘要失败，降级为本地拼接: $e');
+      return fallback;
+    }
   }
 
   Future<_ChronicleExportResult> _exportChronicle(
@@ -2503,24 +2452,32 @@ class _ChronicleGenerateConfigPageState extends ConsumerState<ChronicleGenerateC
       final exportResult = await _exportChronicle(title, range, aiSummary, content.moduleSummaries, content.recordDetails);
       await amapInfo('编年史', '导出完成, PDF路径: ${exportResult.pdfPath}, EPUB路径: ${exportResult.epubPath}');
       
-      final stats = {for (final item in content.moduleSummaries) item.title: item.count};
+      final now = DateTime.now();
+      final chronicleId = const Uuid().v4();
       final record = ChronicleRecord(
-        id: '${DateTime.now().millisecondsSinceEpoch}',
+        id: chronicleId,
         title: title,
-        rangeStart: range.start,
-        rangeEnd: range.end,
-        createdAt: DateTime.now(),
-        modules: [for (final key in selected) key],
-        stats: stats,
-        aiSummary: aiSummary,
         userSummary: '',
-        pdfPath: exportResult.pdfPath,
-        epubPath: exportResult.epubPath,
+        aiSummary: aiSummary,
+        moduleTags: [for (final key in selected) key],
+        startDate: range.start,
+        endDate: range.end,
         isFeatured: false,
+        createdAt: now,
+        updatedAt: now,
       );
-      final records = await loadChronicleRecords();
-      final updated = [record, ...records];
-      await saveChronicleRecords(updated);
+      await ref.read(appDatabaseProvider).chronicleDao.upsert(ChroniclesCompanion(
+            id: Value(record.id),
+            title: Value(record.title),
+            userSummary: Value(record.userSummary),
+            aiSummary: Value(record.aiSummary),
+            moduleTags: Value(jsonEncode(record.moduleTags)),
+            startDate: Value(record.startDate),
+            endDate: Value(record.endDate),
+            isFeatured: Value(record.isFeatured),
+            createdAt: Value(record.createdAt),
+            updatedAt: Value(record.updatedAt),
+          ));
       await amapInfo('编年史', '编年史生成成功并保存, ID: ${record.id}');
       
       if (!mounted) return;
@@ -3207,7 +3164,7 @@ class FavoritesCenterPage extends ConsumerStatefulWidget {
 }
 
 class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
-  static const _categories = ['全部', '美食', '旅行', '小确幸', '目标', '羁绊', '相遇'];
+  static const _categories = ['全部', '美食', '旅行', '旅行日记', '小确幸', '目标', '羁绊', '相遇'];
   static const _fallbackImageUrl =
       'https://lh3.googleusercontent.com/aida-public/AB6AXuAKyf0mNiZ0TAc0cDBuDh729VN8zm8R-lF-JlOBczemlVSfDxlTXyG9D-4CqGvj4VGLsjyH_nyxHz36t5YCWIUdFilyoKvFftQ0lxzt6pmOkOgpBI_gvBZAInqTnxhG3lNNaOqRyxJCT-lzLS3lmLEkNBMXJ6LnIbYkBwU51lRvY0DqIG10oPqPfaoC12BgWZPmW74AWxyipq5A_nuiETA3saO846Avvh5KoAF7C0KINcR5Dmp2orHJWlVQTu97pn9w2S1O1IDzigGp';
 
@@ -3248,30 +3205,36 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
     if (_selectedIds.isEmpty) return;
     final now = DateTime.now();
     final selectedItems = allItems.where((item) => _selectedIds.contains(item.id)).toList();
-    
-    for (final item in selectedItems) {
-      final id = item.id;
-      if (id.startsWith('food-')) {
-        await db.foodDao.updateFavorite(id.substring(5), isFavorite: false, now: now);
-      } else if (id.startsWith('travel-')) {
-        await (db.update(db.travelRecords)..where((t) => t.id.equals(id.substring(7)))).write(
-          TravelRecordsCompanion(isFavorite: const Value(false), updatedAt: Value(now)),
-        );
-      } else if (id.startsWith('moment-')) {
-        await db.momentDao.updateFavorite(id.substring(7), isFavorite: false, now: now);
-      } else if (id.startsWith('bond-')) {
-        await db.friendDao.updateFavorite(id.substring(5), isFavorite: false, now: now);
-      } else if (id.startsWith('goal-')) {
-        await db.updateGoalFavorite(id.substring(5), isFavorite: false, now: now);
-      } else if (id.startsWith('encounter-')) {
-        await db.updateEncounterFavorite(id.substring(10), isFavorite: false, now: now);
+
+    await db.transaction(() async {
+      for (final item in selectedItems) {
+        final id = item.id;
+        if (id.startsWith('food-')) {
+          await db.foodDao.updateFavorite(id.substring(5), isFavorite: false, now: now);
+        } else if (id.startsWith('travel-')) {
+          await db.travelDao.updateFavorite(id.substring(7), isFavorite: false, now: now);
+        } else if (id.startsWith('moment-')) {
+          await db.momentDao.updateFavorite(id.substring(7), isFavorite: false, now: now);
+        } else if (id.startsWith('bond-')) {
+          await db.friendDao.updateFavorite(id.substring(5), isFavorite: false, now: now);
+        } else if (id.startsWith('goal-')) {
+          await db.goalDao.updateFavorite(id.substring(5), isFavorite: false, now: now);
+        } else if (id.startsWith('encounter-')) {
+          await db.updateEncounterFavorite(id.substring(10), isFavorite: false, now: now);
+        }
       }
-    }
-    
+    });
+
     setState(() {
       _selectedIds.clear();
       _selectionMode = false;
     });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('已取消收藏'), duration: Duration(seconds: 2)),
+      );
+    }
   }
 
   Future<void> _exportToPdf(List<_FavoriteItem> allItems) async {
@@ -3389,7 +3352,7 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
       } else {
         RouteNavigation.goToTravelDetail(context, travel.id, item: TravelItem(
           travelId: travel.id,
-          tripId: '',
+          tripId: travel.tripId,
           recordDate: travel.recordDate,
           date: '${travel.recordDate.year}年${travel.recordDate.month}月${travel.recordDate.day}日',
           title: travel.title ?? '',
@@ -3453,14 +3416,14 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
   List<_FavoriteItem> _buildItems({
     required List<FoodRecord> foods,
     required List<MomentRecord> moments,
-    required List<TravelRecord> travels,
+    required List<TravelRecord> travelTrips,
+    required List<TravelRecord> travelJournals,
     required List<FriendRecord> friends,
-    required List<TimelineEvent> goals,
+    required List<GoalRecord> goals,
     required List<TimelineEvent> encounters,
   }) {
     final items = <_FavoriteItem>[];
     for (final record in foods) {
-      if (!record.isFavorite) continue;
       final images = _parseStringList(record.images);
       final tags = _parseStringList(record.tags);
       items.add(
@@ -3476,8 +3439,7 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
         ),
       );
     }
-    for (final record in travels) {
-      if (!record.isFavorite) continue;
+    for (final record in travelTrips) {
       final images = _parseStringList(record.images);
       final title = (record.title ?? '').trim();
       final destination = (record.destination ?? '').trim();
@@ -3495,8 +3457,25 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
         ),
       );
     }
+    for (final record in travelJournals) {
+      final images = _parseStringList(record.images);
+      final title = (record.title ?? '').trim();
+      final destination = (record.destination ?? '').trim();
+      final mood = (record.mood ?? '').trim();
+      items.add(
+        _FavoriteItem(
+          id: 'travel-${record.id}',
+          title: title.isNotEmpty ? title : (destination.isNotEmpty ? destination : '旅行日记'),
+          category: '旅行日记',
+          date: record.recordDate,
+          tag: mood.isNotEmpty ? mood : (destination.isNotEmpty ? destination : '旅行日记'),
+          tagColor: const Color(0xFFCCFBF1),
+          tagTextColor: const Color(0xFF0D9488),
+          imageUrl: images.isNotEmpty ? images.first : _fallbackImageUrl,
+        ),
+      );
+    }
     for (final record in moments) {
-      if (!record.isFavorite) continue;
       final images = _parseStringList(record.images);
       final mood = record.mood.trim();
       final scene = (record.tags ?? '').trim();
@@ -3514,7 +3493,6 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
       );
     }
     for (final record in friends) {
-      if (!record.isFavorite) continue;
       final group = (record.groupName ?? '').trim();
       items.add(
         _FavoriteItem(
@@ -3530,7 +3508,6 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
       );
     }
     for (final record in goals) {
-      if (!record.isFavorite) continue;
       final title = record.title.trim();
       items.add(
         _FavoriteItem(
@@ -3546,7 +3523,6 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
       );
     }
     for (final record in encounters) {
-      if (!record.isFavorite) continue;
       final title = record.title.trim();
       items.add(
         _FavoriteItem(
@@ -3570,304 +3546,322 @@ class _FavoritesCenterPageState extends ConsumerState<FavoritesCenterPage> {
     const background = Color(0xFFF2F4F6);
     const primary = Color(0xFF8AB4F8);
     final db = ref.watch(appDatabaseProvider);
-    return StreamBuilder<List<FoodRecord>>(
-        stream: db.foodDao.watchAllActive(),
-        builder: (context, foodSnapshot) {
-          final foods = foodSnapshot.data ?? const <FoodRecord>[];
-          return StreamBuilder<List<TravelRecord>>(
-            stream: db.watchAllActiveTravelRecords(),
-            builder: (context, travelSnapshot) {
-              final travels = travelSnapshot.data ?? const <TravelRecord>[];
-              return StreamBuilder<List<MomentRecord>>(
-                stream: db.momentDao.watchAllActive(),
-                builder: (context, momentSnapshot) {
-                  final moments = momentSnapshot.data ?? const <MomentRecord>[];
-                  return StreamBuilder<List<FriendRecord>>(
-                    stream: db.friendDao.watchAllActive(),
-                    builder: (context, friendSnapshot) {
-                      final friends = friendSnapshot.data ?? const <FriendRecord>[];
-                      final goalsStream = (db.select(db.timelineEvents)
-                            ..where((t) => t.eventType.equals('goal'))
-                            ..where((t) => t.isDeleted.equals(false))
-                            ..orderBy([(t) => OrderingTerm(expression: t.recordDate, mode: OrderingMode.desc)]))
-                          .watch();
-                      final encountersStream = db.watchEncounterEvents();
-                      return StreamBuilder<List<TimelineEvent>>(
-                        stream: goalsStream,
-                        builder: (context, goalSnapshot) {
-                          final goals = goalSnapshot.data ?? const <TimelineEvent>[];
-                          return StreamBuilder<List<TimelineEvent>>(
-                            stream: encountersStream,
-                            builder: (context, encounterSnapshot) {
-                              final encounters = encounterSnapshot.data ?? const <TimelineEvent>[];
-                              final allItems = _buildItems(
-                                foods: foods,
-                                moments: moments,
-                                travels: travels,
-                                friends: friends,
-                                goals: goals,
-                                encounters: encounters,
-                              );
-                              final items = _filterItems(allItems);
-                              final foodCount = allItems.where((item) => item.category == '美食').length;
-                              final travelCount = allItems.where((item) => item.category == '旅行').length;
-                              final momentCount = allItems.where((item) => item.category == '小确幸').length;
-                              final goalCount = allItems.where((item) => item.category == '目标').length;
-                              final encounterCount = allItems.where((item) => item.category == '相遇').length;
-                              final visibleIds = items.map((item) => item.id).toSet();
-                              final selectedCount = _selectedIds.where(visibleIds.contains).length;
-                              final allSelected = selectedCount == items.length && items.isNotEmpty;
-                              return Scaffold(
-                                backgroundColor: background,
-                                appBar: AppBar(
-                                  backgroundColor: Colors.white.withValues(alpha: 0.7),
-                                  title: const Text('收藏中心', style: TextStyle(fontWeight: FontWeight.w800)),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: _toggleSelectionMode,
-                                      style: TextButton.styleFrom(foregroundColor: primary, textStyle: const TextStyle(fontWeight: FontWeight.w900)),
-                                      child: Text(_selectionMode ? '取消' : '选择'),
-                                    ),
-                                  ],
-                                ),
-                                bottomNavigationBar: _selectionMode
-                                    ? SafeArea(
-                                        top: false,
-                                        child: Container(
-                                          padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            border: Border(top: BorderSide(color: Colors.black.withValues(alpha: 0.06))),
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              InkWell(
-                                                onTap: () => _toggleSelectAll(items),
-                                                borderRadius: BorderRadius.circular(12),
-                                                child: Padding(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-                                                  child: Row(
-                                                    children: [
-                                                      Container(
-                                                        width: 18,
-                                                        height: 18,
-                                                        decoration: BoxDecoration(
-                                                          color: allSelected ? primary : Colors.transparent,
-                                                          borderRadius: BorderRadius.circular(6),
-                                                          border: Border.all(color: const Color(0xFFCBD5F5)),
-                                                        ),
-                                                        child: allSelected ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
-                                                      ),
-                                                      const SizedBox(width: 8),
-                                                      Text(
-                                                        allSelected ? '取消全选' : '全选',
-                                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF475569)),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ),
-                                              const Spacer(),
-                                              TextButton.icon(
-                                                onPressed: selectedCount == 0 ? null : () => _exportToPdf(allItems),
-                                                style: TextButton.styleFrom(foregroundColor: const Color(0xFF64748B), textStyle: const TextStyle(fontWeight: FontWeight.w800)),
-                                                icon: const Icon(Icons.picture_as_pdf, size: 18),
-                                                label: Text('导出PDF${selectedCount == 0 ? '' : ' ($selectedCount)'}'),
-                                              ),
-                                              const SizedBox(width: 8),
-                                              TextButton.icon(
-                                                onPressed: selectedCount == 0 ? null : () => _unfavoriteSelected(db, allItems),
-                                                style: TextButton.styleFrom(foregroundColor: const Color(0xFFF43F5E), textStyle: const TextStyle(fontWeight: FontWeight.w800)),
-                                                icon: const Icon(Icons.bookmark_remove, size: 18),
-                                                label: const Text('取消收藏'),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      )
-                                    : null,
-                                body: SafeArea(
-                                  child: ListView(
-                                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(16),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.circular(18),
-                                          border: Border.all(color: const Color(0xFFF3F4F6)),
-                                        ),
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            const Text('收藏概览', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                                            const SizedBox(height: 10),
-                                            LayoutBuilder(
-                                              builder: (context, constraints) {
-                                                const spacing = 10.0;
-                                                final itemWidth = (constraints.maxWidth - spacing) / 2;
-                                                return Wrap(
-                                                  spacing: spacing,
-                                                  runSpacing: spacing,
-                                                  children: [
-                                                    _FavoriteSummaryChip(
-                                                      width: itemWidth,
-                                                      label: '美食',
-                                                      count: foodCount.toString(),
-                                                      color: const Color(0xFFFFEDD5),
-                                                      textColor: const Color(0xFFFB923C),
-                                                      onTap: () => setState(() {
-                                                        _selectedCategoryIndex = 1;
-                                                        _selectedIds.clear();
-                                                      }),
-                                                    ),
-                                                    _FavoriteSummaryChip(
-                                                      width: itemWidth,
-                                                      label: '旅行',
-                                                      count: travelCount.toString(),
-                                                      color: const Color(0xFFDBEAFE),
-                                                      textColor: const Color(0xFF3B82F6),
-                                                      onTap: () => setState(() {
-                                                        _selectedCategoryIndex = 2;
-                                                        _selectedIds.clear();
-                                                      }),
-                                                    ),
-                                                    _FavoriteSummaryChip(
-                                                      width: itemWidth,
-                                                      label: '小确幸',
-                                                      count: momentCount.toString(),
-                                                      color: const Color(0xFFFCE7F3),
-                                                      textColor: const Color(0xFFEC4899),
-                                                      onTap: () => setState(() {
-                                                        _selectedCategoryIndex = 3;
-                                                        _selectedIds.clear();
-                                                      }),
-                                                    ),
-                                                    _FavoriteSummaryChip(
-                                                      width: itemWidth,
-                                                      label: '目标',
-                                                      count: goalCount.toString(),
-                                                      color: const Color(0xFFF3E8FF),
-                                                      textColor: const Color(0xFF9333EA),
-                                                      onTap: () => setState(() {
-                                                        _selectedCategoryIndex = 4;
-                                                        _selectedIds.clear();
-                                                      }),
-                                                    ),
-                                                    _FavoriteSummaryChip(
-                                                      width: itemWidth,
-                                                      label: '相遇',
-                                                      count: encounterCount.toString(),
-                                                      color: const Color(0xFFE0F2FE),
-                                                      textColor: const Color(0xFF0284C7),
-                                                      onTap: () => setState(() {
-                                                        _selectedCategoryIndex = 6;
-                                                        _selectedIds.clear();
-                                                      }),
-                                                    ),
-                                                  ],
-                                                );
-                                              },
-                                            ),
-                                            const SizedBox(height: 12),
-                                            SizedBox(
-                                              height: 36,
-                                              child: ListView.separated(
-                                                scrollDirection: Axis.horizontal,
-                                                itemBuilder: (context, index) {
-                                                  final label = _categories[index];
-                                                  final selected = index == _selectedCategoryIndex;
-                                                  return _CategoryChip(
-                                                    label: label,
-                                                    selected: selected,
-                                                    onTap: () => setState(() {
-                                                      _selectedCategoryIndex = index;
-                                                      _selectedIds.clear();
-                                                    }),
-                                                  );
-                                                },
-                                                separatorBuilder: (_, __) => const SizedBox(width: 8),
-                                                itemCount: _categories.length,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 14),
-                                      Row(
-                                        children: [
-                                          Text('最近收藏', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                                          const Spacer(),
-                                          TextButton(
-                                            onPressed: () => setState(() {
-                                              _selectedCategoryIndex = 0;
-                                              _selectedIds.clear();
-                                            }),
-                                            style: TextButton.styleFrom(foregroundColor: primary, textStyle: const TextStyle(fontWeight: FontWeight.w900)),
-                                            child: const Text('查看全部'),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 8),
-                                      if (items.isEmpty)
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(vertical: 40),
-                                          alignment: Alignment.center,
-                                          child: const Text('暂无收藏记录', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
-                                        )
-                                      else
-                                        for (final item in items) ...[
-                                          _FavoriteItemCard(
-                                            title: item.title,
-                                            subtitle: '${item.category} · ${_formatDate(item.date)}',
-                                            tag: item.tag,
-                                            tagColor: item.tagColor,
-                                            tagTextColor: item.tagTextColor,
-                                            imageUrl: item.imageUrl,
-                                            selectable: _selectionMode,
-                                            selected: _selectedIds.contains(item.id),
-                                            onSelect: () {
-                                              if (!_selectionMode) return;
-                                              setState(() {
-                                                if (_selectedIds.contains(item.id)) {
-                                                  _selectedIds.remove(item.id);
-                                                } else {
-                                                  _selectedIds.add(item.id);
-                                                }
-                                              });
-                                            },
-                                            onTap: () {
-                                              if (_selectionMode) {
-                                                setState(() {
-                                                  if (_selectedIds.contains(item.id)) {
-                                                    _selectedIds.remove(item.id);
-                                                  } else {
-                                                    _selectedIds.add(item.id);
-                                                  }
-                                                });
-                                              } else {
-                                                _navigateToDetail(context, item.id);
-                                              }
-                                            },
-                                          ),
-                                          const SizedBox(height: 12),
-                                        ],
-                                      ],
-                                    ),
+    final combinedStream = Rx.combineLatest7(
+      db.foodDao.watchFavorites(),
+      db.travelDao.watchFavoriteTrips(),
+      db.travelDao.watchFavoriteJournals(),
+      db.momentDao.watchFavorites(),
+      db.friendDao.watchFavorites(),
+      db.goalDao.watchFavorites(),
+      db.watchFavoriteEncounterEvents(),
+      (foods, travelTrips, travelJournals, moments, friends, goals, encounters) {
+        return (
+          foods: foods,
+          travelTrips: travelTrips,
+          travelJournals: travelJournals,
+          moments: moments,
+          friends: friends,
+          goals: goals,
+          encounters: encounters,
+        );
+      },
+    );
+    return StreamBuilder<
+        ({
+          List<FoodRecord> foods,
+          List<TravelRecord> travelTrips,
+          List<TravelRecord> travelJournals,
+          List<MomentRecord> moments,
+          List<FriendRecord> friends,
+          List<GoalRecord> goals,
+          List<TimelineEvent> encounters,
+        })>(
+      stream: combinedStream,
+      builder: (context, snapshot) {
+        final data = snapshot.data;
+        final allItems = _buildItems(
+          foods: data?.foods ?? const <FoodRecord>[],
+          moments: data?.moments ?? const <MomentRecord>[],
+          travelTrips: data?.travelTrips ?? const <TravelRecord>[],
+          travelJournals: data?.travelJournals ?? const <TravelRecord>[],
+          friends: data?.friends ?? const <FriendRecord>[],
+          goals: data?.goals ?? const <GoalRecord>[],
+          encounters: data?.encounters ?? const <TimelineEvent>[],
+        );
+        final items = _filterItems(allItems);
+        final foodCount = allItems.where((item) => item.category == '美食').length;
+        final travelCount = allItems.where((item) => item.category == '旅行').length;
+        final journalCount = allItems.where((item) => item.category == '旅行日记').length;
+        final momentCount = allItems.where((item) => item.category == '小确幸').length;
+        final goalCount = allItems.where((item) => item.category == '目标').length;
+        final friendCount = allItems.where((item) => item.category == '羁绊').length;
+        final encounterCount = allItems.where((item) => item.category == '相遇').length;
+        final visibleIds = items.map((item) => item.id).toSet();
+        final selectedCount = _selectedIds.where(visibleIds.contains).length;
+        final allSelected = selectedCount == items.length && items.isNotEmpty;
+        return Scaffold(
+          backgroundColor: background,
+          appBar: AppBar(
+            backgroundColor: Colors.white.withValues(alpha: 0.7),
+            title: const Text('收藏中心', style: TextStyle(fontWeight: FontWeight.w800)),
+            actions: [
+              TextButton(
+                onPressed: _toggleSelectionMode,
+                style: TextButton.styleFrom(foregroundColor: primary, textStyle: const TextStyle(fontWeight: FontWeight.w900)),
+                child: Text(_selectionMode ? '取消' : '选择'),
+              ),
+            ],
+          ),
+          bottomNavigationBar: _selectionMode
+              ? SafeArea(
+                  top: false,
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border(top: BorderSide(color: Colors.black.withValues(alpha: 0.06))),
+                    ),
+                    child: Row(
+                      children: [
+                        InkWell(
+                          onTap: () => _toggleSelectAll(items),
+                          borderRadius: BorderRadius.circular(12),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 18,
+                                  height: 18,
+                                  decoration: BoxDecoration(
+                                    color: allSelected ? primary : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(color: const Color(0xFFCBD5F5)),
                                   ),
-                                );
-                              },
+                                  child: allSelected ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  allSelected ? '取消全选' : '全选',
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF475569)),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        TextButton.icon(
+                          onPressed: selectedCount == 0 ? null : () => _exportToPdf(allItems),
+                          style: TextButton.styleFrom(foregroundColor: const Color(0xFF64748B), textStyle: const TextStyle(fontWeight: FontWeight.w800)),
+                          icon: const Icon(Icons.picture_as_pdf, size: 18),
+                          label: Text('导出PDF${selectedCount == 0 ? '' : ' ($selectedCount)'}'),
+                        ),
+                        const SizedBox(width: 8),
+                        TextButton.icon(
+                          onPressed: selectedCount == 0 ? null : () => _unfavoriteSelected(db, allItems),
+                          style: TextButton.styleFrom(foregroundColor: const Color(0xFFF43F5E), textStyle: const TextStyle(fontWeight: FontWeight.w800)),
+                          icon: const Icon(Icons.bookmark_remove, size: 18),
+                          label: const Text('取消收藏'),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : null,
+          body: SafeArea(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFFF3F4F6)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('收藏概览', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                      const SizedBox(height: 10),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          const spacing = 10.0;
+                          final itemWidth = (constraints.maxWidth - spacing) / 2;
+                          return Wrap(
+                            spacing: spacing,
+                            runSpacing: spacing,
+                            children: [
+                              _FavoriteSummaryChip(
+                                width: itemWidth,
+                                label: '美食',
+                                count: foodCount.toString(),
+                                color: const Color(0xFFFFEDD5),
+                                textColor: const Color(0xFFFB923C),
+                                onTap: () => setState(() {
+                                  _selectedCategoryIndex = 1;
+                                  _selectedIds.clear();
+                                }),
+                              ),
+                              _FavoriteSummaryChip(
+                                width: itemWidth,
+                                label: '旅行',
+                                count: travelCount.toString(),
+                                color: const Color(0xFFDBEAFE),
+                                textColor: const Color(0xFF3B82F6),
+                                onTap: () => setState(() {
+                                  _selectedCategoryIndex = 2;
+                                  _selectedIds.clear();
+                                }),
+                              ),
+                              _FavoriteSummaryChip(
+                                width: itemWidth,
+                                label: '旅行日记',
+                                count: journalCount.toString(),
+                                color: const Color(0xFFCCFBF1),
+                                textColor: const Color(0xFF0D9488),
+                                onTap: () => setState(() {
+                                  _selectedCategoryIndex = 3;
+                                  _selectedIds.clear();
+                                }),
+                              ),
+                              _FavoriteSummaryChip(
+                                width: itemWidth,
+                                label: '小确幸',
+                                count: momentCount.toString(),
+                                color: const Color(0xFFFCE7F3),
+                                textColor: const Color(0xFFEC4899),
+                                onTap: () => setState(() {
+                                  _selectedCategoryIndex = 4;
+                                  _selectedIds.clear();
+                                }),
+                              ),
+                              _FavoriteSummaryChip(
+                                width: itemWidth,
+                                label: '目标',
+                                count: goalCount.toString(),
+                                color: const Color(0xFFF3E8FF),
+                                textColor: const Color(0xFF9333EA),
+                                onTap: () => setState(() {
+                                  _selectedCategoryIndex = 5;
+                                  _selectedIds.clear();
+                                }),
+                              ),
+                              _FavoriteSummaryChip(
+                                width: itemWidth,
+                                label: '羁绊',
+                                count: friendCount.toString(),
+                                color: const Color(0xFFEDE9FE),
+                                textColor: const Color(0xFF7C3AED),
+                                onTap: () => setState(() {
+                                  _selectedCategoryIndex = 6;
+                                  _selectedIds.clear();
+                                }),
+                              ),
+                              _FavoriteSummaryChip(
+                                width: itemWidth,
+                                label: '相遇',
+                                count: encounterCount.toString(),
+                                color: const Color(0xFFE0F2FE),
+                                textColor: const Color(0xFF0284C7),
+                                onTap: () => setState(() {
+                                  _selectedCategoryIndex = 7;
+                                  _selectedIds.clear();
+                                }),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 36,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemBuilder: (context, index) {
+                            final label = _categories[index];
+                            final selected = index == _selectedCategoryIndex;
+                            return _CategoryChip(
+                              label: label,
+                              selected: selected,
+                              onTap: () => setState(() {
+                                _selectedCategoryIndex = index;
+                                _selectedIds.clear();
+                              }),
                             );
                           },
-                        );
+                          separatorBuilder: (_, __) => const SizedBox(width: 8),
+                          itemCount: _categories.length,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Text('最近收藏', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: () => setState(() {
+                        _selectedCategoryIndex = 0;
+                        _selectedIds.clear();
+                      }),
+                      style: TextButton.styleFrom(foregroundColor: primary, textStyle: const TextStyle(fontWeight: FontWeight.w900)),
+                      child: const Text('查看全部'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                if (items.isEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 40),
+                    alignment: Alignment.center,
+                    child: const Text('暂无收藏记录', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                  )
+                else
+                  for (final item in items) ...[
+                    _FavoriteItemCard(
+                      title: item.title,
+                      subtitle: '${item.category} · ${_formatDate(item.date)}',
+                      tag: item.tag,
+                      tagColor: item.tagColor,
+                      tagTextColor: item.tagTextColor,
+                      imageUrl: item.imageUrl,
+                      selectable: _selectionMode,
+                      selected: _selectedIds.contains(item.id),
+                      onSelect: () {
+                        if (!_selectionMode) return;
+                        setState(() {
+                          if (_selectedIds.contains(item.id)) {
+                            _selectedIds.remove(item.id);
+                          } else {
+                            _selectedIds.add(item.id);
+                          }
+                        });
                       },
-                    );
-                  },
-                );
-              },
-            );
-          },
+                      onTap: () {
+                        if (_selectionMode) {
+                          setState(() {
+                            if (_selectedIds.contains(item.id)) {
+                              _selectedIds.remove(item.id);
+                            } else {
+                              _selectedIds.add(item.id);
+                            }
+                          });
+                        } else {
+                          _navigateToDetail(context, item.id);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+              ],
+            ),
+          ),
         );
+      },
+    );
   }
 }
 
@@ -3879,105 +3873,131 @@ class ChronicleManagePage extends ConsumerStatefulWidget {
 }
 
 class _ChronicleManagePageState extends ConsumerState<ChronicleManagePage> {
-  Future<void> _toggleFeatured(ChronicleRecord record) async {
-    final records = await loadChronicleRecords();
-    final updated = [
-      for (final item in records)
-        if (item.id == record.id)
-          item.copyWith(isFeatured: !item.isFeatured)
-        else
-          item,
-    ];
-    await saveChronicleRecords(updated);
-    if (mounted) {
-      setState(() {});
-    }
+  bool _migrating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 初始化时检查旧 JSON 文件，若存在则迁移到数据库表
+    _migrateLegacyJson();
   }
 
-  Future<void> _shareFile(String path, String fallbackName) async {
-    final file = File(path);
-    if (!await file.exists()) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('文件不存在或尚未生成')));
+  Future<void> _migrateLegacyJson() async {
+    if (kIsWeb) return;
+    setState(() => _migrating = true);
+    try {
+      final file = await chronicleStoreFile();
+      if (file == null || !await file.exists()) {
+        return;
       }
-      return;
+      final raw = await file.readAsString();
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) {
+        return;
+      }
+      final db = ref.read(appDatabaseProvider);
+      await db.transaction(() async {
+        for (final item in decoded.whereType<Map>()) {
+          final json = Map<String, dynamic>.from(item);
+          final id = const Uuid().v4();
+          final modules = <String>[];
+          final rawModules = json['modules'];
+          if (rawModules is List) {
+            modules.addAll(rawModules.map((e) => e.toString()));
+          }
+          final createdAt = DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now();
+          final rangeStart = DateTime.tryParse(json['rangeStart']?.toString() ?? '') ?? DateTime.now();
+          final rangeEnd = DateTime.tryParse(json['rangeEnd']?.toString() ?? '') ?? DateTime.now();
+          await db.chronicleDao.upsert(ChroniclesCompanion(
+            id: Value(id),
+            title: Value((json['title'] ?? '').toString()),
+            userSummary: Value((json['userSummary'] ?? '').toString()),
+            aiSummary: Value((json['aiSummary'] ?? '').toString()),
+            moduleTags: Value(jsonEncode(modules)),
+            startDate: Value(rangeStart),
+            endDate: Value(rangeEnd),
+            isFeatured: Value(json['isFeatured'] == true),
+            createdAt: Value(createdAt),
+            updatedAt: Value(createdAt),
+          ));
+        }
+      });
+      // 导入完成后重命名 JSON 文件为 .bak（不立即删除）
+      final bakPath = '${file.path}.bak';
+      try {
+        await file.rename(bakPath);
+        FileLogger.instance.logSync('编年史', '旧 JSON 编年史迁移完成，备份至 $bakPath');
+      } catch (e) {
+        FileLogger.instance.logSync('编年史', '重命名旧 JSON 失败: $e');
+      }
+    } catch (e) {
+      FileLogger.instance.logSync('编年史', '迁移旧 JSON 失败: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _migrating = false);
+      }
     }
-    await Share.shareXFiles([XFile(file.path)], text: fallbackName);
   }
 
-  Future<void> _exportRecord(ChronicleRecord record) async {
-    FocusManager.instance.primaryFocus?.unfocus();
-    await showModalBottomSheet(
+  Future<void> _toggleFeatured(ChronicleRecord record) async {
+    await ref.read(appDatabaseProvider).chronicleDao.updateFeatured(record.id, !record.isFeatured);
+  }
+
+  Future<void> _confirmDelete(ChronicleRecord record) async {
+    final confirmed = await showDialog<bool>(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(width: 36, height: 4, decoration: BoxDecoration(color: const Color(0xFFE5E7EB), borderRadius: BorderRadius.circular(999))),
-              const SizedBox(height: 16),
-              Text('导出 ${record.title}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () async {
-                  Navigator.of(context).pop();
-                  await _shareFile(record.pdfPath, '${record.title}.pdf');
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2563EB),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-                child: const Text('导出 PDF'),
-              ),
-              const SizedBox(height: 10),
-              OutlinedButton(
-                onPressed: () async {
-                  Navigator.of(context).pop();
-                  await _shareFile(record.epubPath, '${record.title}.epub');
-                },
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF334155),
-                  side: const BorderSide(color: Color(0xFFE2E8F0)),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-                child: const Text('导出 EPUB'),
-              ),
-            ],
-          ),
+        return AlertDialog(
+          title: const Text('删除编年史'),
+          content: Text('确定要删除「${record.title}」吗？此操作不可恢复。'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('取消'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(foregroundColor: const Color(0xFFEF4444)),
+              child: const Text('删除'),
+            ),
+          ],
         );
       },
     );
+    if (confirmed == true) {
+      await ref.read(appDatabaseProvider).chronicleDao.deleteById(record.id);
+    }
+  }
+
+  List<String> _resolveModuleTitles(List<String> moduleTags, ModuleManagementConfig? config) {
+    if (config == null) return moduleTags;
+    return moduleTags.map((key) => config.moduleOf(key).title).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     const background = Color(0xFFF2F4F6);
     const primary = Color(0xFF2563EB);
+    final recordsAsync = ref.watch(chronicleListProvider);
+    final configAsync = ref.watch(moduleManagementConfigProvider);
     return Scaffold(
       backgroundColor: background,
       appBar: AppBar(
         backgroundColor: Colors.white.withValues(alpha: 0.7),
         title: const Text('编年史管理', style: TextStyle(fontWeight: FontWeight.w800)),
-        actions: [
-          TextButton(
-            onPressed: () {
-              RouteNavigation.goToChronicleGenerateConfig(context);
-            },
-            style: TextButton.styleFrom(foregroundColor: primary, textStyle: const TextStyle(fontWeight: FontWeight.w900)),
-            child: const Text('生成新版本'),
-          ),
-        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => RouteNavigation.goToChronicleGenerateConfig(context),
+        backgroundColor: primary,
+        foregroundColor: Colors.white,
+        child: const Icon(Icons.add),
       ),
       body: SafeArea(
-        child: FutureBuilder<List<ChronicleRecord>>(
-          future: loadChronicleRecords(),
-          builder: (context, snapshot) {
-            final records = snapshot.data ?? const [];
+        child: recordsAsync.when(
+          data: (records) {
+            final config = configAsync.value;
             return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
               children: [
                 Container(
                   padding: const EdgeInsets.all(14),
@@ -3986,17 +4006,22 @@ class _ChronicleManagePageState extends ConsumerState<ChronicleManagePage> {
                     borderRadius: BorderRadius.circular(18),
                     border: Border.all(color: const Color(0xFFF3F4F6)),
                   ),
-                  child: Column(
+                  child: const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
+                    children: [
                       Text('版本说明', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
                       SizedBox(height: 8),
-                      Text('系统会保留每次生成的编年史版本，支持预览、导出与标记为精选。', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B), height: 1.5)),
+                      Text('系统会保留每次生成的编年史版本，支持预览与标记为精选。', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B), height: 1.5)),
                     ],
                   ),
                 ),
                 const SizedBox(height: 12),
-                if (records.isEmpty)
+                if (_migrating)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Center(child: Text('正在迁移旧版本数据...', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)))),
+                  )
+                else if (records.isEmpty)
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 24),
                     child: Center(child: Text('暂无编年史版本，请先生成。', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)))),
@@ -4005,31 +4030,37 @@ class _ChronicleManagePageState extends ConsumerState<ChronicleManagePage> {
                   for (final record in records) ...[
                     _ChronicleVersionCard(
                       record: record,
-                      onPreview: () {
-                        RouteNavigation.goToChroniclePreview(context, record);
-                      },
-                      onExport: () => _exportRecord(record),
+                      moduleTitles: _resolveModuleTitles(record.moduleTags, config),
+                      onPreview: () => RouteNavigation.goToChroniclePreview(context, record),
                       onFeatureToggle: () => _toggleFeatured(record),
+                      onDelete: () => _confirmDelete(record),
                     ),
                     const SizedBox(height: 12),
                   ],
               ],
             );
           },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Text('加载失败：$e', style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)))),
         ),
       ),
     );
   }
 }
 
-class ChroniclePreviewPage extends StatelessWidget {
+class ChroniclePreviewPage extends ConsumerWidget {
   const ChroniclePreviewPage({super.key, required this.record});
 
   final ChronicleRecord record;
 
   @override
-  Widget build(BuildContext context) {
-    final range = '${_formatChronicleDate(record.rangeStart)} - ${_formatChronicleDate(record.rangeEnd)}';
+  Widget build(BuildContext context, WidgetRef ref) {
+    final config = ref.watch(moduleManagementConfigProvider).value;
+    final moduleTitles = config == null
+        ? record.moduleTags
+        : record.moduleTags.map((key) => config.moduleOf(key).title).toList();
+    final aiSummary = record.aiSummary ?? '';
+    final userSummary = record.userSummary ?? '';
     return Scaffold(
       backgroundColor: const Color(0xFFF2F4F6),
       appBar: AppBar(
@@ -4052,17 +4083,19 @@ class ChroniclePreviewPage extends StatelessWidget {
                 children: [
                   Text(record.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
                   const SizedBox(height: 6),
-                  Text(range, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                  Text(record.rangeLabel(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                  const SizedBox(height: 6),
+                  Text('创建于 ${_formatChronicleDate(record.createdAt)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFFCBD5E1))),
                   const SizedBox(height: 10),
                   Wrap(
                     spacing: 8,
                     runSpacing: 6,
                     children: [
-                      for (final tag in record.modules)
+                      for (final title in moduleTitles)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(999)),
-                          child: Text(tag, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF3B82F6))),
+                          child: Text(title, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF3B82F6))),
                         ),
                       if (record.isFeatured)
                         Container(
@@ -4088,12 +4121,12 @@ class ChroniclePreviewPage extends StatelessWidget {
                 children: [
                   const Text('AI 初步分析', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
                   const SizedBox(height: 8),
-                  Text(record.aiSummary.isEmpty ? '暂无内容' : record.aiSummary,
+                  Text(aiSummary.isEmpty ? '暂无内容' : aiSummary,
                       style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155), height: 1.5)),
                 ],
               ),
             ),
-            if (record.userSummary.trim().isNotEmpty) ...[
+            if (userSummary.trim().isNotEmpty) ...[
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.all(14),
@@ -4107,33 +4140,11 @@ class ChroniclePreviewPage extends StatelessWidget {
                   children: [
                     const Text('我的补充', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
                     const SizedBox(height: 8),
-                    Text(record.userSummary, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155), height: 1.5)),
+                    Text(userSummary, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155), height: 1.5)),
                   ],
                 ),
               ),
             ],
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFF3F4F6)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('模块统计', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                  const SizedBox(height: 8),
-                  for (final entry in record.stats.entries)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: Text('${entry.key} · ${entry.value} 条',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
-                    ),
-                ],
-              ),
-            ),
           ],
         ),
       ),
@@ -4312,19 +4323,20 @@ class _FavoriteItemCard extends StatelessWidget {
 class _ChronicleVersionCard extends StatelessWidget {
   const _ChronicleVersionCard({
     required this.record,
+    required this.moduleTitles,
     required this.onPreview,
-    required this.onExport,
     required this.onFeatureToggle,
+    required this.onDelete,
   });
 
   final ChronicleRecord record;
+  final List<String> moduleTitles;
   final VoidCallback onPreview;
-  final VoidCallback onExport;
   final VoidCallback onFeatureToggle;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
-    final range = '${_formatChronicleDate(record.rangeStart)} - ${_formatChronicleDate(record.rangeEnd)}';
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -4340,28 +4352,29 @@ class _ChronicleVersionCard extends StatelessWidget {
               Expanded(
                 child: Text(record.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
               ),
-              TextButton(
-                onPressed: onFeatureToggle,
-                style: TextButton.styleFrom(
-                  foregroundColor: record.isFeatured ? const Color(0xFFF97316) : const Color(0xFF64748B),
-                  textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
-                ),
-                child: Text(record.isFeatured ? '取消精选' : '设为精选'),
+              IconButton(
+                onPressed: onDelete,
+                icon: const Icon(Icons.delete_outline, size: 20),
+                color: const Color(0xFFEF4444),
+                tooltip: '删除',
+                splashRadius: 18,
               ),
             ],
           ),
           const SizedBox(height: 6),
-          Text(range, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+          Text(record.rangeLabel(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+          const SizedBox(height: 6),
+          Text('创建于 ${_formatChronicleDate(record.createdAt)}', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFFCBD5E1))),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,
             runSpacing: 6,
             children: [
-              for (final tag in record.modules)
+              for (final title in moduleTitles)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(999)),
-                  child: Text(tag, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF3B82F6))),
+                  child: Text(title, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF3B82F6))),
                 ),
               if (record.isFeatured)
                 Container(
@@ -4390,13 +4403,13 @@ class _ChronicleVersionCard extends StatelessWidget {
               Expanded(
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF64748B),
-                    side: const BorderSide(color: Color(0xFFE5E7EB)),
+                    foregroundColor: record.isFeatured ? const Color(0xFFF97316) : const Color(0xFF64748B),
+                    side: BorderSide(color: record.isFeatured ? const Color(0xFFF97316) : const Color(0xFFE5E7EB)),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     textStyle: const TextStyle(fontWeight: FontWeight.w900),
                   ),
-                  onPressed: onExport,
-                  child: const Text('导出'),
+                  onPressed: onFeatureToggle,
+                  child: Text(record.isFeatured ? '取消精选' : '设为精选'),
                 ),
               ),
             ],
@@ -5844,6 +5857,33 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
     ref.read(moduleManagementRevisionProvider.notifier).state += 1;
   }
 
+  Future<void> _confirmResetToDefault() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('恢复默认设置'),
+          content: const Text('确定要恢复所有模块配置为默认设置吗？此操作将清除您对模块标签的所有自定义修改，且不可撤销。'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('取消'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              style: TextButton.styleFrom(foregroundColor: const Color(0xFFEF4444)),
+              child: const Text('恢复默认'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true) return;
+    await _saveConfig(ModuleManagementConfig.defaults());
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('已恢复默认设置')));
+  }
+
   ModuleManagementConfig _updateModule(ModuleConfig module) {
     final modules = Map<String, ModuleConfig>.from(_config?.modules ?? {});
     modules[module.key] = module;
@@ -5949,9 +5989,20 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
   }) async {
     final controller = TextEditingController(text: tag?.name ?? '');
     final iconNames = IconUtils.getTagIconNamesForModule(module.key);
-    String selectedIcon = tag?.iconName ?? (iconNames.isNotEmpty ? iconNames.first : 'flag');
+    // 统一图标来源：优先使用标签自身图标，其次使用模块图标
+    String selectedIcon = tag?.iconName ?? module.iconName;
     String? selectedColor = tag?.color;
     bool showOnCalendar = tag?.showOnCalendar ?? true;
+    String? errorMessage; // 重名校验错误信息
+
+    // 收集已有标签名（编辑时排除自身）
+    final existingNames = <String>{};
+    final currentModule = _config?.moduleOf(module.key) ?? module;
+    for (final t in currentModule.tags) {
+      if (tag == null || t.id != tag.id) {
+        existingNames.add(t.name);
+      }
+    }
 
     const colorOptions = <String>[
       '#EF4444',
@@ -6011,10 +6062,23 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
                           const SizedBox(height: 10),
                           TextField(
                             controller: controller,
-                            decoration: const InputDecoration(
+                            onChanged: (value) {
+                              final trimmed = value.trim();
+                              setSheetState(() {
+                                if (trimmed.isEmpty) {
+                                  errorMessage = null;
+                                } else if (existingNames.contains(trimmed)) {
+                                  errorMessage = '标签名"$trimmed"已存在，请使用其他名称';
+                                } else {
+                                  errorMessage = null;
+                                }
+                              });
+                            },
+                            decoration: InputDecoration(
                               hintText: '输入标签名称',
-                              border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(14))),
+                              border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(14))),
                               isDense: true,
+                              errorText: errorMessage,
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -6060,47 +6124,50 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
                                 ),
                             ],
                           ),
-                          if (module.key == 'moment' || module.key == 'goal') ...[
-                            const SizedBox(height: 16),
-                            const Text('选择图标', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                            const SizedBox(height: 10),
-                            Wrap(
-                              spacing: 10,
-                              runSpacing: 10,
-                              children: [
-                                for (final iconName in iconNames)
-                                  InkWell(
-                                    borderRadius: BorderRadius.circular(12),
-                                    onTap: () => setSheetState(() => selectedIcon = iconName),
-                                    child: Container(
-                                      width: 44,
-                                      height: 44,
-                                      decoration: BoxDecoration(
-                                        color: iconName == selectedIcon ? const Color(0xFFE0F2F1) : const Color(0xFFF8FAFC),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: iconName == selectedIcon ? const Color(0xFF2BCDEE) : const Color(0xFFE5E7EB),
+                          const SizedBox(height: 16),
+                          const Text('选择图标', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                          const SizedBox(height: 10),
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxHeight: 180),
+                            child: SingleChildScrollView(
+                              child: Wrap(
+                                spacing: 10,
+                                runSpacing: 10,
+                                children: [
+                                  for (final iconName in iconNames)
+                                    InkWell(
+                                      borderRadius: BorderRadius.circular(12),
+                                      onTap: () => setSheetState(() => selectedIcon = iconName),
+                                      child: Container(
+                                        width: 44,
+                                        height: 44,
+                                        decoration: BoxDecoration(
+                                          color: iconName == selectedIcon ? const Color(0xFFE0F2F1) : const Color(0xFFF8FAFC),
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: iconName == selectedIcon ? const Color(0xFF2BCDEE) : const Color(0xFFE5E7EB),
+                                          ),
                                         ),
+                                        child: Icon(IconUtils.fromName(iconName), color: iconName == selectedIcon ? const Color(0xFF0F766E) : const Color(0xFF6B7280), size: 20),
                                       ),
-                                      child: Icon(IconUtils.fromName(iconName), color: iconName == selectedIcon ? const Color(0xFF0F766E) : const Color(0xFF6B7280), size: 20),
                                     ),
-                                  ),
-                              ],
+                                ],
+                              ),
                             ),
-                            const SizedBox(height: 14),
-                            Row(
-                              children: [
-                                const Text('首页日程展示', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF6B7280))),
-                                const Spacer(),
-                                Switch(
-                                  value: showOnCalendar,
-                                  activeColor: const Color(0xFF2BCDEE),
-                                  activeTrackColor: const Color(0xFFBAE6FD),
-                                  onChanged: (v) => setSheetState(() => showOnCalendar = v),
-                                ),
-                              ],
-                            ),
-                          ],
+                          ),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              const Text('首页日程展示', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF6B7280))),
+                              const Spacer(),
+                              Switch(
+                                value: showOnCalendar,
+                                activeColor: const Color(0xFF2BCDEE),
+                                activeTrackColor: const Color(0xFFBAE6FD),
+                                onChanged: (v) => setSheetState(() => showOnCalendar = v),
+                              ),
+                            ],
+                          ),
                           const SizedBox(height: 16),
                           SizedBox(
                             width: double.infinity,
@@ -6118,6 +6185,10 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
                                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请输入标签名称')));
                                   return;
                                 }
+                                if (existingNames.contains(name)) {
+                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('标签名"$name"已存在')));
+                                  return;
+                                }
                                 final current = _config?.moduleOf(module.key) ?? module;
                                 final updatedTags = [...current.tags];
                                 if (tag == null) {
@@ -6125,9 +6196,9 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
                                     ModuleTag(
                                       id: _newTagId(module.key),
                                       name: name,
-                                      iconName: (module.key == 'moment' || module.key == 'goal') ? selectedIcon : null,
+                                      iconName: selectedIcon,
                                       color: selectedColor,
-                                      showOnCalendar: module.key == 'moment' ? showOnCalendar : true,
+                                      showOnCalendar: showOnCalendar,
                                     ),
                                   );
                                 } else {
@@ -6135,9 +6206,9 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
                                   if (index != -1) {
                                     updatedTags[index] = tag.copyWith(
                                       name: name,
-                                      iconName: (module.key == 'moment' || module.key == 'goal') ? selectedIcon : tag.iconName,
+                                      iconName: selectedIcon,
                                       color: selectedColor,
-                                      showOnCalendar: module.key == 'moment' ? showOnCalendar : tag.showOnCalendar,
+                                      showOnCalendar: showOnCalendar,
                                     );
                                   }
                                 }
@@ -6183,7 +6254,7 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('确认删除'),
+          title: const Text('删除标签'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -6191,7 +6262,7 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
               Text('确定要删除"${tag.name}"吗？'),
               if (usageCount > 0) ...[
                 const SizedBox(height: 8),
-                Text('该标签已被 $usageCount 条记录使用', style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF))),
+                Text('该标签已被 $usageCount 条记录使用，删除后将从这些记录中移除该标签', style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF))),
               ],
             ],
           ),
@@ -6215,9 +6286,75 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
       await _showReplaceTagDialog(module: module, oldTag: tag, usageCount: usageCount);
       return;
     }
+    // 级联清理：从所有引用该标签名的记录中移除该标签
+    await _removeTagFromDatabase(module: module, tagName: tag.name);
     final current = _config?.moduleOf(module.key) ?? module;
     final updatedTags = current.tags.where((t) => t.id != tag.id).toList(growable: false);
     await _saveConfig(_updateModule(current.copyWith(tags: updatedTags)));
+  }
+
+  Future<void> _removeTagFromDatabase({
+    required ModuleConfig module,
+    required String tagName,
+  }) async {
+    final db = ref.read(appDatabaseProvider);
+    switch (module.key) {
+      case 'food':
+        final foods = await db.select(db.foodRecords).get();
+        for (final food in foods) {
+          final tags = _parseStringList(food.tags);
+          if (tags.contains(tagName)) {
+            final newTags = tags.where((t) => t != tagName).toList();
+            await (db.update(db.foodRecords)..where((t) => t.id.equals(food.id)))
+                .write(FoodRecordsCompanion(tags: Value(jsonEncode(newTags))));
+          }
+        }
+        break;
+      case 'moment':
+        final moments = await db.select(db.momentRecords).get();
+        for (final moment in moments) {
+          final tags = _parseStringList(moment.tags);
+          if (tags.contains(tagName)) {
+            final newTags = tags.where((t) => t != tagName).toList();
+            await (db.update(db.momentRecords)..where((t) => t.id.equals(moment.id)))
+                .write(MomentRecordsCompanion(tags: Value(jsonEncode(newTags))));
+          }
+        }
+        break;
+      case 'travel':
+        final travels = await db.select(db.travelRecords).get();
+        for (final travel in travels) {
+          final tags = _parseStringList(travel.tags);
+          if (tags.contains(tagName)) {
+            final newTags = tags.where((t) => t != tagName).toList();
+            await (db.update(db.travelRecords)..where((t) => t.id.equals(travel.id)))
+                .write(TravelRecordsCompanion(tags: Value(jsonEncode(newTags))));
+          }
+        }
+        break;
+      case 'bond':
+        final friends = await db.select(db.friendRecords).get();
+        for (final friend in friends) {
+          final tags = _parseStringList(friend.impressionTags);
+          if (tags.contains(tagName)) {
+            final newTags = tags.where((t) => t != tagName).toList();
+            await (db.update(db.friendRecords)..where((t) => t.id.equals(friend.id)))
+                .write(FriendRecordsCompanion(impressionTags: Value(jsonEncode(newTags))));
+          }
+        }
+        break;
+      case 'goal':
+        final events = await (db.select(db.timelineEvents)..where((t) => t.eventType.equals('goal'))).get();
+        for (final event in events) {
+          final tags = _parseStringList(event.tags);
+          if (tags.contains(tagName)) {
+            final newTags = tags.where((t) => t != tagName).toList();
+            await (db.update(db.timelineEvents)..where((t) => t.id.equals(event.id)))
+                .write(TimelineEventsCompanion(tags: Value(jsonEncode(newTags))));
+          }
+        }
+        break;
+    }
   }
 
   Future<void> _showReplaceTagDialog({
@@ -6347,20 +6484,18 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
     required ModuleTag tag,
     required int count,
   }) {
-    final isMoment = module.key == 'moment';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(14)),
       child: Row(
         children: [
-          if (isMoment)
-            Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 2))]),
-              child: Icon(IconUtils.fromName(tag.iconName ?? module.iconName), size: 16, color: _accentFg),
-            ),
-          if (isMoment) const SizedBox(width: 10),
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 2))]),
+            child: Icon(IconUtils.fromName(tag.iconName ?? module.iconName), size: 16, color: _accentFg),
+          ),
+          const SizedBox(width: 10),
           Expanded(
             child: Text.rich(
               TextSpan(
@@ -6372,28 +6507,27 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
               ),
             ),
           ),
-          if (isMoment)
-            Row(
-              children: [
-                const Text('首页展示', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
-                const SizedBox(width: 4),
-                Transform.scale(
-                  scale: 0.8,
-                  child: Switch(
-                    value: tag.showOnCalendar,
-                    activeColor: const Color(0xFF2BCDEE),
-                    activeTrackColor: const Color(0xFFBAE6FD),
-                    onChanged: (v) {
-                      final current = _config?.moduleOf(module.key) ?? module;
-                      final updatedTags = current.tags
-                          .map((t) => t.id == tag.id ? t.copyWith(showOnCalendar: v) : t)
-                          .toList(growable: false);
-                      _saveConfig(_updateModule(current.copyWith(tags: updatedTags)));
-                    },
-                  ),
+          Row(
+            children: [
+              const Text('首页展示', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF))),
+              const SizedBox(width: 4),
+              Transform.scale(
+                scale: 0.8,
+                child: Switch(
+                  value: tag.showOnCalendar,
+                  activeColor: const Color(0xFF2BCDEE),
+                  activeTrackColor: const Color(0xFFBAE6FD),
+                  onChanged: (v) {
+                    final current = _config?.moduleOf(module.key) ?? module;
+                    final updatedTags = current.tags
+                        .map((t) => t.id == tag.id ? t.copyWith(showOnCalendar: v) : t)
+                        .toList(growable: false);
+                    _saveConfig(_updateModule(current.copyWith(tags: updatedTags)));
+                  },
                 ),
-              ],
-            ),
+              ),
+            ],
+          ),
           IconButton(
             icon: const Icon(Icons.edit, size: 18, color: Color(0xFF94A3B8)),
             onPressed: () => _openTagEditor(module: module, tag: tag),
@@ -6513,6 +6647,11 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
     }
     final config = _config ?? ModuleManagementConfig.defaults();
     final db = ref.watch(appDatabaseProvider);
+    // 监听模块配置 revision 变化，跨页面修改后刷新
+    ref.watch(moduleManagementRevisionProvider);
+    ref.listen(moduleManagementRevisionProvider, (previous, next) {
+      _loadConfig();
+    });
     return Scaffold(
       backgroundColor: _bg,
       appBar: AppBar(
@@ -6562,7 +6701,7 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
                               const SizedBox(height: 20),
                               Center(
                                 child: TextButton.icon(
-                                  onPressed: () => _saveConfig(ModuleManagementConfig.defaults()),
+                                  onPressed: () => _confirmResetToDefault(),
                                   icon: const Icon(Icons.settings_backup_restore, color: _mutedText),
                                   label: const Text('恢复默认设置', style: TextStyle(fontWeight: FontWeight.w700, color: _mutedText)),
                                 ),
@@ -6579,6 +6718,83 @@ class _ModuleManagementPageState extends ConsumerState<ModuleManagementPage> {
           );
         },
       ),
+    );
+  }
+}
+
+class AnnualReportDetailWrapper extends ConsumerStatefulWidget {
+  const AnnualReportDetailWrapper({super.key, required this.id});
+
+  final String id;
+
+  @override
+  ConsumerState<AnnualReportDetailWrapper> createState() => _AnnualReportDetailWrapperState();
+}
+
+class _AnnualReportDetailWrapperState extends ConsumerState<AnnualReportDetailWrapper> {
+  late final Future<AnnualReportRecord?> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    final db = ref.read(appDatabaseProvider);
+    _future = db.annualReviewDao.findById(widget.id).then((review) {
+      if (review == null) return null;
+      return AnnualReportRecord.fromDatabase(review);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<AnnualReportRecord?>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('报告详情')),
+            body: const Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (snapshot.hasError) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('报告详情')),
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, size: 48, color: Color(0xFFEF4444)),
+                    const SizedBox(height: 12),
+                    Text(
+                      '加载失败: ${snapshot.error}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+        final record = snapshot.data;
+        if (record == null) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('报告详情')),
+            body: const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.inbox, size: 48, color: Color(0xFF9CA3AF)),
+                  SizedBox(height: 12),
+                  Text('报告不存在', style: TextStyle(fontSize: 14, color: Color(0xFF6B7280))),
+                ],
+              ),
+            ),
+          );
+        }
+        return YearReportPage(record: record);
+      },
     );
   }
 }
@@ -6874,12 +7090,14 @@ class _AnnualReportCard extends StatelessWidget {
 class YearReportPage extends ConsumerStatefulWidget {
   const YearReportPage({
     super.key,
+    this.record,
     this.initialReport,
     this.initialStats,
     this.reportId,
     this.createdAt,
   });
 
+  final AnnualReportRecord? record;
   final AnnualReportContent? initialReport;
   final YearStatistics? initialStats;
   final String? reportId;
@@ -6895,6 +7113,7 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
   bool _generating = false;
   double _progress = 0;
   String _progressText = '';
+  String? _errorMessage;
   final TextEditingController _titleController = TextEditingController();
 
   YearStatistics? _statistics;
@@ -6903,12 +7122,21 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
   List<int> _availableYears = [];
   bool _loadingYears = true;
 
-  bool get _isViewMode => widget.initialReport != null;
+  bool get _isViewMode => widget.record != null || widget.initialReport != null;
+
+  String? get _effectiveReportId => widget.record?.id ?? widget.reportId;
 
   @override
   void initState() {
     super.initState();
-    if (_isViewMode) {
+    final record = widget.record;
+    if (record != null) {
+      _finalReport = record.content;
+      _statistics = record.stats;
+      _selectedYear = record.year;
+      _titleController.text = record.title.isNotEmpty ? record.title : '${record.year}年度报告';
+      _loadingYears = false;
+    } else if (widget.initialReport != null) {
       _finalReport = widget.initialReport;
       _statistics = widget.initialStats;
       _selectedYear = widget.initialStats?.year;
@@ -6990,7 +7218,7 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
         }
       }
       
-      years.removeWhere((y) => y < 2000 || y > currentYear + 1);
+      years.removeWhere((y) => y < 2000 || y > currentYear);
       
       final sortedYears = years.toList()..sort((a, b) => b.compareTo(a));
       
@@ -7163,7 +7391,8 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
     setState(() {
       _generating = true;
       _progress = 0;
-      _progressText = '正在加载原始数据...';
+      _progressText = '正在加载原始数据... (0/8)';
+      _errorMessage = null;
     });
 
     try {
@@ -7212,7 +7441,7 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
 
       setState(() {
         _progress = 0.1;
-        _progressText = '正在生成美食篇章...';
+        _progressText = '正在生成美食篇章... (1/8)';
       });
 
       final foodPrompt = _buildFoodPrompt(stats, foods);
@@ -7225,7 +7454,7 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
       if (!mounted) return;
       setState(() {
         _progress = 0.25;
-        _progressText = '正在生成情绪篇章...';
+        _progressText = '正在生成情绪篇章... (2/8)';
       });
 
       final moodPrompt = _buildMoodPrompt(stats, moments);
@@ -7238,7 +7467,7 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
       if (!mounted) return;
       setState(() {
         _progress = 0.4;
-        _progressText = '正在生成旅行篇章...';
+        _progressText = '正在生成旅行篇章... (3/8)';
       });
 
       final travelPrompt = _buildTravelPrompt(stats, travels);
@@ -7251,7 +7480,7 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
       if (!mounted) return;
       setState(() {
         _progress = 0.55;
-        _progressText = '正在生成目标篇章...';
+        _progressText = '正在生成目标篇章... (4/8)';
       });
 
       final goalPrompt = _buildGoalPrompt(stats, goals);
@@ -7264,7 +7493,7 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
       if (!mounted) return;
       setState(() {
         _progress = 0.7;
-        _progressText = '正在生成羁绊篇章...';
+        _progressText = '正在生成羁绊篇章... (5/8)';
       });
 
       final bondPrompt = _buildBondPrompt(stats, encounters, friends);
@@ -7277,7 +7506,7 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
       if (!mounted) return;
       setState(() {
         _progress = 0.85;
-        _progressText = '正在生成生活概览...';
+        _progressText = '正在生成生活概览... (6/8)';
       });
 
       final overviewPrompt = _buildOverviewPrompt(stats, _moduleReports);
@@ -7289,7 +7518,7 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
       if (!mounted) return;
       setState(() {
         _progress = 0.92;
-        _progressText = '正在生成AI洞察...';
+        _progressText = '正在生成AI洞察... (7/8)';
       });
 
       final insightsPrompt = _buildInsightsPrompt(stats, _moduleReports);
@@ -7301,7 +7530,7 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
       if (!mounted) return;
       setState(() {
         _progress = 0.97;
-        _progressText = '正在生成年度结语...';
+        _progressText = '正在生成年度结语... (8/8)';
       });
 
       final summaryPrompt = _buildSummaryPrompt(stats, _moduleReports);
@@ -7334,7 +7563,10 @@ class _YearReportPageState extends ConsumerState<YearReportPage> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() => _generating = false);
+      setState(() {
+        _generating = false;
+        _errorMessage = '生成报告失败：$e';
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('生成报告失败：$e')),
       );
@@ -7631,7 +7863,7 @@ $recordsText
 原始相遇记录数据（共${encounters.length}条）：
 $encountersText
 
-请用温暖有温度的语言总结这一年的人际关系。
+请用温暖有温度的语言总结这一年的羁绊。
 ''';
   }
 
@@ -7875,6 +8107,16 @@ $encountersText
         backgroundColor: surface,
         elevation: 0,
         iconTheme: IconThemeData(color: textMain),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go(AppRoutes.annualReportList);
+            }
+          },
+        ),
         actions: _isViewMode
             ? [
                 PopupMenuButton<String>(
@@ -7985,6 +8227,43 @@ $encountersText
                           ),
                         ),
                       ),
+                    ] else if (_errorMessage != null) ...[
+                      Card(
+                        color: const Color(0xFFFEF2F2),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.error_outline, color: Color(0xFFEF4444), size: 20),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      _errorMessage!,
+                                      style: const TextStyle(fontSize: 13, color: Color(0xFFB91C1C)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  onPressed: _generateReport,
+                                  icon: const Icon(Icons.refresh),
+                                  label: const Text('重试'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: primary,
+                                    foregroundColor: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ] else if (_finalReport != null) ...[
                       _buildReportPreview(_finalReport!),
                       const SizedBox(height: 24),
@@ -8078,9 +8357,19 @@ $encountersText
   }
 
   Future<void> _showRenameDialog() async {
-    if (widget.reportId == null) return;
-    
-    final controller = TextEditingController(text: widget.initialStats != null ? '${widget.initialStats!.year}年度报告' : '');
+    if (_effectiveReportId == null) return;
+
+    String initialTitle;
+    if (widget.record != null) {
+      initialTitle = widget.record!.title.isNotEmpty
+          ? widget.record!.title
+          : '${widget.record!.year}年度报告';
+    } else {
+      initialTitle = widget.initialStats != null
+          ? '${widget.initialStats!.year}年度报告'
+          : '';
+    }
+    final controller = TextEditingController(text: initialTitle);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -8102,10 +8391,10 @@ $encountersText
         ],
       ),
     );
-    
+
     if (confirmed == true && controller.text.trim().isNotEmpty) {
       final db = ref.read(appDatabaseProvider);
-      await db.annualReviewDao.updateTitle(widget.reportId!, controller.text.trim());
+      await db.annualReviewDao.updateTitle(_effectiveReportId!, controller.text.trim());
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('报告已重命名')),
@@ -8116,8 +8405,8 @@ $encountersText
   }
 
   Future<void> _showDeleteConfirm() async {
-    if (widget.reportId == null) return;
-    
+    if (_effectiveReportId == null) return;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -8133,10 +8422,10 @@ $encountersText
         ],
       ),
     );
-    
+
     if (confirmed == true) {
       final db = ref.read(appDatabaseProvider);
-      await db.annualReviewDao.deleteById(widget.reportId!);
+      await db.annualReviewDao.deleteById(_effectiveReportId!);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('报告已删除')),
@@ -8394,6 +8683,30 @@ class YearStatistics {
       'goalCompletionRate': goalCompletionRate,
       'completedGoals': completedGoals,
       'totalGoals': totalGoals,
+      'topRatedFoods': topRatedFoods.map((f) => {
+            'id': f.id,
+            'title': f.title,
+            'rating': f.rating,
+            'poiName': f.poiName,
+            'city': f.city,
+            'recordDate': f.recordDate.toIso8601String(),
+          }).toList(),
+      'topTravels': topTravels.map((t) => {
+            'id': t.id,
+            'title': t.title,
+            'destination': t.destination,
+            'poiName': t.poiName,
+            'city': t.city,
+            'recordDate': t.recordDate.toIso8601String(),
+          }).toList(),
+      'topMoments': topMoments.map((m) => {
+            'id': m.id,
+            'mood': m.mood,
+            'content': m.content,
+            'poiName': m.poiName,
+            'city': m.city,
+            'recordDate': m.recordDate.toIso8601String(),
+          }).toList(),
     };
   }
 
@@ -8591,25 +8904,40 @@ class AnnualReportRecord {
       id: review.id,
       year: review.year,
       title: review.title,
-      content: content!,
-      stats: stats!,
+      content: content ?? AnnualReportContent(
+        opening: review.content ?? '',
+        foodChapter: '',
+        emotionChapter: '',
+        travelChapter: '',
+        goalChapter: '',
+        friendshipChapter: '',
+        closing: '',
+        keywords: [],
+      ),
+      stats: stats ?? YearStatistics(
+        year: review.year,
+        totalRecords: 0,
+        foodCount: 0,
+        momentCount: 0,
+        travelCount: 0,
+        goalCount: 0,
+        encounterCount: 0,
+        friendCount: 0,
+        topFoodCities: [],
+        avgFoodRating: 0,
+        topDestinations: [],
+        topMoods: [],
+        goalCompletionRate: 0,
+        completedGoals: 0,
+        totalGoals: 0,
+        topRatedFoods: [],
+        topTravels: [],
+        topMoments: [],
+      ),
       keywords: keywordsList,
       createdAt: review.createdAt,
       updatedAt: review.updatedAt,
     );
-  }
-
-  Map<String, dynamic> toDatabaseCompanion({DateTime? existingCreatedAt}) {
-    return {
-      'id': id,
-      'year': year,
-      'title': title,
-      'content': jsonEncode(content.toJson()),
-      'stats': jsonEncode(stats.toJson()),
-      'keywords': jsonEncode(keywords),
-      'createdAt': existingCreatedAt ?? createdAt,
-      'updatedAt': DateTime.now(),
-    };
   }
 }
 

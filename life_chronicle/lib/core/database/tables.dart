@@ -207,6 +207,7 @@ class TimelineEvents extends Table {
     {recordDate},
     {isDeleted},
     {eventType},
+    {isFavorite},
   ];
 }
 
@@ -368,7 +369,6 @@ class AnnualReviews extends Table {
   IntColumn get year => integer()();
   TextColumn get title => text().withDefault(const Constant(''))();
   TextColumn get content => text().nullable()();
-  TextColumn get images => text().nullable()();
   TextColumn get stats => text().nullable()();
   TextColumn get keywords => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
@@ -376,6 +376,32 @@ class AnnualReviews extends Table {
 
   @override
   Set<Column> get primaryKey => {id};
+
+  List<Set<Column>> get keys => [
+    {year},
+  ];
+}
+
+class Chronicles extends Table {
+  TextColumn get id => text()();
+  TextColumn get title => text()();
+  TextColumn get userSummary => text().nullable()();
+  TextColumn get aiSummary => text().nullable()();
+  TextColumn get moduleTags => text().withDefault(const Constant('[]'))();
+  DateTimeColumn get startDate => dateTime()();
+  DateTimeColumn get endDate => dateTime()();
+  BoolColumn get isFeatured => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+
+  List<Set<Column>> get keys => [
+    {startDate},
+    {endDate},
+    {isFeatured},
+  ];
 }
 
 class RecordEmbeddings extends Table {

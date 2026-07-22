@@ -373,13 +373,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             name: 'annualReportDetail',
             parentNavigatorKey: _rootNavigatorKey,
             builder: (context, state) {
-              final report = state.extra as AnnualReportRecord?;
-              return YearReportPage(
-                initialReport: report?.content,
-                initialStats: report?.stats,
-                reportId: report?.id,
-                createdAt: report?.createdAt,
-              );
+              final id = state.pathParameters['id']!;
+              final extra = state.extra as AnnualReportRecord?;
+              if (extra != null) {
+                return YearReportPage(record: extra);
+              }
+              return AnnualReportDetailWrapper(id: id);
             },
           ),
           GoRoute(

@@ -55,6 +55,19 @@ ModuleTag? _matchMomentTag(ModuleConfig momentModule, String? rawTags) {
   return null;
 }
 
+ModuleTag? _matchBondTag(ModuleConfig bondModule, String? rawTags) {
+  final tags = _parseMomentTags(rawTags);
+  if (tags.isEmpty) return null;
+  for (final tagName in tags) {
+    for (final tag in bondModule.tags) {
+      if (tag.name == tagName) {
+        return tag;
+      }
+    }
+  }
+  return null;
+}
+
 bool _isCompletedDailyGoal(GoalRecord record) {
   return record.level == 'daily' && record.isCompleted && !record.isDeleted;
 }
@@ -855,33 +868,38 @@ class _CalendarCardState extends ConsumerState<_CalendarCard> {
   @override
   Widget build(BuildContext context) {
     final db = ref.watch(appDatabaseProvider);
-    ref.watch(moduleManagementRevisionProvider);
+    // 使用 moduleManagementConfigProvider 获取模块配置（已监听 revision 变化）
+    final configAsync = ref.watch(moduleManagementConfigProvider);
+    final config = configAsync.maybeWhen(
+      data: (c) => c,
+      orElse: () => ModuleManagementConfig.defaults(),
+    );
     final monthStart = DateTime(_focusMonth.year, _focusMonth.month, 1);
     final monthEnd = DateTime(_focusMonth.year, _focusMonth.month + 1, 1);
-    return FutureBuilder<ModuleManagementConfig>(
-      future: loadModuleManagementConfig(),
-      builder: (context, configSnapshot) {
-        final config = configSnapshot.data ?? ModuleManagementConfig.defaults();
-        return StreamBuilder<List<FoodRecord>>(
-          stream: db.foodDao.watchByRecordDateRange(monthStart, monthEnd),
-          builder: (context, foodSnapshot) {
-            final foods = foodSnapshot.data ?? const <FoodRecord>[];
-            return StreamBuilder<List<MomentRecord>>(
-              stream: db.momentDao.watchByRecordDateRange(monthStart, monthEnd),
-              builder: (context, momentSnapshot) {
-                final moments = momentSnapshot.data ?? const <MomentRecord>[];
-                return StreamBuilder<List<TravelRecord>>(
-                  stream: db.watchTravelRecordsByRange(monthStart, monthEnd),
-                  builder: (context, travelSnapshot) {
-                    final travels = travelSnapshot.data ?? const <TravelRecord>[];
-                    return StreamBuilder<List<GoalRecord>>(
-                      stream: db.goalDao.watchByRecordDateRange(monthStart, monthEnd),
-                      builder: (context, goalSnapshot) {
-                        final goals = goalSnapshot.data ?? const <GoalRecord>[];
-                        return StreamBuilder<List<TimelineEvent>>(
-                          stream: db.watchEventsForMonth(_focusMonth),
-                          builder: (context, snapshot) {
-                            final events = snapshot.data ?? [];
+    return StreamBuilder<List<FoodRecord>>(
+      stream: db.foodDao.watchByRecordDateRange(monthStart, monthEnd),
+      builder: (context, foodSnapshot) {
+        final foods = foodSnapshot.data ?? const <FoodRecord>[];
+        return StreamBuilder<List<MomentRecord>>(
+          stream: db.momentDao.watchByRecordDateRange(monthStart, monthEnd),
+          builder: (context, momentSnapshot) {
+            final moments = momentSnapshot.data ?? const <MomentRecord>[];
+            return StreamBuilder<List<TravelRecord>>(
+              stream: db.watchTravelRecordsByRange(monthStart, monthEnd),
+              builder: (context, travelSnapshot) {
+                final travels = travelSnapshot.data ?? const <TravelRecord>[];
+                return StreamBuilder<List<GoalRecord>>(
+                  stream: db.goalDao.watchByRecordDateRange(monthStart, monthEnd),
+                  builder: (context, goalSnapshot) {
+                    final goals = goalSnapshot.data ?? const <GoalRecord>[];
+                    return StreamBuilder<List<TimelineEvent>>(
+                      stream: db.watchEventsForMonth(_focusMonth),
+                      builder: (context, snapshot) {
+                        final events = snapshot.data ?? [];
+                        return StreamBuilder<List<FriendRecord>>(
+                          stream: db.friendDao.watchAllActive(),
+                          builder: (context, friendSnapshot) {
+                            final friends = friendSnapshot.data ?? const <FriendRecord>[];
                             return Container(
                               padding: const EdgeInsets.all(18),
                               decoration: BoxDecoration(
@@ -922,6 +940,7 @@ class _CalendarCardState extends ConsumerState<_CalendarCard> {
                                     moments: moments,
                                     travels: travels,
                                     goals: goals,
+                                    friends: friends,
                                     config: config,
                                   ),
                                 ],
@@ -1019,6 +1038,7 @@ class _CalendarGrid extends StatelessWidget {
     required this.moments,
     required this.travels,
     required this.goals,
+    required this.friends,
     required this.config,
   });
 
@@ -1030,6 +1050,7 @@ class _CalendarGrid extends StatelessWidget {
   final List<MomentRecord> moments;
   final List<TravelRecord> travels;
   final List<GoalRecord> goals;
+  final List<FriendRecord> friends;
   final ModuleManagementConfig config;
 
   List<_CalendarCellData> _buildCells() {
@@ -1085,12 +1106,17 @@ class _CalendarGrid extends StatelessWidget {
     }
 
     if (bondModule.showOnCalendar) {
-      for (final event in events) {
-        final date = event.recordDate;
+      // bond 模块日历改为显示 friend 记录（按 updatedAt 日期）
+      for (final friend in friends) {
+        final date = friend.updatedAt;
         if (date.year != year || date.month != month) continue;
-        if (event.eventType == 'encounter' && bondModule.showOnCalendar) {
-          addIcon(date.day, IconUtils.fromName(bondModule.iconName));
+        // 印象标签匹配：若标签关闭日历显示则跳过
+        final match = _matchBondTag(bondModule, friend.impressionTags);
+        if (match != null && !match.showOnCalendar) {
+          continue;
         }
+        final iconName = match?.iconName ?? bondModule.iconName;
+        addIcon(date.day, IconUtils.fromName(iconName));
       }
     }
 

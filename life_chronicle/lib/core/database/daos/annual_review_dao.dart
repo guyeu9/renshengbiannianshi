@@ -7,7 +7,27 @@ class AnnualReviewDao extends DatabaseAccessor<AppDatabase> with _$AnnualReviewD
   late final ChangeLogRecorder _changeLogRecorder = ChangeLogRecorder(db);
 
   Future<void> upsert(AnnualReviewsCompanion entry) async {
-    await into(db.annualReviews).insertOnConflictUpdate(entry);
+    await transaction(() async {
+      // 按 year 查询是否已存在记录（与 findByYear/deleteByYear 语义一致）
+      final existing = await (select(db.annualReviews)
+            ..where((t) => t.year.equals(entry.year.value)))
+          .getSingleOrNull();
+
+      if (existing != null) {
+        // 已存在该年度的报告，更新现有记录（保留原 id）
+        await (update(db.annualReviews)..where((t) => t.id.equals(existing.id)))
+            .write(AnnualReviewsCompanion(
+          title: entry.title.present ? entry.title : Value(existing.title),
+          content: entry.content,
+          stats: entry.stats,
+          keywords: entry.keywords,
+          updatedAt: Value(DateTime.now()),
+        ));
+      } else {
+        // 不存在，插入新记录
+        await into(db.annualReviews).insert(entry);
+      }
+    });
   }
 
   Future<AnnualReview?> findByYear(int year) {

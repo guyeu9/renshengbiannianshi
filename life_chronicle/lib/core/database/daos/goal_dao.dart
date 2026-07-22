@@ -150,6 +150,14 @@ class GoalDao extends DatabaseAccessor<AppDatabase> with _$GoalDaoMixin {
         .watch();
   }
 
+  Stream<List<GoalRecord>> watchFavorites() {
+    return (select(db.goalRecords)
+          ..where((t) => t.isDeleted.equals(false))
+          ..where((t) => t.isFavorite.equals(true))
+          ..orderBy([(t) => OrderingTerm(expression: t.recordDate, mode: OrderingMode.desc)]))
+        .watch();
+  }
+
   Stream<List<GoalRecord>> watchUncompletedYearGoals() {
     return (select(db.goalRecords)
           ..where((t) => t.isDeleted.equals(false))

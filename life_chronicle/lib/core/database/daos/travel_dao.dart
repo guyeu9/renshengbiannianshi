@@ -148,6 +148,24 @@ class TravelDao extends DatabaseAccessor<AppDatabase> with _$TravelDaoMixin {
         .watch();
   }
 
+  Stream<List<TravelRecord>> watchFavoriteTrips() {
+    return (select(db.travelRecords)
+          ..where((t) => t.isDeleted.equals(false))
+          ..where((t) => t.isJournal.equals(false))
+          ..where((t) => t.isFavorite.equals(true))
+          ..orderBy([(t) => OrderingTerm(expression: t.recordDate, mode: OrderingMode.desc)]))
+        .watch();
+  }
+
+  Stream<List<TravelRecord>> watchFavoriteJournals() {
+    return (select(db.travelRecords)
+          ..where((t) => t.isDeleted.equals(false))
+          ..where((t) => t.isJournal.equals(true))
+          ..where((t) => t.isFavorite.equals(true))
+          ..orderBy([(t) => OrderingTerm(expression: t.recordDate, mode: OrderingMode.desc)]))
+        .watch();
+  }
+
   Stream<List<TravelRecord>> watchJournals(String tripId) {
     return (select(db.travelRecords)
           ..where((t) => t.isDeleted.equals(false))

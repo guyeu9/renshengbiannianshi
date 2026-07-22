@@ -16,7 +16,6 @@ class ModuleTag {
     this.color,
     this.showOnCalendar = true,
     this.isCustom = false,
-    this.usageCount = 0,
   });
 
   final String id;
@@ -25,7 +24,6 @@ class ModuleTag {
   final String? color;
   final bool showOnCalendar;
   final bool isCustom;
-  final int usageCount;
 
   ModuleTag copyWith({
     String? id,
@@ -34,7 +32,6 @@ class ModuleTag {
     String? color,
     bool? showOnCalendar,
     bool? isCustom,
-    int? usageCount,
   }) {
     return ModuleTag(
       id: id ?? this.id,
@@ -43,7 +40,6 @@ class ModuleTag {
       color: color ?? this.color,
       showOnCalendar: showOnCalendar ?? this.showOnCalendar,
       isCustom: isCustom ?? this.isCustom,
-      usageCount: usageCount ?? this.usageCount,
     );
   }
 
@@ -55,7 +51,6 @@ class ModuleTag {
       'color': color,
       'showOnCalendar': showOnCalendar,
       'isCustom': isCustom,
-      'usageCount': usageCount,
     };
   }
 
@@ -67,7 +62,6 @@ class ModuleTag {
       color: (json['color'] ?? '').toString().isEmpty ? null : json['color'].toString(),
       showOnCalendar: json['showOnCalendar'] == null ? true : json['showOnCalendar'] == true,
       isCustom: json['isCustom'] == true,
-      usageCount: json['usageCount'] is int ? json['usageCount'] : 0,
     );
   }
 }
@@ -239,7 +233,7 @@ class ModuleManagementConfig {
         ),
         'bond': ModuleConfig(
           key: 'bond',
-          title: '人际关系',
+          title: '羁绊',
           iconName: 'group',
           tagTitle: '印象标签管理',
           showOnCalendar: true,

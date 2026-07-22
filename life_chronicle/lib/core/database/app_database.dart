@@ -25,10 +25,11 @@ part 'daos/travel_dao.dart';
 part 'daos/goal_dao.dart';
 part 'daos/chat_dao.dart';
 part 'daos/reminder_dao.dart';
+part 'daos/chronicle_dao.dart';
 
 @DriftDatabase(
-  tables: [FoodRecords, MomentRecords, FriendRecords, TravelRecords, Trips, GoalRecords, TimelineEvents, EntityLinks, LinkLogs, UserProfiles, AiProviders, ChangeLogs, SyncState, ChecklistItems, GoalPostponements, GoalReviews, BackupLogs, AnnualReviews, RecordEmbeddings, ChatSessions, ChatMessages, ReminderRecords],
-  daos: [FoodDao, MomentDao, FriendDao, LinkDao, AiProviderDao, ChangeLogDao, SyncStateDao, ChecklistDao, GoalPostponementDao, GoalReviewDao, BackupLogDao, AnnualReviewDao, EmbeddingDao, TravelDao, GoalDao, ChatDao, ReminderDao],
+  tables: [FoodRecords, MomentRecords, FriendRecords, TravelRecords, Trips, GoalRecords, TimelineEvents, EntityLinks, LinkLogs, UserProfiles, AiProviders, ChangeLogs, SyncState, ChecklistItems, GoalPostponements, GoalReviews, BackupLogs, AnnualReviews, Chronicles, RecordEmbeddings, ChatSessions, ChatMessages, ReminderRecords],
+  daos: [FoodDao, MomentDao, FriendDao, LinkDao, AiProviderDao, ChangeLogDao, SyncStateDao, ChecklistDao, GoalPostponementDao, GoalReviewDao, BackupLogDao, AnnualReviewDao, EmbeddingDao, TravelDao, GoalDao, ChatDao, ReminderDao, ChronicleDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(dbconn.openConnection());
@@ -44,7 +45,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 32;
+  int get schemaVersion => 33;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -274,6 +275,41 @@ class AppDatabase extends _$AppDatabase {
 
           if (from < 32) {
             await ensureColumn(table: userProfiles, column: userProfiles.signature);
+          }
+
+          if (from < 33) {
+            // 1. 创建 chronicles 表
+            await ensureTable(chronicles);
+
+            // 2. 删除 annual_reviews.images 字段（SQLite 3.35+ 支持 DROP COLUMN）
+            if (await columnExists('annual_reviews', 'images')) {
+              try {
+                await customStatement('ALTER TABLE annual_reviews DROP COLUMN images');
+              } catch (_) {
+                // 旧版 SQLite 不支持 DROP COLUMN，忽略错误（字段保留但不使用）
+              }
+            }
+
+            // 3. 为 timeline_events 添加 is_favorite 索引
+            await customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_timeline_events_is_favorite ON timeline_events (is_favorite)',
+            );
+
+            // 4. 为 annual_reviews 添加 year 索引
+            await customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_annual_reviews_year ON annual_reviews (year)',
+            );
+
+            // 5. 为 chronicles 添加索引
+            await customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_chronicles_start_date ON chronicles (start_date)',
+            );
+            await customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_chronicles_end_date ON chronicles (end_date)',
+            );
+            await customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_chronicles_is_featured ON chronicles (is_featured)',
+            );
           }
 
           // 修复历史数据：将逗号分隔的images字段转换为JSON数组格式
@@ -566,6 +602,15 @@ class AppDatabase extends _$AppDatabase {
     return (select(timelineEvents)
           ..where((t) => t.isDeleted.equals(false))
           ..where((t) => t.eventType.equals('encounter'))
+          ..orderBy([(t) => OrderingTerm.desc(t.recordDate)]))
+        .watch();
+  }
+
+  Stream<List<TimelineEvent>> watchFavoriteEncounterEvents() {
+    return (select(timelineEvents)
+          ..where((t) => t.isDeleted.equals(false))
+          ..where((t) => t.eventType.equals('encounter'))
+          ..where((t) => t.isFavorite.equals(true))
           ..orderBy([(t) => OrderingTerm.desc(t.recordDate)]))
         .watch();
   }

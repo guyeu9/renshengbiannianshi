@@ -133,6 +133,14 @@ class FoodDao extends DatabaseAccessor<AppDatabase> with _$FoodDaoMixin {
         .watch();
   }
 
+  Stream<List<FoodRecord>> watchFavorites() {
+    return (select(db.foodRecords)
+          ..where((t) => t.isDeleted.equals(false))
+          ..where((t) => t.isFavorite.equals(true))
+          ..orderBy([(t) => OrderingTerm(expression: t.recordDate, mode: OrderingMode.desc)]))
+        .watch();
+  }
+
   Stream<List<FoodRecord>> watchByRecordDateRange(DateTime start, DateTime endExclusive) {
     return (select(db.foodRecords)
           ..where((t) => t.isDeleted.equals(false))

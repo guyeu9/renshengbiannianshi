@@ -1088,15 +1088,7 @@ class _AnnualGoalSummaryPageState extends ConsumerState<AnnualGoalSummaryPage> {
     if (existing != null && mounted) {
       setState(() {
         _reviewController.text = existing.content ?? '';
-        if (existing.images != null && existing.images!.isNotEmpty) {
-          try {
-            final List<dynamic> imageList = jsonDecode(existing.images!);
-            _reviewImages.clear();
-            _reviewImages.addAll(imageList.cast<String>());
-          } catch (e) {
-            FileLogger.instance.logSync('GoalPage', '解析年度回顾图片列表失败: $e');
-          }
-        }
+        _reviewImages.clear();
         _existingReviewId = existing.id;
       });
     } else if (mounted) {
@@ -1533,14 +1525,11 @@ class _AnnualGoalSummaryPageState extends ConsumerState<AnnualGoalSummaryPage> {
                                             final db = ref.read(appDatabaseProvider);
                                             final now = DateTime.now();
 
-                                            final imagesJson = _reviewImages.isEmpty ? null : jsonEncode(_reviewImages);
-
                                             await db.annualReviewDao.upsert(
                                               AnnualReviewsCompanion(
                                                 id: Value(_existingReviewId ?? ref.read(uuidProvider).v4()),
                                                 year: Value(_selectedYear),
                                                 content: Value(_reviewController.text.trim().isEmpty ? null : _reviewController.text.trim()),
-                                                images: Value(imagesJson),
                                                 createdAt: Value(_existingReviewId != null ? now : now),
                                                 updatedAt: Value(now),
                                               ),

@@ -111,4 +111,12 @@ class FriendDao extends DatabaseAccessor<AppDatabase> with _$FriendDaoMixin {
           ]))
         .watch();
   }
+
+  Stream<List<FriendRecord>> watchFavorites() {
+    return (select(db.friendRecords)
+          ..where((t) => t.isDeleted.equals(false))
+          ..where((t) => t.isFavorite.equals(true))
+          ..orderBy([(t) => OrderingTerm(expression: t.updatedAt, mode: OrderingMode.desc)]))
+        .watch();
+  }
 }
