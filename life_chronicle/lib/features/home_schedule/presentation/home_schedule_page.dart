@@ -635,10 +635,10 @@ class _FlashbackItemCard extends StatelessWidget {
   void _navigateToDetail(BuildContext context) {
     switch (item.type) {
       case 'food':
-        RouteNavigation.goToFoodDetail(context, item.recordId);
+        RouteNavigation.pushToFoodDetail(context, item.recordId);
         break;
       case 'moment':
-        RouteNavigation.goToMomentDetail(context, item.recordId);
+        RouteNavigation.pushToMomentDetail(context, item.recordId);
         break;
       case 'travel':
         if (item.isJournal) {
@@ -648,10 +648,10 @@ class _FlashbackItemCard extends StatelessWidget {
         }
         break;
       case 'goal':
-        RouteNavigation.goToGoalDetail(context, item.recordId);
+        RouteNavigation.pushToGoalDetail(context, item.recordId);
         break;
       case 'encounter':
-        RouteNavigation.goToEncounterDetail(context, item.recordId);
+        RouteNavigation.pushToEncounterDetail(context, item.recordId);
         break;
       default:
         FileLogger.instance.logSync('HomeSchedule.Flashback', '未知记录类型: ${item.type}, recordId=${item.recordId}');
@@ -1106,9 +1106,9 @@ class _CalendarGrid extends StatelessWidget {
     }
 
     if (bondModule.showOnCalendar) {
-      // bond 模块日历改为显示 friend 记录（按 updatedAt 日期）
+      // bond 模块日历显示 friend 记录（按相遇日期 meetDate，meetDate 为空时回退到 createdAt）
       for (final friend in friends) {
-        final date = friend.updatedAt;
+        final date = friend.meetDate ?? friend.createdAt;
         if (date.year != year || date.month != month) continue;
         // 印象标签匹配：若标签关闭日历显示则跳过
         final match = _matchBondTag(bondModule, friend.impressionTags);
@@ -1489,130 +1489,126 @@ class _EventStream extends ConsumerWidget {
     final db = ref.watch(appDatabaseProvider);
     final dayStart = DateTime(selectedDay.year, selectedDay.month, selectedDay.day);
     final dayEnd = dayStart.add(const Duration(days: 1));
-    return FutureBuilder<ModuleManagementConfig>(
-      future: loadModuleManagementConfig(),
-      builder: (context, configSnapshot) {
-        final config = configSnapshot.data ?? ModuleManagementConfig.defaults();
-        return StreamBuilder<List<TimelineEvent>>(
-          stream: db.watchEventsForDate(selectedDay),
-          builder: (context, snapshot) {
-            final events = snapshot.data ?? [];
-            return StreamBuilder<List<FoodRecord>>(
-              stream: db.foodDao.watchByRecordDateRange(dayStart, dayEnd),
-              builder: (context, foodSnapshot) {
-                final foods = (foodSnapshot.data ?? const <FoodRecord>[]).where((e) => e.isWishlist == false).toList(growable: false);
-                return StreamBuilder<List<MomentRecord>>(
-                  stream: db.momentDao.watchByRecordDateRange(dayStart, dayEnd),
-                  builder: (context, momentSnapshot) {
-                    final moments = momentSnapshot.data ?? const <MomentRecord>[];
-                    return StreamBuilder<List<GoalRecord>>(
-                      stream: db.goalDao.watchByRecordDateRange(dayStart, dayEnd),
-                      builder: (context, goalSnapshot) {
-                        final completedGoals = (goalSnapshot.data ?? const <GoalRecord>[])
-                            .where(_isCompletedDailyGoal)
-                            .toList(growable: false);
-                        final momentMap = <String, MomentRecord>{};
-                        for (final m in moments) {
-                          momentMap[m.id] = m;
-                        }
+    // 使用 ref.watch 监听模块配置变化（响应 moduleManagementRevisionProvider）
+    final config = ref.watch(moduleManagementConfigProvider).value ?? ModuleManagementConfig.defaults();
+    return StreamBuilder<List<TimelineEvent>>(
+      stream: db.watchEventsForDate(selectedDay),
+      builder: (context, snapshot) {
+        final events = snapshot.data ?? [];
+        return StreamBuilder<List<FoodRecord>>(
+          stream: db.foodDao.watchByRecordDateRange(dayStart, dayEnd),
+          builder: (context, foodSnapshot) {
+            final foods = (foodSnapshot.data ?? const <FoodRecord>[]).where((e) => e.isWishlist == false).toList(growable: false);
+            return StreamBuilder<List<MomentRecord>>(
+              stream: db.momentDao.watchByRecordDateRange(dayStart, dayEnd),
+              builder: (context, momentSnapshot) {
+                final moments = momentSnapshot.data ?? const <MomentRecord>[];
+                return StreamBuilder<List<GoalRecord>>(
+                  stream: db.goalDao.watchByRecordDateRange(dayStart, dayEnd),
+                  builder: (context, goalSnapshot) {
+                    final completedGoals = (goalSnapshot.data ?? const <GoalRecord>[])
+                        .where(_isCompletedDailyGoal)
+                        .toList(growable: false);
+                    final momentMap = <String, MomentRecord>{};
+                    for (final m in moments) {
+                      momentMap[m.id] = m;
+                    }
 
-                        final nonGoalEvents = events.where((e) => e.eventType != 'goal');
-                        final items = <({DateTime? time, String title, String? subtitle, String type, String? id, VoidCallback? onTap})>[
-                          for (final e in nonGoalEvents)
-                            (
-                              time: e.startAt,
-                              title: e.title,
-                              subtitle: e.note,
-                              type: e.eventType,
-                              id: e.id,
-                              onTap: _canOpenEventDetail(e.eventType)
-                                  ? () {
-                                      switch (e.eventType) {
-                                        case 'encounter':
-                                          _openEncounterDetail(context, e.id);
-                                          break;
-                                        case 'travel':
-                                          _openTravelDetail(context, ref, e.id);
-                                          break;
-                                        case 'moment':
-                                          _openMomentDetail(context, e.id);
-                                          break;
-                                      }
-                                    }
-                                  : null,
-                            ),
-                          for (final goal in completedGoals)
-                            (
-                              time: goal.completedAt ?? goal.recordDate,
-                              title: goal.title,
-                              subtitle: _goalTimelineSubtitle(goal),
-                              type: 'goal',
-                              id: goal.id,
-                              onTap: () {
-                                _openGoalDetail(context, ref, goal.id);
-                              },
-                            ),
-                          for (final f in foods)
-                            (
-                              time: f.recordDate,
-                              title: f.title,
-                              subtitle: (f.poiName ?? '').trim().isNotEmpty
-                                  ? (f.poiName ?? '').trim()
-                                  : ((f.content ?? '').trim().isNotEmpty ? (f.content ?? '').trim() : null),
-                              type: 'food',
-                              id: f.id,
-                              onTap: () {
-                                RouteNavigation.goToFoodDetail(context, f.id);
-                              },
-                            ),
-                        ];
+                    final nonGoalEvents = events.where((e) => e.eventType != 'goal');
+                    final items = <({DateTime? time, String title, String? subtitle, String type, String? id, VoidCallback? onTap})>[
+                      for (final e in nonGoalEvents)
+                        (
+                          time: e.startAt,
+                          title: e.title,
+                          subtitle: e.note,
+                          type: e.eventType,
+                          id: e.id,
+                          onTap: _canOpenEventDetail(e.eventType)
+                              ? () {
+                                  switch (e.eventType) {
+                                    case 'encounter':
+                                      _openEncounterDetail(context, e.id);
+                                      break;
+                                    case 'travel':
+                                      _openTravelDetail(context, ref, e.id);
+                                      break;
+                                    case 'moment':
+                                      _openMomentDetail(context, e.id);
+                                      break;
+                                  }
+                                }
+                              : null,
+                        ),
+                      for (final goal in completedGoals)
+                        (
+                          time: goal.completedAt ?? goal.recordDate,
+                          title: goal.title,
+                          subtitle: _goalTimelineSubtitle(goal),
+                          type: 'goal',
+                          id: goal.id,
+                          onTap: () {
+                            _openGoalDetail(context, ref, goal.id);
+                          },
+                        ),
+                      for (final f in foods)
+                        (
+                          time: f.recordDate,
+                          title: f.title,
+                          subtitle: (f.poiName ?? '').trim().isNotEmpty
+                              ? (f.poiName ?? '').trim()
+                              : ((f.content ?? '').trim().isNotEmpty ? (f.content ?? '').trim() : null),
+                          type: 'food',
+                          id: f.id,
+                          onTap: () {
+                            RouteNavigation.pushToFoodDetail(context, f.id);
+                          },
+                        ),
+                    ];
 
-                        items.sort((a, b) {
-                          final at = a.time;
-                          final bt = b.time;
-                          if (at == null && bt == null) return 0;
-                          if (at == null) return 1;
-                          if (bt == null) return -1;
-                          return at.compareTo(bt);
-                        });
+                    items.sort((a, b) {
+                      final at = a.time;
+                      final bt = b.time;
+                      if (at == null && bt == null) return 0;
+                      if (at == null) return 1;
+                      if (bt == null) return -1;
+                      return at.compareTo(bt);
+                    });
 
-                        final momentModule = config.moduleOf('moment');
+                    final momentModule = config.moduleOf('moment');
 
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 4),
-                              child: RichText(
-                                text: TextSpan(
-                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.textMain),
-                                  children: [
-                                    const TextSpan(text: '日程记录'),
-                                    TextSpan(
-                                      text: '  ${items.length}个记录',
-                                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF9CA3AF)),
-                                    ),
-                                  ],
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: RichText(
+                            text: TextSpan(
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.textMain),
+                              children: [
+                                const TextSpan(text: '日程记录'),
+                                TextSpan(
+                                  text: '  ${items.length}个记录',
+                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF9CA3AF)),
                                 ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        if (items.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 20),
+                            child: Center(
+                              child: Text(
+                                '${selectedDay.month}月${selectedDay.day}日 暂无日程',
+                                style: const TextStyle(color: AppTheme.textMuted),
                               ),
                             ),
-                            const SizedBox(height: 12),
-                            if (items.isEmpty)
-                              Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 20),
-                                child: Center(
-                                  child: Text(
-                                    '${selectedDay.month}月${selectedDay.day}日 暂无日程',
-                                    style: const TextStyle(color: AppTheme.textMuted),
-                                  ),
-                                ),
-                              )
-                            else
-                              for (var i = 0; i < items.length; i++)
-                                _buildTimelineItem(items[i], i, items.length, momentModule, momentMap),
-                          ],
-                        );
-                      },
+                          )
+                        else
+                          for (var i = 0; i < items.length; i++)
+                            _buildTimelineItem(items[i], i, items.length, momentModule, momentMap),
+                      ],
                     );
                   },
                 );
@@ -1717,7 +1713,7 @@ class _EventStream extends ConsumerWidget {
   }
 
   Future<void> _openEncounterDetail(BuildContext context, String encounterId) async {
-    RouteNavigation.goToEncounterDetail(context, encounterId);
+    RouteNavigation.pushToEncounterDetail(context, encounterId);
   }
 
   Future<void> _openTravelDetail(BuildContext context, WidgetRef ref, String travelId) async {
@@ -1747,7 +1743,7 @@ class _EventStream extends ConsumerWidget {
   }
 
   Future<void> _openMomentDetail(BuildContext context, String momentId) async {
-    RouteNavigation.goToMomentDetail(context, momentId);
+    RouteNavigation.pushToMomentDetail(context, momentId);
   }
 
   Future<void> _openGoalDetail(BuildContext context, WidgetRef ref, String goalId) async {
@@ -1793,7 +1789,7 @@ class _EventStream extends ConsumerWidget {
       }
     }
     if (!context.mounted) return;
-    RouteNavigation.goToGoalDetail(context, yearGoal.id, record: yearGoal);
+    RouteNavigation.pushToGoalDetail(context, yearGoal.id, record: yearGoal);
   }
 }
 

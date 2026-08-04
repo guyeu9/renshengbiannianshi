@@ -446,6 +446,12 @@ class _FriendArchiveList extends ConsumerWidget {
     return StreamBuilder<List<FriendRecord>>(
       stream: db.friendDao.watchAllActive(),
       builder: (context, snapshot) {
+        // error 状态：显示错误信息
+        if (snapshot.hasError) {
+          return const Center(
+            child: Text('加载失败，请稍后重试', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+          );
+        }
         final friends = snapshot.data ?? const <FriendRecord>[];
         if (friends.isEmpty) {
           return const Center(
@@ -1028,7 +1034,23 @@ class _EncounterTimelineState extends ConsumerState<_EncounterTimeline> {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, __) => const Center(child: Text('加载失败')),
+      error: (_, __) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('加载失败', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => ref.invalidate(encounterTimelineProvider),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF111827),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('重试', style: TextStyle(fontWeight: FontWeight.w800)),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1398,6 +1420,43 @@ class _BondFriendDetailPage extends ConsumerWidget {
     return StreamBuilder<FriendRecord?>(
       stream: db.friendDao.watchById(friendId),
       builder: (context, snapshot) {
+        // loading 状态：显示加载指示器（避免误显示"档案已删除或不存在"）
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Scaffold(
+            backgroundColor: const Color(0xFFF8FAFC),
+            appBar: AppBar(
+              leading: IconButton(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.arrow_back),
+              ),
+              title: const Text('档案详情', style: TextStyle(fontWeight: FontWeight.w900)),
+              backgroundColor: Colors.white.withValues(alpha: 0.9),
+            ),
+            body: const Center(child: CircularProgressIndicator()),
+          );
+        }
+        // error 状态：显示错误信息（避免误显示"档案已删除或不存在"）
+        if (snapshot.hasError) {
+          return Scaffold(
+            backgroundColor: const Color(0xFFF8FAFC),
+            appBar: AppBar(
+              leading: IconButton(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.arrow_back),
+              ),
+              title: const Text('档案详情', style: TextStyle(fontWeight: FontWeight.w900)),
+              backgroundColor: Colors.white.withValues(alpha: 0.9),
+            ),
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('加载失败，请返回后重试', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+                ],
+              ),
+            ),
+          );
+        }
         final friend = snapshot.data;
 
         Future<void> deleteFriend() async {
@@ -1547,7 +1606,15 @@ class _BondFriendDetailPage extends ConsumerWidget {
                           friend: friend,
                           onToggleFavorite: () async {
                             final now = DateTime.now();
-                            await db.friendDao.updateFavorite(friend.id, isFavorite: !friend.isFavorite, now: now);
+                            try {
+                              await db.friendDao.updateFavorite(friend.id, isFavorite: !friend.isFavorite, now: now);
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('收藏操作失败: $e'), backgroundColor: Colors.red),
+                                );
+                              }
+                            }
                           },
                           onEdit: () {
                             RouteNavigation.pushToFriendCreate(context, initialFriend: friend);

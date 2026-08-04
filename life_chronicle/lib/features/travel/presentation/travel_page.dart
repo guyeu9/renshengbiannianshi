@@ -1196,7 +1196,24 @@ class TravelDetailPage extends ConsumerWidget {
                                     );
                                   } else {
                                     if (tripId.isEmpty) return;
+                                    // 查询该 trip 下所有 travelRecords 的 id，同步软删除 timelineEvents
+                                    final tripRecords = await (db.select(db.travelRecords)
+                                          ..where((t) => t.tripId.equals(tripId))
+                                          ..where((t) => t.isDeleted.equals(false)))
+                                        .get();
                                     await db.travelDao.softDeleteTripById(tripId, now: now);
+                                    if (tripRecords.isNotEmpty) {
+                                      final recordIds = tripRecords.map((r) => r.id).toList();
+                                      await (db.update(db.timelineEvents)
+                                            ..where((t) => t.id.isIn(recordIds))
+                                            ..where((t) => t.eventType.equals('travel')))
+                                          .write(
+                                        TimelineEventsCompanion(
+                                          isDeleted: const Value(true),
+                                          updatedAt: Value(now),
+                                        ),
+                                      );
+                                    }
                                   }
                                   ContextBuilder.clearCache();
                                   if (context.mounted) {
