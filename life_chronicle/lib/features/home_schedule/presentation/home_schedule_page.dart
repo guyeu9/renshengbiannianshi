@@ -228,6 +228,9 @@ class _GlassHeaderState extends ConsumerState<_GlassHeader> {
                     FutureBuilder<String?>(
                       future: _avatarFuture,
                       builder: (context, snapshot) {
+                        if (snapshot.hasError) {
+                          return const CircleAvatar(child: Icon(Icons.person));
+                        }
                         return CircleAvatar(
                           radius: 22,
                           backgroundImage: _avatarProvider(snapshot.data),
@@ -1494,18 +1497,30 @@ class _EventStream extends ConsumerWidget {
     return StreamBuilder<List<TimelineEvent>>(
       stream: db.watchEventsForDate(selectedDay),
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return const SizedBox.shrink();
+        }
         final events = snapshot.data ?? [];
         return StreamBuilder<List<FoodRecord>>(
           stream: db.foodDao.watchByRecordDateRange(dayStart, dayEnd),
           builder: (context, foodSnapshot) {
+            if (foodSnapshot.hasError) {
+              return const SizedBox.shrink();
+            }
             final foods = (foodSnapshot.data ?? const <FoodRecord>[]).where((e) => e.isWishlist == false).toList(growable: false);
             return StreamBuilder<List<MomentRecord>>(
               stream: db.momentDao.watchByRecordDateRange(dayStart, dayEnd),
               builder: (context, momentSnapshot) {
+                if (momentSnapshot.hasError) {
+                  return const SizedBox.shrink();
+                }
                 final moments = momentSnapshot.data ?? const <MomentRecord>[];
                 return StreamBuilder<List<GoalRecord>>(
                   stream: db.goalDao.watchByRecordDateRange(dayStart, dayEnd),
                   builder: (context, goalSnapshot) {
+                    if (goalSnapshot.hasError) {
+                      return const SizedBox.shrink();
+                    }
                     final completedGoals = (goalSnapshot.data ?? const <GoalRecord>[])
                         .where(_isCompletedDailyGoal)
                         .toList(growable: false);

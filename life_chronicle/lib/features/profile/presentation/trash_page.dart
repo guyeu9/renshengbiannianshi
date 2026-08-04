@@ -39,37 +39,53 @@ class _TrashPageState extends ConsumerState<TrashPage> {
   }
 
   Future<void> _restoreRecord(DeletedRecord record) async {
-    final db = ref.read(appDatabaseProvider);
-    final service = RestoreService(db);
-    await service.restoreRecord(record.type, record.id);
-    
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已恢复: ${record.title}')),
-      );
-      _loadDeletedRecords();
+    try {
+      final db = ref.read(appDatabaseProvider);
+      final service = RestoreService(db);
+      await service.restoreRecord(record.type, record.id);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('已恢复: ${record.title}')),
+        );
+        _loadDeletedRecords();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('操作失败: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
   Future<void> _restoreSelected() async {
     if (_selectedIds.isEmpty) return;
-    
-    final db = ref.read(appDatabaseProvider);
-    final service = RestoreService(db);
-    
-    final selectedRecords = _deletedRecords
-        .where((r) => _selectedIds.contains('${r.type}_${r.id}'))
-        .map((r) => (type: r.type, id: r.id))
-        .toList();
-    
-    await service.restoreMultiple(selectedRecords);
-    
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已恢复 ${selectedRecords.length} 条记录')),
-      );
-      _selectedIds.clear();
-      _loadDeletedRecords();
+
+    try {
+      final db = ref.read(appDatabaseProvider);
+      final service = RestoreService(db);
+
+      final selectedRecords = _deletedRecords
+          .where((r) => _selectedIds.contains('${r.type}_${r.id}'))
+          .map((r) => (type: r.type, id: r.id))
+          .toList();
+
+      await service.restoreMultiple(selectedRecords);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('已恢复 ${selectedRecords.length} 条记录')),
+        );
+        _selectedIds.clear();
+        _loadDeletedRecords();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('操作失败: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -91,15 +107,23 @@ class _TrashPageState extends ConsumerState<TrashPage> {
     );
     
     if (confirmed == true) {
-      final db = ref.read(appDatabaseProvider);
-      final service = RestoreService(db);
-      await service.permanentlyDelete(record.type, record.id);
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('已永久删除')),
-        );
-        _loadDeletedRecords();
+      try {
+        final db = ref.read(appDatabaseProvider);
+        final service = RestoreService(db);
+        await service.permanentlyDelete(record.type, record.id);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('已永久删除')),
+          );
+          _loadDeletedRecords();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('操作失败: $e'), backgroundColor: Colors.red),
+          );
+        }
       }
     }
   }

@@ -521,6 +521,9 @@ class _MomentHomeBodyState extends ConsumerState<_MomentHomeBody> {
     return StreamBuilder<List<MomentRecord>>(
       stream: db.momentDao.watchAllActive(),
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return const Center(child: Text('加载失败，请稍后重试', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))));
+        }
         final records = snapshot.data ?? const <MomentRecord>[];
 
         return StreamBuilder<List<EntityLink>>(
@@ -1007,7 +1010,20 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
       ),
       error: (_, __) => Scaffold(
         backgroundColor: const Color(0xFFF6F8F8),
-        body: const Center(child: Text('加载失败')),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('加载失败', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => ref.invalidate(momentDetailProvider(recordId)),
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF111827), foregroundColor: Colors.white),
+                child: const Text('重试', style: TextStyle(fontWeight: FontWeight.w800)),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

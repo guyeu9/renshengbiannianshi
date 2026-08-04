@@ -254,18 +254,20 @@ class ReminderScheduler {
         friendId: friend.id,
         friendName: friend.name,
         intervalDays: intervalDays,
+        daysSinceLastMeet: daysSinceLastMeet,
         scheduledTime: scheduledTime,
       );
     }
 
     final reminderId = 'contact_${friend.id}';
     await db.reminderDao.deleteRemindersByTypeAndEntity('contact', 'friend', friend.id);
-    
+
+    final contactTitle = '离上次联系已有${daysSinceLastMeet}天：${friend.name}';
     await db.reminderDao.insertReminder(
       ReminderRecordsCompanion.insert(
         id: reminderId,
         type: 'contact',
-        title: friend.name,
+        title: contactTitle,
         content: Value(_buildContactReminderContent(friend, intervalDays, daysSinceLastMeet)),
         relatedEntityType: const Value('friend'),
         relatedEntityId: Value(friend.id),
@@ -274,7 +276,7 @@ class ReminderScheduler {
       ),
     );
 
-    debugPrint('Scheduled contact reminder for ${friend.name} at $scheduledTime (baseDate: $baseDate, intervalDays: $intervalDays, daysSinceLastMeet: $daysSinceLastMeet)');
+    debugPrint('Scheduled contact reminder for ${friend.name} at $scheduledTime (baseDate: $baseDate, intervalDays: $intervalDays, daysSinceLastMeet: $daysSinceLastMeet, title: $contactTitle)');
   }
 
   String _buildContactReminderContent(FriendRecord friend, int intervalDays, int daysSinceLastMeet) {
@@ -419,10 +421,15 @@ class ReminderScheduler {
     for (final reminder in allReminders) {
       if (!reminder.isHandled && reminder.scheduledAt.isBefore(now) && reminder.triggeredAt == null) {
         await db.reminderDao.updateReminder(reminder.id, triggeredAt: now);
+        // contact 类型通知 title 用"联络提醒"，详细完整信息（含天数+人名）放入 content
+        final notificationTitle = reminder.type == 'contact' ? '联络提醒' : reminder.title;
+        final notificationContent = reminder.type == 'contact'
+            ? '${reminder.title}${reminder.content != null && reminder.content!.isNotEmpty ? '\n${reminder.content}' : ''}'
+            : reminder.content;
         await _service.showImmediateReminder(
           id: reminder.id,
-          title: reminder.title,
-          content: reminder.content,
+          title: notificationTitle,
+          content: notificationContent,
           type: reminder.type,
           payload: '${reminder.type}:${reminder.relatedEntityId ?? ''}',
         );

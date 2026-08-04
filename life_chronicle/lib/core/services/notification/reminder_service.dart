@@ -245,6 +245,7 @@ class ReminderService {
     required String friendId,
     required String friendName,
     required int intervalDays,
+    required int daysSinceLastMeet,
     DateTime? scheduledTime,
   }) async {
     if (!_initialized) await initialize();
@@ -260,7 +261,7 @@ class ReminderService {
     await _notifications.zonedSchedule(
       notificationId,
       '联络提醒',
-      '已经$intervalDays天没联系$friendName了，该打个招呼啦！',
+      '已经$daysSinceLastMeet天没联系$friendName了，该打个招呼啦！',
       tzScheduledTime,
       NotificationDetails(
         android: AndroidNotificationDetails(

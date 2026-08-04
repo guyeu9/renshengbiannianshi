@@ -402,6 +402,9 @@ class _FoodScrollableHeader extends StatelessWidget {
               return StreamBuilder<List<FoodRecord>>(
                 stream: db.foodDao.watchAllActive(),
                 builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return const Center(child: Text('加载失败，请稍后重试', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))));
+                  }
                   final records = snapshot.data ?? const <FoodRecord>[];
                   final tasted = records.where((e) => e.isWishlist == false).toList(growable: false);
                   final cities = <String>{};
@@ -1302,11 +1305,19 @@ class FoodDetailPage extends ConsumerWidget {
             context.push('${AppRoutes.food}/create', extra: {'initialRecord': record});
           },
           onToggleFavorite: () async {
-            await db.foodDao.updateFavorite(
-              record.id,
-              isFavorite: !record.isFavorite,
-              now: DateTime.now(),
-            );
+            try {
+              await db.foodDao.updateFavorite(
+                record.id,
+                isFavorite: !record.isFavorite,
+                now: DateTime.now(),
+              );
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('收藏操作失败: $e'), backgroundColor: Colors.red),
+                );
+              }
+            }
           },
           onDelete: () async {
             final db = ref.read(appDatabaseProvider);

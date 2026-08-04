@@ -71,7 +71,14 @@ class _FlashbackPageState extends ConsumerState<FlashbackPage> {
               );
             },
             loading: () => const SizedBox.shrink(),
-            error: (_, __) => const SizedBox.shrink(),
+            error: (_, __) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: IconButton(
+                icon: const Icon(Icons.refresh, color: Color(0xFFEF4444)),
+                tooltip: '加载失败，点击重试',
+                onPressed: () => ref.invalidate(availableFlashbackYearsProvider),
+              ),
+            ),
           ),
         ],
       ),
@@ -170,6 +177,12 @@ class _FlashbackPageState extends ConsumerState<FlashbackPage> {
                   Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
                   const SizedBox(height: 16),
                   Text('加载失败: $e', style: TextStyle(color: Colors.grey[600])),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => ref.invalidate(flashbackItemsProvider(yearsToQuery)),
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF111827), foregroundColor: Colors.white),
+                    child: const Text('重试', style: TextStyle(fontWeight: FontWeight.w800)),
+                  ),
                 ],
               ),
             ),
@@ -183,6 +196,12 @@ class _FlashbackPageState extends ConsumerState<FlashbackPage> {
               Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
               const SizedBox(height: 16),
               Text('加载失败: $e', style: TextStyle(color: Colors.grey[600])),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => ref.invalidate(availableFlashbackYearsProvider),
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF111827), foregroundColor: Colors.white),
+                child: const Text('重试', style: TextStyle(fontWeight: FontWeight.w800)),
+              ),
             ],
           ),
         ),

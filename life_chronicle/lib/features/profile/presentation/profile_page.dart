@@ -734,9 +734,23 @@ class _HeaderState extends ConsumerState<_Header> {
                   '...',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
                 ),
-                error: (_, __) => const Text(
-                  '未设置',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
+                error: (_, __) => Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      '未设置',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      icon: const Icon(Icons.refresh, size: 18, color: Color(0xFF2563EB)),
+                      onPressed: () => ref.invalidate(userDisplayNameProvider),
+                      tooltip: '重试',
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
                 ),
               );
             },
@@ -745,11 +759,8 @@ class _HeaderState extends ConsumerState<_Header> {
           Consumer(
             builder: (context, ref, _) {
               final daysAsync = ref.watch(userRecordDaysProvider);
-              final days = daysAsync.when(
-                data: (d) => d,
-                loading: () => 0,
-                error: (_, __) => 0,
-              );
+              final days = daysAsync.valueOrNull ?? 0;
+              final daysHasError = daysAsync.hasError;
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
@@ -773,6 +784,17 @@ class _HeaderState extends ConsumerState<_Header> {
                         ],
                       ),
                     ),
+                    if (daysHasError) ...[
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.refresh, size: 16, color: Color(0xFF15803D)),
+                        onPressed: () => ref.invalidate(userRecordDaysProvider),
+                        tooltip: '重试',
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
                   ],
                 ),
               );
@@ -795,7 +817,14 @@ class _HeaderState extends ConsumerState<_Header> {
                   ],
                 ),
                 loading: () => const SizedBox.shrink(),
-                error: (_, __) => const SizedBox.shrink(),
+                error: (_, __) => IconButton(
+                  icon: const Icon(Icons.refresh, size: 16, color: Color(0xFF1152D4)),
+                  onPressed: () => ref.invalidate(userSignatureProvider),
+                  tooltip: '重试',
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
               );
             },
           ),
@@ -845,16 +874,19 @@ class _ChronicleCard extends StatelessWidget {
                           return StreamBuilder<List<FoodRecord>>(
                             stream: db.foodDao.watchAllActive(),
                             builder: (context, foodSnapshot) {
+                              if (foodSnapshot.hasError) return const SizedBox.shrink();
                               final foodCount = foodSnapshot.data?.length ?? 0;
                               return StreamBuilder<List<TravelRecord>>(
                                 stream: (db.select(db.travelRecords)
                                       ..where((t) => t.isDeleted.equals(false)))
                                     .watch(),
                                 builder: (context, travelSnapshot) {
+                                  if (travelSnapshot.hasError) return const SizedBox.shrink();
                                   final travelCount = travelSnapshot.data?.length ?? 0;
                                   return StreamBuilder<List<MomentRecord>>(
                                     stream: db.momentDao.watchAllActive(),
                                     builder: (context, momentSnapshot) {
+                                      if (momentSnapshot.hasError) return const SizedBox.shrink();
                                       final momentCount = momentSnapshot.data?.length ?? 0;
                                       return StreamBuilder<List<TimelineEvent>>(
                                         stream: (db.select(db.timelineEvents)
@@ -862,6 +894,7 @@ class _ChronicleCard extends StatelessWidget {
                                               ..where((t) => t.eventType.isIn(['encounter', 'goal'])))
                                             .watch(),
                                         builder: (context, timelineSnapshot) {
+                                          if (timelineSnapshot.hasError) return const SizedBox.shrink();
                                           final events = timelineSnapshot.data ?? const <TimelineEvent>[];
                                           var encounterCount = 0;
                                           var goalCount = 0;

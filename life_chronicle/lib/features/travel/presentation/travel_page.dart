@@ -499,6 +499,9 @@ class _TravelFootprintCard extends ConsumerWidget {
     return StreamBuilder<List<TravelRecord>>(
       stream: db.watchAllActiveTravelRecords(),
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return const Center(child: Text('加载失败，请稍后重试', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))));
+        }
         final records = snapshot.data ?? const <TravelRecord>[];
         final stats = _calculateStatistics(records);
         final countryCount = stats.$1;
@@ -867,6 +870,9 @@ class _TravelWishlistView extends ConsumerWidget {
     return StreamBuilder<List<TravelRecord>>(
       stream: db.watchAllActiveTravelRecords(),
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return const Center(child: Text('加载失败，请稍后重试', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))));
+        }
         final records = snapshot.data ?? const <TravelRecord>[];
         var filtered = records.where((r) => r.isWishlist).toList(growable: false);
 
@@ -889,6 +895,9 @@ class _TravelWishlistView extends ConsumerWidget {
         return StreamBuilder<List<Trip>>(
           stream: _watchTripsByIds(db, tripIds),
           builder: (context, tripSnapshot) {
+            if (tripSnapshot.hasError) {
+              return const Center(child: Text('加载失败，请稍后重试', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))));
+            }
             final trips = tripSnapshot.data ?? const <Trip>[];
             final tripById = {for (final t in trips) t.id: t};
             
@@ -1183,6 +1192,7 @@ class TravelDetailPage extends ConsumerWidget {
                                     ),
                                   );
                                   if (confirmed != true) return;
+                                  try {
                                   final now = DateTime.now();
                                   if (isJournal) {
                                     final recordId = record?.id ?? '';
@@ -1219,6 +1229,13 @@ class TravelDetailPage extends ConsumerWidget {
                                   if (context.mounted) {
                                     Navigator.of(context).pop();
                                   }
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('操作失败: $e'), backgroundColor: Colors.red),
+                                      );
+                                    }
+                                  }
                                 },
                               ),
                               const SizedBox(width: 10),
@@ -1226,11 +1243,19 @@ class TravelDetailPage extends ConsumerWidget {
                                 icon: record?.isFavorite == true ? Icons.bookmark : Icons.bookmark_border,
                                 onTap: () async {
                                   if (record == null) return;
+                                  try {
                                   await db.travelDao.updateFavorite(
                                     record.id,
                                     isFavorite: !record.isFavorite,
                                     now: DateTime.now(),
                                   );
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('操作失败: $e'), backgroundColor: Colors.red),
+                                      );
+                                    }
+                                  }
                                 },
                               ),
                               const SizedBox(width: 10),

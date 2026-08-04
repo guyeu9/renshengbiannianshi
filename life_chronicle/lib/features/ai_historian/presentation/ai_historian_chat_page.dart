@@ -529,11 +529,19 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
   }
 
   Future<void> _deleteSession(String sessionId) async {
-    final db = ref.read(appDatabaseProvider);
-    await db.chatDao.softDeleteSession(sessionId, now: DateTime.now());
+    try {
+      final db = ref.read(appDatabaseProvider);
+      await db.chatDao.softDeleteSession(sessionId, now: DateTime.now());
 
-    if (_currentSessionId == sessionId) {
-      await _initializeSession();
+      if (_currentSessionId == sessionId) {
+        await _initializeSession();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('删除会话失败: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -821,6 +829,9 @@ $text
       }
     } catch (e, stackTrace) {
       await FileLogger.instance.logWithLevel('AI史官', '发送消息失败: $e\n$stackTrace', LogLevel.error);
+      setState(() {
+        _errorMessage = '发送失败：$e';
+      });
       final index = _messages.indexWhere((m) => m.id == aiMessageId);
       if (index != -1) {
         final finalMessage = _messages[index].copyWith(
@@ -1298,6 +1309,9 @@ class _SessionDrawer extends ConsumerWidget {
                     child: StreamBuilder<List<ChatSession>>(
                       stream: db.chatDao.watchActiveSessionsByModuleType(moduleType),
                       builder: (context, snapshot) {
+                        if (snapshot.hasError) {
+                          return const Center(child: Text('加载失败，请稍后重试', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))));
+                        }
                         if (!snapshot.hasData) {
                           return const Center(child: CircularProgressIndicator());
                         }

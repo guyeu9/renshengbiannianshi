@@ -485,6 +485,9 @@ class _GoalHomeBodyState extends ConsumerState<_GoalHomeBody> {
         return StreamBuilder<List<GoalRecord>>(
           stream: _watchYearGoals(db),
           builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return const Center(child: Text('加载失败，请稍后重试', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))));
+            }
             final records = snapshot.data ?? const <GoalRecord>[];
 
             var filteredRecords = records.where((r) {
@@ -1256,6 +1259,9 @@ class _AnnualGoalSummaryPageState extends ConsumerState<AnnualGoalSummaryPage> {
                           ..where((t) => t.isDeleted.equals(false)))
                         .watch(),
                     builder: (context, snapshot) {
+                      if (snapshot.hasError) {
+                        return const Center(child: Text('加载失败，请稍后重试', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))));
+                      }
                       final records = snapshot.data ?? const <GoalRecord>[];
                       final years = _resolveYears(records);
                       final activeYear = years.contains(_selectedYear) ? _selectedYear : years.first;
@@ -2222,7 +2228,20 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
       ),
       error: (_, __) => Scaffold(
         backgroundColor: const Color(0xFFF6F8F8),
-        body: const Center(child: Text('加载失败')),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('加载失败', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => ref.invalidate(goalDetailProvider(widget.record.id)),
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF111827), foregroundColor: Colors.white),
+                child: const Text('重试', style: TextStyle(fontWeight: FontWeight.w800)),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -2326,19 +2345,27 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: () async {
-                  final now = DateTime.now();
-                  await db.goalDao.updateFavorite(
-                    record.id,
-                    isFavorite: !record.isFavorite,
-                    now: now,
-                  );
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(record.isFavorite ? '已取消收藏' : '已添加到收藏'),
-                        duration: const Duration(seconds: 1),
-                      ),
+                  try {
+                    final now = DateTime.now();
+                    await db.goalDao.updateFavorite(
+                      record.id,
+                      isFavorite: !record.isFavorite,
+                      now: now,
                     );
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(record.isFavorite ? '已取消收藏' : '已添加到收藏'),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('收藏操作失败: $e'), backgroundColor: Colors.red),
+                      );
+                    }
                   }
                 },
                 icon: Icon(record.isFavorite ? Icons.favorite : Icons.favorite_border, size: 16),
