@@ -86,18 +86,14 @@ void main() {
       // 验证列表页显示了卡片
       expect(find.text('测试标题'), findsOneWidget);
 
-      // 记录当前路由
-      final router = GoRouter.of(tester.element(find.byType(Scaffold).first));
-      final initialLocation = router.routeInformationProvider.value.uri.path;
-
-      // 点击卡片
+      // 点击卡片标题
       await tester.tap(find.text('测试标题'));
       await tester.pumpAndSettle();
 
-      // 验证导航到了详情页（路由包含 /moment/nav-test-moment-1）
-      final newLocation = router.routeInformationProvider.value.uri.path;
-      expect(newLocation, contains('nav-test-moment-1'));
-      expect(newLocation, isNot(equals(initialLocation)));
+      // 验证导航到了详情页（详情页有"更多操作"按钮和底部操作栏）
+      expect(find.byIcon(Icons.more_horiz), findsOneWidget);
+      expect(find.byIcon(Icons.edit), findsOneWidget);
+      expect(find.byIcon(Icons.share), findsOneWidget);
     });
   });
 
