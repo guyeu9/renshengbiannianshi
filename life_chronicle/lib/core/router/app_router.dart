@@ -273,8 +273,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 name: 'goalDetail',
                 parentNavigatorKey: _rootNavigatorKey,
                 builder: (context, state) {
+                  final id = state.pathParameters['id']!;
                   final extra = state.extra as Map<String, dynamic>?;
-                  return GoalDetailPage(record: extra?['record']);
+                  return _GoalDetailWrapper(
+                    goalId: id,
+                    record: extra?['record'] as GoalRecord?,
+                  );
                 },
               ),
             ],
@@ -600,6 +604,55 @@ class _GoalPostponeWrapper extends ConsumerWidget {
         }
 
         return GoalPostponePage(goal: goal);
+      },
+    );
+  }
+}
+
+class _GoalDetailWrapper extends ConsumerWidget {
+  const _GoalDetailWrapper({this.goalId, this.record});
+
+  final String? goalId;
+  final GoalRecord? record;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // 优先使用传入的 record
+    if (record != null) {
+      return GoalDetailPage(record: record!);
+    }
+
+    // 无 record 时从数据库加载
+    if (goalId == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('目标详情')),
+        body: const Center(child: Text('目标ID无效')),
+      );
+    }
+
+    final db = ref.watch(appDatabaseProvider);
+    return FutureBuilder<GoalRecord?>(
+      future: (db.select(db.goalRecords)
+            ..where((t) => t.id.equals(goalId!))
+            ..limit(1))
+          .getSingleOrNull(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('目标详情')),
+            body: const Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final goal = snapshot.data;
+        if (goal == null) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('目标详情')),
+            body: const Center(child: Text('目标不存在')),
+          );
+        }
+
+        return GoalDetailPage(record: goal);
       },
     );
   }

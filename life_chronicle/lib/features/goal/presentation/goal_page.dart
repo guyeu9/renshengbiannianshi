@@ -1089,6 +1089,14 @@ class _AnnualGoalSummaryPageState extends ConsumerState<AnnualGoalSummaryPage> {
       setState(() {
         _reviewController.text = existing.content ?? '';
         _reviewImages.clear();
+        if (existing.images != null && existing.images!.isNotEmpty) {
+          try {
+            final List<dynamic> imageList = jsonDecode(existing.images!);
+            _reviewImages.addAll(imageList.cast<String>());
+          } catch (_) {
+            // JSON 解析失败，忽略图片数据
+          }
+        }
         _existingReviewId = existing.id;
       });
     } else if (mounted) {
@@ -1524,12 +1532,14 @@ class _AnnualGoalSummaryPageState extends ConsumerState<AnnualGoalSummaryPage> {
                                             FocusManager.instance.primaryFocus?.unfocus();
                                             final db = ref.read(appDatabaseProvider);
                                             final now = DateTime.now();
+                                            final imagesJson = _reviewImages.isEmpty ? null : jsonEncode(_reviewImages);
 
                                             await db.annualReviewDao.upsert(
                                               AnnualReviewsCompanion(
                                                 id: Value(_existingReviewId ?? ref.read(uuidProvider).v4()),
                                                 year: Value(_selectedYear),
                                                 content: Value(_reviewController.text.trim().isEmpty ? null : _reviewController.text.trim()),
+                                                images: Value(imagesJson),
                                                 createdAt: Value(_existingReviewId != null ? now : now),
                                                 updatedAt: Value(now),
                                               ),
@@ -1672,9 +1682,9 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
     );
     if (!mounted) return;
     if (result == 'maintain') {
-      RouteNavigation.goToGoalBreakdownMaintenance(context, widget.record.id);
+      RouteNavigation.pushToGoalBreakdownMaintenance(context, widget.record.id);
     } else if (result == 'edit') {
-      RouteNavigation.goToGoalCreate(context, goal: widget.record);
+      RouteNavigation.pushToGoalCreate(context, goal: widget.record);
     } else if (result == 'delete') {
       _showDeleteConfirmation();
     }
@@ -2187,7 +2197,7 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
                             children: [
                               const Expanded(child: Text('关联记忆', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827)))),
                               TextButton(
-                                onPressed: () => RouteNavigation.goToGoalAllLinks(context, record.id),
+                                onPressed: () => RouteNavigation.pushToGoalAllLinks(context, record.id),
                                 style: TextButton.styleFrom(foregroundColor: AppTheme.primary, textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
                                 child: const Text('查看全部'),
                               ),
@@ -2285,7 +2295,7 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
           children: [
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: () => RouteNavigation.goToGoalPostpone(context, record.id),
+                onPressed: () => RouteNavigation.pushToGoalPostpone(context, record.id),
                 icon: const Icon(Icons.update, size: 16),
                 label: const Text('顺延计划'),
                 style: OutlinedButton.styleFrom(
@@ -2317,11 +2327,10 @@ class _GoalBreakdownDetailPageState extends ConsumerState<_GoalBreakdownDetailPa
               child: OutlinedButton.icon(
                 onPressed: () async {
                   final now = DateTime.now();
-                  await (db.update(db.goalRecords)..where((t) => t.id.equals(record.id))).write(
-                    GoalRecordsCompanion(
-                      isFavorite: Value(!record.isFavorite),
-                      updatedAt: Value(now),
-                    ),
+                  await db.goalDao.updateFavorite(
+                    record.id,
+                    isFavorite: !record.isFavorite,
+                    now: now,
                   );
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -3374,6 +3383,113 @@ class _GoalPostponePageState extends ConsumerState<GoalPostponePage> {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('顺延计划已确认')));
   }
 
+  Future<void> _showPostponeHistory() async {
+    final db = ref.read(appDatabaseProvider);
+    final history = await db.goalPostponementDao.listByGoalId(widget.goal.id);
+    if (!mounted) return;
+
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                child: Row(
+                  children: [
+                    const Expanded(
+                      child: Text('顺延历史', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close, color: Color(0xFF9CA3AF)),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1, color: Color(0xFFF3F4F6)),
+              if (history.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 48),
+                  child: Column(
+                    children: [
+                      const Icon(Icons.history_toggle_off, size: 40, color: Color(0xFFD1D5DB)),
+                      const SizedBox(height: 12),
+                      const Text('暂无顺延记录', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF9CA3AF))),
+                    ],
+                  ),
+                )
+              else
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                    itemCount: history.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF3F4F6)),
+                    itemBuilder: (context, index) {
+                      final item = history[index];
+                      final oldText = _formatDate(item.oldDueDate);
+                      final newText = _formatDate(item.newDueDate);
+                      final days = item.daysAdded;
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.update, size: 18, color: Color(0xFFF97316)),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    '$oldText → $newText',
+                                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
+                                  ),
+                                ),
+                                if (days != null)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFFF7ED),
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: Text(
+                                      '${days >= 0 ? '+' : ''}$days 天',
+                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFFF97316)),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            if (item.reason?.isNotEmpty == true) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                item.reason!,
+                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF6B7280), height: 1.5),
+                              ),
+                            ],
+                            const SizedBox(height: 6),
+                            Text(
+                              _formatDate(item.createdAt),
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF)),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final db = ref.watch(appDatabaseProvider);
@@ -3420,7 +3536,7 @@ class _GoalPostponePageState extends ConsumerState<GoalPostponePage> {
                       ),
                       _CircleIconButton(
                         icon: Icons.history,
-                        onTap: () {},
+                        onTap: _showPostponeHistory,
                       ),
                     ],
                   ),
@@ -4436,7 +4552,7 @@ class _FoodMemoryCard extends StatelessWidget {
         if (food == null) return const SizedBox.shrink();
 
         return GestureDetector(
-          onTap: () => RouteNavigation.goToFoodDetail(context, foodId),
+          onTap: () => RouteNavigation.pushToFoodDetail(context, foodId),
           child: SizedBox(
             width: 128,
             child: Column(
@@ -4576,7 +4692,7 @@ class _MomentMemoryCard extends StatelessWidget {
         if (moment == null) return const SizedBox.shrink();
 
         return GestureDetector(
-          onTap: () => RouteNavigation.goToMomentDetail(context, momentId),
+          onTap: () => RouteNavigation.pushToMomentDetail(context, momentId),
           child: SizedBox(
             width: 128,
             child: Column(
@@ -4643,7 +4759,7 @@ class _FriendMemoryCard extends StatelessWidget {
         if (friend == null) return const SizedBox.shrink();
 
         return GestureDetector(
-          onTap: () => RouteNavigation.goToFriendProfile(context, friendId),
+          onTap: () => RouteNavigation.pushToFriendProfile(context, friendId),
           child: SizedBox(
             width: 128,
             child: Column(
@@ -4884,7 +5000,7 @@ class _FoodListItem extends StatelessWidget {
         if (food == null) return const SizedBox.shrink();
 
         return ListTile(
-          onTap: () => RouteNavigation.goToFoodDetail(context, foodId),
+          onTap: () => RouteNavigation.pushToFoodDetail(context, foodId),
           leading: Container(
             width: 48,
             height: 48,
@@ -4966,7 +5082,7 @@ class _MomentListItem extends StatelessWidget {
         if (moment == null) return const SizedBox.shrink();
 
         return ListTile(
-          onTap: () => RouteNavigation.goToMomentDetail(context, momentId),
+          onTap: () => RouteNavigation.pushToMomentDetail(context, momentId),
           leading: Container(
             width: 48,
             height: 48,
@@ -5004,7 +5120,7 @@ class _FriendListItem extends StatelessWidget {
         if (friend == null) return const SizedBox.shrink();
 
         return ListTile(
-          onTap: () => RouteNavigation.goToFriendProfile(context, friendId),
+          onTap: () => RouteNavigation.pushToFriendProfile(context, friendId),
           leading: Container(
             width: 48,
             height: 48,

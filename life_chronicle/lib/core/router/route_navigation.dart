@@ -72,6 +72,10 @@ class RouteNavigation {
     context.go(AppRoutes.goalCreate, extra: {'goal': goal});
   }
 
+  static Future<bool?> pushToGoalCreate(BuildContext context, {GoalRecord? goal}) {
+    return context.push<bool>(AppRoutes.goalCreate, extra: {'goal': goal});
+  }
+
   static void goToAnnualGoalSummary(BuildContext context, {required int initialYear, required List<int> availableYears}) {
     context.go(AppRoutes.annualGoalSummary, extra: {'initialYear': initialYear, 'availableYears': availableYears});
   }
@@ -80,12 +84,24 @@ class RouteNavigation {
     context.go('/goal/links/$goalId');
   }
 
+  static void pushToGoalAllLinks(BuildContext context, String goalId) {
+    context.push('/goal/links/$goalId');
+  }
+
   static void goToGoalBreakdownMaintenance(BuildContext context, String goalId) {
     context.go('/goal/breakdown', extra: {'goalId': goalId});
   }
 
+  static Future<bool?> pushToGoalBreakdownMaintenance(BuildContext context, String goalId) {
+    return context.push<bool>('/goal/breakdown', extra: {'goalId': goalId});
+  }
+
   static void goToGoalPostpone(BuildContext context, String goalId) {
     context.go('/goal/postpone', extra: {'goalId': goalId});
+  }
+
+  static Future<bool?> pushToGoalPostpone(BuildContext context, String goalId) {
+    return context.push<bool>('/goal/postpone', extra: {'goalId': goalId});
   }
 
   static void goToFriendProfile(BuildContext context, String friendId) {
@@ -100,8 +116,16 @@ class RouteNavigation {
     context.go(AppRoutes.friendCreate, extra: {'initialFriend': initialFriend});
   }
 
+  static Future<bool?> pushToFriendCreate(BuildContext context, {FriendRecord? initialFriend}) {
+    return context.push<bool>(AppRoutes.friendCreate, extra: {'initialFriend': initialFriend});
+  }
+
   static void goToEncounterDetail(BuildContext context, String id) {
     context.go('${AppRoutes.bond}/encounter/$id');
+  }
+
+  static Future<bool?> pushToEncounterDetail(BuildContext context, String id) {
+    return context.push<bool>('${AppRoutes.bond}/encounter/$id');
   }
 
   static void goToEncounterCreate(BuildContext context, {TimelineEvent? initialEvent}) {

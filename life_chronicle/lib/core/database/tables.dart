@@ -371,6 +371,7 @@ class AnnualReviews extends Table {
   TextColumn get content => text().nullable()();
   TextColumn get stats => text().nullable()();
   TextColumn get keywords => text().nullable()();
+  TextColumn get images => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 

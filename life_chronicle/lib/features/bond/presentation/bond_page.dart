@@ -1550,7 +1550,7 @@ class _BondFriendDetailPage extends ConsumerWidget {
                             await db.friendDao.updateFavorite(friend.id, isFavorite: !friend.isFavorite, now: now);
                           },
                           onEdit: () {
-                            RouteNavigation.goToFriendCreate(context, initialFriend: friend);
+                            RouteNavigation.pushToFriendCreate(context, initialFriend: friend);
                           },
                         ),
                         const SizedBox(height: 14),

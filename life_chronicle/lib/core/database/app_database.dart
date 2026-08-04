@@ -45,7 +45,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 33;
+  int get schemaVersion => 34;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -310,6 +310,11 @@ class AppDatabase extends _$AppDatabase {
             await customStatement(
               'CREATE INDEX IF NOT EXISTS idx_chronicles_is_featured ON chronicles (is_featured)',
             );
+          }
+
+          if (from < 34) {
+            // 恢复 annual_reviews.images 字段用于年度复盘图片持久化
+            await ensureColumn(table: annualReviews, column: annualReviews.images);
           }
 
           // 修复历史数据：将逗号分隔的images字段转换为JSON数组格式
