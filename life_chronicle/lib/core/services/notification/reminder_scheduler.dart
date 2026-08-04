@@ -18,12 +18,13 @@ class ReminderScheduler {
 
   static int contactFrequencyToDays(String? frequency) {
     if (frequency == null || frequency.trim().isEmpty || frequency == '无需提醒') return 0;
+    // 先匹配更具体的组合（两周/半个月），再匹配单字（周/月）
     if (frequency.contains('三个月') || frequency.contains('季')) return 90;
-    if (frequency.contains('一个月') || frequency.contains('月') && !frequency.contains('三个')) return 30;
-    if (frequency.contains('周') || frequency.contains('星期')) return 7;
-    if (frequency.contains('年')) return 365;
     if (frequency.contains('两') && frequency.contains('周')) return 14;
     if (frequency.contains('半') && frequency.contains('月')) return 15;
+    if (frequency.contains('一个月') || (frequency.contains('月') && !frequency.contains('三个') && !frequency.contains('半'))) return 30;
+    if (frequency.contains('周') || frequency.contains('星期')) return 7;
+    if (frequency.contains('年')) return 365;
     return 30;
   }
 
@@ -262,7 +263,7 @@ class ReminderScheduler {
     final reminderId = 'contact_${friend.id}';
     await db.reminderDao.deleteRemindersByTypeAndEntity('contact', 'friend', friend.id);
 
-    final contactTitle = '离上次联系已有${daysSinceLastMeet}天：${friend.name}';
+    final contactTitle = '离上次联系已有$daysSinceLastMeet天：${friend.name}';
     await db.reminderDao.insertReminder(
       ReminderRecordsCompanion.insert(
         id: reminderId,
