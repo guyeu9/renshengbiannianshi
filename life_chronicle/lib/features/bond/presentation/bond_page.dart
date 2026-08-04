@@ -2366,13 +2366,13 @@ class _TimelineEntry extends StatelessWidget {
   void _navigateToDetail(BuildContext context) {
     switch (item.typeKey) {
       case 'encounter':
-        RouteNavigation.goToEncounterDetail(context, item.id);
+        RouteNavigation.pushToEncounterDetail(context, item.id);
         break;
       case 'moment':
-        RouteNavigation.goToMomentDetail(context, item.id);
+        RouteNavigation.pushToMomentDetail(context, item.id);
         break;
       case 'food':
-        RouteNavigation.goToFoodDetail(context, item.id);
+        RouteNavigation.pushToFoodDetail(context, item.id);
         break;
       case 'travel':
         if (item.isJournal) {
@@ -2517,13 +2517,13 @@ class _SingleImageMemoryCard extends StatelessWidget {
   void _navigateToDetail(BuildContext context) {
     switch (item.typeKey) {
       case 'encounter':
-        RouteNavigation.goToEncounterDetail(context, item.id);
+        RouteNavigation.pushToEncounterDetail(context, item.id);
         break;
       case 'moment':
-        RouteNavigation.goToMomentDetail(context, item.id);
+        RouteNavigation.pushToMomentDetail(context, item.id);
         break;
       case 'food':
-        RouteNavigation.goToFoodDetail(context, item.id);
+        RouteNavigation.pushToFoodDetail(context, item.id);
         break;
       case 'travel':
         if (item.isJournal) {
@@ -2689,13 +2689,13 @@ class _MultiImageMemoryCard extends StatelessWidget {
   void _navigateToDetail(BuildContext context) {
     switch (item.typeKey) {
       case 'encounter':
-        RouteNavigation.goToEncounterDetail(context, item.id);
+        RouteNavigation.pushToEncounterDetail(context, item.id);
         break;
       case 'moment':
-        RouteNavigation.goToMomentDetail(context, item.id);
+        RouteNavigation.pushToMomentDetail(context, item.id);
         break;
       case 'food':
-        RouteNavigation.goToFoodDetail(context, item.id);
+        RouteNavigation.pushToFoodDetail(context, item.id);
         break;
       case 'travel':
         if (item.isJournal) {
@@ -2801,13 +2801,13 @@ class _NoImageMemoryCard extends StatelessWidget {
   void _navigateToDetail(BuildContext context) {
     switch (item.typeKey) {
       case 'encounter':
-        RouteNavigation.goToEncounterDetail(context, item.id);
+        RouteNavigation.pushToEncounterDetail(context, item.id);
         break;
       case 'moment':
-        RouteNavigation.goToMomentDetail(context, item.id);
+        RouteNavigation.pushToMomentDetail(context, item.id);
         break;
       case 'food':
-        RouteNavigation.goToFoodDetail(context, item.id);
+        RouteNavigation.pushToFoodDetail(context, item.id);
         break;
       case 'travel':
         if (item.isJournal) {
