@@ -45,7 +45,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 34;
+  int get schemaVersion => 35;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -315,6 +315,23 @@ class AppDatabase extends _$AppDatabase {
           if (from < 34) {
             // 恢复 annual_reviews.images 字段用于年度复盘图片持久化
             await ensureColumn(table: annualReviews, column: annualReviews.images);
+          }
+
+          if (from < 35) {
+            // 统一 backup_logs.storageType：将历史 'cloud' 值迁移为 'webdav'，
+            // 与数据备份界面「云端」筛选值保持一致
+            if (await tableExists('backup_logs')) {
+              await customStatement(
+                "UPDATE backup_logs SET storage_type = 'webdav' WHERE storage_type = 'cloud'",
+              );
+            }
+            // 统一 sync_state.id：将历史 'main' 值迁移为 'default'，
+            // 与 syncStateDao.watchDefault() 监听的 id 保持一致
+            if (await tableExists('sync_state')) {
+              await customStatement(
+                "UPDATE sync_state SET id = 'default' WHERE id = 'main'",
+              );
+            }
           }
 
           // 修复历史数据：将逗号分隔的images字段转换为JSON数组格式

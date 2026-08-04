@@ -143,7 +143,7 @@ void main() {
       await db.backupLogDao.insert(BackupLogsCompanion(
         id: const Value('test-backup-1'),
         backupType: const Value('full'),
-        storageType: const Value('cloud'),
+        storageType: const Value('webdav'),
         fileName: const Value('test.zip'),
         status: const Value('completed'),
         startedAt: Value(now.subtract(const Duration(hours: 2))),

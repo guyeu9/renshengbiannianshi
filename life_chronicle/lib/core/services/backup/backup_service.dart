@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:drift/drift.dart';
@@ -32,7 +33,7 @@ class BackupProgress {
   final String? message;
   final String? error;
 
-  BackupProgress({
+  const BackupProgress({
     required this.status,
     this.progress = 0.0,
     this.message,
@@ -45,6 +46,8 @@ class BackupService {
   final ChangeLogRecorder changeLogRecorder;
   final Uuid uuid;
   final _progressController = StreamController<BackupProgress>.broadcast();
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+  static const String _deviceIdKey = 'backup_device_id';
 
   Stream<BackupProgress> get progressStream => _progressController.stream;
 
@@ -710,7 +713,7 @@ class BackupService {
     try {
       logId = await _createBackupLog(
         backupType: 'full',
-        storageType: 'cloud',
+        storageType: 'webdav',
         fileName: fileName,
         startedAt: startedAt,
       );
@@ -813,7 +816,7 @@ class BackupService {
     try {
       logId = await _createBackupLog(
         backupType: 'incremental',
-        storageType: 'cloud',
+        storageType: 'webdav',
         fileName: fileName,
         startedAt: startedAt,
       );
@@ -1047,13 +1050,22 @@ class BackupService {
   }
 
   Future<void> _updateSyncState(int timestamp, [int? lastChangeId]) async {
-    final deviceId = uuid.v4();
+    final deviceId = await _loadOrCreateDeviceId();
     await db.syncStateDao.upsert(SyncStateCompanion(
       id: const Value('default'),
       lastSyncTime: Value(DateTime.fromMillisecondsSinceEpoch(timestamp)),
       lastSyncChangeId: lastChangeId != null ? Value(lastChangeId) : const Value(null),
       deviceId: Value(deviceId),
     ));
+  }
+
+  /// 复用已持久化的 deviceId，避免每次备份都生成新值
+  Future<String> _loadOrCreateDeviceId() async {
+    final saved = await _secureStorage.read(key: _deviceIdKey);
+    if (saved != null && saved.isNotEmpty) return saved;
+    final newDeviceId = uuid.v4();
+    await _secureStorage.write(key: _deviceIdKey, value: newDeviceId);
+    return newDeviceId;
   }
 
   Future<void> _saveBackupManifest(

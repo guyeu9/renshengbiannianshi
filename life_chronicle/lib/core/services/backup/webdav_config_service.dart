@@ -124,7 +124,8 @@ class WebDavConfigService {
   static const String _storageKey = 'webdav_config';
   static const String _encryptionPasswordKey = 'backup_encryption_password';
   static const String _rememberPasswordKey = 'backup_remember_password';
-  
+  static const String _deviceIdKey = 'backup_device_id';
+
   final FlutterSecureStorage _storage;
 
   WebDavConfigService({FlutterSecureStorage? storage})
@@ -198,5 +199,24 @@ class WebDavConfigService {
 
   Future<String?> loadPasswordHint() async {
     return await _storage.read(key: '${_encryptionPasswordKey}_hint');
+  }
+
+  /// 持久化设备唯一标识，保证多次备份使用相同 deviceId
+  Future<void> saveDeviceId(String deviceId) async {
+    await _storage.write(key: _deviceIdKey, value: deviceId);
+  }
+
+  Future<String?> loadDeviceId() async {
+    return await _storage.read(key: _deviceIdKey);
+  }
+
+  /// 持久化备份保留数量
+  Future<void> saveRetentionCount(int count) async {
+    await _storage.write(key: 'backup_retention_count', value: count.toString());
+  }
+
+  Future<int> loadRetentionCount({int defaultValue = 10}) async {
+    final value = await _storage.read(key: 'backup_retention_count');
+    return int.tryParse(value ?? '') ?? defaultValue;
   }
 }

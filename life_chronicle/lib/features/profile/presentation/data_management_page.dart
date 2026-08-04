@@ -79,7 +79,9 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
   bool _isBackingUp = false;
   bool _isRestoring = false;
   bool _isExporting = false;
-  BackupProgress? _currentProgress;
+  // 区分备份/恢复两种进度状态，避免进度条显示在错误区域
+  BackupProgress? _backupProgress;
+  BackupProgress? _restoreProgress;
   StreamSubscription<BackupProgress>? _progressSubscription;
   List<Map<String, dynamic>> _availableBackups = [];
   List<BackupFileInfo> _backupFiles = [];
@@ -90,10 +92,9 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _encryptionPasswordController = TextEditingController();
-  final _passwordHintController = TextEditingController();
 
   bool _obscurePassword = true;
-  bool _rememberPassword = true; // 默认记住密码
+  bool _obscureEncryptionPassword = true;
   String _backupFrequency = 'daily';
   
   Map<String, bool> _selectedModules = {
@@ -118,6 +119,14 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
     _loadConfig();
     _loadBackupFiles();
     _loadStatistics();
+    _loadRetentionCount();
+  }
+
+  Future<void> _loadRetentionCount() async {
+    final count = await _configService.loadRetentionCount();
+    if (mounted) {
+      setState(() => _retentionCount = count);
+    }
   }
 
   Future<void> _loadStatistics() async {
@@ -143,31 +152,23 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
     _usernameController.dispose();
     _passwordController.dispose();
     _encryptionPasswordController.dispose();
-    _passwordHintController.dispose();
     super.dispose();
   }
 
   Future<void> _loadConfig() async {
     final config = await _configService.loadConfig();
-    final rememberPassword = await _configService.loadRememberPassword();
-    final passwordHint = await _configService.loadPasswordHint();
-    
+
     if (mounted) {
       setState(() {
         _config = config;
-        _rememberPassword = rememberPassword;
         if (config != null) {
           _urlController.text = config.url;
           _usernameController.text = config.username;
           _passwordController.text = config.password;
           _backupFrequency = config.autoBackupFrequency ?? 'daily';
         }
-        if (passwordHint != null) {
-          _passwordHintController.text = passwordHint;
-        }
-        if (rememberPassword) {
-          _loadSavedEncryptionPassword();
-        }
+        // UI 已移除「记住密码」开关，加密密码始终自动加载
+        _loadSavedEncryptionPassword();
         _isLoading = false;
       });
     }
@@ -231,14 +232,11 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
       encryptBackup: _config?.encryptBackup ?? true,
       autoBackupFrequency: _backupFrequency,
       backupOnWifiOnly: _config?.backupOnWifiOnly ?? true,
-      rememberPassword: _rememberPassword,
-      passwordHint: _passwordHintController.text.isNotEmpty ? _passwordHintController.text : null,
+      rememberPassword: true,
+      passwordHint: _config?.passwordHint,
     );
 
     await _configService.saveConfig(newConfig);
-    if (_passwordHintController.text.isNotEmpty) {
-      await _configService.savePasswordHint(_passwordHintController.text);
-    }
     if (mounted) {
       setState(() => _config = newConfig);
       _showSnackBar('配置已保存');
@@ -260,11 +258,11 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
     final backupService = BackupService(db);
 
     setState(() => _isBackingUp = true);
-    
+
     try {
       _progressSubscription = backupService.progressStream.listen((progress) {
         if (mounted) {
-          setState(() => _currentProgress = progress);
+          setState(() => _backupProgress = progress);
         }
       });
 
@@ -273,11 +271,8 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
         encryptionPassword: _encryptionPasswordController.text,
       );
 
-      if (_rememberPassword && _encryptionPasswordController.text.isNotEmpty) {
+      if (_encryptionPasswordController.text.isNotEmpty) {
         await _configService.saveEncryptionPassword(_encryptionPasswordController.text);
-      }
-      if (_passwordHintController.text.isNotEmpty) {
-        await _configService.savePasswordHint(_passwordHintController.text);
       }
 
       _showSnackBar('备份成功！');
@@ -287,7 +282,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
       if (mounted) {
         setState(() {
           _isBackingUp = false;
-          _currentProgress = null;
+          _backupProgress = null;
         });
         _progressSubscription?.cancel();
       }
@@ -304,7 +299,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
     String? logId;
 
     setState(() => _isBackingUp = true);
-    
+
     try {
       logId = uuid.v4();
       await db.backupLogDao.insert(BackupLogsCompanion(
@@ -316,34 +311,50 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
         startedAt: Value(startedAt),
         createdAt: Value(DateTime.now()),
       ));
-      
+
+      if (mounted) {
+        setState(() => _backupProgress = const BackupProgress(
+          status: BackupStatus.exporting,
+          message: '正在导出数据...',
+          progress: 0.2,
+        ));
+      }
+
       final tempDir = await backupService.getTempDir();
       final zipPath = path.join(tempDir.path, fileName);
-      
+
       final data = await backupService.exportAllData();
       final mediaFiles = await backupService.collectAllMediaFiles();
-      
+
+      if (mounted) {
+        setState(() => _backupProgress = const BackupProgress(
+          status: BackupStatus.zipping,
+          message: '正在打包文件...',
+          progress: 0.6,
+        ));
+      }
+
       await EncryptionService.createZipArchive(mediaFiles, data, zipPath);
-      
+
       final appDocDir = await getApplicationDocumentsDirectory();
       final backupDir = Directory(path.join(appDocDir.path, 'backups'));
       if (!await backupDir.exists()) {
         await backupDir.create(recursive: true);
       }
-      
+
       final finalZipPath = path.join(backupDir.path, fileName);
       await File(zipPath).copy(finalZipPath);
-      
+
       final fileSize = await File(finalZipPath).length();
       final recordCount = _countRecords(data);
       final mediaCount = mediaFiles.length;
-      
+
       await db.backupLogDao.updateStatus(
         logId,
         'completed',
         completedAt: DateTime.now(),
       );
-      
+
       await (db.update(db.backupLogs)..where((t) => t.id.equals(logId!))).write(
         BackupLogsCompanion(
           filePath: Value(finalZipPath),
@@ -352,7 +363,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
           mediaCount: Value(mediaCount),
         ),
       );
-      
+
       // 更新上次备份时间
       await db.syncStateDao.updateLastSync(
         'default',
@@ -360,9 +371,9 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
         lastSyncChangeId: null,
         deviceId: await _getDeviceId(),
       );
-      
+
       setState(() => _isBackingUp = false);
-      
+
       if (!mounted) return;
       await FileExportManager.instance.exportFileWithOptions(
         context,
@@ -384,15 +395,20 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
       if (mounted) {
         setState(() {
           _isBackingUp = false;
-          _currentProgress = null;
+          _backupProgress = null;
         });
       }
     }
   }
   
   Future<String> _getDeviceId() async {
+    // 优先复用已持久化的 deviceId，避免每次备份都变化
+    final saved = await _configService.loadDeviceId();
+    if (saved != null && saved.isNotEmpty) return saved;
     final uuid = ref.read(uuidProvider);
-    return uuid.v4();
+    final newDeviceId = uuid.v4();
+    await _configService.saveDeviceId(newDeviceId);
+    return newDeviceId;
   }
 
   int _countRecords(Map<String, dynamic> data) {
@@ -461,24 +477,49 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
         setState(() => _isRestoring = false);
         return;
       }
-      
+
+      if (mounted) {
+        setState(() => _restoreProgress = const BackupProgress(
+          status: BackupStatus.preparing,
+          message: '准备恢复...',
+          progress: 0.2,
+        ));
+      }
+
       final tempDir = await backupService.getTempDir();
-      
+
       if (filePath.endsWith('.zip')) {
         final extractDir = path.join(tempDir.path, 'extract_${DateTime.now().millisecondsSinceEpoch}');
         final (data, mediaFiles) = await EncryptionService.extractZipArchive(file, extractDir);
-        
+
+        if (mounted) {
+          setState(() => _restoreProgress = const BackupProgress(
+            status: BackupStatus.exporting,
+            message: '正在恢复数据...',
+            progress: 0.6,
+          ));
+        }
+
         await backupService.importData(data, merge: true);
         await _restoreMediaFiles(mediaFiles);
       } else if (filePath.endsWith('.json')) {
         final jsonString = await file.readAsString();
         final data = jsonDecode(jsonString) as Map<String, dynamic>;
+
+        if (mounted) {
+          setState(() => _restoreProgress = const BackupProgress(
+            status: BackupStatus.exporting,
+            message: '正在恢复数据...',
+            progress: 0.6,
+          ));
+        }
+
         await backupService.importData(data, merge: true);
       } else {
         _showSnackBar('不支持的文件格式', isError: true);
         return;
       }
-      
+
       _showSnackBar('恢复成功！');
     } catch (e) {
       _showSnackBar('恢复失败: $e', isError: true);
@@ -486,7 +527,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
       if (mounted) {
         setState(() {
           _isRestoring = false;
-          _currentProgress = null;
+          _restoreProgress = null;
         });
       }
     }
@@ -994,14 +1035,10 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
     }
 
     if (_encryptionPasswordController.text.isEmpty && _config!.encryptBackup) {
-      if (_rememberPassword) {
-        final savedPassword = await _configService.loadEncryptionPassword();
-        if (savedPassword != null) {
-          _encryptionPasswordController.text = savedPassword;
-        } else {
-          _showSnackBar('请输入加密密码', isError: true);
-          return;
-        }
+      // UI 已移除「记住密码」开关，加密密码始终自动加载
+      final savedPassword = await _configService.loadEncryptionPassword();
+      if (savedPassword != null) {
+        _encryptionPasswordController.text = savedPassword;
       } else {
         _showSnackBar('请输入加密密码', isError: true);
         return;
@@ -1034,11 +1071,11 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
     final backupService = BackupService(db);
 
     setState(() => _isRestoring = true);
-    
+
     try {
       _progressSubscription = backupService.progressStream.listen((progress) {
         if (mounted) {
-          setState(() => _currentProgress = progress);
+          setState(() => _restoreProgress = progress);
         }
       });
 
@@ -1055,7 +1092,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
       if (mounted) {
         setState(() {
           _isRestoring = false;
-          _currentProgress = null;
+          _restoreProgress = null;
         });
         _progressSubscription?.cancel();
       }
@@ -1102,6 +1139,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                       onChanged: (value) async {
                         if (value != null) {
                           _retentionCount = value;
+                          await _configService.saveRetentionCount(value);
                           await _backupFileManager.applyRetentionPolicy(value);
                           await _loadBackupFiles();
                           setDialogState(() {});
@@ -1588,10 +1626,10 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                 ),
               ),
               const SizedBox(height: 16),
-              if (_currentProgress != null) _buildProgressIndicator(isDark, textMain, textMuted),
-              if (_currentProgress != null) const SizedBox(height: 16),
+              if (_backupProgress != null) _buildProgressIndicator(isDark, textMain, textMuted, progress: _backupProgress!),
+              if (_backupProgress != null) const SizedBox(height: 16),
               ElevatedButton.icon(
-                onPressed: (_isBackingUp) ? null : _performLocalBackup,
+                onPressed: (_isBackingUp || _isRestoring) ? null : _performLocalBackup,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primary,
                   foregroundColor: Colors.white,
@@ -1718,7 +1756,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                 },
               ),
               const SizedBox(height: 16),
-              _buildInputField(
+              _buildPasswordField(
                 isDark,
                 textMain,
                 textMuted,
@@ -1726,7 +1764,12 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                 Icons.enhanced_encryption,
                 _encryptionPasswordController,
                 '输入加密/解密密码（默认记住）',
-                true,
+                obscure: _obscureEncryptionPassword,
+                onToggleObscure: () {
+                  setState(() {
+                    _obscureEncryptionPassword = !_obscureEncryptionPassword;
+                  });
+                },
               ),
               const SizedBox(height: 16),
               Row(
@@ -1825,8 +1868,11 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
     String label,
     IconData icon,
     TextEditingController controller,
-    String hint,
-  ) {
+    String hint, {
+    bool? obscure,
+    VoidCallback? onToggleObscure,
+  }) {
+    final isObscured = obscure ?? _obscurePassword;
     final fillColor = isDark ? const Color(0xFF111827) : const Color(0xFFF9FAFB);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1850,7 +1896,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
           ),
           child: TextField(
             controller: controller,
-            obscureText: _obscurePassword,
+            obscureText: isObscured,
             style: TextStyle(color: textMain, fontSize: 14),
             decoration: InputDecoration(
               hintText: hint,
@@ -1860,15 +1906,16 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
               prefixIcon: Icon(icon, color: textMuted, size: 20),
               suffixIcon: IconButton(
                 icon: Icon(
-                  _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                  isObscured ? Icons.visibility_off : Icons.visibility,
                   color: textMuted,
                   size: 20,
                 ),
-                onPressed: () {
-                  setState(() {
-                    _obscurePassword = !_obscurePassword;
-                  });
-                },
+                onPressed: onToggleObscure ??
+                    () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
               ),
             ),
           ),
@@ -2128,6 +2175,10 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
           ),
         ),
         const SizedBox(height: 8),
+        if (_restoreProgress != null) ...[
+          _buildProgressIndicator(isDark, textMain, textMuted, progress: _restoreProgress!),
+          const SizedBox(height: 16),
+        ],
         GridView.count(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -2143,7 +2194,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
               Icons.cloud_download,
               AppTheme.primary,
               '从云端恢复',
-              _isRestoring ? null : () async {
+              (_isRestoring || _isBackingUp) ? null : () async {
                 await _loadAvailableBackups();
                 if (_availableBackups.isNotEmpty && mounted) {
                   showModalBottomSheet(
@@ -2168,9 +2219,9 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                                 return ListTile(
                                   leading: const Icon(Icons.backup),
                                   title: Text(fileName),
-                                  subtitle: Text(dateStr),
+                                  subtitle: dateStr.isNotEmpty ? Text(dateStr) : null,
                                   onTap: () {
-                                    Navigator.of(context).pop();
+                                    Navigator.pop(context);
                                     _restoreBackup(fileName);
                                   },
                                 );
@@ -2181,6 +2232,8 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                       ),
                     ),
                   );
+                } else if (mounted) {
+                  _showSnackBar('云端暂无可用备份');
                 }
               },
             ),
@@ -2192,7 +2245,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
               Icons.folder_open,
               textMuted,
               '从本地文件恢复',
-              _isRestoring ? null : _restoreFromLocal,
+              (_isRestoring || _isBackingUp) ? null : _restoreFromLocal,
             ),
             _buildRecoveryCard(
               isDark,
@@ -2335,7 +2388,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () {
-                        RouteNavigation.goToBackupLog(context);
+                        RouteNavigation.pushToBackupLog(context);
                       },
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppTheme.primary,
@@ -2352,7 +2405,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                   Expanded(
                     flex: 2,
                     child: ElevatedButton.icon(
-                      onPressed: (_isBackingUp || _config == null) ? null : _performFullBackup,
+                      onPressed: (_isBackingUp || _isRestoring || _config == null) ? null : _performFullBackup,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primary,
                         foregroundColor: Colors.white,
@@ -2376,7 +2429,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                 alignment: Alignment.centerRight,
                 child: TextButton.icon(
                   onPressed: () {
-                    RouteNavigation.goToAmapLog(context);
+                    RouteNavigation.pushToAmapLog(context);
                   },
                   icon: Icon(Icons.map_outlined, size: 16, color: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
                   label: Text(
@@ -2395,8 +2448,8 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
     );
   }
 
-  Widget _buildProgressIndicator(bool isDark, Color textMain, Color textMuted) {
-    final status = _currentProgress!.status;
+  Widget _buildProgressIndicator(bool isDark, Color textMain, Color textMuted, {required BackupProgress progress}) {
+    final status = progress.status;
     final statusText = {
           BackupStatus.idle: '准备中',
           BackupStatus.preparing: '准备中',
@@ -2414,23 +2467,23 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         LinearProgressIndicator(
-          value: _currentProgress!.progress,
+          value: progress.progress,
           backgroundColor: isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
           valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primary),
         ),
         const SizedBox(height: 8),
         Text(
-          _currentProgress!.message ?? statusText,
+          progress.message ?? statusText,
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
             color: textMuted,
           ),
         ),
-        if (_currentProgress!.error != null) ...[
+        if (progress.error != null) ...[
           const SizedBox(height: 8),
           Text(
-            _currentProgress!.error!,
+            progress.error!,
             style: const TextStyle(
               fontSize: 14,
               color: Colors.red,

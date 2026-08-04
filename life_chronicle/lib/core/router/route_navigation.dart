@@ -204,8 +204,16 @@ class RouteNavigation {
     context.go('/profile/backup-log');
   }
 
+  static void pushToBackupLog(BuildContext context) {
+    context.push('/profile/backup-log');
+  }
+
   static void goToAmapLog(BuildContext context) {
     context.go('/profile/amap-log');
+  }
+
+  static void pushToAmapLog(BuildContext context) {
+    context.push('/profile/amap-log');
   }
 
   static void goToAiModelManagement(BuildContext context) {
