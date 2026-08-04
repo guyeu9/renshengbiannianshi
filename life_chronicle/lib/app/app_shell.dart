@@ -191,7 +191,7 @@ void _showQuickCreateSheet(BuildContext context, WidgetRef ref) {
                         color: const Color(0xFFFBBF24),
                         onTap: () {
                           Navigator.of(sheetContext).pop();
-                          context.go('${AppRoutes.moment}/create');
+                          context.push('${AppRoutes.moment}/create');
                         },
                       ),
                       _QuickCreateEntry(

@@ -191,9 +191,127 @@ void main() {
       final start = now.subtract(const Duration(days: 3));
       final end = now;
       final records = await momentDao.watchByRecordDateRange(start, end).first;
-      
+
       expect(records.any((r) => r.id == 'date-moment-2'), isTrue);
       expect(records.any((r) => r.id == 'date-moment-1'), isFalse);
+    });
+  });
+
+  // === 修复点 B1: softDeleteById 完整行为测试 ===
+  group('MomentDao softDeleteById complete behavior', () {
+    test('should mark moment record as deleted', () async {
+      final now = DateTime.now();
+      await momentDao.upsert(MomentRecordsCompanion.insert(
+        id: 'softdel-moment-1',
+        mood: '开心',
+        recordDate: now,
+        createdAt: now,
+        updatedAt: now,
+      ));
+
+      await momentDao.softDeleteById('softdel-moment-1', now: now);
+
+      final found = await momentDao.findById('softdel-moment-1');
+      expect(found, isNotNull);
+      expect(found!.isDeleted, isTrue);
+    });
+
+    test('should delete entityLinks where moment is source', () async {
+      final now = DateTime.now();
+      const momentId = 'softdel-moment-2';
+      await momentDao.upsert(MomentRecordsCompanion.insert(
+        id: momentId,
+        mood: '开心',
+        recordDate: now,
+        createdAt: now,
+        updatedAt: now,
+      ));
+
+      await db.into(db.entityLinks).insert(EntityLinksCompanion.insert(
+        id: 'link-src-1',
+        sourceType: 'moment',
+        sourceId: momentId,
+        targetType: 'friend',
+        targetId: 'friend-x',
+        linkType: const Value('manual'),
+        createdAt: now,
+      ));
+
+      await momentDao.softDeleteById(momentId, now: now);
+
+      final remaining = await (db.select(db.entityLinks)
+            ..where((t) => t.sourceType.equals('moment'))
+            ..where((t) => t.sourceId.equals(momentId)))
+          .get();
+      expect(remaining, isEmpty);
+    });
+
+    test('should delete entityLinks where moment is target', () async {
+      final now = DateTime.now();
+      const momentId = 'softdel-moment-3';
+      await momentDao.upsert(MomentRecordsCompanion.insert(
+        id: momentId,
+        mood: '开心',
+        recordDate: now,
+        createdAt: now,
+        updatedAt: now,
+      ));
+
+      await db.into(db.entityLinks).insert(EntityLinksCompanion.insert(
+        id: 'link-tgt-1',
+        sourceType: 'goal',
+        sourceId: 'goal-x',
+        targetType: 'moment',
+        targetId: momentId,
+        linkType: const Value('manual'),
+        createdAt: now,
+      ));
+
+      await momentDao.softDeleteById(momentId, now: now);
+
+      final remaining = await (db.select(db.entityLinks)
+            ..where((t) => t.targetType.equals('moment'))
+            ..where((t) => t.targetId.equals(momentId)))
+          .get();
+      expect(remaining, isEmpty);
+    });
+
+    test('should not affect other entities\' links', () async {
+      final now = DateTime.now();
+      const momentId = 'softdel-moment-4';
+      const otherMomentId = 'softdel-moment-5';
+      await momentDao.upsert(MomentRecordsCompanion.insert(
+        id: momentId,
+        mood: '开心',
+        recordDate: now,
+        createdAt: now,
+        updatedAt: now,
+      ));
+      await momentDao.upsert(MomentRecordsCompanion.insert(
+        id: otherMomentId,
+        mood: '平静',
+        recordDate: now,
+        createdAt: now,
+        updatedAt: now,
+      ));
+
+      await db.into(db.entityLinks).insert(EntityLinksCompanion.insert(
+        id: 'link-other-1',
+        sourceType: 'moment',
+        sourceId: otherMomentId,
+        targetType: 'friend',
+        targetId: 'friend-y',
+        linkType: const Value('manual'),
+        createdAt: now,
+      ));
+
+      await momentDao.softDeleteById(momentId, now: now);
+
+      final otherLinks = await (db.select(db.entityLinks)
+            ..where((t) => t.sourceId.equals(otherMomentId)))
+          .get();
+      expect(otherLinks.length, equals(1));
+      expect(otherLinks.first.id, equals('link-other-1'));
     });
   });
 }

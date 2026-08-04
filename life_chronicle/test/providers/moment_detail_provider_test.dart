@@ -251,7 +251,7 @@ void main() {
     group('goalTitles', () {
       test('should return goal titles for linked goals', () {
         final titles = state.goalTitles;
-        
+
         expect(titles, contains('学习 Flutter'));
       });
 
@@ -264,8 +264,160 @@ void main() {
           travels: testTravels,
           goals: testGoals,
         );
-        
+
         expect(noLinkState.goalTitles, isEmpty);
+      });
+    });
+
+    // === 修复点 C1: linkedXxx 对象列表 getter 测试 ===
+
+    group('linkedFriends', () {
+      test('should return FriendRecord objects for linked friends', () {
+        final linked = state.linkedFriends;
+
+        expect(linked.length, equals(1));
+        expect(linked.first.id, equals('friend-1'));
+        expect(linked.first.name, equals('张三'));
+      });
+
+      test('should not include unlinked friends', () {
+        final linked = state.linkedFriends;
+
+        expect(linked.any((f) => f.id == 'friend-2'), isFalse);
+      });
+
+      test('should return empty list when no friends linked', () {
+        final noLinkState = MomentDetailState(
+          record: testRecord,
+          links: [],
+          friends: testFriends,
+          foods: testFoods,
+          travels: testTravels,
+          goals: testGoals,
+        );
+
+        expect(noLinkState.linkedFriends, isEmpty);
+      });
+
+      test('should return empty list when friend data is missing', () {
+        final missingFriendState = MomentDetailState(
+          record: testRecord,
+          links: testLinks,
+          friends: [],
+          foods: testFoods,
+          travels: testTravels,
+          goals: testGoals,
+        );
+
+        expect(missingFriendState.linkedFriends, isEmpty);
+      });
+    });
+
+    group('linkedFoods', () {
+      test('should return FoodRecord objects for linked foods', () {
+        final linked = state.linkedFoods;
+
+        expect(linked.length, equals(1));
+        expect(linked.first.id, equals('food-1'));
+        expect(linked.first.title, equals('海底捞'));
+      });
+
+      test('should return empty list when no foods linked', () {
+        final noLinkState = MomentDetailState(
+          record: testRecord,
+          links: [],
+          friends: testFriends,
+          foods: testFoods,
+          travels: testTravels,
+          goals: testGoals,
+        );
+
+        expect(noLinkState.linkedFoods, isEmpty);
+      });
+
+      test('should return empty list when food data is missing', () {
+        final missingFoodState = MomentDetailState(
+          record: testRecord,
+          links: testLinks,
+          friends: testFriends,
+          foods: [],
+          travels: testTravels,
+          goals: testGoals,
+        );
+
+        expect(missingFoodState.linkedFoods, isEmpty);
+      });
+    });
+
+    group('linkedTravels', () {
+      test('should return TravelRecord objects for linked travels', () {
+        final linked = state.linkedTravels;
+
+        expect(linked.length, equals(1));
+        expect(linked.first.id, equals('travel-1'));
+        expect(linked.first.title, equals('成都之旅'));
+      });
+
+      test('should return empty list when no travels linked', () {
+        final noLinkState = MomentDetailState(
+          record: testRecord,
+          links: [],
+          friends: testFriends,
+          foods: testFoods,
+          travels: testTravels,
+          goals: testGoals,
+        );
+
+        expect(noLinkState.linkedTravels, isEmpty);
+      });
+
+      test('should return empty list when travel data is missing', () {
+        final missingTravelState = MomentDetailState(
+          record: testRecord,
+          links: testLinks,
+          friends: testFriends,
+          foods: testFoods,
+          travels: [],
+          goals: testGoals,
+        );
+
+        expect(missingTravelState.linkedTravels, isEmpty);
+      });
+    });
+
+    group('linkedGoals', () {
+      test('should return GoalRecord objects for linked goals', () {
+        final linked = state.linkedGoals;
+
+        expect(linked.length, equals(1));
+        expect(linked.first.id, equals('goal-1'));
+        expect(linked.first.title, equals('学习 Flutter'));
+      });
+
+      test('should return empty list when no goals linked', () {
+        final noLinkState = MomentDetailState(
+          record: testRecord,
+          links: [],
+          friends: testFriends,
+          foods: testFoods,
+          travels: testTravels,
+          goals: testGoals,
+        );
+
+        expect(noLinkState.linkedGoals, isEmpty);
+      });
+
+      test('should return empty list when goal data is missing', () {
+        final missingGoalState = MomentDetailState(
+          record: testRecord,
+          links: testLinks,
+          friends: testFriends,
+          foods: testFoods,
+          travels: testTravels,
+          goals: [],
+        );
+
+        expect(missingGoalState.linkedGoals, isEmpty);
       });
     });
   });

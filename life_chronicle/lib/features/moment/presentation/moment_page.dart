@@ -5,6 +5,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -14,7 +15,6 @@ import '../../../core/services/file_logger.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_providers.dart';
 import '../../../core/providers/uuid_provider.dart';
-import '../../../core/services/delete_service.dart';
 import '../../../core/utils/image_save_util.dart';
 import '../../../core/utils/media_storage.dart';
 import '../../../core/utils/permission_manager.dart';
@@ -23,6 +23,7 @@ import '../../../core/widgets/ai_parse_button.dart';
 import '../../../core/widgets/custom_bottom_sheet.dart';
 import '../../../core/widgets/app_image.dart';
 import '../../../core/router/route_navigation.dart';
+import '../../../core/router/app_router.dart';
 import '../providers/moment_detail_provider.dart';
 import '../../ai_historian/services/context_builder.dart';
 
@@ -265,16 +266,30 @@ class _MomentHeader extends StatelessWidget {
                       const Icon(Icons.search, color: Color(0xFF9CA3AF), size: 22),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: TextField(
-                          controller: searchController,
-                          onChanged: onSearchChanged,
-                          decoration: const InputDecoration(
-                            hintText: '搜索心情、标签、地理位置..',
-                            hintStyle: TextStyle(fontSize: 15, color: Color(0xFF9CA3AF), fontWeight: FontWeight.w500),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                          style: const TextStyle(fontSize: 15, color: Color(0xFF111827), fontWeight: FontWeight.w600),
+                        child: ValueListenableBuilder<TextEditingValue>(
+                          valueListenable: searchController,
+                          builder: (context, value, child) {
+                            final hasText = value.text.isNotEmpty;
+                            return TextField(
+                              controller: searchController,
+                              onChanged: onSearchChanged,
+                              decoration: InputDecoration(
+                                hintText: '搜索心情、标签、地理位置..',
+                                hintStyle: const TextStyle(fontSize: 15, color: Color(0xFF9CA3AF), fontWeight: FontWeight.w500),
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.zero,
+                                suffixIcon: hasText
+                                    ? IconButton(
+                                        icon: const Icon(Icons.close, size: 18, color: Color(0xFF9CA3AF)),
+                                        onPressed: () => searchController.clear(),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                      )
+                                    : null,
+                              ),
+                              style: const TextStyle(fontSize: 15, color: Color(0xFF111827), fontWeight: FontWeight.w600),
+                            );
+                          },
                         ),
                       ),
                     ],
@@ -287,7 +302,7 @@ class _MomentHeader extends StatelessWidget {
               _HeaderCircle(
                 icon: Icons.add,
                 iconColor: const Color(0xFF2BCDEE),
-                onTap: () => RouteNavigation.goToMomentCreate(context),
+                onTap: () => RouteNavigation.pushToMomentCreate(context),
               ),
             ],
           ),
@@ -387,16 +402,24 @@ class _MoodChip extends StatelessWidget {
 }
 
 class _LinkChip extends StatelessWidget {
-  const _LinkChip({required this.label});
+  const _LinkChip({required this.label, this.onTap});
 
   final String label;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(999)),
-      child: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
+    return Material(
+      color: const Color(0xFFF3F4F6),
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
+        ),
+      ),
     );
   }
 }
@@ -722,7 +745,7 @@ class _MomentCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         onTap: () {
           if (item.recordId != null) {
-            RouteNavigation.goToMomentDetail(context, item.recordId!);
+            RouteNavigation.pushToMomentDetail(context, item.recordId!);
           }
         },
         child: Container(
@@ -883,7 +906,7 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
             title: '记录不存在或已删除',
             content: '',
             tags: const [],
-            linkChips: const [],
+            linkChips: const <({String label, String targetType, String targetId})>[],
             onEdit: null,
             poiName: '',
             poiAddress: '',
@@ -912,11 +935,15 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
         final latitude = record.latitude;
         final longitude = record.longitude;
 
-        final linkChips = <String>[
-          ..._buildLinkLabels('人生目标', state.goalTitles),
-          ..._buildLinkLabels('关联旅行', state.travelTitles),
-          ..._buildLinkLabels('关联羁绊', state.friendNames),
-          ..._buildLinkLabels('关联美食', state.foodTitles),
+        final linkChips = <({String label, String targetType, String targetId})>[
+          for (final g in state.linkedGoals)
+            (label: '人生目标 · ${g.title}', targetType: 'goal', targetId: g.id),
+          for (final t in state.linkedTravels)
+            (label: '关联旅行 · ${t.title ?? '旅行'}', targetType: 'travel', targetId: t.id),
+          for (final f in state.linkedFriends)
+            (label: '关联羁绊 · ${f.name}', targetType: 'friend', targetId: f.id),
+          for (final f in state.linkedFoods)
+            (label: '关联美食 · ${f.title}', targetType: 'food', targetId: f.id),
         ];
 
         final db = ref.read(appDatabaseProvider);
@@ -932,7 +959,7 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
           tags: tags,
           linkChips: linkChips,
           onEdit: () {
-            RouteNavigation.goToMomentCreate(context, initialRecord: record);
+            RouteNavigation.pushToMomentCreate(context, initialRecord: record);
           },
           poiName: poiName,
           poiAddress: poiAddress,
@@ -951,9 +978,16 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
           },
           onDelete: () async {
             final db = ref.read(appDatabaseProvider);
-            final deleteService = DeleteService(db);
+            final now = DateTime.now();
             try {
-              await deleteService.hardDeleteMoment(record.id);
+              await db.momentDao.softDeleteById(record.id, now: now);
+              await (db.update(db.timelineEvents)..where((t) => t.id.equals(record.id))..where((t) => t.eventType.equals('moment'))).write(
+                TimelineEventsCompanion(
+                  isDeleted: const Value(true),
+                  updatedAt: Value(now),
+                ),
+              );
+              ContextBuilder.clearCache();
             } catch (e) {
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -987,7 +1021,7 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
     required String title,
     required String content,
     required List<String> tags,
-    required List<String> linkChips,
+    required List<({String label, String targetType, String targetId})> linkChips,
     required VoidCallback? onEdit,
     required String poiName,
     required String poiAddress,
@@ -1005,6 +1039,16 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
       appBar: AppBar(
         backgroundColor: Colors.white.withValues(alpha: 0.8),
         title: const SizedBox.shrink(), // 顶部标题留空
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go(AppRoutes.moment);
+            }
+          },
+        ),
         actions: [
           IconButton(
             onPressed: onDelete == null
@@ -1024,7 +1068,7 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
                               ListTile(
                                 leading: const Icon(Icons.delete, color: Color(0xFFEF4444)),
                                 title: const Text('删除此条小确幸', style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF111827))),
-                                subtitle: const Text('删除后将不可恢复，并同步删除万物互联关系', style: TextStyle(fontSize: 12, color: Color(0xFF9CA3AF))),
+                                subtitle: const Text('删除后将移至回收站，并同步清除万物互联关系', style: TextStyle(fontSize: 12, color: Color(0xFF9CA3AF))),
                                 onTap: () async {
                                   Navigator.of(sheetContext).pop();
                                   final confirmed = await showCustomBottomSheet<bool>(
@@ -1197,7 +1241,13 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
-                        children: [for (final label in linkChips) _LinkChip(label: label)],
+                        children: [
+                          for (final chip in linkChips)
+                            _LinkChip(
+                              label: chip.label,
+                              onTap: () => _navigateToLinked(context, chip.targetType, chip.targetId),
+                            ),
+                        ],
                       ),
                   ],
                 ),
@@ -1435,8 +1485,21 @@ class _MomentDetailPageState extends ConsumerState<MomentDetailPage> {
     return split.content;
   }
 
-  List<String> _buildLinkLabels(String prefix, List<String> names) {
-    return [for (final name in names) '$prefix · $name'];
+  void _navigateToLinked(BuildContext context, String targetType, String targetId) {
+    switch (targetType) {
+      case 'friend':
+        RouteNavigation.pushToFriendProfile(context, targetId);
+        break;
+      case 'food':
+        RouteNavigation.pushToFoodDetail(context, targetId);
+        break;
+      case 'goal':
+        RouteNavigation.pushToGoalDetail(context, targetId);
+        break;
+      case 'travel':
+        RouteNavigation.goToTravelDetail(context, targetId);
+        break;
+    }
   }
 }
 

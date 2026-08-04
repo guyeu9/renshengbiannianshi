@@ -68,6 +68,26 @@ class MomentDetailState {
       return goal?.title ?? '';
     }).where((n) => n.isNotEmpty).toList();
   }
+
+  List<FriendRecord> get linkedFriends {
+    final ids = groupedLinkIds['friend'] ?? <String>{};
+    return friends.where((f) => ids.contains(f.id)).toList(growable: false);
+  }
+
+  List<FoodRecord> get linkedFoods {
+    final ids = groupedLinkIds['food'] ?? <String>{};
+    return foods.where((f) => ids.contains(f.id)).toList(growable: false);
+  }
+
+  List<TravelRecord> get linkedTravels {
+    final ids = groupedLinkIds['travel'] ?? <String>{};
+    return travels.where((t) => ids.contains(t.id)).toList(growable: false);
+  }
+
+  List<GoalRecord> get linkedGoals {
+    final ids = groupedLinkIds['goal'] ?? <String>{};
+    return goals.where((g) => ids.contains(g.id)).toList(growable: false);
+  }
 }
 
 final momentDetailProvider = StreamProvider.family.autoDispose<MomentDetailState?, String>((ref, recordId) {

@@ -28,8 +28,16 @@ class RouteNavigation {
     context.go('${AppRoutes.moment}/$id');
   }
 
+  static Future<bool?> pushToMomentDetail(BuildContext context, String id) {
+    return context.push<bool>('${AppRoutes.moment}/$id');
+  }
+
   static void goToMomentCreate(BuildContext context, {MomentRecord? initialRecord}) {
     context.go(AppRoutes.momentCreate, extra: {'initialRecord': initialRecord});
+  }
+
+  static Future<bool?> pushToMomentCreate(BuildContext context, {MomentRecord? initialRecord}) {
+    return context.push<bool>(AppRoutes.momentCreate, extra: {'initialRecord': initialRecord});
   }
 
   static void goToTravelDetail(BuildContext context, String id, {TravelItem? item}) {
