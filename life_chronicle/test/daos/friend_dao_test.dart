@@ -206,4 +206,179 @@ void main() {
       expect(found!.impressionTags, isNotNull);
     });
   });
+
+  group('FriendDao updateFavorite ChangeLog（修复点：收藏操作记录变更日志）', () {
+    test('updateFavorite 记录 ChangeLog（changedFields 包含 isFavorite）', () async {
+      await friendDao.upsert(FriendRecordsCompanion.insert(
+        id: 'changelog-fav-1',
+        name: 'ChangeLog Test',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ));
+
+      await friendDao.updateFavorite('changelog-fav-1', isFavorite: true, now: DateTime.now());
+
+      final logs = await (db.select(db.changeLogs)
+            ..where((t) => t.entityType.equals('friend_records'))
+            ..where((t) => t.entityId.equals('changelog-fav-1'))
+            ..where((t) => t.action.equals('update')))
+          .get();
+
+      expect(logs, isNotEmpty, reason: '应该记录一条 update 类型的 ChangeLog');
+      expect(logs.first.changedFields, isNotNull);
+      expect(logs.first.changedFields, contains('isFavorite'));
+    });
+
+    test('多次切换收藏状态，每次都记录 ChangeLog', () async {
+      await friendDao.upsert(FriendRecordsCompanion.insert(
+        id: 'changelog-fav-2',
+        name: 'Multi Toggle',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ));
+      final now = DateTime.now();
+
+      await friendDao.updateFavorite('changelog-fav-2', isFavorite: true, now: now);
+      await friendDao.updateFavorite('changelog-fav-2', isFavorite: false, now: now);
+      await friendDao.updateFavorite('changelog-fav-2', isFavorite: true, now: now);
+
+      final logs = await (db.select(db.changeLogs)
+            ..where((t) => t.entityType.equals('friend_records'))
+            ..where((t) => t.entityId.equals('changelog-fav-2'))
+            ..where((t) => t.action.equals('update')))
+          .get();
+
+      expect(logs.length, equals(3), reason: '三次切换应记录三条 ChangeLog');
+    });
+
+    test('updateFavorite 刷新 updatedAt 时间戳', () async {
+      await friendDao.upsert(FriendRecordsCompanion.insert(
+        id: 'changelog-fav-3',
+        name: 'Timestamp Test',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ));
+      final original = await friendDao.findById('changelog-fav-3');
+      final updateTime = DateTime(2026, 8, 5, 12, 0, 0);
+
+      await friendDao.updateFavorite('changelog-fav-3', isFavorite: true, now: updateTime);
+
+      final found = await friendDao.findById('changelog-fav-3');
+      expect(found!.updatedAt, equals(updateTime));
+      expect(found.updatedAt, isNot(equals(original!.updatedAt)));
+    });
+  });
+
+  group('FriendDao watchFavorites（收藏列表查询）', () {
+    test('只返回 isFavorite=true 且 isDeleted=false 的记录', () async {
+      await friendDao.upsert(FriendRecordsCompanion.insert(
+        id: 'watch-fav-1',
+        name: '已收藏',
+        isFavorite: const Value(true),
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ));
+      await friendDao.upsert(FriendRecordsCompanion.insert(
+        id: 'watch-fav-2',
+        name: '未收藏',
+        isFavorite: const Value(false),
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ));
+      await friendDao.upsert(FriendRecordsCompanion.insert(
+        id: 'watch-fav-3',
+        name: '已收藏但已删除',
+        isFavorite: const Value(true),
+        isDeleted: const Value(true),
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ));
+
+      final favorites = await friendDao.watchFavorites().first;
+      final ids = favorites.map((f) => f.id).toList();
+
+      expect(ids, contains('watch-fav-1'));
+      expect(ids, isNot(contains('watch-fav-2')));
+      expect(ids, isNot(contains('watch-fav-3')));
+    });
+
+    test('软删除后不再出现在收藏列表中', () async {
+      await friendDao.upsert(FriendRecordsCompanion.insert(
+        id: 'watch-fav-4',
+        name: '将被软删除的收藏',
+        isFavorite: const Value(true),
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ));
+
+      // 确认初始在收藏列表中
+      var favorites = await friendDao.watchFavorites().first;
+      expect(favorites.any((f) => f.id == 'watch-fav-4'), isTrue);
+
+      // 软删除
+      await friendDao.softDeleteById('watch-fav-4', now: DateTime.now());
+
+      // 确认不再在收藏列表中
+      favorites = await friendDao.watchFavorites().first;
+      expect(favorites.any((f) => f.id == 'watch-fav-4'), isFalse);
+    });
+
+    test('updateFavorite 后 watchFavorites 实时反映变化', () async {
+      await friendDao.upsert(FriendRecordsCompanion.insert(
+        id: 'watch-fav-5',
+        name: '将收藏',
+        isFavorite: const Value(false),
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ));
+
+      // 初始不在收藏列表
+      var favorites = await friendDao.watchFavorites().first;
+      expect(favorites.any((f) => f.id == 'watch-fav-5'), isFalse);
+
+      // 收藏
+      await friendDao.updateFavorite('watch-fav-5', isFavorite: true, now: DateTime.now());
+
+      // 确认在收藏列表中
+      favorites = await friendDao.watchFavorites().first;
+      expect(favorites.any((f) => f.id == 'watch-fav-5'), isTrue);
+    });
+  });
+
+  group('FriendDao softDeleteById 级联清理', () {
+    test('软删除后 isDeleted=true 且 watchById 返回 null（过滤已删除）', () async {
+      await friendDao.upsert(FriendRecordsCompanion.insert(
+        id: 'soft-del-1',
+        name: 'Soft Delete Test',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ));
+
+      await friendDao.softDeleteById('soft-del-1', now: DateTime.now());
+
+      // findById 不过滤 isDeleted，仍可查到
+      final found = await friendDao.findById('soft-del-1');
+      expect(found, isNotNull);
+      expect(found!.isDeleted, isTrue, reason: '软删除后 isDeleted 应为 true');
+
+      // watchById 过滤 isDeleted，返回 null
+      final watched = await friendDao.watchById('soft-del-1').first;
+      expect(watched, isNull, reason: 'watchById 过滤 isDeleted，应返回 null');
+    });
+
+    test('软删除后 watchAllActive 不返回该记录', () async {
+      await friendDao.upsert(FriendRecordsCompanion.insert(
+        id: 'soft-del-2',
+        name: 'Will Be Deleted',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ));
+
+      await friendDao.softDeleteById('soft-del-2', now: DateTime.now());
+
+      final active = await friendDao.watchAllActive().first;
+      expect(active.any((f) => f.id == 'soft-del-2'), isFalse,
+          reason: '软删除后不应出现在 watchAllActive 中');
+    });
+  });
 }
