@@ -211,7 +211,7 @@ class ReminderScheduler {
       return;
     }
 
-    final reminderEnabled = prefs.getBool('reminder_${friend.id}') ?? false;
+    final reminderEnabled = prefs.getBool('reminder_${friend.id}') ?? (freqDays > 0);
     final customDays = prefs.getInt('reminder_${friend.id}_days');
 
     int intervalDays;
@@ -235,6 +235,8 @@ class ReminderScheduler {
     // 如果还没超过间隔天数，不创建提醒
     if (daysSinceLastMeet < intervalDays) {
       debugPrint('Skip contact reminder for ${friend.name}: daysSinceLastMeet=$daysSinceLastMeet < intervalDays=$intervalDays');
+      // 清理旧的 contact reminder，避免 _markExpiredReminders 触发已过期的通知
+      await db.reminderDao.deleteRemindersByTypeAndEntity('contact', 'friend', friend.id);
       return;
     }
 

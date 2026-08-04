@@ -29,10 +29,15 @@ void reminderCallbackDispatcher() {
 
           final service = ReminderService.instance;
           await service.initialize();
+          // 与 _markExpiredReminders 保持一致：contact 类型通知 title 用"联络提醒"，完整信息放入 content
+          final notificationTitle = reminder.type == 'contact' ? '联络提醒' : reminder.title;
+          final notificationContent = reminder.type == 'contact'
+              ? '${reminder.title}${reminder.content != null && reminder.content!.isNotEmpty ? '\n${reminder.content}' : ''}'
+              : reminder.content;
           await service.showImmediateReminder(
             id: reminder.id,
-            title: reminder.title,
-            content: reminder.content,
+            title: notificationTitle,
+            content: notificationContent,
             type: reminder.type,
             payload: '${reminder.type}:${reminder.relatedEntityId ?? ''}',
           );

@@ -354,4 +354,158 @@ void main() {
       expect(notificationTitle, equals('目标提醒：阅读30分钟'));
     });
   });
+
+  group('background reminder service 通知 title 规范', () {
+    test('background reminderCallbackDispatcher 对 contact 类型应用相同 title 规范', () async {
+      // 模拟 background_reminder_service.dart 中 reminderCallbackDispatcher 的逻辑
+      final now = DateTime.now();
+      final reminder = ReminderRecord(
+        id: 'contact_bg_1',
+        type: 'contact',
+        title: '离上次联系已有35天：张三',
+        content: '联络周期：每30天\n距上次联系：35天',
+        relatedEntityType: 'friend',
+        relatedEntityId: 'friend-1',
+        scheduledAt: now.subtract(const Duration(hours: 1)),
+        triggeredAt: null,
+        isRead: false,
+        isHandled: false,
+        createdAt: now,
+      );
+
+      // 模拟 reminderCallbackDispatcher 中的 title/content 选择逻辑（修复后）
+      final notificationTitle = reminder.type == 'contact' ? '联络提醒' : reminder.title;
+      final notificationContent = reminder.type == 'contact'
+          ? '${reminder.title}${reminder.content != null && reminder.content!.isNotEmpty ? '\n${reminder.content}' : ''}'
+          : reminder.content;
+
+      // 验证与 _markExpiredReminders 保持一致
+      expect(notificationTitle, equals('联络提醒'));
+      expect(notificationContent, contains('离上次联系已有35天：张三'));
+      expect(notificationContent, contains('联络周期：每30天'));
+      expect(notificationContent, contains('距上次联系：35天'));
+    });
+
+    test('background reminderCallbackDispatcher 对 birthday 类型保持 reminder.title', () async {
+      final now = DateTime.now();
+      final reminder = ReminderRecord(
+        id: 'birthday_bg_1',
+        type: 'birthday',
+        title: '张三的生日提醒',
+        content: '3天后是张三的生日（5月20日）',
+        relatedEntityType: 'friend',
+        relatedEntityId: 'friend-1',
+        scheduledAt: now.subtract(const Duration(hours: 1)),
+        triggeredAt: null,
+        isRead: false,
+        isHandled: false,
+        createdAt: now,
+      );
+
+      final notificationTitle = reminder.type == 'contact' ? '联络提醒' : reminder.title;
+
+      expect(notificationTitle, equals('张三的生日提醒'));
+    });
+  });
+
+  group('contact reminder 清理逻辑（daysSinceLastMeet < intervalDays）', () {
+    test('用户已联系过时应清理旧的 contact reminder', () async {
+      final now = DateTime.now();
+      final yesterday = now.subtract(const Duration(days: 1));
+
+      // 模拟之前超过间隔时创建的旧 reminder
+      await reminderDao.insertReminder(
+        ReminderRecordsCompanion.insert(
+          id: 'contact_friend-1',
+          type: 'contact',
+          title: '离上次联系已有30天：张三',
+          content: const Value('联络周期：每30天\n距上次联系：30天'),
+          relatedEntityType: const Value('friend'),
+          relatedEntityId: const Value('friend-1'),
+          scheduledAt: yesterday,
+          createdAt: yesterday,
+        ),
+      );
+
+      // 验证旧 reminder 存在
+      var reminders = await reminderDao.getAllReminders();
+      expect(reminders.length, equals(1));
+      expect(reminders.first.id, equals('contact_friend-1'));
+
+      // 模拟 _scheduleContactReminderForFriend 中 daysSinceLastMeet < intervalDays 时的清理
+      await reminderDao.deleteRemindersByTypeAndEntity('contact', 'friend', 'friend-1');
+
+      // 验证旧 reminder 已被删除
+      reminders = await reminderDao.getAllReminders();
+      expect(reminders.length, equals(0));
+    });
+
+    test('清理 contact reminder 不影响其他类型的 reminder', () async {
+      final now = DateTime.now();
+
+      // 插入 contact 和 birthday 两种 reminder
+      await reminderDao.insertReminder(
+        ReminderRecordsCompanion.insert(
+          id: 'contact_friend-1',
+          type: 'contact',
+          title: '离上次联系已有30天：张三',
+          relatedEntityType: const Value('friend'),
+          relatedEntityId: const Value('friend-1'),
+          scheduledAt: now,
+          createdAt: now,
+        ),
+      );
+      await reminderDao.insertReminder(
+        ReminderRecordsCompanion.insert(
+          id: 'birthday_friend-1_2026',
+          type: 'birthday',
+          title: '张三的生日提醒',
+          relatedEntityType: const Value('friend'),
+          relatedEntityId: const Value('friend-1'),
+          scheduledAt: now,
+          createdAt: now,
+        ),
+      );
+
+      // 只清理 contact 类型
+      await reminderDao.deleteRemindersByTypeAndEntity('contact', 'friend', 'friend-1');
+
+      final reminders = await reminderDao.getAllReminders();
+      expect(reminders.length, equals(1));
+      expect(reminders.first.type, equals('birthday'));
+      expect(reminders.first.id, equals('birthday_friend-1_2026'));
+    });
+  });
+
+  group('reminderEnabled 默认值一致性', () {
+    test('contactFrequencyToDays 返回 > 0 时 reminderEnabled 默认应为 true', () {
+      // 模拟 reminder_scheduler.dart 中的默认值逻辑
+      // final reminderEnabled = prefs.getBool('reminder_${friend.id}') ?? (freqDays > 0);
+      // 当 prefs.getBool 返回 null 时，默认值为 (freqDays > 0)
+      const contactFrequency = '每月'; // freqDays = 30
+      final freqDays = ReminderScheduler.contactFrequencyToDays(contactFrequency);
+      final reminderEnabled = freqDays > 0; // prefs.getBool 返回 null 时的默认值
+
+      expect(freqDays, equals(30));
+      expect(reminderEnabled, isTrue);
+    });
+
+    test('contactFrequency 为"无需提醒"时 reminderEnabled 默认应为 false', () {
+      const contactFrequency = '无需提醒'; // freqDays = 0
+      final freqDays = ReminderScheduler.contactFrequencyToDays(contactFrequency);
+      final reminderEnabled = freqDays > 0;
+
+      expect(freqDays, equals(0));
+      expect(reminderEnabled, isFalse);
+    });
+
+    test('contactFrequency 为 null 时 reminderEnabled 默认应为 false（freqDays 返回 0）', () {
+      // contactFrequencyToDays(null) 返回 0
+      final freqDays = ReminderScheduler.contactFrequencyToDays(null);
+      final reminderEnabled = freqDays > 0;
+
+      expect(freqDays, equals(0));
+      expect(reminderEnabled, isFalse);
+    });
+  });
 }

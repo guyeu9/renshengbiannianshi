@@ -288,7 +288,7 @@ class ProfilePage extends ConsumerWidget {
   }
 
   void _showNotificationSettings(BuildContext context) {
-    RouteNavigation.goToReminderSettings(context);
+    RouteNavigation.pushToReminderSettings(context);
   }
 
   @override
@@ -413,7 +413,7 @@ class ProfilePage extends ConsumerWidget {
                               icon: Icons.notifications_active,
                               iconColor: Colors.black,
                               title: '提醒设置',
-                              onTap: () => RouteNavigation.goToReminderSettings(context),
+                              onTap: () => RouteNavigation.pushToReminderSettings(context),
                             ),
                             _ListItem(
                               icon: Icons.lock,

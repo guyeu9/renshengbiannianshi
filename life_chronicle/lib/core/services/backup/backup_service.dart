@@ -1049,7 +1049,7 @@ class BackupService {
   Future<void> _updateSyncState(int timestamp, [int? lastChangeId]) async {
     final deviceId = uuid.v4();
     await db.syncStateDao.upsert(SyncStateCompanion(
-      id: const Value('main'),
+      id: const Value('default'),
       lastSyncTime: Value(DateTime.fromMillisecondsSinceEpoch(timestamp)),
       lastSyncChangeId: lastChangeId != null ? Value(lastChangeId) : const Value(null),
       deviceId: Value(deviceId),

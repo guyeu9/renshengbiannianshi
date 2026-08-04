@@ -184,6 +184,10 @@ class RouteNavigation {
     context.go(AppRoutes.reminderSettings);
   }
 
+  static void pushToReminderSettings(BuildContext context) {
+    context.push(AppRoutes.reminderSettings);
+  }
+
   static void goToPrivacySecurity(BuildContext context) {
     context.go(AppRoutes.privacySecurity);
   }
