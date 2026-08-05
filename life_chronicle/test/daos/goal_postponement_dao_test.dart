@@ -146,4 +146,132 @@ void main() {
       expect(posts[0].reason, equals('Watch reason'));
     });
   });
+
+  // 0.1.160 流式响应与状态同步可靠性测试
+  // 防护 0.1.159 同类 bug：watch* 方法在表数据变化时必须可靠发出新值
+  group('GoalPostponementDao Stream Reliability - watchByGoalId（0.1.160）', () {
+    test('A: 初始状态应返回空列表', () async {
+      final result =
+          await goalPostponementDao.watchByGoalId('gp-stream-goal').first;
+      expect(result, isEmpty);
+    });
+
+    test('B: 插入数据后流应发出包含新记录的列表', () async {
+      final now = DateTime.now();
+      final stream = goalPostponementDao.watchByGoalId('gp-stream-goal-1');
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          isEmpty,
+          predicate((List<GoalPostponement> list) =>
+              list.any((p) => p.id == 'gp-stream-1')),
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await goalPostponementDao.upsert(GoalPostponementsCompanion.insert(
+        id: 'gp-stream-1',
+        goalId: 'gp-stream-goal-1',
+        reason: const Value('Stream Test'),
+        createdAt: now,
+      ));
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('C: 更新数据后流应发出更新后的列表', () async {
+      final now = DateTime.now();
+      await goalPostponementDao.upsert(GoalPostponementsCompanion.insert(
+        id: 'gp-stream-2',
+        goalId: 'gp-stream-goal-2',
+        reason: const Value('Old Reason'),
+        createdAt: now,
+      ));
+      final stream = goalPostponementDao.watchByGoalId('gp-stream-goal-2');
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          predicate((List<GoalPostponement> list) =>
+              list.firstWhere((p) => p.id == 'gp-stream-2').reason ==
+              'Old Reason'),
+          predicate((List<GoalPostponement> list) =>
+              list.firstWhere((p) => p.id == 'gp-stream-2').reason ==
+              'New Reason'),
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await goalPostponementDao.upsert(GoalPostponementsCompanion.insert(
+        id: 'gp-stream-2',
+        goalId: 'gp-stream-goal-2',
+        reason: const Value('New Reason'),
+        createdAt: now,
+      ));
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('D: 物理删除后流应发出不包含该记录的列表', () async {
+      final now = DateTime.now();
+      await goalPostponementDao.upsert(GoalPostponementsCompanion.insert(
+        id: 'gp-stream-3',
+        goalId: 'gp-stream-goal-3',
+        reason: const Value('To Delete'),
+        createdAt: now,
+      ));
+      final stream = goalPostponementDao.watchByGoalId('gp-stream-goal-3');
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          predicate((List<GoalPostponement> list) =>
+              list.any((p) => p.id == 'gp-stream-3')),
+          predicate((List<GoalPostponement> list) =>
+              !list.any((p) => p.id == 'gp-stream-3')),
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await goalPostponementDao.deleteById('gp-stream-3');
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('边界1: 插入多条后应按 createdAt 降序排序', () async {
+      final now = DateTime.now();
+      await goalPostponementDao.upsert(GoalPostponementsCompanion.insert(
+        id: 'gp-stream-order-1',
+        goalId: 'gp-stream-goal-4',
+        reason: const Value('Old Post'),
+        createdAt: now.subtract(const Duration(days: 2)),
+      ));
+      await goalPostponementDao.upsert(GoalPostponementsCompanion.insert(
+        id: 'gp-stream-order-2',
+        goalId: 'gp-stream-goal-4',
+        reason: const Value('New Post'),
+        createdAt: now,
+      ));
+      final result =
+          await goalPostponementDao.watchByGoalId('gp-stream-goal-4').first;
+      expect(result.first.id, equals('gp-stream-order-2'));
+      expect(result.last.id, equals('gp-stream-order-1'));
+    });
+
+    test('边界2: 不同 goalId 不应出现在结果中', () async {
+      final now = DateTime.now();
+      await goalPostponementDao.upsert(GoalPostponementsCompanion.insert(
+        id: 'gp-stream-other-1',
+        goalId: 'gp-stream-other-goal',
+        reason: const Value('Other Goal Post'),
+        createdAt: now,
+      ));
+      await goalPostponementDao.upsert(GoalPostponementsCompanion.insert(
+        id: 'gp-stream-target-1',
+        goalId: 'gp-stream-target-goal',
+        reason: const Value('Target Goal Post'),
+        createdAt: now,
+      ));
+      final result = await goalPostponementDao
+          .watchByGoalId('gp-stream-target-goal')
+          .first;
+      expect(result.any((p) => p.id == 'gp-stream-other-1'), isFalse);
+      expect(result.any((p) => p.id == 'gp-stream-target-1'), isTrue);
+    });
+  });
 }

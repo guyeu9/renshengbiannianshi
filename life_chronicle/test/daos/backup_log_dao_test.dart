@@ -255,4 +255,216 @@ void main() {
       expect(logs.any((l) => l.id == 'watch-log-3'), isFalse);
     });
   });
+
+  // 0.1.160 流式响应与状态同步可靠性测试
+  // 防护 0.1.159 同类 bug：watch* 方法在表数据变化时必须可靠发出新值
+  group('BackupLogDao Stream Reliability - watchAll（0.1.160）', () {
+    test('A: 初始状态应返回空列表', () async {
+      final result = await backupLogDao.watchAll().first;
+      expect(result, isEmpty);
+    });
+
+    test('B: 插入数据后流应发出包含新记录的列表', () async {
+      final now = DateTime.now();
+      final stream = backupLogDao.watchAll();
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          isEmpty,
+          predicate((List<BackupLog> list) => list.any((l) => l.id == 'bl-stream-all-1')),
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await backupLogDao.insert(BackupLogsCompanion.insert(
+        id: 'bl-stream-all-1',
+        backupType: 'manual',
+        storageType: 'local',
+        fileName: 'backup_stream.db',
+        status: 'in_progress',
+        startedAt: now,
+        createdAt: now,
+      ));
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('C: 更新数据后流应发出包含更新后记录的列表', () async {
+      final now = DateTime.now();
+      await backupLogDao.insert(BackupLogsCompanion.insert(
+        id: 'bl-stream-all-2',
+        backupType: 'manual',
+        storageType: 'local',
+        fileName: 'backup_stream.db',
+        status: 'in_progress',
+        startedAt: now,
+        createdAt: now,
+      ));
+      final stream = backupLogDao.watchAll();
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          predicate((List<BackupLog> list) => list.firstWhere((l) => l.id == 'bl-stream-all-2').status == 'in_progress'),
+          predicate((List<BackupLog> list) => list.firstWhere((l) => l.id == 'bl-stream-all-2').status == 'completed'),
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await backupLogDao.updateStatus('bl-stream-all-2', 'completed', completedAt: now);
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('D: 物理删除后流应发出不包含已删除记录的列表', () async {
+      final now = DateTime.now();
+      await backupLogDao.insert(BackupLogsCompanion.insert(
+        id: 'bl-stream-all-3',
+        backupType: 'manual',
+        storageType: 'local',
+        fileName: 'backup_stream.db',
+        status: 'completed',
+        startedAt: now,
+        createdAt: now,
+      ));
+      final stream = backupLogDao.watchAll();
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          predicate((List<BackupLog> list) => list.any((l) => l.id == 'bl-stream-all-3')),
+          predicate((List<BackupLog> list) => !list.any((l) => l.id == 'bl-stream-all-3')),
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await backupLogDao.deleteById('bl-stream-all-3');
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('边界1: 插入多条后应按 createdAt 降序排序', () async {
+      final now = DateTime.now();
+      await backupLogDao.insert(BackupLogsCompanion.insert(
+        id: 'bl-stream-order-1',
+        backupType: 'manual',
+        storageType: 'local',
+        fileName: 'backup1.db',
+        status: 'completed',
+        startedAt: now,
+        createdAt: now.subtract(const Duration(days: 1)),
+      ));
+      await backupLogDao.insert(BackupLogsCompanion.insert(
+        id: 'bl-stream-order-2',
+        backupType: 'manual',
+        storageType: 'local',
+        fileName: 'backup2.db',
+        status: 'completed',
+        startedAt: now,
+        createdAt: now,
+      ));
+      final result = await backupLogDao.watchAll().first;
+      expect(result.first.id, equals('bl-stream-order-2'));
+      expect(result.last.id, equals('bl-stream-order-1'));
+    });
+
+    test('边界2: 物理删除后不返回', () async {
+      final now = DateTime.now();
+      await backupLogDao.insert(BackupLogsCompanion.insert(
+        id: 'bl-stream-deleted-1',
+        backupType: 'manual',
+        storageType: 'local',
+        fileName: 'backup.db',
+        status: 'completed',
+        startedAt: now,
+        createdAt: now,
+      ));
+      await backupLogDao.deleteById('bl-stream-deleted-1');
+      final result = await backupLogDao.watchAll().first;
+      expect(result.any((l) => l.id == 'bl-stream-deleted-1'), isFalse);
+    });
+  });
+
+  // 0.1.160 流式响应与状态同步可靠性测试
+  // 防护 0.1.159 同类 bug：watch* 方法在表数据变化时必须可靠发出新值
+  group('BackupLogDao Stream Reliability - watchByStorageType（0.1.160）', () {
+    test('A: 初始状态应返回空列表', () async {
+      final result = await backupLogDao.watchByStorageType('local').first;
+      expect(result, isEmpty);
+    });
+
+    test('B: 插入数据后流应发出包含新记录的列表', () async {
+      final now = DateTime.now();
+      final stream = backupLogDao.watchByStorageType('local');
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          isEmpty,
+          predicate((List<BackupLog> list) => list.any((l) => l.id == 'bl-stream-st-1')),
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await backupLogDao.insert(BackupLogsCompanion.insert(
+        id: 'bl-stream-st-1',
+        backupType: 'manual',
+        storageType: 'local',
+        fileName: 'backup.db',
+        status: 'in_progress',
+        startedAt: now,
+        createdAt: now,
+      ));
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('边界1: 不同 storageType 不返回', () async {
+      final now = DateTime.now();
+      await backupLogDao.insert(BackupLogsCompanion.insert(
+        id: 'bl-stream-st-2',
+        backupType: 'manual',
+        storageType: 'webdav',
+        fileName: 'backup.db',
+        status: 'completed',
+        startedAt: now,
+        createdAt: now,
+      ));
+      final result = await backupLogDao.watchByStorageType('local').first;
+      expect(result.any((l) => l.id == 'bl-stream-st-2'), isFalse);
+    });
+
+    test('边界2: updateStatus 后流式响应', () async {
+      final now = DateTime.now();
+      await backupLogDao.insert(BackupLogsCompanion.insert(
+        id: 'bl-stream-st-3',
+        backupType: 'manual',
+        storageType: 'local',
+        fileName: 'backup.db',
+        status: 'in_progress',
+        startedAt: now,
+        createdAt: now,
+      ));
+      final stream = backupLogDao.watchByStorageType('local');
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          predicate((List<BackupLog> list) => list.firstWhere((l) => l.id == 'bl-stream-st-3').status == 'in_progress'),
+          predicate((List<BackupLog> list) => list.firstWhere((l) => l.id == 'bl-stream-st-3').status == 'completed'),
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await backupLogDao.updateStatus('bl-stream-st-3', 'completed', completedAt: now);
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('边界3: 空结果', () async {
+      final now = DateTime.now();
+      await backupLogDao.insert(BackupLogsCompanion.insert(
+        id: 'bl-stream-st-4',
+        backupType: 'manual',
+        storageType: 'local',
+        fileName: 'backup.db',
+        status: 'completed',
+        startedAt: now,
+        createdAt: now,
+      ));
+      final result = await backupLogDao.watchByStorageType('cloud').first;
+      expect(result, isEmpty);
+    });
+  });
 }

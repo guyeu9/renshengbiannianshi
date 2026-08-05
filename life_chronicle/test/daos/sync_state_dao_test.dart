@@ -144,4 +144,182 @@ void main() {
       expect(found!.lastSyncChangeId, isNull);
     });
   });
+
+  // 0.1.160 流式响应与状态同步可靠性测试
+  // 防护 0.1.159 同类 bug：watch* 方法在表数据变化时必须可靠发出新值
+  group('SyncStateDao Stream Reliability - watchById（0.1.160）', () {
+    test('A: 初始状态（不存在的 id）应返回 null', () async {
+      final result = await syncStateDao.watchById('ss-stream-nonexist').first;
+      expect(result, isNull);
+    });
+
+    test('B: 插入数据后流应发出新值', () async {
+      final now = DateTime.now();
+      final stream = syncStateDao.watchById('ss-stream-1');
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          isNull,
+          isNotNull,
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await syncStateDao.upsert(SyncStateCompanion.insert(
+        id: 'ss-stream-1',
+        deviceId: 'stream-device-1',
+        lastSyncTime: Value(now),
+        lastSyncChangeId: const Value(100),
+      ));
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('C: 更新数据后流应发出新值', () async {
+      final now = DateTime.now();
+      await syncStateDao.upsert(SyncStateCompanion.insert(
+        id: 'ss-stream-2',
+        deviceId: 'old-device',
+        lastSyncTime: Value(now),
+        lastSyncChangeId: const Value(100),
+      ));
+      final stream = syncStateDao.watchById('ss-stream-2');
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          predicate((SyncStateData? s) => s?.deviceId == 'old-device'),
+          predicate((SyncStateData? s) => s?.deviceId == 'new-device'),
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await syncStateDao.upsert(SyncStateCompanion.insert(
+        id: 'ss-stream-2',
+        deviceId: 'new-device',
+        lastSyncTime: Value(now),
+        lastSyncChangeId: const Value(200),
+      ));
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('边界1: 不存在的 id 应返回 null', () async {
+      final result = await syncStateDao.watchById('').first;
+      expect(result, isNull);
+    });
+
+    test('边界2: upsert 后流应发出更新后的新值', () async {
+      final now = DateTime.now();
+      await syncStateDao.upsert(SyncStateCompanion.insert(
+        id: 'ss-stream-3',
+        deviceId: 'boundary-device',
+        lastSyncTime: Value(now),
+        lastSyncChangeId: const Value(100),
+      ));
+      final stream = syncStateDao.watchById('ss-stream-3');
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          predicate((SyncStateData? s) => s?.lastSyncChangeId == 100),
+          predicate((SyncStateData? s) => s?.lastSyncChangeId == 200),
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await syncStateDao.upsert(SyncStateCompanion.insert(
+        id: 'ss-stream-3',
+        deviceId: 'boundary-device',
+        lastSyncTime: Value(now),
+        lastSyncChangeId: const Value(200),
+      ));
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+  });
+
+  // 0.1.160 流式响应与状态同步可靠性测试
+  // 防护 0.1.159 同类 bug：watch* 方法在表数据变化时必须可靠发出新值
+  group('SyncStateDao Stream Reliability - watchDefault（0.1.160）', () {
+    test('A: 初始状态应返回 null', () async {
+      final result = await syncStateDao.watchDefault().first;
+      expect(result, isNull);
+    });
+
+    test('B: 插入数据后流应发出新值', () async {
+      final now = DateTime.now();
+      final stream = syncStateDao.watchDefault();
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          isNull,
+          isNotNull,
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await syncStateDao.upsert(SyncStateCompanion.insert(
+        id: 'default',
+        deviceId: 'default-device',
+        lastSyncTime: Value(now),
+        lastSyncChangeId: const Value(100),
+      ));
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('C: 更新数据后流应发出新值', () async {
+      final now = DateTime.now();
+      await syncStateDao.upsert(SyncStateCompanion.insert(
+        id: 'default',
+        deviceId: 'default-device',
+        lastSyncTime: Value(now),
+        lastSyncChangeId: const Value(100),
+      ));
+      final stream = syncStateDao.watchDefault();
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          predicate((SyncStateData? s) => s?.lastSyncChangeId == 100),
+          predicate((SyncStateData? s) => s?.lastSyncChangeId == 200),
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await syncStateDao.upsert(SyncStateCompanion.insert(
+        id: 'default',
+        deviceId: 'default-device',
+        lastSyncTime: Value(now),
+        lastSyncChangeId: const Value(200),
+      ));
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('边界1: 未插入 default 记录时应返回 null', () async {
+      final result = await syncStateDao.watchDefault().first;
+      expect(result, isNull);
+    });
+
+    test('边界2: updateLastSync 后流应发出新值', () async {
+      final now = DateTime.now();
+      await syncStateDao.updateLastSync(
+        'default',
+        lastSyncTime: now,
+        lastSyncChangeId: 100,
+        deviceId: 'update-device',
+      );
+      final stream = syncStateDao.watchDefault();
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          predicate((SyncStateData? s) => s?.lastSyncChangeId == 100),
+          predicate((SyncStateData? s) => s?.lastSyncChangeId == 200),
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await syncStateDao.updateLastSync(
+        'default',
+        lastSyncTime: now,
+        lastSyncChangeId: 200,
+        deviceId: 'update-device',
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+  });
 }

@@ -175,4 +175,133 @@ void main() {
       expect(logs.length, greaterThanOrEqualTo(1));
     });
   });
+
+  // 0.1.160 流式响应与状态同步可靠性测试
+  // 防护 0.1.159 同类 bug：watch* 方法在表数据变化时必须可靠发出新值
+  group('ChangeLogDao Stream Reliability - watchAll（0.1.160）', () {
+    test('A: 初始状态应返回空列表', () async {
+      final result = await changeLogDao.watchAll().first;
+      expect(result, isEmpty);
+    });
+
+    test('B: 插入数据后流应发出包含新记录的列表', () async {
+      final now = DateTime.now();
+      final stream = changeLogDao.watchAll();
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          isEmpty,
+          predicate((List<ChangeLog> list) =>
+              list.any((l) => l.entityId == 'cl-stream-1')),
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await changeLogDao.insert(ChangeLogsCompanion.insert(
+        entityType: 'moment',
+        entityId: 'cl-stream-1',
+        action: 'insert',
+        timestamp: now,
+      ));
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('C: 更新数据后流应发出新值', () async {
+      final now = DateTime.now();
+      await changeLogDao.insert(ChangeLogsCompanion.insert(
+        entityType: 'moment',
+        entityId: 'cl-stream-2',
+        action: 'insert',
+        timestamp: now,
+      ));
+      final logs = await changeLogDao.findAll();
+      final logId = logs.firstWhere((l) => l.entityId == 'cl-stream-2').id;
+      final stream = changeLogDao.watchAll();
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          predicate((List<ChangeLog> list) =>
+              list.firstWhere((l) => l.id == logId).synced == false),
+          predicate((List<ChangeLog> list) =>
+              list.firstWhere((l) => l.id == logId).synced == true),
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await changeLogDao.markAsSynced(logId);
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('D: 删除后流应发出不包含该记录的列表', () async {
+      final now = DateTime.now();
+      await changeLogDao.insert(ChangeLogsCompanion.insert(
+        entityType: 'moment',
+        entityId: 'cl-stream-3',
+        action: 'insert',
+        timestamp: now,
+      ));
+      final logs = await changeLogDao.findAll();
+      final logId = logs.first.id;
+      await changeLogDao.markAsSynced(logId);
+      final stream = changeLogDao.watchAll();
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          predicate(
+              (List<ChangeLog> list) => list.any((l) => l.id == logId)),
+          predicate(
+              (List<ChangeLog> list) => !list.any((l) => l.id == logId)),
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await changeLogDao.deleteAllSynced();
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('边界1: 插入多条后应按 id 降序排序', () async {
+      final now = DateTime.now();
+      await changeLogDao.insert(ChangeLogsCompanion.insert(
+        entityType: 'moment',
+        entityId: 'cl-stream-4',
+        action: 'insert',
+        timestamp: now,
+      ));
+      await changeLogDao.insert(ChangeLogsCompanion.insert(
+        entityType: 'moment',
+        entityId: 'cl-stream-5',
+        action: 'insert',
+        timestamp: now,
+      ));
+      final result = await changeLogDao.watchAll().first;
+      expect(result.length, greaterThanOrEqualTo(2));
+      expect(result.first.id, greaterThan(result.last.id));
+    });
+
+    test('边界2: markAsSynced 后流应发出 synced=true 的记录', () async {
+      final now = DateTime.now();
+      await changeLogDao.insert(ChangeLogsCompanion.insert(
+        entityType: 'moment',
+        entityId: 'cl-stream-6',
+        action: 'insert',
+        timestamp: now,
+      ));
+      final logs = await changeLogDao.findAll();
+      final logId = logs.firstWhere((l) => l.entityId == 'cl-stream-6').id;
+      final stream = changeLogDao.watchAll();
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          predicate((List<ChangeLog> list) =>
+              list.any((l) => l.id == logId && l.synced == false)),
+          predicate((List<ChangeLog> list) =>
+              list.any((l) => l.id == logId && l.synced == true)),
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await changeLogDao.markAsSynced(logId);
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+  });
 }
