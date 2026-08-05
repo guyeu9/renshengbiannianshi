@@ -37,7 +37,7 @@ void main() {
   });
 
   /// 插入一条好友记录用于测试
-  Future<void> _insertFriend({
+  Future<void> insertFriend({
     String id = 'test-friend-1',
     String name = '测试好友',
     bool isFavorite = false,
@@ -54,7 +54,7 @@ void main() {
 
   group('BondPage 首页好友卡片跳转（go 导航）', () {
     testWidgets('点击好友卡片跳转到详情页', (tester) async {
-      await _insertFriend(id: 'home-friend-1', name: '首页测试好友');
+      await insertFriend(id: 'home-friend-1', name: '首页测试好友');
 
       await tester.pumpWidget(_buildTestApp(db, initialLocation: '/bond'));
       await tester.pumpAndSettle();
@@ -74,7 +74,7 @@ void main() {
 
   group('FriendProfilePage 编辑按钮导航（修复点A：push 替代 go）', () {
     testWidgets('点击编辑使用 push，返回后回到详情页', (tester) async {
-      await _insertFriend(id: 'edit-friend-1', name: '编辑测试好友');
+      await insertFriend(id: 'edit-friend-1', name: '编辑测试好友');
 
       await tester.pumpWidget(_buildTestApp(db, initialLocation: '/bond/friend/edit-friend-1'));
       await tester.pumpAndSettle();
@@ -101,7 +101,7 @@ void main() {
 
   group('FriendProfilePage 收藏按钮（修复点：使用 FriendDao.updateFavorite）', () {
     testWidgets('点击收藏按钮切换 isFavorite 状态并记录 ChangeLog', (tester) async {
-      await _insertFriend(id: 'fav-friend-1', name: '收藏测试好友', isFavorite: false);
+      await insertFriend(id: 'fav-friend-1', name: '收藏测试好友', isFavorite: false);
 
       await tester.pumpWidget(_buildTestApp(db, initialLocation: '/bond/friend/fav-friend-1'));
       await tester.pumpAndSettle();
@@ -136,7 +136,7 @@ void main() {
     });
 
     testWidgets('再次点击取消收藏，状态正确切换', (tester) async {
-      await _insertFriend(id: 'fav-friend-2', name: '取消收藏测试', isFavorite: true);
+      await insertFriend(id: 'fav-friend-2', name: '取消收藏测试', isFavorite: true);
 
       await tester.pumpWidget(_buildTestApp(db, initialLocation: '/bond/friend/fav-friend-2'));
       await tester.pumpAndSettle();
@@ -161,7 +161,7 @@ void main() {
 
   group('FriendProfilePage 返回按钮', () {
     testWidgets('详情页返回按钮 pop 回到首页', (tester) async {
-      await _insertFriend(id: 'back-friend-1', name: '返回测试好友');
+      await insertFriend(id: 'back-friend-1', name: '返回测试好友');
 
       await tester.pumpWidget(_buildTestApp(db, initialLocation: '/bond'));
       await tester.pumpAndSettle();

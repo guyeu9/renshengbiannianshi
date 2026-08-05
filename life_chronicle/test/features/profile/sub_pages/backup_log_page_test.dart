@@ -4,7 +4,6 @@ import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_chronicle/core/database/app_database.dart';
-import 'package:life_chronicle/features/profile/presentation/backup_log_page.dart';
 
 import '../../../test_utils/test_database.dart';
 import '../helpers/profile_test_helpers.dart';

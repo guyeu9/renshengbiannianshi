@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_chronicle/core/database/app_database.dart';
-import 'package:life_chronicle/features/profile/presentation/reminder_settings_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../test_utils/test_database.dart';

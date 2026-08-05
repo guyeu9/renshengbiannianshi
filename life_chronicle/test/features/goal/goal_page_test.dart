@@ -38,7 +38,7 @@ void main() {
   });
 
   /// 插入一条目标记录用于测试
-  Future<GoalRecord> _insertGoal({
+  Future<GoalRecord> insertGoal({
     String id = 'test-goal-1',
     String title = '测试目标',
     bool isFavorite = false,
@@ -58,7 +58,7 @@ void main() {
 
   group('GoalDetailPage 操作菜单导航（修复点5：push 替代 go）', () {
     testWidgets('点击"编辑"使用 push，返回后回到详情页', (tester) async {
-      await _insertGoal(id: 'nav-edit-1', title: '编辑导航测试目标');
+      await insertGoal(id: 'nav-edit-1', title: '编辑导航测试目标');
 
       await tester.pumpWidget(_buildTestApp(db, initialLocation: '/goal/nav-edit-1'));
       await tester.pumpAndSettle();
@@ -90,7 +90,7 @@ void main() {
     });
 
     testWidgets('点击"拆解维护"使用 push，返回后回到详情页', (tester) async {
-      await _insertGoal(id: 'nav-maintain-1', title: '拆解维护导航测试');
+      await insertGoal(id: 'nav-maintain-1', title: '拆解维护导航测试');
 
       await tester.pumpWidget(_buildTestApp(db, initialLocation: '/goal/nav-maintain-1'));
       await tester.pumpAndSettle();
@@ -121,7 +121,7 @@ void main() {
 
   group('GoalDetailPage 顺延计划按钮导航（修复点5）', () {
     testWidgets('点击"顺延计划"使用 push，返回后回到详情页', (tester) async {
-      await _insertGoal(id: 'nav-postpone-1', title: '顺延导航测试');
+      await insertGoal(id: 'nav-postpone-1', title: '顺延导航测试');
 
       await tester.pumpWidget(_buildTestApp(db, initialLocation: '/goal/nav-postpone-1'));
       await tester.pumpAndSettle();
@@ -156,7 +156,7 @@ void main() {
 
   group('GoalDetailPage 收藏按钮（修复点6：改用 GoalDao.updateFavorite）', () {
     testWidgets('点击收藏按钮切换 isFavorite 状态并记录 ChangeLog', (tester) async {
-      await _insertGoal(id: 'fav-btn-1', title: '收藏按钮测试', isFavorite: false);
+      await insertGoal(id: 'fav-btn-1', title: '收藏按钮测试', isFavorite: false);
 
       await tester.pumpWidget(_buildTestApp(db, initialLocation: '/goal/fav-btn-1'));
       await tester.pumpAndSettle();
@@ -199,7 +199,7 @@ void main() {
     });
 
     testWidgets('再次点击取消收藏，状态正确切换', (tester) async {
-      await _insertGoal(id: 'fav-btn-2', title: '取消收藏测试', isFavorite: true);
+      await insertGoal(id: 'fav-btn-2', title: '取消收藏测试', isFavorite: true);
 
       await tester.pumpWidget(_buildTestApp(db, initialLocation: '/goal/fav-btn-2'));
       await tester.pumpAndSettle();

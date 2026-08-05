@@ -13,8 +13,14 @@ void main() {
     });
 
     tearDownAll(() async {
-      if (await tempDir.exists()) {
-        await tempDir.delete(recursive: true);
+      // Windows 上文件句柄释放有延迟，测试中个别文件可能仍被占用；
+      // 用 try-catch 兜底，避免单个文件删除失败导致整个 tearDownAll 失败
+      try {
+        if (await tempDir.exists()) {
+          await tempDir.delete(recursive: true);
+        }
+      } catch (_) {
+        // 忽略残留文件锁，由系统后续清理
       }
     });
 
@@ -126,7 +132,9 @@ void main() {
           'correct_password',
         );
 
-        expect(
+        // 必须使用 await expectLater 等待异步函数完成，否则 decryptFile 仍在后台
+        // 读取 encryptedFile，Windows 上会触发文件锁（errno=32）导致后续删除失败
+        await expectLater(
           () => EncryptionService.decryptFile(encryptedFile, 'wrong_password'),
           throwsA(anyOf(isA<Exception>(), isA<ArgumentError>())),
         );
@@ -212,7 +220,19 @@ void main() {
           throwsA(isA<Exception>()),
         );
 
-        await emptyZipFile.delete();
+        // Windows 上 readAsBytes 的文件句柄释放有延迟，即使 await expectLater 已完成
+        // 异步函数也可能句柄尚未释放；短暂等待后再删除，并用 try-catch 兜底
+        await Future.delayed(const Duration(milliseconds: 50));
+        try {
+          await emptyZipFile.delete();
+        } catch (_) {
+          // 句柄尚未释放，由 tearDownAll 统一清理
+        }
+        try {
+          await Directory(extractDir).delete(recursive: true);
+        } catch (_) {
+          // 同上
+        }
       });
     });
   });

@@ -17,7 +17,7 @@ void main() {
   });
 
   /// 插入一条目标记录用于测试
-  Future<GoalRecord> _insertGoal({
+  Future<GoalRecord> insertGoal({
     String id = 'test-goal-1',
     String title = '测试目标',
     bool isFavorite = false,
@@ -40,7 +40,7 @@ void main() {
 
   group('GoalDao.updateFavorite（修复点6：收藏操作改用 DAO 记录 ChangeLog）', () {
     test('从 false 改为 true，isFavorite 字段正确更新', () async {
-      await _insertGoal(id: 'fav-1', isFavorite: false);
+      await insertGoal(id: 'fav-1', isFavorite: false);
       final now = DateTime.now();
 
       await goalDao.updateFavorite('fav-1', isFavorite: true, now: now);
@@ -51,7 +51,7 @@ void main() {
     });
 
     test('从 true 改为 false，isFavorite 字段正确更新', () async {
-      await _insertGoal(id: 'fav-2', isFavorite: true);
+      await insertGoal(id: 'fav-2', isFavorite: true);
       final now = DateTime.now();
 
       await goalDao.updateFavorite('fav-2', isFavorite: false, now: now);
@@ -62,7 +62,7 @@ void main() {
     });
 
     test('更新后 updatedAt 时间戳被刷新', () async {
-      await _insertGoal(id: 'fav-3', isFavorite: false);
+      await insertGoal(id: 'fav-3', isFavorite: false);
       final original = await goalDao.findById('fav-3');
       final updateTime = DateTime(2026, 8, 5, 12, 0, 0);
 
@@ -75,7 +75,7 @@ void main() {
     });
 
     test('记录 ChangeLog（changedFields 包含 isFavorite）', () async {
-      await _insertGoal(id: 'fav-4', isFavorite: false);
+      await insertGoal(id: 'fav-4', isFavorite: false);
       final now = DateTime.now();
 
       await goalDao.updateFavorite('fav-4', isFavorite: true, now: now);
@@ -93,7 +93,7 @@ void main() {
     });
 
     test('多次切换收藏状态，每次都记录 ChangeLog', () async {
-      await _insertGoal(id: 'fav-5', isFavorite: false);
+      await insertGoal(id: 'fav-5', isFavorite: false);
       final now = DateTime.now();
 
       await goalDao.updateFavorite('fav-5', isFavorite: true, now: now);
@@ -115,9 +115,9 @@ void main() {
 
   group('GoalDao.watchFavorites（收藏列表查询）', () {
     test('只返回 isFavorite=true 且 isDeleted=false 的记录', () async {
-      await _insertGoal(id: 'watch-1', title: '已收藏', isFavorite: true);
-      await _insertGoal(id: 'watch-2', title: '未收藏', isFavorite: false);
-      await _insertGoal(id: 'watch-3', title: '已收藏但已删除', isFavorite: true, isDeleted: true);
+      await insertGoal(id: 'watch-1', title: '已收藏', isFavorite: true);
+      await insertGoal(id: 'watch-2', title: '未收藏', isFavorite: false);
+      await insertGoal(id: 'watch-3', title: '已收藏但已删除', isFavorite: true, isDeleted: true);
 
       final favorites = await goalDao.watchFavorites().first;
 
@@ -128,7 +128,7 @@ void main() {
     });
 
     test('软删除后不再出现在收藏列表中', () async {
-      await _insertGoal(id: 'watch-4', title: '将被软删除的收藏', isFavorite: true);
+      await insertGoal(id: 'watch-4', title: '将被软删除的收藏', isFavorite: true);
 
       // 确认初始在收藏列表中
       var favorites = await goalDao.watchFavorites().first;
@@ -143,7 +143,7 @@ void main() {
     });
 
     test('updateFavorite 后 watchFavorites 实时反映变化', () async {
-      await _insertGoal(id: 'watch-5', title: '将收藏', isFavorite: false);
+      await insertGoal(id: 'watch-5', title: '将收藏', isFavorite: false);
       final now = DateTime.now();
 
       // 初始不在收藏列表
