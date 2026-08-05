@@ -381,4 +381,335 @@ void main() {
           reason: '软删除后不应出现在 watchAllActive 中');
     });
   });
+
+  // 0.1.160 流式响应与状态同步可靠性测试
+  // 防护 0.1.159 同类 bug：watch* 方法在表数据变化时必须可靠发出新值
+  group('FriendDao Stream Reliability - watchById（0.1.160）', () {
+    test('A: 初始状态（不存在的 id）应返回 null', () async {
+      final result = await friendDao.watchById('non-existent').first;
+      expect(result, isNull);
+    });
+
+    test('B: 插入数据后流应发出新值', () async {
+      final now = DateTime.now();
+      final stream = friendDao.watchById('f-stream-byid-1');
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          isNull,
+          isNotNull,
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await friendDao.upsert(FriendRecordsCompanion.insert(
+        id: 'f-stream-byid-1',
+        name: '张三',
+        createdAt: now,
+        updatedAt: now,
+      ));
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('C: 更新数据后流应发出新值', () async {
+      final now = DateTime.now();
+      await friendDao.upsert(FriendRecordsCompanion.insert(
+        id: 'f-stream-byid-2',
+        name: '旧名',
+        createdAt: now,
+        updatedAt: now,
+      ));
+      final stream = friendDao.watchById('f-stream-byid-2');
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          predicate((FriendRecord? r) => r?.name == '旧名'),
+          predicate((FriendRecord? r) => r?.name == '新名'),
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await friendDao.upsert(FriendRecordsCompanion.insert(
+        id: 'f-stream-byid-2',
+        name: '新名',
+        createdAt: now,
+        updatedAt: now,
+      ));
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('D: 软删除后流应发出 null（watchById 过滤 isDeleted）', () async {
+      final now = DateTime.now();
+      await friendDao.upsert(FriendRecordsCompanion.insert(
+        id: 'f-stream-byid-3',
+        name: '李四',
+        createdAt: now,
+        updatedAt: now,
+      ));
+      final stream = friendDao.watchById('f-stream-byid-3');
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          isNotNull,
+          isNull,
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await friendDao.softDeleteById('f-stream-byid-3', now: now);
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('边界1: 不存在的 id 应返回 null', () async {
+      final result = await friendDao.watchById('').first;
+      expect(result, isNull);
+    });
+
+    test('边界2: 软删除的记录应返回 null', () async {
+      final now = DateTime.now();
+      await friendDao.upsert(FriendRecordsCompanion.insert(
+        id: 'f-stream-byid-4',
+        name: '王五',
+        createdAt: now,
+        updatedAt: now,
+      ));
+      await friendDao.softDeleteById('f-stream-byid-4', now: now);
+      final result = await friendDao.watchById('f-stream-byid-4').first;
+      expect(result, isNull);
+    });
+  });
+
+  group('FriendDao Stream Reliability - watchAllActive（0.1.160）', () {
+    test('A: 初始状态应返回空列表', () async {
+      final result = await friendDao.watchAllActive().first;
+      expect(result, isEmpty);
+    });
+
+    test('B: 插入数据后流应发出包含新记录的列表', () async {
+      final now = DateTime.now();
+      final stream = friendDao.watchAllActive();
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          isEmpty,
+          predicate((List<FriendRecord> list) => list.any((r) => r.id == 'f-stream-all-1')),
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await friendDao.upsert(FriendRecordsCompanion.insert(
+        id: 'f-stream-all-1',
+        name: '赵六',
+        createdAt: now,
+        updatedAt: now,
+      ));
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('C: 更新数据后流应发出包含更新后记录的列表', () async {
+      final now = DateTime.now();
+      await friendDao.upsert(FriendRecordsCompanion.insert(
+        id: 'f-stream-all-2',
+        name: '旧名',
+        createdAt: now,
+        updatedAt: now,
+      ));
+      final stream = friendDao.watchAllActive();
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          predicate((List<FriendRecord> list) => list.firstWhere((r) => r.id == 'f-stream-all-2').name == '旧名'),
+          predicate((List<FriendRecord> list) => list.firstWhere((r) => r.id == 'f-stream-all-2').name == '新名'),
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await friendDao.upsert(FriendRecordsCompanion.insert(
+        id: 'f-stream-all-2',
+        name: '新名',
+        createdAt: now,
+        updatedAt: now,
+      ));
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('D: 软删除后流应发出不包含已删除记录的列表', () async {
+      final now = DateTime.now();
+      await friendDao.upsert(FriendRecordsCompanion.insert(
+        id: 'f-stream-all-3',
+        name: '孙七',
+        createdAt: now,
+        updatedAt: now,
+      ));
+      final stream = friendDao.watchAllActive();
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          predicate((List<FriendRecord> list) => list.any((r) => r.id == 'f-stream-all-3')),
+          predicate((List<FriendRecord> list) => !list.any((r) => r.id == 'f-stream-all-3')),
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await friendDao.softDeleteById('f-stream-all-3', now: now);
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('边界1: 插入多条后应按 isFavorite 降序 + updatedAt 降序排序', () async {
+      final now = DateTime.now();
+      await friendDao.upsert(FriendRecordsCompanion.insert(
+        id: 'f-stream-order-1',
+        name: '非收藏旧',
+        createdAt: now,
+        updatedAt: now,
+      ));
+      await friendDao.upsert(FriendRecordsCompanion.insert(
+        id: 'f-stream-order-2',
+        name: '收藏新',
+        createdAt: now,
+        updatedAt: now.add(const Duration(seconds: 1)),
+        isFavorite: const Value(true),
+      ));
+      final result = await friendDao.watchAllActive().first;
+      // 收藏的应排在前面
+      expect(result.first.id, equals('f-stream-order-2'));
+    });
+
+    test('边界2: 软删除后再插入新记录应只返回活跃记录', () async {
+      final now = DateTime.now();
+      await friendDao.upsert(FriendRecordsCompanion.insert(
+        id: 'f-stream-mixed-1',
+        name: '将删除',
+        createdAt: now,
+        updatedAt: now,
+      ));
+      await friendDao.softDeleteById('f-stream-mixed-1', now: now);
+      await friendDao.upsert(FriendRecordsCompanion.insert(
+        id: 'f-stream-mixed-2',
+        name: '活跃',
+        createdAt: now,
+        updatedAt: now,
+      ));
+      final result = await friendDao.watchAllActive().first;
+      expect(result.any((r) => r.id == 'f-stream-mixed-1'), isFalse);
+      expect(result.any((r) => r.id == 'f-stream-mixed-2'), isTrue);
+    });
+  });
+
+  group('FriendDao Stream Reliability - watchFavorites（0.1.160）', () {
+    test('A: 初始状态应返回空列表', () async {
+      final result = await friendDao.watchFavorites().first;
+      expect(result, isEmpty);
+    });
+
+    test('B: 收藏后流应发出包含该记录的列表', () async {
+      final now = DateTime.now();
+      await friendDao.upsert(FriendRecordsCompanion.insert(
+        id: 'f-stream-fav-1',
+        name: '周八',
+        createdAt: now,
+        updatedAt: now,
+      ));
+      final stream = friendDao.watchFavorites();
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          isEmpty,
+          predicate((List<FriendRecord> list) => list.any((r) => r.id == 'f-stream-fav-1')),
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await friendDao.updateFavorite('f-stream-fav-1', isFavorite: true, now: now);
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('C: 取消收藏后流应发出空列表', () async {
+      final now = DateTime.now();
+      await friendDao.upsert(FriendRecordsCompanion.insert(
+        id: 'f-stream-fav-2',
+        name: '吴九',
+        createdAt: now,
+        updatedAt: now,
+        isFavorite: const Value(true),
+      ));
+      final stream = friendDao.watchFavorites();
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          predicate((List<FriendRecord> list) => list.any((r) => r.id == 'f-stream-fav-2')),
+          isEmpty,
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await friendDao.updateFavorite('f-stream-fav-2', isFavorite: false, now: now);
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('D: 软删除收藏记录后流应发出空列表', () async {
+      final now = DateTime.now();
+      await friendDao.upsert(FriendRecordsCompanion.insert(
+        id: 'f-stream-fav-3',
+        name: '郑十',
+        createdAt: now,
+        updatedAt: now,
+        isFavorite: const Value(true),
+      ));
+      final stream = friendDao.watchFavorites();
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          predicate((List<FriendRecord> list) => list.any((r) => r.id == 'f-stream-fav-3')),
+          isEmpty,
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await friendDao.softDeleteById('f-stream-fav-3', now: now);
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('边界1: 未收藏的记录不应出现在收藏列表中', () async {
+      final now = DateTime.now();
+      await friendDao.upsert(FriendRecordsCompanion.insert(
+        id: 'f-stream-fav-4',
+        name: '未收藏',
+        createdAt: now,
+        updatedAt: now,
+      ));
+      final result = await friendDao.watchFavorites().first;
+      expect(result.any((r) => r.id == 'f-stream-fav-4'), isFalse);
+    });
+
+    test('边界2: 多条收藏记录切换状态后流应正确反映', () async {
+      final now = DateTime.now();
+      await friendDao.upsert(FriendRecordsCompanion.insert(
+        id: 'f-stream-fav-5',
+        name: '收藏A',
+        createdAt: now,
+        updatedAt: now,
+        isFavorite: const Value(true),
+      ));
+      await friendDao.upsert(FriendRecordsCompanion.insert(
+        id: 'f-stream-fav-6',
+        name: '收藏B',
+        createdAt: now,
+        updatedAt: now,
+        isFavorite: const Value(true),
+      ));
+      final stream = friendDao.watchFavorites();
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          predicate((List<FriendRecord> list) => list.length == 2),
+          predicate((List<FriendRecord> list) => list.length == 1 && list.first.id == 'f-stream-fav-6'),
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await friendDao.updateFavorite('f-stream-fav-5', isFavorite: false, now: now);
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+  });
 }

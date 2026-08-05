@@ -303,18 +303,26 @@ class LinkDao extends DatabaseAccessor<AppDatabase> with _$LinkDaoMixin {
     String linkType = 'manual',
     required DateTime now,
   }) async {
-    if (targetType == 'travel') {
-      final isValid = await isTravelRecord(targetId);
-      if (!isValid) {
-        return;
-      }
-    }
-    if (sourceType == 'travel') {
-      final isValid = await isTravelRecord(sourceId);
-      if (!isValid) {
-        return;
-      }
-    }
+    // 校验源实体和目标实体存在且未软删除
+    final sourceValid = await _isEntityExistsAndActive(
+      entityType: sourceType,
+      entityId: sourceId,
+    );
+    if (!sourceValid) return;
+    final targetValid = await _isEntityExistsAndActive(
+      entityType: targetType,
+      entityId: targetId,
+    );
+    if (!targetValid) return;
+
+    // 避免重复关联写入日志（entity_links 已存在则直接返回）
+    final alreadyExists = await linkExists(
+      sourceType: sourceType,
+      sourceId: sourceId,
+      targetType: targetType,
+      targetId: targetId,
+    );
+    if (alreadyExists) return;
 
     final linkId = _uuid.v4();
     final logId = _uuid.v4();
@@ -736,12 +744,74 @@ class LinkDao extends DatabaseAccessor<AppDatabase> with _$LinkDaoMixin {
   Future<bool> isTravelRecord(String travelId) async {
     final record = await (select(db.travelRecords)
           ..where((t) => t.id.equals(travelId))
+          ..where((t) => t.isDeleted.equals(false))
           ..limit(1))
         .getSingleOrNull();
 
     if (record == null) return false;
 
     return !record.isJournal;
+  }
+
+  /// 校验实体存在且未软删除
+  ///
+  /// 用于 createLink 前置校验，避免写入指向已删除/不存在实体的脏关联。
+  /// 各类型校验口径：
+  /// - encounter/goal：timeline_events.isDeleted=false
+  /// - food/moment/travel/friend：对应表 isDeleted=false
+  /// - travel：还需非游记（与 isTravelRecord 一致）
+  Future<bool> _isEntityExistsAndActive({
+    required String entityType,
+    required String entityId,
+  }) async {
+    switch (entityType) {
+      case 'encounter':
+        final event = await (select(db.timelineEvents)
+              ..where((t) => t.id.equals(entityId))
+              ..where((t) => t.isDeleted.equals(false))
+              ..limit(1))
+            .getSingleOrNull();
+        return event != null;
+
+      case 'food':
+        final food = await (select(db.foodRecords)
+              ..where((t) => t.id.equals(entityId))
+              ..where((t) => t.isDeleted.equals(false))
+              ..limit(1))
+            .getSingleOrNull();
+        return food != null;
+
+      case 'moment':
+        final moment = await (select(db.momentRecords)
+              ..where((t) => t.id.equals(entityId))
+              ..where((t) => t.isDeleted.equals(false))
+              ..limit(1))
+            .getSingleOrNull();
+        return moment != null;
+
+      case 'travel':
+        // travel 必须是非游记（与原 isTravelRecord 校验一致）
+        return await isTravelRecord(entityId);
+
+      case 'goal':
+        final goal = await (select(db.goalRecords)
+              ..where((t) => t.id.equals(entityId))
+              ..where((t) => t.isDeleted.equals(false))
+              ..limit(1))
+            .getSingleOrNull();
+        return goal != null;
+
+      case 'friend':
+        final friend = await (select(db.friendRecords)
+              ..where((t) => t.id.equals(entityId))
+              ..where((t) => t.isDeleted.equals(false))
+              ..limit(1))
+            .getSingleOrNull();
+        return friend != null;
+
+      default:
+        return false;
+    }
   }
 
   Future<void> cleanupJournalLinks() async {
@@ -756,20 +826,32 @@ class LinkDao extends DatabaseAccessor<AppDatabase> with _$LinkDaoMixin {
 
     if (journalIds.isEmpty) return;
 
+    // 双向查询：source 或 target 任一端是游记，都应清理（OR 而非 AND）
     final existingLinks = await (select(db.entityLinks)
-          ..where((t) => t.sourceType.equals('travel') & t.sourceId.isIn(journalIds))
-          ..where((t) => t.targetType.equals('travel') & t.targetId.isIn(journalIds)))
+          ..where(
+            (t) =>
+                (t.sourceType.equals('travel') & t.sourceId.isIn(journalIds)) |
+                (t.targetType.equals('travel') & t.targetId.isIn(journalIds)),
+          ))
         .get();
 
     final linkIds = existingLinks.map((l) => l.id).toList();
 
-    // 收集受影响的朋友ID（虽然游记通常不关联朋友，但为了完整性）
+    // 收集受影响的朋友ID（双向检查）
     final affectedFriendIds = <String>{};
+    for (final link in existingLinks) {
+      if (link.sourceType == 'friend') affectedFriendIds.add(link.sourceId);
+      if (link.targetType == 'friend') affectedFriendIds.add(link.targetId);
+    }
 
     await transaction(() async {
+      // 双向删除（与查询保持一致）
       await (delete(db.entityLinks)
-            ..where((t) => t.sourceType.equals('travel') & t.sourceId.isIn(journalIds))
-            ..where((t) => t.targetType.equals('travel') & t.targetId.isIn(journalIds)))
+            ..where(
+              (t) =>
+                  (t.sourceType.equals('travel') & t.sourceId.isIn(journalIds)) |
+                  (t.targetType.equals('travel') & t.targetId.isIn(journalIds)),
+            ))
           .go();
 
       for (final link in existingLinks) {

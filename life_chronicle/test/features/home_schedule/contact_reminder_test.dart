@@ -508,4 +508,201 @@ void main() {
       expect(reminderEnabled, isFalse);
     });
   });
+
+  // 0.1.159 回归测试：首页通知红色小数字角标点击全部已读后不消失
+  // 根因：reminder_dao.dart 的 watchUnreadCount 使用 selectOnly+count 聚合查询，
+  // Stream 监听在表数据变化时不可靠地发出新值，导致 UI 角标不刷新；
+  // 同时 reminder_list_page.dart 的 _markAllAsRead 未强制刷新 Provider。
+  group('watchUnreadCount 流式响应未读数量变化（0.1.159 回归）', () {
+    test('初始状态应返回 0', () async {
+      final count = await reminderDao.watchUnreadCount().first;
+      expect(count, equals(0));
+    });
+
+    test('插入未读 reminder 后 count 应正确增加', () async {
+      final now = DateTime.now();
+
+      await reminderDao.insertReminder(
+        ReminderRecordsCompanion.insert(
+          id: 'unread_count_1',
+          type: 'contact',
+          title: '离上次联系已有35天：张三',
+          scheduledAt: now,
+          createdAt: now,
+        ),
+      );
+
+      // 基于 watchAllReminders 的流应能反映最新数据
+      final count = await reminderDao.watchUnreadCount().first;
+      expect(count, equals(1));
+    });
+
+    test('markAllAsRead 后 count 应归零（核心场景：角标消失）', () async {
+      final now = DateTime.now();
+
+      // 插入 3 个未读 reminder 模拟角标显示数字 3
+      for (var i = 0; i < 3; i++) {
+        await reminderDao.insertReminder(
+          ReminderRecordsCompanion.insert(
+            id: 'badge_$i',
+            type: 'contact',
+            title: '离上次联系已有30天：朋友$i',
+            scheduledAt: now,
+            createdAt: now,
+          ),
+        );
+      }
+
+      // 验证初始 count = 3
+      var count = await reminderDao.watchUnreadCount().first;
+      expect(count, equals(3));
+
+      // 标记全部已读（模拟点击"全部已读"按钮）
+      await reminderDao.markAllAsRead();
+
+      // 验证 count = 0（角标应消失）
+      count = await reminderDao.watchUnreadCount().first;
+      expect(count, equals(0));
+    });
+
+    test('单条标记已读后 count 应减少', () async {
+      final now = DateTime.now();
+
+      await reminderDao.insertReminder(
+        ReminderRecordsCompanion.insert(
+          id: 'single_read_1',
+          type: 'contact',
+          title: '离上次联系已有35天：张三',
+          scheduledAt: now,
+          createdAt: now,
+        ),
+      );
+      await reminderDao.insertReminder(
+        ReminderRecordsCompanion.insert(
+          id: 'single_read_2',
+          type: 'contact',
+          title: '离上次联系已有40天：李四',
+          scheduledAt: now,
+          createdAt: now,
+        ),
+      );
+
+      var count = await reminderDao.watchUnreadCount().first;
+      expect(count, equals(2));
+
+      // 单条标记已读（模拟点击单条提醒卡片）
+      await reminderDao.updateReminder('single_read_1', isRead: true);
+
+      count = await reminderDao.watchUnreadCount().first;
+      expect(count, equals(1));
+    });
+
+    test('watchUnreadCount 流在数据变化时发出新值（验证 Stream 监听可靠性）', () async {
+      final now = DateTime.now();
+
+      // 订阅流，验证它在数据变化时能发出新值
+      // 这是修复的核心：聚合查询的 Stream 不会可靠发出新值，
+      // 改为基于 watchAllReminders 的流式计算后应能正确响应
+      final stream = reminderDao.watchUnreadCount();
+
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          0, // 初始值
+          1, // 插入未读后
+          0, // 标记全部已读后
+        ]),
+      );
+
+      // 等待初始值发出
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      // 插入未读 reminder
+      await reminderDao.insertReminder(
+        ReminderRecordsCompanion.insert(
+          id: 'stream_test_1',
+          type: 'contact',
+          title: '离上次联系已有35天：张三',
+          scheduledAt: now,
+          createdAt: now,
+        ),
+      );
+
+      // 等待流发出新值
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      // 标记全部已读
+      await reminderDao.markAllAsRead();
+
+      // 等待流发出新值
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      await future;
+    });
+  });
+
+  group('markAllAsRead 数据一致性（0.1.159 回归）', () {
+    test('markAllAsRead 应将所有未读 reminder 标记为已读', () async {
+      final now = DateTime.now();
+
+      // 插入 3 个未读 reminder
+      for (var i = 0; i < 3; i++) {
+        await reminderDao.insertReminder(
+          ReminderRecordsCompanion.insert(
+            id: 'consistency_$i',
+            type: 'contact',
+            title: '离上次联系已有30天：朋友$i',
+            scheduledAt: now,
+            createdAt: now,
+          ),
+        );
+      }
+
+      // 验证初始都是未读
+      var reminders = await reminderDao.getAllReminders();
+      expect(reminders.every((r) => !r.isRead), isTrue);
+
+      // 标记全部已读
+      await reminderDao.markAllAsRead();
+
+      // 验证都是已读
+      reminders = await reminderDao.getAllReminders();
+      expect(reminders.every((r) => r.isRead), isTrue);
+    });
+
+    test('markAllAsRead 不应影响已读 reminder', () async {
+      final now = DateTime.now();
+
+      // 插入已读 reminder
+      await reminderDao.insertReminder(
+        ReminderRecordsCompanion.insert(
+          id: 'already_read',
+          type: 'contact',
+          title: '离上次联系已有30天：张三',
+          scheduledAt: now,
+          createdAt: now,
+          isRead: const Value(true),
+        ),
+      );
+      // 插入未读 reminder
+      await reminderDao.insertReminder(
+        ReminderRecordsCompanion.insert(
+          id: 'not_read',
+          type: 'contact',
+          title: '离上次联系已有40天：李四',
+          scheduledAt: now,
+          createdAt: now,
+        ),
+      );
+
+      await reminderDao.markAllAsRead();
+
+      final reminders = await reminderDao.getAllReminders();
+      // 全部应为已读状态
+      expect(reminders.every((r) => r.isRead), isTrue);
+      // 已读的 reminder 不会被破坏
+      expect(reminders.firstWhere((r) => r.id == 'already_read').isRead, isTrue);
+      expect(reminders.firstWhere((r) => r.id == 'not_read').isRead, isTrue);
+    });
+  });
 }

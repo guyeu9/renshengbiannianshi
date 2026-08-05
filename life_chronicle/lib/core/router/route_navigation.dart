@@ -168,12 +168,12 @@ class RouteNavigation {
     context.go(AppRoutes.moduleManagement);
   }
 
-  static void goToUniversalLink(BuildContext context) {
-    context.go(AppRoutes.universalLink);
+  static Future<bool?> pushToUniversalLink(BuildContext context) {
+    return context.push<bool>(AppRoutes.universalLink);
   }
 
-  static void goToUniversalLinkAllLogs(BuildContext context) {
-    context.go('/profile/universal-link-logs');
+  static Future<bool?> pushToUniversalLinkAllLogs(BuildContext context) {
+    return context.push<bool>('/profile/universal-link-logs');
   }
 
   static void goToPersonalProfile(BuildContext context) {

@@ -256,9 +256,485 @@ void main() {
       final start = now.subtract(const Duration(days: 3));
       final end = now;
       final records = await foodDao.watchByRecordDateRange(start, end).first;
-      
+
       expect(records.any((r) => r.id == 'date-food-2'), isTrue);
       expect(records.any((r) => r.id == 'date-food-1'), isFalse);
+    });
+  });
+
+  // 0.1.160 流式响应与状态同步可靠性测试
+  // 防护 0.1.159 同类 bug：watch* 方法在表数据变化时必须可靠发出新值
+  group('FoodDao Stream Reliability - watchById（0.1.160）', () {
+    test('A: 初始状态（不存在的 id）应返回 null', () async {
+      final result = await foodDao.watchById('non-existent').first;
+      expect(result, isNull);
+    });
+
+    test('B: 插入数据后流应发出新值', () async {
+      final now = DateTime.now();
+      final stream = foodDao.watchById('stream-byid-1');
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          isNull,                 // 初始值
+          isNotNull,              // 插入后
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await foodDao.upsert(FoodRecordsCompanion.insert(
+        id: 'stream-byid-1',
+        title: 'Stream Test',
+        recordDate: now,
+        createdAt: now,
+        updatedAt: now,
+      ));
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('C: 更新数据后流应发出新值', () async {
+      final now = DateTime.now();
+      await foodDao.upsert(FoodRecordsCompanion.insert(
+        id: 'stream-byid-2',
+        title: 'Old Title',
+        recordDate: now,
+        createdAt: now,
+        updatedAt: now,
+      ));
+      final stream = foodDao.watchById('stream-byid-2');
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          predicate((FoodRecord? r) => r?.title == 'Old Title'),
+          predicate((FoodRecord? r) => r?.title == 'New Title'),
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await foodDao.upsert(FoodRecordsCompanion.insert(
+        id: 'stream-byid-2',
+        title: 'New Title',
+        recordDate: now,
+        createdAt: now,
+        updatedAt: now,
+      ));
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('D: 软删除后流应发出 null（watchById 过滤 isDeleted）', () async {
+      final now = DateTime.now();
+      await foodDao.upsert(FoodRecordsCompanion.insert(
+        id: 'stream-byid-3',
+        title: 'To Delete',
+        recordDate: now,
+        createdAt: now,
+        updatedAt: now,
+      ));
+      final stream = foodDao.watchById('stream-byid-3');
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          isNotNull,    // 软删除前
+          isNull,       // 软删除后
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await foodDao.softDeleteById('stream-byid-3', now: now);
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('边界1: 不存在的 id 应返回 null', () async {
+      final result = await foodDao.watchById('').first;
+      expect(result, isNull);
+    });
+
+    test('边界2: 软删除的记录应返回 null', () async {
+      final now = DateTime.now();
+      await foodDao.upsert(FoodRecordsCompanion.insert(
+        id: 'stream-byid-4',
+        title: 'Already Deleted',
+        recordDate: now,
+        createdAt: now,
+        updatedAt: now,
+      ));
+      await foodDao.softDeleteById('stream-byid-4', now: now);
+      final result = await foodDao.watchById('stream-byid-4').first;
+      expect(result, isNull);
+    });
+  });
+
+  group('FoodDao Stream Reliability - watchAllActive（0.1.160）', () {
+    test('A: 初始状态应返回空列表', () async {
+      final result = await foodDao.watchAllActive().first;
+      expect(result, isEmpty);
+    });
+
+    test('B: 插入数据后流应发出包含新记录的列表', () async {
+      final now = DateTime.now();
+      final stream = foodDao.watchAllActive();
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          isEmpty,
+          predicate((List<FoodRecord> list) => list.any((r) => r.id == 'stream-all-1')),
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await foodDao.upsert(FoodRecordsCompanion.insert(
+        id: 'stream-all-1',
+        title: 'Stream All Test',
+        recordDate: now,
+        createdAt: now,
+        updatedAt: now,
+      ));
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('C: 更新数据后流应发出包含更新后记录的列表', () async {
+      final now = DateTime.now();
+      await foodDao.upsert(FoodRecordsCompanion.insert(
+        id: 'stream-all-2',
+        title: 'Old Title',
+        recordDate: now,
+        createdAt: now,
+        updatedAt: now,
+      ));
+      final stream = foodDao.watchAllActive();
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          predicate((List<FoodRecord> list) => list.firstWhere((r) => r.id == 'stream-all-2').title == 'Old Title'),
+          predicate((List<FoodRecord> list) => list.firstWhere((r) => r.id == 'stream-all-2').title == 'Updated Title'),
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await foodDao.upsert(FoodRecordsCompanion.insert(
+        id: 'stream-all-2',
+        title: 'Updated Title',
+        recordDate: now,
+        createdAt: now,
+        updatedAt: now,
+      ));
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('D: 软删除后流应发出不包含已删除记录的列表', () async {
+      final now = DateTime.now();
+      await foodDao.upsert(FoodRecordsCompanion.insert(
+        id: 'stream-all-3',
+        title: 'To Delete',
+        recordDate: now,
+        createdAt: now,
+        updatedAt: now,
+      ));
+      final stream = foodDao.watchAllActive();
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          predicate((List<FoodRecord> list) => list.any((r) => r.id == 'stream-all-3')),
+          predicate((List<FoodRecord> list) => !list.any((r) => r.id == 'stream-all-3')),
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await foodDao.softDeleteById('stream-all-3', now: now);
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('边界1: 插入多条后应按 recordDate 降序排序', () async {
+      final now = DateTime.now();
+      await foodDao.upsert(FoodRecordsCompanion.insert(
+        id: 'stream-order-1',
+        title: 'Old',
+        recordDate: now.subtract(const Duration(days: 2)),
+        createdAt: now,
+        updatedAt: now,
+      ));
+      await foodDao.upsert(FoodRecordsCompanion.insert(
+        id: 'stream-order-2',
+        title: 'New',
+        recordDate: now,
+        createdAt: now,
+        updatedAt: now,
+      ));
+      final result = await foodDao.watchAllActive().first;
+      expect(result.first.id, equals('stream-order-2'));
+      expect(result.last.id, equals('stream-order-1'));
+    });
+
+    test('边界2: 软删除后再插入新记录应只返回活跃记录', () async {
+      final now = DateTime.now();
+      await foodDao.upsert(FoodRecordsCompanion.insert(
+        id: 'stream-mixed-1',
+        title: 'Will Delete',
+        recordDate: now,
+        createdAt: now,
+        updatedAt: now,
+      ));
+      await foodDao.softDeleteById('stream-mixed-1', now: now);
+      await foodDao.upsert(FoodRecordsCompanion.insert(
+        id: 'stream-mixed-2',
+        title: 'Active',
+        recordDate: now,
+        createdAt: now,
+        updatedAt: now,
+      ));
+      final result = await foodDao.watchAllActive().first;
+      expect(result.any((r) => r.id == 'stream-mixed-1'), isFalse);
+      expect(result.any((r) => r.id == 'stream-mixed-2'), isTrue);
+    });
+  });
+
+  group('FoodDao Stream Reliability - watchFavorites（0.1.160）', () {
+    test('A: 初始状态应返回空列表', () async {
+      final result = await foodDao.watchFavorites().first;
+      expect(result, isEmpty);
+    });
+
+    test('B: 收藏后流应发出包含该记录的列表', () async {
+      final now = DateTime.now();
+      await foodDao.upsert(FoodRecordsCompanion.insert(
+        id: 'stream-fav-1',
+        title: 'Fav Test',
+        recordDate: now,
+        createdAt: now,
+        updatedAt: now,
+      ));
+      final stream = foodDao.watchFavorites();
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          isEmpty,
+          predicate((List<FoodRecord> list) => list.any((r) => r.id == 'stream-fav-1')),
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await foodDao.updateFavorite('stream-fav-1', isFavorite: true, now: now);
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('C: 取消收藏后流应发出空列表', () async {
+      final now = DateTime.now();
+      await foodDao.upsert(FoodRecordsCompanion.insert(
+        id: 'stream-fav-2',
+        title: 'Toggle Fav',
+        recordDate: now,
+        createdAt: now,
+        updatedAt: now,
+        isFavorite: const Value(true),
+      ));
+      final stream = foodDao.watchFavorites();
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          predicate((List<FoodRecord> list) => list.any((r) => r.id == 'stream-fav-2')),
+          isEmpty,
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await foodDao.updateFavorite('stream-fav-2', isFavorite: false, now: now);
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('D: 软删除收藏记录后流应发出空列表', () async {
+      final now = DateTime.now();
+      await foodDao.upsert(FoodRecordsCompanion.insert(
+        id: 'stream-fav-3',
+        title: 'Delete Fav',
+        recordDate: now,
+        createdAt: now,
+        updatedAt: now,
+        isFavorite: const Value(true),
+      ));
+      final stream = foodDao.watchFavorites();
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          predicate((List<FoodRecord> list) => list.any((r) => r.id == 'stream-fav-3')),
+          isEmpty,
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await foodDao.softDeleteById('stream-fav-3', now: now);
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('边界1: 未收藏的记录不应出现在收藏列表中', () async {
+      final now = DateTime.now();
+      await foodDao.upsert(FoodRecordsCompanion.insert(
+        id: 'stream-fav-4',
+        title: 'Not Favorite',
+        recordDate: now,
+        createdAt: now,
+        updatedAt: now,
+      ));
+      final result = await foodDao.watchFavorites().first;
+      expect(result.any((r) => r.id == 'stream-fav-4'), isFalse);
+    });
+
+    test('边界2: 多条收藏记录切换状态后流应正确反映', () async {
+      final now = DateTime.now();
+      await foodDao.upsert(FoodRecordsCompanion.insert(
+        id: 'stream-fav-5',
+        title: 'Fav A',
+        recordDate: now,
+        createdAt: now,
+        updatedAt: now,
+        isFavorite: const Value(true),
+      ));
+      await foodDao.upsert(FoodRecordsCompanion.insert(
+        id: 'stream-fav-6',
+        title: 'Fav B',
+        recordDate: now,
+        createdAt: now,
+        updatedAt: now,
+        isFavorite: const Value(true),
+      ));
+      final stream = foodDao.watchFavorites();
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          predicate((List<FoodRecord> list) => list.length == 2),
+          predicate((List<FoodRecord> list) => list.length == 1 && list.first.id == 'stream-fav-6'),
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await foodDao.updateFavorite('stream-fav-5', isFavorite: false, now: now);
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+  });
+
+  group('FoodDao Stream Reliability - watchByRecordDateRange（0.1.160 边界参数全覆盖）', () {
+    test('A: 初始状态应返回空列表', () async {
+      final now = DateTime.now();
+      final result = await foodDao.watchByRecordDateRange(now, now.add(const Duration(days: 1))).first;
+      expect(result, isEmpty);
+    });
+
+    test('B: 插入范围内记录后流应发出包含该记录的列表', () async {
+      final now = DateTime.now();
+      final recordDate = now.add(const Duration(hours: 12));
+      final stream = foodDao.watchByRecordDateRange(now, now.add(const Duration(days: 1)));
+      final future = expectLater(
+        stream,
+        emitsInOrder([
+          isEmpty,
+          predicate((List<FoodRecord> list) => list.any((r) => r.id == 'stream-range-1')),
+        ]),
+      );
+      await Future.delayed(const Duration(milliseconds: 50));
+      await foodDao.upsert(FoodRecordsCompanion.insert(
+        id: 'stream-range-1',
+        title: 'In Range',
+        recordDate: recordDate,
+        createdAt: now,
+        updatedAt: now,
+      ));
+      await Future.delayed(const Duration(milliseconds: 50));
+      await future;
+    });
+
+    test('边界1: 空范围（start == end）应返回空列表', () async {
+      final now = DateTime.now();
+      await foodDao.upsert(FoodRecordsCompanion.insert(
+        id: 'stream-empty-range',
+        title: 'Test',
+        recordDate: now,
+        createdAt: now,
+        updatedAt: now,
+      ));
+      final result = await foodDao.watchByRecordDateRange(now, now).first;
+      expect(result, isEmpty);
+    });
+
+    test('边界2: 单点范围（start == recordDate, end == start+1s）应包含该记录', () async {
+      final now = DateTime.now();
+      await foodDao.upsert(FoodRecordsCompanion.insert(
+        id: 'stream-single-point',
+        title: 'Exact Start',
+        recordDate: now,
+        createdAt: now,
+        updatedAt: now,
+      ));
+      final result = await foodDao.watchByRecordDateRange(now, now.add(const Duration(seconds: 1))).first;
+      expect(result.any((r) => r.id == 'stream-single-point'), isTrue);
+    });
+
+    test('边界3: 跨年范围应包含跨年记录', () async {
+      final dec31 = DateTime(2025, 12, 31);
+      final jan1 = DateTime(2026, 1, 1);
+      await foodDao.upsert(FoodRecordsCompanion.insert(
+        id: 'stream-cross-year',
+        title: 'New Year',
+        recordDate: jan1,
+        createdAt: jan1,
+        updatedAt: jan1,
+      ));
+      final result = await foodDao.watchByRecordDateRange(dec31, jan1.add(const Duration(days: 1))).first;
+      expect(result.any((r) => r.id == 'stream-cross-year'), isTrue);
+    });
+
+    test('边界4: 未来日期范围应不包含过去记录', () async {
+      final now = DateTime.now();
+      final futureStart = now.add(const Duration(days: 10));
+      final futureEnd = now.add(const Duration(days: 20));
+      await foodDao.upsert(FoodRecordsCompanion.insert(
+        id: 'stream-past-record',
+        title: 'Past',
+        recordDate: now,
+        createdAt: now,
+        updatedAt: now,
+      ));
+      final result = await foodDao.watchByRecordDateRange(futureStart, futureEnd).first;
+      expect(result, isEmpty);
+    });
+
+    test('边界5: recordDate == start 应包含（isBiggerOrEqualValue）', () async {
+      final now = DateTime.now();
+      await foodDao.upsert(FoodRecordsCompanion.insert(
+        id: 'stream-boundary-start',
+        title: 'At Start',
+        recordDate: now,
+        createdAt: now,
+        updatedAt: now,
+      ));
+      final result = await foodDao.watchByRecordDateRange(now, now.add(const Duration(days: 1))).first;
+      expect(result.any((r) => r.id == 'stream-boundary-start'), isTrue);
+    });
+
+    test('边界6: recordDate == end 应不包含（isSmallerThanValue）', () async {
+      final now = DateTime.now();
+      final end = now.add(const Duration(days: 1));
+      await foodDao.upsert(FoodRecordsCompanion.insert(
+        id: 'stream-boundary-end',
+        title: 'At End',
+        recordDate: end,
+        createdAt: now,
+        updatedAt: now,
+      ));
+      final result = await foodDao.watchByRecordDateRange(now, end).first;
+      expect(result.any((r) => r.id == 'stream-boundary-end'), isFalse);
+    });
+
+    test('边界7: 软删除的记录不应出现在范围内', () async {
+      final now = DateTime.now();
+      await foodDao.upsert(FoodRecordsCompanion.insert(
+        id: 'stream-range-deleted',
+        title: 'Deleted In Range',
+        recordDate: now,
+        createdAt: now,
+        updatedAt: now,
+      ));
+      await foodDao.softDeleteById('stream-range-deleted', now: now);
+      final result = await foodDao.watchByRecordDateRange(now.subtract(const Duration(days: 1)), now.add(const Duration(days: 1))).first;
+      expect(result.any((r) => r.id == 'stream-range-deleted'), isFalse);
     });
   });
 }

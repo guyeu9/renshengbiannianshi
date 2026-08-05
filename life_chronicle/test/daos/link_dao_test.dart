@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_chronicle/core/database/app_database.dart';
 import '../test_utils/test_utils.dart';
@@ -15,6 +16,47 @@ void main() {
     friendDao = FriendDao(db);
     foodDao = FoodDao(db);
     goalDao = GoalDao(db);
+
+    // 预插入测试实体（createLink 现在会校验实体存在且未软删除）
+    final now = DateTime.now();
+    for (final id in [
+      'test-moment-1', 'test-moment-2', 'test-moment-3', 'test-moment-4',
+      'test-moment-5', 'test-moment-6', 'watch-moment-1',
+    ]) {
+      await db.into(db.momentRecords).insert(
+        MomentRecordsCompanion.insert(
+          id: id,
+          mood: 'happy',
+          recordDate: now,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+    }
+    for (final id in [
+      'test-food-1', 'test-food-2', 'test-food-3', 'test-food-4',
+      'test-food-5', 'test-food-6', 'watch-food-1',
+    ]) {
+      await foodDao.upsert(
+        FoodRecordsCompanion.insert(
+          id: id,
+          title: 'Test $id',
+          recordDate: now,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+    }
+    // travel 测试实体（trip，非 journal）
+    await db.into(db.travelRecords).insert(
+      TravelRecordsCompanion.insert(
+        id: 'test-travel-3',
+        tripId: 'test-trip-3',
+        recordDate: now,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
   });
 
   tearDown(() async {
@@ -844,6 +886,166 @@ void main() {
       expect(affectedWithGoals.isEmpty, isFalse);
       expect(affectedWithGoals.hasFriends, isFalse);
       expect(affectedWithGoals.hasGoals, isTrue);
+    });
+  });
+
+  group('LinkDao Entity Validation', () {
+    test('should not create link when friend does not exist', () async {
+      final now = DateTime.now();
+
+      // test-food-1 已在 setUp 中预插入；target friend 不存在
+      await linkDao.createLink(
+        sourceType: 'food',
+        sourceId: 'test-food-1',
+        targetType: 'friend',
+        targetId: 'non-existent-friend',
+        now: now,
+      );
+
+      expect(await linkDao.linkExists(
+        sourceType: 'food',
+        sourceId: 'test-food-1',
+        targetType: 'friend',
+        targetId: 'non-existent-friend',
+      ), isFalse);
+    });
+
+    test('should not create link when friend is soft deleted', () async {
+      final now = DateTime.now();
+      final friendId = 'soft-deleted-friend';
+      await friendDao.upsert(
+        FriendRecordsCompanion.insert(
+          id: friendId,
+          name: 'Soft Deleted',
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+
+      // 软删除 friend
+      await (db.update(db.friendRecords)..where((t) => t.id.equals(friendId))).write(
+        FriendRecordsCompanion(
+          isDeleted: const Value(true),
+          updatedAt: Value(now),
+        ),
+      );
+
+      await linkDao.createLink(
+        sourceType: 'food',
+        sourceId: 'test-food-2',
+        targetType: 'friend',
+        targetId: friendId,
+        now: now,
+      );
+
+      expect(await linkDao.linkExists(
+        sourceType: 'food',
+        sourceId: 'test-food-2',
+        targetType: 'friend',
+        targetId: friendId,
+      ), isFalse);
+    });
+
+    test('should not create link when travel is journal', () async {
+      final now = DateTime.now();
+      final journalId = 'test-journal-1';
+      await db.into(db.travelRecords).insert(
+        TravelRecordsCompanion.insert(
+          id: journalId,
+          tripId: 'test-trip-journal',
+          recordDate: now,
+          createdAt: now,
+          updatedAt: now,
+          isJournal: const Value(true),
+        ),
+      );
+
+      await linkDao.createLink(
+        sourceType: 'food',
+        sourceId: 'test-food-3',
+        targetType: 'travel',
+        targetId: journalId,
+        now: now,
+      );
+
+      expect(await linkDao.linkExists(
+        sourceType: 'food',
+        sourceId: 'test-food-3',
+        targetType: 'travel',
+        targetId: journalId,
+      ), isFalse);
+    });
+
+    test('should not create link when travel is soft deleted', () async {
+      final now = DateTime.now();
+      final travelId = 'soft-deleted-travel';
+      await db.into(db.travelRecords).insert(
+        TravelRecordsCompanion.insert(
+          id: travelId,
+          tripId: 'test-trip-soft',
+          recordDate: now,
+          createdAt: now,
+          updatedAt: now,
+          isDeleted: const Value(true),
+        ),
+      );
+
+      await linkDao.createLink(
+        sourceType: 'food',
+        sourceId: 'test-food-6',
+        targetType: 'travel',
+        targetId: travelId,
+        now: now,
+      );
+
+      expect(await linkDao.linkExists(
+        sourceType: 'food',
+        sourceId: 'test-food-6',
+        targetType: 'travel',
+        targetId: travelId,
+      ), isFalse);
+    });
+
+    test('should not write duplicate log when creating same link twice', () async {
+      final now = DateTime.now();
+      final friendId = 'dup-log-friend';
+      await friendDao.upsert(
+        FriendRecordsCompanion.insert(
+          id: friendId,
+          name: 'Dup Log Friend',
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+
+      await linkDao.createLink(
+        sourceType: 'food',
+        sourceId: 'test-food-5',
+        targetType: 'friend',
+        targetId: friendId,
+        now: now,
+      );
+
+      final logsBefore = await (db.select(db.linkLogs)
+            ..where((t) => t.sourceId.equals('test-food-5'))
+            ..where((t) => t.action.equals('create')))
+          .get();
+
+      // 第二次创建相同关联（应被忽略，不写日志）
+      await linkDao.createLink(
+        sourceType: 'food',
+        sourceId: 'test-food-5',
+        targetType: 'friend',
+        targetId: friendId,
+        now: now,
+      );
+
+      final logsAfter = await (db.select(db.linkLogs)
+            ..where((t) => t.sourceId.equals('test-food-5'))
+            ..where((t) => t.action.equals('create')))
+          .get();
+
+      expect(logsAfter.length, equals(logsBefore.length));
     });
   });
 }

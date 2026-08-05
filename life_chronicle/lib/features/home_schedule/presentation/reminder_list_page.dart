@@ -112,6 +112,10 @@ class _ReminderListPageState extends ConsumerState<ReminderListPage> with Single
   Future<void> _markAllAsRead() async {
     final db = ref.read(appDatabaseProvider);
     await db.reminderDao.markAllAsRead();
+    // 强制刷新 unread count 和 has unread providers，确保 UI 立即更新
+    ref.invalidate(unreadReminderCountProvider);
+    ref.invalidate(hasUnreadRemindersProvider);
+    ref.invalidate(allRemindersProvider);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('已全部标记为已读')),

@@ -395,7 +395,7 @@ class ProfilePage extends ConsumerWidget {
                               icon: Icons.hub,
                               iconColor: const Color(0xFF4CAF50),
                               title: '万物互联',
-                              onTap: () => RouteNavigation.goToUniversalLink(context),
+                              onTap: () => RouteNavigation.pushToUniversalLink(context),
                             ),
                             _ListItem(
                               icon: Icons.psychology,
@@ -4536,7 +4536,7 @@ class _UniversalLinkHomePageState extends ConsumerState<_UniversalLinkHomePage> 
                         ),
                       ),
                       TextButton(
-                        onPressed: () => RouteNavigation.goToUniversalLinkAllLogs(context),
+                        onPressed: () => RouteNavigation.pushToUniversalLinkAllLogs(context),
                         style: TextButton.styleFrom(foregroundColor: const Color(0xFF2BCDEE), textStyle: const TextStyle(fontWeight: FontWeight.w900)),
                         child: const Text('全部日志'),
                       ),
@@ -4645,7 +4645,7 @@ class _UniversalLinkHomePageState extends ConsumerState<_UniversalLinkHomePage> 
                       const Text('最近关联', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
                       const Spacer(),
                       TextButton(
-                        onPressed: () => RouteNavigation.goToUniversalLinkAllLogs(context),
+                        onPressed: () => RouteNavigation.pushToUniversalLinkAllLogs(context),
                         style: TextButton.styleFrom(foregroundColor: const Color(0xFF2BCDEE), textStyle: const TextStyle(fontWeight: FontWeight.w900)),
                         child: const Text('查看全部'),
                       ),
@@ -4697,7 +4697,8 @@ class _UniversalLinkHomePageState extends ConsumerState<_UniversalLinkHomePage> 
                                                 if (query.isEmpty) return true;
                                                 final left = '${_typeLabel(link.sourceType)} ${maps.titleOf(link.sourceType, link.sourceId)}';
                                                 final right = '${_typeLabel(link.targetType)} ${maps.titleOf(link.targetType, link.targetId)}';
-                                                return left.contains(query) || right.contains(query);
+                                                final q = query.toLowerCase();
+                                                return left.toLowerCase().contains(q) || right.toLowerCase().contains(q);
                                               }).toList(growable: false);
 
                                               if (filtered.isEmpty) {
@@ -4721,6 +4722,8 @@ class _UniversalLinkHomePageState extends ConsumerState<_UniversalLinkHomePage> 
                                                       rightType: _typeLabel(link.targetType),
                                                       linkLabel: _linkTypeLabel(link.linkType),
                                                       createdAt: link.createdAt,
+                                                      onSourceTap: () => _pushToEntityDetail(context, link.sourceType, link.sourceId),
+                                                      onTargetTap: () => _pushToEntityDetail(context, link.targetType, link.targetId),
                                                     ),
                                                     const SizedBox(height: 10),
                                                   ],
@@ -4800,7 +4803,8 @@ class _UniversalLinkHomePageState extends ConsumerState<_UniversalLinkHomePage> 
                                                 if (query.isEmpty) return true;
                                                 final left = '${_typeLabel(log.sourceType)} ${maps.titleOf(log.sourceType, log.sourceId)}';
                                                 final right = '${_typeLabel(log.targetType)} ${maps.titleOf(log.targetType, log.targetId)}';
-                                                return left.contains(query) || right.contains(query);
+                                                final q = query.toLowerCase();
+                                                return left.toLowerCase().contains(q) || right.toLowerCase().contains(q);
                                               }).toList(growable: false);
 
                                               return Container(
@@ -4921,11 +4925,6 @@ class _UniversalLinkAllLogsPageState extends ConsumerState<UniversalLinkAllLogsP
                         onTap: () => setState(() => _action = 'create'),
                       ),
                       _UniversalTab(
-                        label: '修改',
-                        selected: _action == 'update',
-                        onTap: () => setState(() => _action = 'update'),
-                      ),
-                      _UniversalTab(
                         label: '删除',
                         selected: _action == 'delete',
                         onTap: () => setState(() => _action = 'delete'),
@@ -5005,7 +5004,7 @@ class _UniversalLinkAllLogsPageState extends ConsumerState<UniversalLinkAllLogsP
                             builder: (context, momentSnapshot) {
                               final moments = momentSnapshot.data ?? const <MomentRecord>[];
                               return StreamBuilder<List<TravelRecord>>(
-                                stream: db.watchAllActiveTravelRecords(),
+                                stream: db.travelDao.watchTripsOnly(),
                                 builder: (context, travelSnapshot) {
                                   final travels = travelSnapshot.data ?? const <TravelRecord>[];
                                   return StreamBuilder<List<TimelineEvent>>(
@@ -5077,6 +5076,7 @@ class _UniversalLinkAllLogsPageState extends ConsumerState<UniversalLinkAllLogsP
                                                       title: '${_logActionLabel(log.action)}关联',
                                                       subtitle: '${_typeLabel(log.sourceType)} · ${maps.titleOf(log.sourceType, log.sourceId)}  ↔  ${_typeLabel(log.targetType)} · ${maps.titleOf(log.targetType, log.targetId)}',
                                                       time: _timeText(log.createdAt, includeDayPrefix: group.title == '昨天'),
+                                                      onTap: () => _pushToEntityDetail(context, log.sourceType, log.sourceId),
                                                     ),
                                                     const SizedBox(height: 10),
                                                   ],
@@ -5125,6 +5125,31 @@ String _typeLabel(String t) {
   }
 }
 
+/// 根据 sourceType/sourceId 跳转到对应实体详情页（push 保留导航栈）
+void _pushToEntityDetail(BuildContext context, String type, String id) {
+  switch (type) {
+    case 'food':
+      RouteNavigation.pushToFoodDetail(context, id);
+      break;
+    case 'moment':
+      RouteNavigation.pushToMomentDetail(context, id);
+      break;
+    case 'travel':
+      // goToTravelDetail 内部实际使用 context.push，名称虽含 go 但语义为 push
+      RouteNavigation.goToTravelDetail(context, id);
+      break;
+    case 'goal':
+      RouteNavigation.pushToGoalDetail(context, id);
+      break;
+    case 'friend':
+      RouteNavigation.pushToFriendProfile(context, id);
+      break;
+    case 'encounter':
+      RouteNavigation.pushToEncounterDetail(context, id);
+      break;
+  }
+}
+
 String _linkTypeLabel(String raw) {
   final value = raw.trim();
   if (value.isEmpty) return '关联';
@@ -5145,8 +5170,6 @@ IconData _logActionIcon(String action) {
   switch (action) {
     case 'delete':
       return Icons.link_off;
-    case 'update':
-      return Icons.edit;
     default:
       return Icons.link;
   }
@@ -5156,8 +5179,6 @@ Color _logActionIconColor(String action) {
   switch (action) {
     case 'delete':
       return const Color(0xFFEF4444);
-    case 'update':
-      return const Color(0xFFF59E0B);
     default:
       return const Color(0xFF3B82F6);
   }
@@ -5167,8 +5188,6 @@ Color _logActionColor(String action) {
   switch (action) {
     case 'delete':
       return const Color(0xFFFFEBEE);
-    case 'update':
-      return const Color(0xFFFFF7ED);
     default:
       return const Color(0xFFEFF6FF);
   }
@@ -5178,8 +5197,6 @@ String _logActionLabel(String action) {
   switch (action) {
     case 'delete':
       return '删除';
-    case 'update':
-      return '修改';
     default:
       return '新增';
   }
@@ -5325,6 +5342,8 @@ class _UniversalLinkCard extends StatelessWidget {
     required this.rightType,
     required this.linkLabel,
     required this.createdAt,
+    this.onSourceTap,
+    this.onTargetTap,
   });
 
   final String leftTitle;
@@ -5333,6 +5352,8 @@ class _UniversalLinkCard extends StatelessWidget {
   final String rightType;
   final String linkLabel;
   final DateTime createdAt;
+  final VoidCallback? onSourceTap;
+  final VoidCallback? onTargetTap;
 
   @override
   Widget build(BuildContext context) {
@@ -5351,7 +5372,7 @@ class _UniversalLinkCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Expanded(child: _UniversalEntityCell(title: leftTitle, type: leftType)),
+              Expanded(child: _UniversalEntityCell(title: leftTitle, type: leftType, onTap: onSourceTap)),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 child: Column(
@@ -5368,7 +5389,7 @@ class _UniversalLinkCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Expanded(child: _UniversalEntityCell(title: rightTitle, type: rightType)),
+              Expanded(child: _UniversalEntityCell(title: rightTitle, type: rightType, onTap: onTargetTap)),
             ],
           ),
           const SizedBox(height: 10),
@@ -5378,7 +5399,7 @@ class _UniversalLinkCard extends StatelessWidget {
             children: [
               Text('关联于 $date', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
               const Spacer(),
-              Text('普通关联', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF64748B).withValues(alpha: 0.9))),
+              Text(linkLabel, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF64748B).withValues(alpha: 0.9))),
             ],
           ),
         ],
@@ -5388,19 +5409,24 @@ class _UniversalLinkCard extends StatelessWidget {
 }
 
 class _UniversalEntityCell extends StatelessWidget {
-  const _UniversalEntityCell({required this.title, required this.type});
+  const _UniversalEntityCell({required this.title, required this.type, this.onTap});
 
   final String title;
   final String type;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF111827)), maxLines: 1, overflow: TextOverflow.ellipsis),
-        const SizedBox(height: 2),
-        Text(type, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
-      ],
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Column(
+        children: [
+          Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF111827)), maxLines: 1, overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 2),
+          Text(type, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+        ],
+      ),
     );
   }
 }
@@ -5462,40 +5488,45 @@ class _UniversalChip extends StatelessWidget {
 }
 
 class _UniversalLogRow extends StatelessWidget {
-  const _UniversalLogRow({required this.color, required this.title, required this.subtitle, required this.time});
+  const _UniversalLogRow({required this.color, required this.title, required this.subtitle, required this.time, this.onTap});
 
   final Color color;
   final String title;
   final String subtitle;
   final String time;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFF1F5F9)),
-        boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 3))],
-      ),
-      child: Row(
-        children: [
-          Container(width: 6, height: 46, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(999))),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-                const SizedBox(height: 4),
-                Text(subtitle, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)), maxLines: 2, overflow: TextOverflow.ellipsis),
-              ],
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFF1F5F9)),
+          boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 3))],
+        ),
+        child: Row(
+          children: [
+            Container(width: 6, height: 46, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(999))),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                  const SizedBox(height: 4),
+                  Text(subtitle, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)), maxLines: 2, overflow: TextOverflow.ellipsis),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 10),
-          Text(time, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
-        ],
+            const SizedBox(width: 10),
+            Text(time, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
+          ],
+        ),
       ),
     );
   }

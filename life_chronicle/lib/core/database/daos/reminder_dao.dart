@@ -67,10 +67,9 @@ class ReminderDao extends DatabaseAccessor<AppDatabase> with _$ReminderDaoMixin 
   }
 
   Stream<int> watchUnreadCount() {
-    final count = reminderRecords.id.count();
-    final query = selectOnly(reminderRecords)..addColumns([count]);
-    query.where(reminderRecords.isRead.equals(false));
-    return query.map((row) => row.read(count)).watch().map((list) => list.first ?? 0);
+    // 使用 watchAllReminders 代替 selectOnly+count 聚合查询
+    // 聚合查询的 Stream 监听在表数据变化时可能不会可靠地发出新值
+    return watchAllReminders().map((reminders) => reminders.where((r) => !r.isRead).length);
   }
 
   Future<List<ReminderRecord>> getRemindersByType(String type) {
