@@ -8,7 +8,6 @@ class ModuleChatParams {
   final List<String>? recordIds;
   final bool fullData;
   final FriendChatParams? friendParams;
-  final String? sourceRoute;
 
   const ModuleChatParams({
     required this.moduleType,
@@ -18,7 +17,6 @@ class ModuleChatParams {
     this.recordIds,
     this.fullData = true,
     this.friendParams,
-    this.sourceRoute,
   });
 
   bool get isModuleMode => true;
@@ -33,7 +31,6 @@ class ModuleChatParams {
     List<String>? recordIds,
     bool? fullData,
     FriendChatParams? friendParams,
-    String? sourceRoute,
   }) {
     return ModuleChatParams(
       moduleType: moduleType ?? this.moduleType,
@@ -43,7 +40,6 @@ class ModuleChatParams {
       recordIds: recordIds ?? this.recordIds,
       fullData: fullData ?? this.fullData,
       friendParams: friendParams ?? this.friendParams,
-      sourceRoute: sourceRoute ?? this.sourceRoute,
     );
   }
 }

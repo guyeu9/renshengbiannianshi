@@ -316,7 +316,7 @@ class ProfilePage extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         _ChronicleCard(
-                          onGenerate: () => RouteNavigation.goToChronicleGenerateConfig(context),
+                          onGenerate: () => RouteNavigation.pushToChronicleGenerateConfig(context),
                         ),
                         const SizedBox(height: 18),
                         const _SectionTitle(title: '功能管理'),
@@ -401,7 +401,7 @@ class ProfilePage extends ConsumerWidget {
                               icon: Icons.psychology,
                               iconColor: const Color(0xFF6366F1),
                               title: 'AI 模型管理',
-                              onTap: () => RouteNavigation.goToAiModelManagement(context),
+                              onTap: () => RouteNavigation.pushToAiModelManagement(context),
                             ),
                             _ListItem(
                               icon: Icons.person,
@@ -4020,7 +4020,7 @@ class _ChronicleManagePageState extends ConsumerState<ChronicleManagePage> {
         title: const Text('编年史管理', style: TextStyle(fontWeight: FontWeight.w800)),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => RouteNavigation.goToChronicleGenerateConfig(context),
+        onPressed: () => RouteNavigation.pushToChronicleGenerateConfig(context),
         backgroundColor: primary,
         foregroundColor: Colors.white,
         child: const Icon(Icons.add),

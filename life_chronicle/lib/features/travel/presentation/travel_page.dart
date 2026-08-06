@@ -156,7 +156,7 @@ class _TravelTopBar extends StatelessWidget {
           ),
           AiParseButton(
             text: '解析',
-            onPressed: () => RouteNavigation.goToAiHistorianForModule(
+            onPressed: () => RouteNavigation.pushToAiHistorianForModule(
               context,
               moduleType: 'travel',
               moduleName: '旅行',

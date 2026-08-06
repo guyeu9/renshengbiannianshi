@@ -241,7 +241,7 @@ class _MomentHeader extends StatelessWidget {
               ),
               AiParseButton(
                 text: '解析',
-                onPressed: () => RouteNavigation.goToAiHistorianForModule(
+                onPressed: () => RouteNavigation.pushToAiHistorianForModule(
                   context,
                   moduleType: 'moment',
                   moduleName: '小确幸',

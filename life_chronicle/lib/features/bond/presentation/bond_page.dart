@@ -229,7 +229,7 @@ class _BondHeader extends StatelessWidget {
               ),
               AiParseButton(
                 text: '解析',
-                onPressed: () => RouteNavigation.goToAiHistorianForModule(
+                onPressed: () => RouteNavigation.pushToAiHistorianForModule(
                   context,
                   moduleType: 'bond',
                   moduleName: '羁绊',
@@ -1361,7 +1361,7 @@ class _BondFriendDetailPage extends ConsumerWidget {
     );
 
     if (context.mounted) {
-      RouteNavigation.goToAiHistorianForFriend(context, friendParams: params);
+      RouteNavigation.pushToAiHistorianForFriend(context, friendParams: params);
     }
   }
 

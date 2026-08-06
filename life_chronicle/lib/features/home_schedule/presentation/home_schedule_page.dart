@@ -326,7 +326,7 @@ class _GlassHeaderState extends ConsumerState<_GlassHeader> {
                       textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
                     ),
                     onPressed: () {
-                      RouteNavigation.goToAiHistorian(context);
+                      RouteNavigation.pushToAiHistorian(context);
                     },
                     child: const Text('AI史官'),
                   ),

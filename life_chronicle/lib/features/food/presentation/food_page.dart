@@ -313,7 +313,7 @@ class _FoodFixedHeader extends StatelessWidget {
               ),
               AiParseButton(
                 text: '解析',
-                onPressed: () => RouteNavigation.goToAiHistorianForModule(
+                onPressed: () => RouteNavigation.pushToAiHistorianForModule(
                   context,
                   moduleType: 'food',
                   moduleName: '美食',

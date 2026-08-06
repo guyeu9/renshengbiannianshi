@@ -44,6 +44,10 @@ class RouteNavigation {
     context.push('${AppRoutes.travel}/$id', extra: {'item': item});
   }
 
+  static Future<bool?> pushToTravelDetail(BuildContext context, String id, {TravelItem? item}) {
+    return context.push<bool>('${AppRoutes.travel}/$id', extra: {'item': item});
+  }
+
   static void goToTravelCreate(BuildContext context, {TravelRecord? initialRecord}) {
     context.go(AppRoutes.travelCreate, extra: {'initialRecord': initialRecord});
   }
@@ -132,8 +136,8 @@ class RouteNavigation {
     context.go(AppRoutes.encounterCreate, extra: {'initialEvent': initialEvent});
   }
 
-  static void goToChronicleGenerateConfig(BuildContext context) {
-    context.go(AppRoutes.chronicleGenerateConfig);
+  static Future<bool?> pushToChronicleGenerateConfig(BuildContext context) {
+    return context.push<bool>(AppRoutes.chronicleGenerateConfig);
   }
 
   static void goToChroniclePreview(BuildContext context, ChronicleRecord record) {
@@ -216,17 +220,15 @@ class RouteNavigation {
     context.push('/profile/amap-log');
   }
 
-  static void goToAiModelManagement(BuildContext context) {
-    context.go(AppRoutes.aiModelManagement);
+  static Future<bool?> pushToAiModelManagement(BuildContext context) {
+    return context.push<bool>(AppRoutes.aiModelManagement);
   }
 
-  static void goToAiHistorian(BuildContext context, {ModuleChatParams? moduleParams}) {
-    final currentRoute = GoRouterState.of(context).matchedLocation;
-    final params = moduleParams?.copyWith(sourceRoute: currentRoute);
-    context.go(AppRoutes.aiHistorian, extra: params);
+  static Future<bool?> pushToAiHistorian(BuildContext context, {ModuleChatParams? moduleParams}) {
+    return context.push<bool>(AppRoutes.aiHistorian, extra: moduleParams);
   }
 
-  static void goToAiHistorianForModule(BuildContext context, {
+  static Future<bool?> pushToAiHistorianForModule(BuildContext context, {
     required String moduleType,
     required String moduleName,
     String? initialQuery,
@@ -234,7 +236,6 @@ class RouteNavigation {
     List<String>? recordIds,
     bool fullData = true,
   }) {
-    final currentRoute = GoRouterState.of(context).matchedLocation;
     final params = ModuleChatParams(
       moduleType: moduleType,
       moduleName: moduleName,
@@ -242,27 +243,24 @@ class RouteNavigation {
       analysisType: analysisType,
       recordIds: recordIds,
       fullData: fullData,
-      sourceRoute: currentRoute,
     );
-    context.go(AppRoutes.aiHistorian, extra: params);
+    return context.push<bool>(AppRoutes.aiHistorian, extra: params);
   }
 
-  static void goToAiHistorianForFriend(
+  static Future<bool?> pushToAiHistorianForFriend(
     BuildContext context, {
     required FriendChatParams friendParams,
     String? initialQuery,
     String? analysisType,
   }) {
-    final currentRoute = GoRouterState.of(context).matchedLocation;
     final params = ModuleChatParams(
       moduleType: 'friend',
       moduleName: friendParams.friendName,
       initialQuery: initialQuery,
       analysisType: analysisType,
       friendParams: friendParams,
-      sourceRoute: currentRoute,
     );
-    context.go(AppRoutes.aiHistorian, extra: params);
+    return context.push<bool>(AppRoutes.aiHistorian, extra: params);
   }
 
   static void pushToFlashback(BuildContext context) {

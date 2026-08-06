@@ -472,6 +472,10 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
               'title': r.title,
               'summary': r.summary,
               'imageUrl': r.imageUrl,
+              'rating': r.rating,
+              'tags': r.tags,
+              'date': r.date,
+              'isFavorite': r.isFavorite,
             }).toList())
         : null;
 
@@ -552,7 +556,7 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
     final momentCount = await (db.select(db.momentRecords)..where((t) => t.isDeleted.equals(false))).get().then((r) => r.length);
     final travelCount = await (db.select(db.travelRecords)..where((t) => t.isDeleted.equals(false))).get().then((r) => r.length);
     final goalCount = await (db.select(db.goalRecords)..where((t) => t.isDeleted.equals(false))).get().then((r) => r.length);
-    final encounterCount = await (db.select(db.timelineEvents)..where((t) => t.eventType.equals('encounter'))).get().then((r) => r.length);
+    final encounterCount = await (db.select(db.timelineEvents)..where((t) => t.eventType.equals('encounter') & t.isDeleted.equals(false))).get().then((r) => r.length);
     
     setState(() {
       _recordStats = {
@@ -672,11 +676,77 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
     });
   }
 
-  Future<void> _sendMessage() async {
-    final text = _inputController.text.trim();
-    if (text.isEmpty || _isLoading || _currentSessionId == null) return;
+  Future<String> _buildSystemPrompt({
+    required String question,
+    required String? analysisType,
+    List<RecordContext>? preloadedRecords,
+    bool isQuickAction = false,
+  }) async {
+    if (widget.isModuleMode && widget.moduleParams?.isFriendMode == true) {
+      // 朋友模式：使用 FriendDataProcessor 构建提示词
+      final friendParams = widget.moduleParams!.friendParams!;
+      final processor = FriendDataProcessor();
+      final result = processor.processMemories(
+        friend: _createFriendRecordFromParams(friendParams),
+        memories: friendParams.memories,
+        analysisType: analysisType ?? 'relationship_profile',
+      );
 
-    _inputController.clear();
+      final config = getModuleConfig('friend');
+      final modulePrompt = config?.modulePrompt ?? '';
+
+      final now = DateTime.now();
+      final weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+      final weekdayName = weekdays[now.weekday - 1];
+
+      final suffix = isQuickAction
+          ? '## 分析任务\n\n分析类型：$analysisType\n\n用户问题：$question\n\n请按照分析类型的要求，进行深度分析。'
+          : '## 用户问题\n\n$question\n\n请基于以上数据进行分析，给出温暖、有洞察的回答。';
+
+      return '''
+$modulePrompt
+
+## 当前时间
+
+今天是 ${now.year}年${now.month}月${now.day}日（$weekdayName）
+当前时间：${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}
+
+当用户询问"上个月"、"去年"、"一年前"等相对时间时，请基于当前日期进行计算。
+
+${result.prompt}
+
+$suffix
+''';
+    } else if (widget.isModuleMode) {
+      return _promptBuilder.buildPrompt(
+        moduleType: widget.moduleParams!.moduleType,
+        moduleName: widget.moduleParams!.moduleName,
+        stats: _moduleStats ?? StatsData(totalRecords: _totalRecords),
+        records: _moduleRecords,
+        question: question,
+        analysisType: analysisType,
+      );
+    } else {
+      final db = ref.read(appDatabaseProvider);
+      final contextBuilder = ContextBuilder(db);
+
+      return await contextBuilder.buildSystemPrompt(
+        userQuery: question,
+        recordStats: _recordStats,
+        totalRecords: _totalRecords,
+        preloadedRecords: preloadedRecords,
+        fullData: _fullData,
+      );
+    }
+  }
+
+  Future<void> _streamAiResponse({
+    required String userMessageContent,
+    required String systemPrompt,
+    String errorLabel = '发送消息',
+  }) async {
+    if (_isLoading || _currentSessionId == null) return;
+
     setState(() {
       _errorMessage = null;
     });
@@ -684,7 +754,7 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
     final userMessage = ChatMessageModel(
       id: 'user_${DateTime.now().millisecondsSinceEpoch}',
       role: MessageRole.user,
-      content: text,
+      content: userMessageContent,
       timestamp: DateTime.now(),
     );
 
@@ -717,64 +787,6 @@ class _AiHistorianChatPageState extends ConsumerState<AiHistorianChatPage> {
     _scrollToBottom();
 
     try {
-      String systemPrompt;
-      
-      if (widget.isModuleMode && widget.moduleParams?.isFriendMode == true) {
-        // 朋友模式：使用 FriendDataProcessor 构建提示词
-        final friendParams = widget.moduleParams!.friendParams!;
-        final processor = FriendDataProcessor();
-        final result = processor.processMemories(
-          friend: _createFriendRecordFromParams(friendParams),
-          memories: friendParams.memories,
-          analysisType: widget.moduleParams?.analysisType ?? 'relationship_profile',
-        );
-        
-        final config = getModuleConfig('friend');
-        final modulePrompt = config?.modulePrompt ?? '';
-        
-        final now = DateTime.now();
-        final weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-        final weekdayName = weekdays[now.weekday - 1];
-        
-        systemPrompt = '''
-$modulePrompt
-
-## 当前时间
-
-今天是 ${now.year}年${now.month}月${now.day}日（$weekdayName）
-当前时间：${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}
-
-当用户询问"上个月"、"去年"、"一年前"等相对时间时，请基于当前日期进行计算。
-
-${result.prompt}
-
-## 用户问题
-
-$text
-
-请基于以上数据进行分析，给出温暖、有洞察的回答。
-''';
-      } else if (widget.isModuleMode) {
-        systemPrompt = _promptBuilder.buildPrompt(
-          moduleType: widget.moduleParams!.moduleType,
-          moduleName: widget.moduleParams!.moduleName,
-          stats: _moduleStats ?? StatsData(totalRecords: _totalRecords),
-          records: _moduleRecords,
-          question: text,
-          analysisType: widget.moduleParams?.analysisType,
-        );
-      } else {
-        final db = ref.read(appDatabaseProvider);
-        final contextBuilder = ContextBuilder(db);
-        
-        systemPrompt = await contextBuilder.buildSystemPrompt(
-          userQuery: text,
-          recordStats: _recordStats,
-          totalRecords: _totalRecords,
-          fullData: _fullData,
-        );
-      }
-
       final history = _messages
           .where((m) => m.id != aiMessageId)
           .where((m) => !m.id.startsWith('welcome_'))
@@ -828,7 +840,7 @@ $text
         await _saveMessage(finalMessage);
       }
     } catch (e, stackTrace) {
-      await FileLogger.instance.logWithLevel('AI史官', '发送消息失败: $e\n$stackTrace', LogLevel.error);
+      await FileLogger.instance.logWithLevel('AI史官', '$errorLabel失败: $e\n$stackTrace', LogLevel.error);
       setState(() {
         _errorMessage = '发送失败：$e';
       });
@@ -851,6 +863,24 @@ $text
     }
   }
 
+  Future<void> _sendMessage() async {
+    final text = _inputController.text.trim();
+    if (text.isEmpty || _isLoading || _currentSessionId == null) return;
+
+    _inputController.clear();
+
+    final systemPrompt = await _buildSystemPrompt(
+      question: text,
+      analysisType: widget.moduleParams?.analysisType,
+    );
+
+    await _streamAiResponse(
+      userMessageContent: text,
+      systemPrompt: systemPrompt,
+      errorLabel: '发送消息',
+    );
+  }
+
   void _sendQuickMessage(String message) {
     _inputController.text = message;
     _sendMessage();
@@ -858,181 +888,26 @@ $text
 
   Future<void> _sendQuickMessageWithContext(String actionType, String displayMessage) async {
     if (_isLoading || _currentSessionId == null) return;
-    
-    setState(() {
-      _errorMessage = null;
-    });
 
-    final userMessage = ChatMessageModel(
-      id: 'user_${DateTime.now().millisecondsSinceEpoch}',
-      role: MessageRole.user,
-      content: displayMessage,
-      timestamp: DateTime.now(),
+    List<RecordContext>? preloadedRecords;
+    if (!widget.isModuleMode) {
+      final db = ref.read(appDatabaseProvider);
+      final contextBuilder = ContextBuilder(db);
+      preloadedRecords = await contextBuilder.retrieveForQuickAction(actionType, fullData: _fullData);
+    }
+
+    final systemPrompt = await _buildSystemPrompt(
+      question: displayMessage,
+      analysisType: actionType,
+      preloadedRecords: preloadedRecords,
+      isQuickAction: true,
     );
 
-    setState(() {
-      _messages.add(userMessage);
-      _isLoading = true;
-    });
-    _scrollToBottom();
-    await _saveMessage(userMessage);
-
-    final chatService = ref.read(activeChatServiceProvider);
-    if (chatService == null) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = '请先在"个人中心 > AI 模型管理"中配置 AI 服务';
-      });
-      return;
-    }
-
-    final aiMessageId = 'ai_${DateTime.now().millisecondsSinceEpoch}';
-    setState(() {
-      _messages.add(ChatMessageModel(
-        id: aiMessageId,
-        role: MessageRole.assistant,
-        content: '',
-        timestamp: DateTime.now(),
-        isStreaming: true,
-      ));
-    });
-    _scrollToBottom();
-
-    try {
-      String systemPrompt;
-      
-      if (widget.isModuleMode && widget.moduleParams?.isFriendMode == true) {
-        // 朋友模式：使用 FriendDataProcessor 构建提示词
-        final friendParams = widget.moduleParams!.friendParams!;
-        final processor = FriendDataProcessor();
-        final result = processor.processMemories(
-          friend: _createFriendRecordFromParams(friendParams),
-          memories: friendParams.memories,
-          analysisType: actionType,
-        );
-        
-        final config = getModuleConfig('friend');
-        final modulePrompt = config?.modulePrompt ?? '';
-        
-        final now = DateTime.now();
-        final weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-        final weekdayName = weekdays[now.weekday - 1];
-        
-        systemPrompt = '''
-$modulePrompt
-
-## 当前时间
-
-今天是 ${now.year}年${now.month}月${now.day}日（$weekdayName）
-当前时间：${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}
-
-当用户询问"上个月"、"去年"、"一年前"等相对时间时，请基于当前日期进行计算。
-
-${result.prompt}
-
-## 分析任务
-
-分析类型：$actionType
-
-用户问题：$displayMessage
-
-请按照分析类型的要求，进行深度分析。
-''';
-      } else if (widget.isModuleMode) {
-        systemPrompt = _promptBuilder.buildPrompt(
-          moduleType: widget.moduleParams!.moduleType,
-          moduleName: widget.moduleParams!.moduleName,
-          stats: _moduleStats ?? StatsData(totalRecords: _totalRecords),
-          records: _moduleRecords,
-          question: displayMessage,
-          analysisType: actionType,
-        );
-      } else {
-        final db = ref.read(appDatabaseProvider);
-        final contextBuilder = ContextBuilder(db);
-        
-        final preloadedRecords = await contextBuilder.retrieveForQuickAction(actionType, fullData: _fullData);
-        
-        systemPrompt = await contextBuilder.buildSystemPrompt(
-          userQuery: displayMessage,
-          recordStats: _recordStats,
-          totalRecords: _totalRecords,
-          preloadedRecords: preloadedRecords,
-          fullData: _fullData,
-        );
-      }
-
-      final history = _messages
-          .where((m) => m.id != aiMessageId)
-          .where((m) => !m.id.startsWith('welcome_'))
-          .map((m) => ai_service.ChatMessage(
-                role: m.role == MessageRole.user ? 'user' : 'assistant',
-                content: m.content,
-              ))
-          .toList();
-
-      StringBuffer contentBuffer2 = StringBuffer();
-      DateTime lastUpdate2 = DateTime.now();
-      const updateInterval2 = Duration(milliseconds: 100);
-
-      await chatService.chatStream(
-        systemPrompt: systemPrompt,
-        messages: history,
-        onChunk: (chunk) {
-          contentBuffer2.write(chunk);
-          final now = DateTime.now();
-          if (now.difference(lastUpdate2) >= updateInterval2) {
-            final index = _messages.indexWhere((m) => m.id == aiMessageId);
-            if (index != -1) {
-              setState(() {
-                _messages[index] = _messages[index].copyWith(
-                  content: contentBuffer2.toString(),
-                );
-              });
-            }
-            lastUpdate2 = now;
-          }
-        },
-      );
-
-      final index = _messages.indexWhere((m) => m.id == aiMessageId);
-      if (index != -1) {
-        setState(() {
-          _messages[index] = _messages[index].copyWith(
-            content: contentBuffer2.toString(),
-          );
-        });
-        final recommendations = _parseRecommendations(contentBuffer2.toString());
-        final cleanContent = _removeRecommendationsJson(contentBuffer2.toString());
-        final finalMessage = _messages[index].copyWith(
-          content: cleanContent,
-          isStreaming: false,
-          recommendations: recommendations,
-        );
-        setState(() {
-          _messages[index] = finalMessage;
-        });
-        await _saveMessage(finalMessage);
-      }
-    } catch (e, stackTrace) {
-      await FileLogger.instance.logWithLevel('AI史官', '执行快捷操作失败: $e\n$stackTrace', LogLevel.error);
-      final index = _messages.indexWhere((m) => m.id == aiMessageId);
-      if (index != -1) {
-        final finalMessage = _messages[index].copyWith(
-          content: '抱歉，我遇到了一些问题：$e',
-          isStreaming: false,
-        );
-        setState(() {
-          _messages[index] = finalMessage;
-        });
-        await _saveMessage(finalMessage);
-      }
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-      _scrollToBottom();
-    }
+    await _streamAiResponse(
+      userMessageContent: displayMessage,
+      systemPrompt: systemPrompt,
+      errorLabel: '执行快捷操作',
+    );
   }
 
   void _clearConversation() {
@@ -1069,12 +944,12 @@ ${result.prompt}
     switch (card.type) {
       case 'food':
         if (context.mounted) {
-          RouteNavigation.goToFoodDetail(context, card.id);
+          RouteNavigation.pushToFoodDetail(context, card.id);
         }
         break;
       case 'moment':
         if (context.mounted) {
-          RouteNavigation.goToMomentDetail(context, card.id);
+          RouteNavigation.pushToMomentDetail(context, card.id);
         }
         break;
       case 'travel':
@@ -1091,19 +966,25 @@ ${result.prompt}
         if (shouldNavigateToJournal) {
           RouteNavigation.pushToJournalDetail(context, recordId);
         } else {
-          RouteNavigation.goToTravelDetail(context, recordId);
+          RouteNavigation.pushToTravelDetail(context, recordId);
         }
         break;
       case 'goal':
         if (context.mounted) {
-          RouteNavigation.goToGoalDetail(context, card.id);
+          RouteNavigation.pushToGoalDetail(context, card.id);
         }
         break;
       case 'encounter':
         if (context.mounted) {
-          RouteNavigation.goToEncounterDetail(context, card.id);
+          RouteNavigation.pushToEncounterDetail(context, card.id);
         }
         break;
+      default:
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('暂不支持的记录类型：${card.type}')),
+          );
+        }
     }
   }
 
@@ -1112,13 +993,7 @@ ${result.prompt}
     final hasAiService = ref.watch(hasActiveChatProvider);
 
     return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) {
-          final sourceRoute = widget.moduleParams?.sourceRoute ?? AppRoutes.home;
-          context.go(sourceRoute);
-        }
-      },
+      canPop: true,
       child: Scaffold(
         backgroundColor: const Color(0xFFF6F8F8),
         body: Stack(
@@ -1128,7 +1003,7 @@ ${result.prompt}
                 children: [
                 _AiChatTopBar(
                   onClear: _clearConversation,
-                  onAnalytics: () => RouteNavigation.goToChronicleGenerateConfig(context),
+                  onAnalytics: () => RouteNavigation.pushToChronicleGenerateConfig(context),
                   onToggleSessions: () => setState(() => _showSessionDrawer = !_showSessionDrawer),
                   hasAiService: hasAiService,
                   fullData: _fullData,
@@ -1140,8 +1015,11 @@ ${result.prompt}
                     }
                   },
                   onGoBack: () {
-                    final sourceRoute = widget.moduleParams?.sourceRoute ?? AppRoutes.home;
-                    context.go(sourceRoute);
+                    if (Navigator.canPop(context)) {
+                      Navigator.pop(context);
+                    } else {
+                      context.go(AppRoutes.home);
+                    }
                   },
                   moduleParams: widget.moduleParams,
                 ),
@@ -1165,7 +1043,7 @@ ${result.prompt}
                           ),
                         ),
                         TextButton(
-                          onPressed: () => RouteNavigation.goToAiModelManagement(context),
+                          onPressed: () => RouteNavigation.pushToAiModelManagement(context),
                           child: const Text('去配置'),
                         ),
                       ],
@@ -1531,7 +1409,7 @@ class _AiChatTopBar extends StatelessWidget {
                 ),
               ),
               InkWell(
-                onTap: onToggleFullData,
+                onTap: moduleParams != null ? onToggleFullData : null,
                 borderRadius: BorderRadius.circular(8),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -1552,7 +1430,7 @@ class _AiChatTopBar extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        moduleParams != null 
+                        moduleParams != null
                             ? (fullData ? '全量数据' : '模块数据')
                             : '全量数据',
                         style: TextStyle(
